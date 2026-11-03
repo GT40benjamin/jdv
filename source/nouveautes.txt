@@ -18,6 +18,11 @@
 [pegase] 🌼 Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.
 [pegase] 🌸 De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.
 [pegase] 🧥 Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps.
+[licornes] ## 🦄 La Maison des Licornes : des enfants viennent chercher leur licorne (borne 1.63.138)
+[licornes] 👧 Des enfants se présentent à la fenêtre : la bulle montre la licorne qu'ils veulent (bébé ou grande, sa couleur, parfois un accessoire). Fais glisser la bonne licorne jusqu'à eux !
+[licornes] ⏱️ Le jeu se joue en manches : livre assez de licornes avant la fin du temps. À chaque manche, une licorne de plus, et un peu moins de temps.
+[licornes] 🎨 Choisis la couleur de l'œuf qui couve, ou achète un pot de couleur sur le tapis pour repeindre une licorne. Les œufs légendaires donnent une licorne qui scintille.
+[licornes] 🕳️ Les objets du tapis, plus lent, sortent d'un trou dans le mur et rentrent dans un autre. La couveuse a son coussin de paille, et une grande couveuse (4 œufs) passe de temps en temps.
 [noisette] ## 🌱 Noisette et ses amis : un sol sans raccords (borne 1.63.128)
 [noisette] 🌱 Le sol de la forêt est d'un seul tenant : plus de traits entre les morceaux de terre, l'herbe continue sans coupure et le haut des pentes s'arrondit en douceur, sur tous les niveaux.
 [noisette] ## 🐿️ Noisette et ses amis : il part dès que tu appuies (borne 1.63.125)
