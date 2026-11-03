@@ -48,6 +48,8 @@
 [licornes] ⏱️ Le jeu se joue en manches : livre assez de licornes avant la fin du temps. À chaque manche, une licorne de plus, et un peu moins de temps.
 [licornes] 🎨 Choisis la couleur de l'œuf qui couve, ou achète un pot de couleur sur le tapis pour repeindre une licorne. Les œufs légendaires donnent une licorne qui scintille.
 [licornes] 🕳️ Les objets du tapis, plus lent, sortent d'un trou dans le mur et rentrent dans un autre. La couveuse a son coussin de paille, et une grande couveuse (4 œufs) passe de temps en temps.
+[noisette] ## 🎵 Noisette et ses amis : une musique pour chaque niveau (borne 1.63.154)
+[noisette] 🎵 Chaque niveau a maintenant sa musique : un air mystérieux et doux dans le sous-bois aux champignons, une musique qui sautille au bord de la rivière, et une grande musique d'aventure au pied du grand chêne. La forêt du matin garde la sienne.
 [noisette] ## 🌱 Noisette et ses amis : un sol sans raccords (borne 1.63.128)
 [noisette] 🌱 Le sol de la forêt est d'un seul tenant : plus de traits entre les morceaux de terre, l'herbe continue sans coupure et le haut des pentes s'arrondit en douceur, sur tous les niveaux.
 [noisette] ## 🐿️ Noisette et ses amis : il part dès que tu appuies (borne 1.63.125)

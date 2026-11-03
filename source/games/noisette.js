@@ -14,9 +14,9 @@ const VMAX = 430, VMAX_GLAND = 640, VMAX_BOULE = 820, ACC = 1500, FREIN = 2300;
 const H_NOI = 70;                       // hauteur de Noisette debout (unités du monde)
 const NIVEAUX = [
   { nom: 'La forêt du matin', fond: 'fond1', ami: 'pompon', amiNom: 'Pompon le lapin', sol: ['#7a5233', '#5c3b22'], herbe: ['#7fd35a', '#4fa43a'], eau: false },
-  { nom: 'Le sous-bois aux champignons', fond: 'fond2', ami: 'piquant', amiNom: 'Piquant le hérisson', sol: ['#5b4032', '#3d2a20'], herbe: ['#5fb06a', '#3c7f4c'], eau: false },
-  { nom: 'La rivière et ses rondins', fond: 'fond3', ami: 'hulotte', amiNom: 'Hulotte la chouette', sol: ['#80603d', '#5d4329'], herbe: ['#86d462', '#55a83f'], eau: true },
-  { nom: 'Le grand chêne', fond: 'fond4', ami: 'roussette', amiNom: 'Roussette la renarde', sol: ['#7d5530', '#58391e'], herbe: ['#9bd65a', '#62a63a'], eau: false }
+  { nom: 'Le sous-bois aux champignons', fond: 'fond2', musique: 'noisettesb', ami: 'piquant', amiNom: 'Piquant le hérisson', sol: ['#5b4032', '#3d2a20'], herbe: ['#5fb06a', '#3c7f4c'], eau: false },
+  { nom: 'La rivière et ses rondins', fond: 'fond3', musique: 'noisetteriv', ami: 'hulotte', amiNom: 'Hulotte la chouette', sol: ['#80603d', '#5d4329'], herbe: ['#86d462', '#55a83f'], eau: true },
+  { nom: 'Le grand chêne', fond: 'fond4', musique: 'noisettechene', ami: 'roussette', amiNom: 'Roussette la renarde', sol: ['#7d5530', '#58391e'], herbe: ['#9bd65a', '#62a63a'], eau: false }
 ];
 // les amis : leurs images (repos, respire, cycle de déplacement), leur façon de bouger, leur taille
 const AMIS = {
@@ -211,6 +211,8 @@ function mount(root, api) {
     trace = []; for (let i = 0; i < 200; i++) trace.push({ x: P.x - 4 * i, y: P.y, sol: true, boule: false, flip: false, vx: 0 });
     amis.forEach((a, i) => { a.x = P.x - 60 * (i + 1); a.y = P.y; });
     msg = { s: NIVEAUX[n].nom, t: 0, d: 2.4, grand: 1 };
+    // une musique par niveau (demande de SAMBA) : la borne fait le fondu et respecte « son coupé » ; la forêt garde la musique du jeu
+    try { if (api.music) { if (NIVEAUX[n].musique) api.music(NIVEAUX[n].musique, { level: true }); else api.music(); } } catch (e) { /* rien */ }
   }
   function reset() { score = 0; sac = 0; amis = []; parts = []; texts = []; overSent = false; nouveauNiveau(0); }
   function startGame() { try { if (Array.isArray(window.JDW_ATL_OFF)) lireOff(window.JDW_ATL_OFF); } catch (e) { /* rien */ } reset(); state = 'play'; stT = 0; }
