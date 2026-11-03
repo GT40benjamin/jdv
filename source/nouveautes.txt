@@ -36,6 +36,8 @@
 [borne] 🎮 Un jeu resté ouvert en pause ne passe plus par-dessus le jeu que tu choisis : chaque tuile ouvre toujours son jeu à elle.
 [borne] ## 📱 Les jeux en plein écran sur téléphone (borne 2.0.38)
 [borne] 📱 Téléphone à l’horizontale : plus de bande sur le côté pendant la partie, le jeu prend toute la largeur. Quitter et le son sont deux petits ronds transparents, dans un coin que le jeu laisse libre.
+[atelier] ## 🛠️ {G} au travail sur ton ticket (borne 2.0.59)
+[atelier] 🛠️ Pendant que {g} prépare ta demande, ton ticket le montre au travail : l’étape en cours, l’heure, et une barre « Étape x / y » qui avance toute seule.
 [atelier] ## ✅ L’option choisie, en détail (borne 2.0.58)
 [atelier] ✅ Une fois une option choisie, ton ticket affiche tout ce qu’elle contient, juste sous ton choix.
 [atelier] ## ✍️ L’admin peut choisir une option pour toi (borne 2.0.57)

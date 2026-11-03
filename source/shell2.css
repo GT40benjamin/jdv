@@ -4758,3 +4758,9 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 /* 2.0.58 : les lignes de l'option choisie, sous « ✅ Choisi » / « ✍️ L'admin a choisi pour toi » */
 .atl-propdet{margin:6px 0 0;padding:0 12px 0 30px;font:14px/1.45 var(--body);color:var(--ink)}
 .atl-propdet li{margin:2px 0}
+/* 2.0.59 : la bulle « au travail » d'un ticket (joueur et admin) */
+.atl-travb .atl-travt{height:auto;display:block;-webkit-line-clamp:unset;font-weight:600}
+.atl-travbar{height:8px;margin:8px 0 2px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+.atl-travbar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#7ef7ff,#ffd34d);transition:width .6s ease}
+.atl-travb small{display:block;margin-top:3px;color:var(--muted, rgba(255,255,255,.6));font:600 12px/1.4 var(--body)}
+.atl-travb .atl-travn{color:#ffe7a3}

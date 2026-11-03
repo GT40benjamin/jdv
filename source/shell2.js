@@ -16618,15 +16618,26 @@ async function atlStripe(corps, b, er) {
 const ATL_DEM_ET = { envoyee: '📨 Envoyée', vue: '👀 Vue par ', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard' };
 const ATL_DEM_SO = { vignette: '🖼️ Image de présentation', arret: '🎯 Arrêt sur image', retouche: '✂️ Retouche', redessin: '🎨 Élément refait', modifier: '🎨 Modification', retirer: '🗑️ Retrait', son: '🔊 Bruitage', musique: '🎵 Musique', creer: '＋ Création', get propose() { return '🎁 Proposé par ' + gN(); }, get correction() { return '🛠️ Correction de ' + gN(); }, message: '💬 Message' };
 // 2.0.9 : l'avancement d'une demande, étape par étape (at_demande_avancer) : « je prépare les images », « je construis », « je teste »…
-function atlEtapes(l) {
+// 2.0.59 (Benjamin : « l'admin ne voit PAS la mascotte en train de travailler ») : la bulle d'un ticket en travail, identique chez le joueur
+// et dans la vue admin (« Demandes du projet (admin) ») ; elle se met à jour en direct (joueur : relue toutes les 3 s ; admin : atlAdminTravail)
+function atlTravBulle(x, qui) {
+  const l = Array.isArray(x && x.etapes) ? x.etapes.filter(e => e && (e.texte || e.etape)) : [], e = l[l.length - 1]; if (!e) return null;
+  const tx = String(e.texte || e.etape || ''), m = tx.match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i), d0 = new Date(e.at);
+  const B = atlEl('div', 'atl-dthink atl-travb'), col = atlEl('div'); B.dataset.id = x.id || ''; B.dataset.k = tx + '|' + (e.at || '');
+  col.append(atlEl('b', '', '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : 'sur ta demande')), atlEl('p', 'atl-travt', tx));
+  if (m && +m[2] > 0) { const n = Math.min(+m[1], +m[2]), bar = atlEl('div', 'atl-travbar'), i = atlEl('i'); i.style.width = Math.round(n / +m[2] * 100) + '%'; bar.appendChild(i); col.append(bar, atlEl('small', 'atl-travn', 'Étape ' + n + ' / ' + m[2])); }
+  col.append(atlEl('small', '', (isNaN(d0) ? '' : 'à ' + d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' · ') + (qui ? 'en direct' : 'Je te préviens dès que c’est prêt 🔔')), atlEl('span', 'atl-dpts', '•••'));
+  B.append(atlGuideAv('atl-wav'), col); return B;
+}
+function atlEtapes(l, passees) {   // passees : toutes finies (2.0.59 : l'étape en cours est dans la bulle au-dessus)
   const ul = atlEl('ol', 'atl-etapes');
-  l.slice(-4).forEach((e, i, a) => { const d0 = new Date(e.at), li = atlEl('li', i === a.length - 1 ? 'now' : ''); li.append(atlEl('span', '', (i === a.length - 1 ? '🛠️ ' : '✔ ') + String(e.texte || e.etape || '')), atlEl('small', '', isNaN(d0) ? '' : d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))); ul.appendChild(li); });
+  l.slice(-4).forEach((e, i, a) => { const enc = !passees && i === a.length - 1, d0 = new Date(e.at), li = atlEl('li', enc ? 'now' : ''); li.append(atlEl('span', '', (enc ? '🛠️ ' : '✔ ') + String(e.texte || e.etape || '')), atlEl('small', '', isNaN(d0) ? '' : d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))); ul.appendChild(li); });
   return ul;
 }
 const atlDemEnCours = () => (((ATL && ATL.dem) || {}).demandes || []).filter(x => x && ['envoyee', 'vue', 'en_cours'].includes(x.etat));   // en attente d'une réponse ou en travail : relue toutes les 8 s
 function atlTravailMaj() {
   const R = ATL && ATL.root, W = R && R.querySelector('.atl-wiz'), p = W && W.querySelector('.atl-pane[data-k="jeu"]'); if (!p || !ATL.cur) return;
-  const l = atlDemEnCours().filter(x => x.fiche === ATL.cur && Array.isArray(x.etapes) && x.etapes.length);
+  const l = (atlAdminIci() ? (ATL.data.demandes_projet || []).filter(x => x && ['envoyee', 'vue', 'en_cours'].includes(x.etat)) : atlDemEnCours()).filter(x => x.fiche === ATL.cur && Array.isArray(x.etapes) && x.etapes.length);   // 2.0.59 : en vue admin, celles du joueur
   let b = p.querySelector('.atl-tlive');
   if (!l.length) { const ta = p.querySelector('.atl-travail[data-auto]'); if (ta) ta.remove(); else if (b && b.closest('.atl-travail')) b.textContent = '\u00a0'; else if (b) b.remove(); return; }
   // 2.0.34 (Benjamin : « la mascotte doit être là et le dire avec sa bulle, comme quand il travaille dessus ») : le même cadre fixe que « Je prépare ta Vn »
@@ -16950,7 +16961,10 @@ function atlDemCarte0(x) {
     const txt = String(x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, ''), tp = atlEl('p', 'atl-demtx', txt); t.appendChild(tp);
     if (txt.length > 140) { const vp = atlEl('button', 'atl-demplus', 'voir plus'); vp.type = 'button'; vp.addEventListener('click', () => { const o = tp.classList.toggle('ouvert'); vp.textContent = o ? 'voir moins' : 'voir plus'; }); t.appendChild(vp); }
     if (x.reponse) { const bu = atlEl('div', 'atl-dembu' + (x.nouveau ? ' nouveau' : '')), bt = atlEl('div'); bt.append(atlEl('b', '', '💬 ' + gNM() + ' te répond' + (x.nouveau ? ' · ✨ nouveau' : '')), atlEl('p', '', x.reponse)); bu.append(atlGuideAv('atl-wav'), bt); t.appendChild(bu); }   // 2.0.10 : la réponse bien visible
-    if (Array.isArray(x.etapes) && x.etapes.length && !['faite', 'impossible'].includes(x.etat)) t.appendChild(atlEtapes(x.etapes));
+    if (Array.isArray(x.etapes) && x.etapes.length && !['faite', 'impossible'].includes(x.etat)) {
+      const tb = x.etat !== 'envoyee' ? atlTravBulle(x) : null;   // « envoyée » : la bulle « réfléchit » s'en charge
+      if (tb) { t.appendChild(tb); if (x.etapes.length > 1) t.appendChild(atlEtapes(x.etapes.slice(0, -1), true)); } else t.appendChild(atlEtapes(x.etapes));
+    }
     if (x.choix) t.appendChild(atlEl('p', 'atl-propok' + (x.choix.par === 'admin' ? ' adm' : ''), (x.choix.par === 'admin' ? '✍️ L’admin a choisi pour toi : ' : '✅ Choisi : ') + (x.choix.libelle || '') + ((x.choix.credits | 0) ? ' · ' + (x.choix.credits | 0) + ' 💎' : x.choix.par === 'admin' ? ' · offert 🎁' : '')));
     // 2.0.58 : ce que contient l'option choisie (la réponse de la mascotte annonçait les options, qui ont disparu une fois le choix fait)
     if (x.choix && Array.isArray(x.choix.details) && x.choix.details.length) { const ul = atlEl('ul', 'atl-propdet'); for (const d of x.choix.details.slice(0, 8)) ul.appendChild(atlEl('li', '', String(d))); t.appendChild(ul); }
@@ -17185,6 +17199,25 @@ function atlPropEditeur(x, m) {
   E.append(atlEl('b', '', '🛡️ Les options (admin) · « ⏸️ Plus tard » est ajouté tout seul'), grille, atlAvecMic(ta), go, msg);
   return E;
 }
+// 2.0.59 : en vue admin, tant qu'une demande du projet est en travail, on relit le projet toutes les 4 s et on remplace les bulles sur place
+// (les éditeurs d'options ou de questions ouverts ne bougent pas)
+setInterval(async () => {
+  try {
+    if (!ATL || !ATL.open || document.hidden || !atlAdminIci() || ATL.adminTravOcc) return;
+    const enCours = l => (l || []).some(x => x && ['envoyee', 'vue', 'en_cours'].includes(x.etat) && Array.isArray(x.etapes) && x.etapes.length);
+    if (!enCours(ATL.data.demandes_projet)) return;
+    ATL.adminTravOcc = true; const m = ATL.adminVoir;
+    const r0 = await rpc('at_admin_lire', { p_name: profile.name, p_fiche: m.id }, { quiet: true });
+    if (!r0 || !atlAdminIci() || ATL.adminVoir !== m || !ATL.data) return;
+    ATL.data.demandes_projet = r0.demandes_projet; if (r0.admin_voir) ATL.data.admin_voir = r0.admin_voir;
+    const qui = dispName((ATL.data.admin_voir || {}).joueur || '') || 'le joueur';
+    for (const old of ATL.root.querySelectorAll('.atl-zoom .atl-travb[data-id]')) {
+      const x = (r0.demandes_projet || []).find(d => d && d.id === old.dataset.id), nb = x && atlTravBulle(x, qui);
+      if (nb && nb.dataset.k !== old.dataset.k) old.replaceWith(nb);
+    }
+    try { atlTravailMaj(); } catch (e) {}
+  } catch (e) {} finally { if (ATL) ATL.adminTravOcc = false; }
+}, 4000);
 async function atlAdminDemandes() {
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'), m = ATL.adminVoir; if (!z || !m) return;
   try { const r0 = await rpc('at_admin_lire', { p_name: profile.name, p_fiche: m.id }, { quiet: true }); if (r0 && ATL.data) ATL.data.demandes_projet = r0.demandes_projet; } catch (e) {}   // l'état réel, pas celui d'il y a 20 s
@@ -17206,6 +17239,7 @@ async function atlAdminDemandes() {
     t.append(atlEl('b', 'atl-demet', (ATL_DEM_ET[x.etat] || x.etat) + (x.etat === 'vue' ? gN() : '') + (x.etat !== 'envoyee' && !isNaN(d1) ? ' · ' + fdt(d1) : '')),
       atlEl('small', '', (ATL_DEM_SO[x.sorte] || '') + ' · ' + fdt(d0) + (x.cout ? ' · ' + x.cout + ' 💎' : '')), atlEl('p', '', String(x.texte || '').slice(0, 400)));
     if (x.reponse) t.appendChild(atlEl('p', 'atl-demrep', '🤖 Réponse envoyée : ' + x.reponse));
+    if (!['faite', 'impossible'].includes(x.etat)) { const tb = atlTravBulle(x, dispName(((ATL.data && ATL.data.admin_voir) || {}).joueur || '') || 'le joueur'); if (tb) t.appendChild(tb); }   // 2.0.59
     if (Array.isArray(x.questions) && x.questions.length) t.appendChild(atlQuestions(x));   // 2.0.29 : les questions et les réponses du joueur
     const se = atlEl('select', 'atl-tousf'); for (const k of ['envoyee', 'vue', 'en_cours', 'faite', 'impossible']) { const o = new Option((ATL_DEM_ET[k] || k) + (k === 'vue' ? gN() : ''), k); if (k === x.etat) o.selected = true; se.appendChild(o); }
     const ta = atlEl('textarea', 'atl-arin'); ta.rows = 2; ta.maxLength = 1000; ta.placeholder = x.reponse ? 'Nouvelle réponse (facultatif)' : 'Réponse au joueur (facultatif, elle arrive aussi dans la discussion)';
