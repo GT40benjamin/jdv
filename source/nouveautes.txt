@@ -33,6 +33,8 @@
 [pegase] 🌼 Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.
 [pegase] 🌸 De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.
 [pegase] 🧥 Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps.
+[licornes] ## 🦄 La Maison des Licornes : de jolis boutons (borne 1.63.144)
+[licornes] 🎀 Les boutons d'une licorne (Biberon, Au nid, Donner, Revendre) sont plus mignons : une icône, le mot en entier, une couleur pour chacun et un petit rebond quand tu les touches.
 [licornes] ## 🦄 La Maison des Licornes : des enfants viennent chercher leur licorne (borne 1.63.138)
 [licornes] 👧 Des enfants se présentent à la fenêtre : la bulle montre la licorne qu'ils veulent (bébé ou grande, sa couleur, parfois un accessoire). Fais glisser la bonne licorne jusqu'à eux !
 [licornes] ⏱️ Le jeu se joue en manches : livre assez de licornes avant la fin du temps. À chaque manche, une licorne de plus, et un peu moins de temps.

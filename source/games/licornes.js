@@ -456,16 +456,18 @@ function mount(root, api) {
   }
 
   // ---------- boutons d'action (selon la licorne choisie) ----------
+  const appui = {};
   function actions() {
     const u = sel, out = [];
     if (!u) return out;
-    if (u.bebe) out.push({ id: 'feed', t: '🍼 Biberon (' + bib + ')', on: bib > 0 });
-    else if (u.nid != null) out.push({ id: 'out', t: '↩ Sortir du nid', on: true });
-    else out.push({ id: 'nid', t: '💞 Au nid d’amour', on: !(nid[0] && nid[1]) });
-    out.push({ id: 'give', t: '🎁 Donner', on: !!(client && client.etat === 'attend') });
-    out.push({ id: 'sell', t: '💰 ' + Math.round(valeur(u) / 2), on: true });
-    const a = L.act, n = out.length, gap = 12, bw = (a.w - 150 - gap * (n - 1)) / n;
-    out.forEach((o, i) => { o.x = a.x + 150 + i * (bw + gap); o.y = a.y + 30; o.w = bw; o.h = a.h - 40; });
+    // chaque bouton : une icône, son mot en entier, parfois un petit détail dessous ; une couleur pastel par action
+    if (u.bebe) out.push({ id: 'feed', ic: '🍼', t: 'Biberon', sub: '× ' + bib, c: ['#ffd3ea', '#ff9fcf'], tc: '#8a2560', on: bib > 0 });
+    else if (u.nid != null) out.push({ id: 'out', ic: '↩️', t: 'Sortir du nid', c: ['#e6dcff', '#bfa8ff'], tc: '#4f2d8f', on: true });
+    else out.push({ id: 'nid', ic: '💞', t: 'Au nid', c: ['#e6dcff', '#bfa8ff'], tc: '#4f2d8f', on: !(nid[0] && nid[1]) });
+    out.push({ id: 'give', ic: '🎁', t: 'Donner', c: ['#d4f7e4', '#8fe0b5'], tc: '#1f6b46', on: !!(client && client.etat === 'attend') });
+    out.push({ id: 'sell', ic: '💰', t: 'Revendre', sub: '🪙 ' + Math.round(valeur(u) / 2), c: ['#fff1b8', '#ffd25e'], tc: '#7a4a00', on: true });
+    const a = L.act, n = out.length, gap = 14, x0 = a.x + 136, bw = (a.x + a.w - 12 - x0 - gap * (n - 1)) / n;
+    out.forEach((o, i) => { o.x = x0 + i * (bw + gap); o.y = a.y + 28; o.w = bw; o.h = a.h - 36; });
     return out;
   }
   function trayBoxes() {
@@ -539,6 +541,7 @@ function mount(root, api) {
     // boutons d'action
     for (const a of actions()) if (inBox(p, a)) {
       if (!a.on && a.id !== 'feed' && a.id !== 'give') { snd.no(); if (a.id === 'nid') say('Le nid est déjà occupé'); return; }
+      appui[a.id] = performance.now();   // le petit rebond du bouton
       if (a.id === 'feed') feed(sel); else if (a.id === 'give') livrer(sel); else if (a.id === 'sell') sell(sel); else if (a.id === 'nid') toNid(sel); else if (a.id === 'out') fromNid(sel);
       return;
     }
@@ -913,14 +916,32 @@ function mount(root, api) {
     const nm = uniImg(u), ih = 86, iw = ih * ratio(nm);
     ctx.save(); ctx.translate(a.x + 70, a.y + a.h / 2 + ih / 2 - 4); ctx.scale(Math.min(1, 120 / iw), Math.min(1, 120 / iw)); drawImg(ctx, nm, -iw / 2, -ih, iw, ih, u.col); ctx.restore();
     ctx.font = 'bold 15px ' + RF; ctx.fillStyle = '#8a4fb0'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText((u.bebe ? 'Bébé · ' + ['', 'rare', 'légendaire'][['commun', 'rare', 'leg'].indexOf(u.ligne)] : ADULTES[u.adulte].nom).replace(/ · $/, '') + (u.accs.length ? ' · ' + u.accs.length + ' accessoire' + (u.accs.length > 1 ? 's' : '') : ''), a.x + 150, a.y + 16);
-    for (const b of actions()) {
-      pill(ctx, b.x, b.y, b.w, b.h, 18);
-      const g = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
-      if (b.id === 'sell') { g.addColorStop(0, '#ffe58a'); g.addColorStop(1, '#ffc54a'); } else { g.addColorStop(0, '#ffc2e2'); g.addColorStop(1, '#f58ec4'); }
-      ctx.fillStyle = g; ctx.globalAlpha = b.on ? 1 : 0.45; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 3; ctx.stroke();
-      ctx.font = 'bold ' + (portrait ? 22 : 20) + 'px ' + RF; ctx.fillStyle = b.id === 'sell' ? '#7a4a00' : '#7a1f55'; ctx.textAlign = 'center'; ctx.fillText(b.t, b.x + b.w / 2, b.y + b.h / 2 + 1);
-    }
+    ctx.fillText((u.bebe ? 'Bébé · ' + ['', 'rare', 'légendaire'][['commun', 'rare', 'leg'].indexOf(u.ligne)] : ADULTES[u.adulte].nom).replace(/ · $/, '') + (u.accs.length ? ' · ' + u.accs.length + ' accessoire' + (u.accs.length > 1 ? 's' : '') : ''), a.x + 138, a.y + 15);
+    for (const b of actions()) drawBouton(b);
+  }
+  // un bouton mignon : arrondi pastel, ombre douce, reflet, icône au-dessus et mot entier dessous (plus petit ou sur deux lignes s'il le faut)
+  function drawBouton(b) {
+    const t = appui[b.id] ? (performance.now() - appui[b.id]) / 1000 : 9, k = t < 0.35 ? 1 - Math.sin(t / 0.35 * Math.PI) * 0.09 : 1;
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, r = Math.min(22, b.h * 0.32);
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); ctx.globalAlpha = b.on ? 1 : 0.5;
+    ctx.fillStyle = 'rgba(150,80,140,0.22)'; pill(ctx, b.x, b.y + 4, b.w, b.h, r); ctx.fill();
+    const g = ctx.createLinearGradient(0, b.y, 0, b.y + b.h); g.addColorStop(0, b.c[0]); g.addColorStop(1, b.c[1]);
+    pill(ctx, b.x, b.y, b.w, b.h, r); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'; pill(ctx, b.x + 8, b.y + 5, b.w - 16, b.h * 0.26, r * 0.6); ctx.fill();
+    // l'icône
+    const big = portrait ? 1.15 : 1, icS = Math.round(Math.min(26 * big, b.h * 0.32));
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = icS + 'px system-ui, sans-serif';
+    ctx.fillText(b.ic, cx, b.y + b.h * (b.sub ? 0.26 : 0.32));
+    // le mot : jamais coupé (on réduit, puis on passe à la ligne)
+    const maxW = b.w - 14; let fs = Math.round(18 * big), lignes = [b.t];
+    ctx.font = 'bold ' + fs + 'px ' + RF;
+    while (ctx.measureText(b.t).width > maxW && fs > 13) { fs--; ctx.font = 'bold ' + fs + 'px ' + RF; }
+    if (ctx.measureText(b.t).width > maxW && b.t.includes(' ')) { const m = b.t.split(' '); lignes = [m.slice(0, Math.ceil(m.length / 2)).join(' '), m.slice(Math.ceil(m.length / 2)).join(' ')]; }
+    while (lignes.some(l => ctx.measureText(l).width > maxW) && fs > 9) { fs--; ctx.font = 'bold ' + fs + 'px ' + RF; }
+    ctx.fillStyle = b.tc; const ly = b.y + b.h * (b.sub ? 0.58 : 0.7) - (lignes.length - 1) * fs * 0.55;
+    lignes.forEach((l, i) => ctx.fillText(l, cx, ly + i * fs * 1.1));
+    if (b.sub) { ctx.font = 'bold ' + Math.max(11, Math.round(fs * 0.82)) + 'px ' + RF; ctx.globalAlpha *= 0.85; ctx.fillText(b.sub, cx, b.y + b.h * 0.84); }
+    ctx.restore();
   }
   function drawFx() {
     for (const f of flyers) {
