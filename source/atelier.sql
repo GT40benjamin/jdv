@@ -2844,3 +2844,4 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- payées, messages ; crédits payés, coût réel, gain, détail) et pegase_int.at_suivi_resume() (le mois) dans at_suivi. Migration v58_suivi_par_demande.
 
 -- 2.0.17 (3 nov. 2026, migrations v60-v62, appliquées) : at_demandes.historique (jsonb) ; at_demande_modifier(name, id, texte, ajout) = le joueur répond (ajout) ou modifie sa demande, gratuit, ticket remis en « envoyee » ; at_demande_refuser(name, id, mot) = « Non merci » (etat impossible, historique refus) ; at_sonnette() = nombres seuls {n, d, m} pour réveiller le chef vite (clé publique).
+-- 2.0.19 (migrations v63-v64, appliquées) : at_gen_fin écrit source = « dessiné pour ton jeu » (plus « dessiné par notre IA », 155 éléments existants corrigés) ; at_lancer : accord_texte sans la mention IA.

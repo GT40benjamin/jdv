@@ -4568,3 +4568,6 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 @keyframes atlPts{to{width:3.2ch}}
 @keyframes atlPense{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-3px) rotate(3deg)}}
 @media (prefers-reduced-motion:reduce){.atl-dthink .atl-wav,.atl-dpts{animation:none;width:auto}}
+/* 2.0.19 : publication en attente tant que le guide travaille */
+.atl-attends{display:block;width:100%;box-sizing:border-box;margin:8px 0 0;padding:8px 12px;border-radius:12px;background:rgba(255,211,77,.1);border:1px solid rgba(255,211,77,.35);font:700 13px/1.4 var(--body);color:#ffd34d;text-align:center;white-space:normal}
+.atl-jbtns .btn[disabled],.atl-pubvb[disabled]{opacity:.45;cursor:not-allowed}
