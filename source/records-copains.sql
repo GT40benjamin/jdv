@@ -90,7 +90,10 @@ begin
     from public.room_members m
     join public.room_members o on o.room_id = m.room_id and o.name <> m.name
     join public.level_bests b on b.game = new.game and b.level = new.level and b.name = o.name
-    where m.name = new.name group by m.room_id) x;
+    where m.name = new.name
+      -- borne 2.0.24 (3 nov. 2026) : un score rangé PAR SALLE (niveau « <niveau>-r<n° de salle> », Remparts !) ne prévient que CETTE salle
+      and (new.level !~ '-r[0-9]+$' or m.room_id = substring(new.level from '-r([0-9]+)$')::bigint)
+    group by m.room_id) x;
   perform public.rec_copains(new.game || '@' || new.level, new.name, new.moves, kn, ko, oth);
   return new;
 end $$;
