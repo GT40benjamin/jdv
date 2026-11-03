@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## 🔔 Vu sur un appareil, vu partout (borne 2.0.34)
+[atelier] 🔔 Une réponse, une question ou une nouveauté que tu as vue sur ton téléphone ne te sera plus annoncée sur ton ordinateur : la borne s’en souvient pour ton compte, en direct.
+[atelier] 🤖 Dès que {G} travaille sur une demande, il est là, avec sa bulle, pour te dire ce qu’il fait.
+[atelier] 🎨 Les pastilles de tes projets ont chacune leur couleur : 🌍 publication mondiale, ⏳ demandée, 🏠 dans la salle, 🧪 en essai.
 [atelier] ## 🌍 La réponse à ta demande de publication mondiale (borne 2.0.33)
 [atelier] 🌍 Quand tu demandes la publication mondiale, la réponse arrive dans ton ticket : « Ton jeu est en publication mondiale ! », ou un mot pour t’aider à l’améliorer.
 [atelier] ## 👀 Ta tuile comme les autres la voient (borne 2.0.32)

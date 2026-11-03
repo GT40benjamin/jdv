@@ -4683,3 +4683,10 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 @media (max-width:560px){.atl-validc{grid-template-columns:1fr}.atl-validi{width:100%}.atl-validb .btn{flex:1 1 100%}}
 #jdw-notifs li.nt-v{border-left:4px solid #9b7bff}
 .atl-qr{flex-wrap:wrap;row-gap:4px}.atl-qr > span:first-child{flex:1 1 100%}.atl-qr .atl-qpar{margin-left:0}.atl-qr .atl-qchg{margin-left:auto}
+/* 2.0.34 : pastilles « où c'est publié », colorées et identiques partout (cartes, Tous les projets, en-tête) */
+.atl-pver.pm,.atl-pet.pm{background:#2fbf71 !important;color:#062414 !important}
+.atl-pver.pd,.atl-pet.pd{background:#ffd34d !important;color:#2a1340 !important}
+.atl-pver.ps,.atl-pet.ps{background:#9b7bff !important;color:#fff !important}
+.atl-pver.pe,.atl-pet.pe{background:#8a8fa3 !important;color:#10131c !important}
+.atl-pver.pm,.atl-pver.pd,.atl-pver.ps,.atl-pver.pe,.atl-pet.pm,.atl-pet.pd,.atl-pet.ps,.atl-pet.pe{display:inline-block;padding:3px 9px;border-radius:999px;font-weight:700;max-width:100%;white-space:normal;line-height:1.25}
+.atl-pver.pm,.atl-pver.pd,.atl-pver.ps,.atl-pver.pe,.atl-pet.pm,.atl-pet.pd,.atl-pet.ps,.atl-pet.pe{border-radius:12px}
