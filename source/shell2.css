@@ -4468,3 +4468,5 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-ofcs{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
 .atl-ofplus{display:grid;place-items:center;min-height:140px;border-style:dashed;cursor:pointer;color:#ffe9a8;font:800 16px var(--body)}
 .atl-dem2{scroll-margin-top:140px}
+
+.atl-ofmin{font-weight:600;font-size:12px}.atl-ofmin.remise{color:#ffb86b}

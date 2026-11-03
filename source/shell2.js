@@ -16492,7 +16492,13 @@ function atlAdminBandeau() {
   bt('✕ Quitter', () => { ATL.adminVoir = null; atlListe(); });
 }
 // 2.0.11 (Benjamin) : l'admin modifie les offres SUR LES CARTES (« ✏️ Modifier » : libellé, crédits, détails, conseillé ; « ✕ » ; « ➕ Option »),
-// puis « Renvoyer au joueur » (at_admin_proposer). PRIX PLANCHER : jamais sous le prix calculé (propositions[].plancher, vérifié par le serveur)
+// puis « Renvoyer au joueur » (at_admin_proposer). 2.0.12 (Benjamin : « si je veux faire une remise ») : pas de blocage ; le prix calculé
+// (propositions[].plancher) est affiché en petit, avec la remise accordée
+function atlPrixCalc(v, calc, neuf) {   // « prix calculé : 45 💎 · remise −7 💎 »
+  const n = Math.max(0, Math.round(+v || 0)), r = (calc | 0) - n, e = atlEl('small', 'atl-ofmin' + (r > 0 ? ' remise' : ''));
+  e.textContent = 'prix calculé : ' + (calc | 0) + ' 💎' + (neuf ? ' (estimé)' : '') + (r > 0 ? ' · remise −' + r + ' 💎' : '');
+  return e;
+}
 function atlPropEditeur(x, m) {
   const E = atlEl('div', 'atl-pred'), grille = atlEl('div', 'atl-offres'), msg = atlEl('small', 'atl-predm');
   const L = (Array.isArray(x.propositions) ? x.propositions : []).map(o => ({ id: o.id, libelle: o.libelle || '', credits: o.credits | 0, plancher: Number.isFinite(+o.plancher) ? +o.plancher | 0 : o.credits | 0, details: Array.isArray(o.details) ? o.details.slice() : [], conseille: !!o.conseille }));
@@ -16506,19 +16512,20 @@ function atlPropEditeur(x, m) {
         if (o.conseille) k.appendChild(atlEl('span', 'atl-ofb', '⭐ Conseillé'));
         k.appendChild(atlEl('b', 'atl-oft', o.libelle || 'Option sans nom'));
         if (o.details.length) { const ul = atlEl('ul', 'atl-ofl'); for (const d of o.details) ul.appendChild(atlEl('li', '', d)); k.appendChild(ul); }
-        k.append(atlEl('div', 'atl-ofp', (o.credits | 0) + ' 💎'), atlEl('small', 'atl-ofmin', 'minimum ' + mi + ' 💎' + (o.plancher == null ? ' (option ajoutée)' : '')));
+        k.append(atlEl('div', 'atl-ofp', (o.credits | 0) + ' 💎'), atlPrixCalc(o.credits, mi, o.plancher == null));
         const bar = atlEl('div', 'atl-ofadmb'), md = atlEl('button', 'btn btn-ghost btn-sm', '✏️ Modifier'), rm = atlEl('button', 'btn btn-ghost btn-sm', '✕'); md.type = rm.type = 'button'; rm.title = 'Retirer cette option';
         md.addEventListener('click', () => { edit = i; dessine(); }); rm.addEventListener('click', () => { if (L.length > 1) { L.splice(i, 1); edit = -1; dessine(); } else msg.textContent = 'Il faut au moins une option.'; });
         bar.append(md, rm); k.appendChild(bar);
       } else {
         const li = atlEl('input', 'atl-tousf'), cr = atlEl('input', 'atl-tousf'), de = atlEl('textarea', 'atl-arin'), cs = atlEl('label', 'atl-ofcs'), cb = atlEl('input'), ok = atlEl('button', 'btn btn-play btn-sm', 'OK');
         li.maxLength = 80; li.placeholder = 'Titre de l’option'; li.value = o.libelle;
-        cr.type = 'number'; cr.min = String(mi); cr.max = '5000'; cr.value = String(Math.max(o.credits | 0, mi));
+        cr.type = 'number'; cr.min = '0'; cr.max = '5000'; cr.value = String(o.credits | 0);
         de.rows = 3; de.placeholder = 'Ce qui est inclus (une ligne par point)'; de.value = o.details.join('\n');
         cb.type = 'checkbox'; cb.checked = o.conseille; cs.append(cb, document.createTextNode(' ⭐ Conseillé'));
-        const mm = atlEl('small', 'atl-ofmin', 'minimum ' + mi + ' 💎 · on peut monter le prix, jamais le baisser'); ok.type = 'button';
+        let mm = atlPrixCalc(cr.value, mi, o.plancher == null); ok.type = 'button';
+        cr.addEventListener('input', () => { const n = atlPrixCalc(cr.value, mi, o.plancher == null); mm.replaceWith(n); mm = n; });
         ok.addEventListener('click', () => {
-          const v = Math.round(+cr.value || 0); if (v < mi) { mm.textContent = '⚠️ minimum ' + mi + ' 💎'; cr.focus(); return; }
+          const v = Math.max(0, Math.round(+cr.value || 0));
           o.libelle = li.value.trim(); o.credits = Math.min(5000, v); o.details = de.value.split('\n').map(t => t.trim()).filter(Boolean).slice(0, 8);
           if (cb.checked) L.forEach(q => { q.conseille = false; }); o.conseille = cb.checked; edit = -1; dessine();
         });
@@ -16539,12 +16546,11 @@ function atlPropEditeur(x, m) {
     if (edit >= 0) { msg.textContent = 'Termine d’abord la carte en cours (OK).'; return; }
     const props = L.filter(o => o.libelle).map(o => ({ id: o.id, libelle: o.libelle, credits: o.credits | 0, details: o.details, conseille: o.conseille }));
     if (!props.length) { msg.textContent = 'Au moins une option avec un titre.'; return; }
-    const bas = L.find(o => o.plancher != null && (o.credits | 0) < o.plancher); if (bas) { msg.textContent = '« ' + bas.libelle + ' » : minimum ' + bas.plancher + ' 💎'; return; }
     go.disabled = true; msg.textContent = '';
     try { await rpc('at_admin_proposer', { p_name: profile.name, p_fiche: m.id, p_id: x.id, p_propositions: props, p_texte: ta.value.trim() || null }, { quiet: true }); msg.textContent = '✅ Renvoyé au joueur.'; atlAdminDemandes(); }
     catch (e) {
-      go.disabled = false; const t = String((e && e.message) || ''), pm = t.match(/prix plancher : « (.*) » minimum (\d+)/);
-      msg.textContent = pm ? '« ' + pm[1] + ' » : minimum ' + pm[2] + ' 💎' : /deja choisi/.test(t) ? 'Le joueur a déjà choisi.' : 'Pas possible : ' + t.slice(0, 60);
+      go.disabled = false; const t = String((e && e.message) || '');
+      msg.textContent = /deja choisi/.test(t) ? 'Le joueur a déjà choisi.' : 'Pas possible : ' + t.slice(0, 60);
     }
   });
   E.append(atlEl('b', '', '🛡️ Les options (admin) · « ⏸️ Plus tard » est ajouté tout seul'), grille, atlAvecMic(ta), go, msg);

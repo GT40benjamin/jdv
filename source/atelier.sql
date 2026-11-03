@@ -2827,3 +2827,6 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- (v54, 3 nov. 2026 10 h 30, borne 2.0.11) : PRIX PLANCHER des offres : propositions[].plancher (prix calculé par l'équipe ; les offres existantes :
 -- plancher = prix). at_admin_proposer passe atl.admin = 1 : at_demande_proposer refuse « prix plancher : « X » minimum N credits » ; une option
 -- ajoutée par l'admin : minimum = max(plus petit plancher, coût réel de la demande × 2, devis_<type> × qte). Texte complet : migration v54_prix_plancher.
+
+-- (v55, 3 nov. 2026 10 h 45, borne 2.0.12) : Benjamin annule le blocage du prix (« si je veux faire une remise ») : at_demande_proposer n'a plus de refus ;
+-- propositions[].plancher reste comme « prix calculé » (affiché à l'admin, avec la remise). Migration v55_prix_calcule_sans_blocage.
