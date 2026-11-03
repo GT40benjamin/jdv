@@ -14474,7 +14474,10 @@ const atlSrc = v => { const t = atlVal(v); return /\bIA\b|intelligence artificie
 const atlImgUrl = p => CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier/' + p;
 const atlDate = t => { const d = new Date(t || Date.now()); return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); };
 const atlNum = f => 'N° ' + String((f && f.id) || '000000').replace(/-/g, '').slice(0, 6).toUpperCase();
-const atlEl = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+// 2.0.62 (Benjamin : « Voici deux façons de faire ta carte » puis « : » tout seul en dessous) : à l'affichage, l'espace avant : ; ! ? »
+// (et après «) devient une espace insécable fine — dans tous les textes de l'Atelier (bulles, tickets, réponses)
+const atlTypo = t => String(t).replace(/[ \u00a0]+([:;!?»])/g, '\u202f$1').replace(/«[ \u00a0]+/g, '«\u202f');
+const atlEl = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = typeof txt === 'string' ? atlTypo(txt) : txt; return e; };
 
 // ---------- les jeux nés à l'Atelier : macaron « MON JEU » (ou « Jeu de NOM ») + « Modifier mon jeu » pour l'auteur ----------
 // 2.0.30 (Benjamin) : plus de bouton « Modifier mon jeu » qui chevauche la tuile — pour l'auteur, le RUBAN jaune « MON JEU » en diagonale
@@ -16666,12 +16669,13 @@ function atlTravBulle(x, qui) {
   const l0 = Array.isArray(x && x.etapes) ? x.etapes.filter(e => e && (e.texte || e.etape)) : [], l = l0.filter(e => e.etape !== 'elements'), e = l[l.length - 1] || l0[l0.length - 1]; if (!e) return null;
   const ea = l0.filter(z => z.etape === 'elements' && String(z.at || '') >= String(e.at || '')).pop();   // 2.0.61 : « J'ai ajouté 3 éléments : … »
   const tx = String(e.texte || e.etape || ''), m = tx.match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i), d0 = new Date(e.at);
-  const B = atlEl('div', 'atl-dthink atl-travb'), col = atlEl('div'); B.dataset.id = x.id || ''; B.dataset.k = tx + '|' + (e.at || '');
-  col.append(atlEl('b', '', '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : 'sur ta demande')), atlEl('p', 'atl-travt', tx));
+  const test = e.etape === 'tests', B = atlEl('div', 'atl-dthink atl-travb' + (test ? ' tests' : '')), col = atlEl('div'); B.dataset.id = x.id || ''; B.dataset.k = tx + '|' + (e.at || '');
+  col.append(atlEl('b', '', test ? '🔍 ' + gNM() + ' teste ' + (qui ? 'le jeu de ' + qui : 'ton jeu') + ' en profondeur' : '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : 'sur ta demande')), atlEl('p', 'atl-travt', test ? (tx.replace(/^\s*🔍?\s*je teste ton jeu en profondeur\s*[….]*\s*/i, '').replace(/^./, c => c.toUpperCase()) || 'Chaque niveau, chaque bouton, chaque son.') : tx));   // 2.0.62 : l'étape « tests » (sans redire le titre)
   if (m && +m[2] > 0) { const n = Math.min(+m[1], +m[2]), bar = atlEl('div', 'atl-travbar'), i = atlEl('i'); i.style.width = Math.round(n / +m[2] * 100) + '%'; bar.appendChild(i); col.append(bar, atlEl('small', 'atl-travn', 'Étape ' + n + ' / ' + m[2])); }
   if (ea && ea !== e) col.appendChild(atlEl('p', 'atl-travel', '🧩 ' + String(ea.texte || '') + ' (onglet Éléments)'));
   col.append(atlEl('small', '', (isNaN(d0) ? '' : 'à ' + d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' · ') + (qui ? 'en direct' : 'Je te préviens dès que c’est prêt 🔔')), atlEl('span', 'atl-dpts', '•••'));
-  B.append(atlGuideAv('atl-wav'), col); return B;
+  const av = atlGuideAv('atl-wav'); if (test) { const w = atlEl('span', 'atl-wloupe'); w.append(av, atlEl('span', 'atl-loupe', '🔍')); B.append(w, col); } else B.append(av, col);
+  return B;
 }
 function atlEtapes(l, passees) {   // passees : toutes finies (2.0.59 : l'étape en cours est dans la bulle au-dessus)
   const ul = atlEl('ol', 'atl-etapes');
@@ -16710,7 +16714,7 @@ function atlTravailMaj() {
     tx.append(atlEl('b', '', mondial ? '🌍 Je regarde ton jeu pour le mettre partout…' : '🛠️ Je travaille sur « ' + ((f && f.titre) || 'ton jeu') + ' »…'), ul, b, atlEl('small', '', 'Je te préviens dès que c’est prêt 🔔'));
     tb.append(sc, tx); p.prepend(tb);
   }
-  const der = l.map(x => x.etapes.filter(e => e && e.etape !== 'elements').pop() || x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = '⏱️ En ce moment : ' + String(der.texte || der.etape || '');
+  const der = l.map(x => x.etapes.filter(e => e && e.etape !== 'elements').pop() || x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = atlTypo(der.etape === 'tests' ? '🔍 ' + String(der.texte || 'Je teste ton jeu en profondeur…').replace(/^\s*🔍\s*/, '') : '⏱️ En ce moment : ' + String(der.texte || der.etape || ''));
 
   if (b.textContent !== txt) { b.textContent = txt; b.title = txt; }
   // 2.0.60 : comme la bulle du ticket — la barre « Étape x / y » et l'heure de la dernière étape, sous « En ce moment »
@@ -16977,7 +16981,7 @@ function atlDemCarte(x) {
   let mi = -1, hs = null; for (let k = hi.length - 1; k >= 0; k--) if (hi[k].sorte === 'modif') { mi = k; break; }
   if (hi.length && t) {   // 2.0.17 : les échanges du ticket, dans l'ordre (ta demande, sa réponse, ta réponse…)
     const fil = atlEl('div', 'atl-demfil'), tp = t.querySelector('.atl-demtx'), vp = t.querySelector('.atl-demplus'), net = v => String(v || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '');
-    const L = (qui, tx, box) => { const q = atlEl('p', 'atl-dfl ' + qui); q.append(atlEl('b', '', qui === 'g' ? gNM() + ' : ' : 'Toi : '), document.createTextNode(tx)); (box || fil).appendChild(q); };
+    const L = (qui, tx, box) => { const q = atlEl('p', 'atl-dfl ' + qui); q.append(atlEl('b', '', qui === 'g' ? gNM() + ' : ' : 'Toi : '), document.createTextNode(atlTypo(tx))); (box || fil).appendChild(q); };
     const H = (h, box) => { if (h.reponse) L('g', h.reponse, box); if (h.sorte === 'reponse') L('j', '↪ ' + h.texte, box); else if (h.sorte === 'modif') L('j', '✏️ ' + net(h.texte), box); else if (h.sorte === 'refus') L('j', '🙅 Non merci' + (h.mot ? ' : ' + h.mot : ''), box);
       else if (box && h.sorte === 'reponses' && Array.isArray(h.questions)) for (const q of h.questions) if (q && q.reponse) L('j', '↪ ' + q.q + ' → ' + q.reponse, box); };
     const bu0 = t.querySelector('.atl-dembu');

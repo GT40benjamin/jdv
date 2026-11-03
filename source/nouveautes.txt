@@ -36,6 +36,8 @@
 [borne] 🎮 Un jeu resté ouvert en pause ne passe plus par-dessus le jeu que tu choisis : chaque tuile ouvre toujours son jeu à elle.
 [borne] ## 📱 Les jeux en plein écran sur téléphone (borne 2.0.38)
 [borne] 📱 Téléphone à l’horizontale : plus de bande sur le côté pendant la partie, le jeu prend toute la largeur. Quitter et le son sont deux petits ronds transparents, dans un coin que le jeu laisse libre.
+[atelier] ## 🔍 {G} teste ton jeu avant de te le livrer (borne 2.0.62)
+[atelier] 🔍 Avant chaque livraison, {g} teste ton jeu en profondeur : ton ticket le montre avec sa loupe. Et la barre « Jouer · Mes demandes · Éléments » ne cache plus le haut de la page sur téléphone.
 [atelier] ## 🧩 Les éléments de ton jeu arrivent au fur et à mesure (borne 2.0.61)
 [atelier] 🧩 Pendant que {g} prépare ta nouvelle version, chaque élément terminé apparaît tout de suite dans l’onglet Éléments, avec « ✨ nouveau », sur tous tes appareils. Ce sont des aperçus : tu joueras avec quand ta version sera livrée, en entier.
 [atelier] ## 🛠️ La nouvelle version en préparation, bien visible (borne 2.0.60)
