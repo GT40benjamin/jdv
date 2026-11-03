@@ -4400,3 +4400,23 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .orient-ph{font-size:46px;animation:orientTourne 1.6s ease-in-out infinite}
 @keyframes orientTourne{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
 .orient b{font:800 19px var(--body)}.orient p{margin:0;color:#cfc8ff}
+
+/* 2.0.2 : le Suivi — tableau par projet ; sur téléphone, chaque ligne devient une carte (rien de coupé) */
+.atl-zoom.suivi{grid-template-columns:minmax(0,1fr);justify-items:center}
+.atl-suivi{min-width:0;max-width:100%;box-sizing:border-box}
+.atl-sproj{display:grid;gap:8px;min-width:0}
+.atl-spaye{display:grid;gap:2px}.atl-spaye small{color:var(--muted);white-space:normal;font-size:12px}
+.atl-spaye .atl-soff{color:#9fe3b0}
+.atl-sneg{color:#ff8a8a}.atl-spos{color:#9fe3b0}
+.atl-stab tr.atl-stotl td{font-weight:800;border-top:2px solid var(--line)}
+@media (max-width:600px){
+  .atl-suivi{padding:12px;width:100%}
+  .atl-stab.atl-scartes,.atl-stab.atl-scartes tbody{display:block;white-space:normal}
+  .atl-stab.atl-scartes tr:first-child{display:none}
+  .atl-stab.atl-scartes tr{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:10px 4px;border-bottom:1px solid var(--line)}
+  .atl-stab.atl-scartes td{display:grid;grid-template-columns:112px minmax(0,1fr);gap:8px;padding:2px 0;border:0;overflow-wrap:anywhere}
+  .atl-stab.atl-scartes td::before{content:attr(data-l);color:var(--muted);font-weight:600}
+  .atl-stab.atl-scartes td:first-child{font-weight:800;font-size:14px}
+  .atl-stab.atl-scartes tr.atl-stotl td:empty{display:none}
+  .atl-stab.atl-scartes tr.atl-stotl td{border-top:0}.atl-stab.atl-scartes tr.atl-stotl{border-top:2px solid var(--line)}
+}

@@ -2808,3 +2808,10 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- at_demande_etat(id, etat, reponse, version) ; at_lire fiche.versions. Texte complet : migration atelier_v49_versions.
 
 -- (v50, 3 nov. 2026 2 h 20) : at_tous_projets : n_choisir, n_en_cours, n_nouvelles (demandes OUVERTES par projet). Texte complet : migration atelier_v50_tous_badges.
+
+-- (v51, 3 nov. 2026 8 h 15, borne 2.0.2) : public.at_credit_journal, le journal des crédits : chaque mouvement du solde (at_credits) noté par
+-- le déclencheur pegase_int.at_cj_log (motif = la fonction appelante, lue dans la pile) ; projet et demande rattachés par pegase_int.at_cj_lier
+-- (ligne de at_messages, at_ia, at_demandes ou at_fiches écrite dans la même transaction). Les deux ne bloquent jamais un mouvement.
+-- at_suivi : 'par_projet' (pegase_int.at_suivi_projets : crédits payés = conception + demandes + générations + idée et messages ; offert à part ;
+-- coût réel = at_gen_file.cents ; ce qu'il reste) et 'lignes' depuis at_gen_file avec 'paye_par' (demande N, conception, offert).
+-- Texte complet : migration v51_journal_credits_suivi_projets.
