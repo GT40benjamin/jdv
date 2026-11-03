@@ -2021,6 +2021,7 @@ async function loadNotifs() {
       notifsOk = true;
     } catch (e) { notifsOk = false; }              // fonction absente côté serveur : pas de cloche
   } else { notifs = localNotifs.filter(n => n.target === me); notifsOk = true; }
+  notifs = notifGroupes(notifs);
   refreshBell();
   const key = notifKey(), last = notifToasted[key] || 0, fresh = notifs.filter(n => n.id > last);
   if (fresh.length && $('jdw-play').hidden && last) {
@@ -2029,6 +2030,12 @@ async function loadNotifs() {
   }
   if (notifs.length) { notifToasted[key] = Math.max(last, ...notifs.map(n => n.id)); store.set('jdw.notiftoast', notifToasted); }
   else if (!last) { notifToasted[key] = 1; store.set('jdw.notiftoast', notifToasted); }
+}
+// 2.0.15 : UNE notification par exploit (même auteur, même jeu, moins de 2 min d'écart : coffre + score total, plus loin + plus vite)
+function notifGroupes(list) {
+  const G = recGroupes(list, n => n.actor ? n.actor + '|' + recFam(n.game) : ''), out = [];
+  for (const n of list) { const g = G.get(n); if (g === null) continue; out.push(g && g.lignes.length > 1 ? Object.assign({}, n, { id: g.id, lignes: g.lignes }) : n); }
+  return out;
 }
 let gameNotifSeen = store.get('jdw.gamenotifseen', {}) || {};
 // mises à jour annoncées en direct : nouvelle version du site (rechargement) et nouvelle appli Android (téléchargement)
@@ -2103,9 +2110,16 @@ function notifRow(n, isNew) {
   const rt = recTag(n.game), g = rt.g;
   const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, n.actor);
   const b = document.createElement('b'); b.textContent = dispName(n.actor);
-  tx.append(b, ' a battu ' + rt.word + (rt.where ? (rt.lv ? ' sur ' : ' à ') + rt.where : ''));
-  const sm = document.createElement('small'); sm.textContent = rt.ic + ' ' + rt.val(n.score) + ' contre ' + rt.val(n.prev) + ' pour toi · ' + timeAgo(n.at);
-  tx.append(sm); li.append(av, tx);
+  if (Array.isArray(n.lignes) && n.lignes.length > 1) {   // 2.0.15 : un exploit, plusieurs records battus → une seule notification
+    tx.append(b, ' a battu tes records à ' + (g ? g.title : recFam(n.game)));
+    for (const l of n.lignes) { const sm = document.createElement('small'); sm.textContent = recLabel(l.g) + ' : ' + recContre(l.g, l.v, l.b); tx.append(sm); }
+    const sm = document.createElement('small'); sm.textContent = timeAgo(n.at); tx.append(sm);
+  } else {
+    tx.append(b, ' a battu ' + rt.word + (rt.where ? (rt.lv ? ' sur ' : ' à ') + rt.where : ''));
+    const sm = document.createElement('small'); sm.textContent = rt.ic + ' ' + rt.val(n.score) + ' contre ' + rt.val(n.prev) + ' pour toi · ' + timeAgo(n.at);
+    tx.append(sm);
+  }
+  li.append(av, tx);
   // toucher : le jeu s'ouvre (pour reprendre le record)
   if (g) { li.classList.add('click'); li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (!$('jdw-play').hidden) backToLibrary(); openGame(g); }); }
   return li;
@@ -2281,19 +2295,79 @@ function dayLabel(t) {
 }
 const onlyEmoji = s => /^(\p{Extended_Pictographic}|\p{Emoji_Component}|\s){1,12}$/u.test(s) && !/[0-9#*]/.test(s);
 function chatAtBottom() { const l = $('jdw-chat-log'); return l.scrollHeight - l.scrollTop - l.clientHeight < 60; }
-function recordCard(m) {
-  const rt = recTag(m.game), g = rt.g, el = document.createElement('div'); el.className = 'chat-record';
+// 2.0.15 (Benjamin : « Nouveau record, et le NOM DU JEU clairement, pas tant de texte… même peut-être son image ») et UNE SEULE carte par
+// exploit (« je ne comprends pas pourquoi tu le mets deux fois ! ») : le même gagnant bat le même perdant dans le même jeu à moins de 2 min
+// d'écart (Coffres : le coffre + le score total ; Sens Interdit : plus loin + plus vite) = une carte, une ligne par record battu.
+// Le serveur (records-une-carte.sql) fusionne déjà : meta.lignes = [{g, v, b}] ; la borne regroupe aussi les anciennes cartes doublées.
+function recFam(tag) { const b = String(tag || '').split('@')[0]; return /^sensinterdit-/.test(b) ? 'sensinterdit' : b; }
+function recLignes(m) {   // m = message (game, score, beatenScore, meta) ou notification (game, score, prev)
+  const l = m.meta && Array.isArray(m.meta.lignes) ? m.meta.lignes : null;
+  return l && l.length ? l.map(x => ({ g: String(x.g || ''), v: +x.v || 0, b: +x.b || 0 })) : [{ g: m.game, v: m.score, b: m.beatenScore != null ? m.beatenScore : m.prev }];
+}
+function recFusion(a, b) {   // lignes de a puis b, la plus récente gagne pour un même record ; les niveaux d'abord, le score total à la fin
+  const out = []; for (const x of a.concat(b)) { const i = out.findIndex(y => y.g === x.g); if (i >= 0) out[i] = x; else out.push(x); }
+  const tot = x => (String(x.g).includes('@') || siBoard(x.g)) ? 0 : 1;
+  return out.map((x, i) => [x, i]).sort((p, q) => tot(p[0]) - tot(q[0]) || p[1] - q[1]).map(p => p[0]);
+}
+function recGroupes(list, kf) {   // regroupe les cartes d'un même exploit ; rend Map(élément → groupe | null = déjà dans un groupe)
+  const out = new Map(), open = new Map();
+  for (const m of list) {
+    const k = kf(m); if (!k) continue;
+    const g = open.get(k);
+    if (g && Math.abs(m.at - g.at) <= 150000) { g.lignes = recFusion(g.lignes, recLignes(m)); if (m.id > g.id) { g.id = m.id; g.at2 = m.at; } out.set(m, null); continue; }
+    const ng = { first: m, id: m.id, at: m.at, at2: m.at, lignes: recFusion([], recLignes(m)) }; open.set(k, ng); out.set(m, ng);
+  }
+  return out;
+}
+function recLabel(tag) {   // « Coffre 4 (monde 3) », « La Forêt enchantée », « Plus loin », « Score total »
+  const t = String(tag || ''), i = t.indexOf('@'), base = i > 0 ? t.slice(0, i) : t, lv = i > 0 ? t.slice(i + 1) : '';
+  const sb = siBoard(base); if (sb) return sb.ic + ' ' + sb.short;
+  if (!lv) return 'Score total';
+  const m = lv.match(/^(\d+)-(\d+)$/);
+  if (base === 'coffres' && m) return (+m[2] === 8 ? 'Grand coffre' : 'Coffre ' + m[2]) + ' (monde ' + m[1] + ')';
+  const rt = recTag(t), w = rt.where || '', gt = rt.g ? rt.g.title + ' · ' : '';
+  return gt && w.startsWith(gt) ? w.slice(gt.length) : w || lv;
+}
+function recContre(tag, v, b) {   // « 13 coups contre 28 », « 18 969 points contre 17 890 »
+  const rt = recTag(tag), a = rt.val(v); let c = rt.val(b); const sfx = a.replace(/^[\s\S]*\d/, '');
+  if (sfx && c.endsWith(sfx)) c = c.slice(0, -sfx.length); else { const s2 = sfx.replace(/s$/, ''); if (s2 && c.endsWith(s2)) c = c.slice(0, -s2.length); }
+  return a + ' contre ' + c;
+}
+function recImage(g, heads) {   // l'image du jeu = l'aperçu de sa tuile (g.preview), dessiné une fois (et redessiné si ses images arrivent après)
+  const box = document.createElement('div'); box.className = 'rc-img';
+  if (g && typeof g.preview === 'function') {
+    const c = document.createElement('canvas'); c.setAttribute('aria-hidden', 'true'); box.appendChild(c);
+    const draw = () => { const w = c.clientWidth || 96, h = c.clientHeight || 72, dpr = Math.min(window.devicePixelRatio || 1, 2); c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); const x = c.getContext('2d'); x.save(); x.setTransform(dpr, 0, 0, dpr, 0, 0); try { g.preview(x, w, h, 2.4); } catch (e) { x.fillStyle = COLORS.night; x.fillRect(0, 0, w, h); } x.restore(); };
+    requestAnimationFrame(draw); setTimeout(draw, 700); setTimeout(draw, 2500);
+  } else box.classList.add('vide');
+  box.appendChild(heads);
+  return box;
+}
+function recordCard(m, grp) {
+  const lignes = grp ? grp.lignes : recFusion([], recLignes(m)), m0 = lignes.length === 1 ? lignes[0] : null;
+  const rt = recTag(m0 ? m0.g : m.game), g = rt.g, el = document.createElement('div'); el.className = 'chat-record rc2' + (m0 ? '' : ' multi');
   if (g) el.style.setProperty('--acc', g.accent);
-  const heads = document.createElement('div'); heads.className = 'cr-heads';
+  const heads = document.createElement('div'); heads.className = 'cr-heads rc-heads';
   const a = chatHead(m.name, { cls: 'win' }); const crown = document.createElement('span'); crown.className = 'cr-crown'; crown.textContent = '👑'; a.appendChild(crown);
   const b = chatHead(m.beaten, { cls: 'lose', sad: true });
   heads.append(b, a);
-  const tx = document.createElement('div'); tx.className = 'cr-txt';
-  const eb = document.createElement('small'); eb.textContent = (rt.lv ? rt.ic + ' Nouveau record de la salle' : '🏆 Nouveau record') + (rt.where ? ' · ' + rt.where : '');
-  const t = document.createElement('b'); t.textContent = dispName(m.name) + ' détrône ' + dispName(m.beaten) + ' !';
-  const sc = document.createElement('span'); sc.textContent = rt.val(m.score) + ' contre ' + rt.val(m.beatenScore) + ' · ' + hhmm(m.at);
-  tx.append(eb, t, sc);
-  el.append(heads, tx);
+  const tx = document.createElement('div'); tx.className = 'rc-txt';
+  const eb = document.createElement('small'); eb.className = 'rc-eb'; eb.textContent = '🏆 Nouveau record';
+  const jeu = document.createElement('b'); jeu.className = 'rc-jeu'; jeu.textContent = g ? g.title : (recFam(m.game) || 'Record');
+  tx.append(eb, jeu);
+  if (m0 && (String(m0.g).includes('@') || siBoard(m0.g))) { const lv = document.createElement('span'); lv.className = 'rc-lv'; lv.textContent = recLabel(m0.g); tx.appendChild(lv); }
+  const who = document.createElement('span'); who.className = 'rc-who'; who.textContent = dispName(m.name) + ' détrône ' + dispName(m.beaten) + ' !';
+  tx.appendChild(who);
+  const when = hhmm(grp ? grp.at2 : m.at);
+  if (m0) { const sc = document.createElement('span'); sc.className = 'rc-sc'; sc.textContent = recContre(m0.g, m0.v, m0.b) + ' · ' + when; tx.appendChild(sc); }
+  else {
+    const ul = document.createElement('ul'); ul.className = 'rc-l';
+    for (const l of lignes) { const li = document.createElement('li'); const k = document.createElement('b'); k.textContent = recLabel(l.g) + ' : '; li.append(k, recContre(l.g, l.v, l.b)); ul.appendChild(li); }
+    const sc = document.createElement('span'); sc.className = 'rc-sc'; sc.textContent = when;
+    tx.append(ul, sc);
+  }
+  el.append(recImage(g, heads), tx);
+  if (grp) m = Object.assign({}, m, { id: grp.id });   // réactions : sur la carte la plus récente (le serveur y déplace celles de l'ancienne)
   if (m.id) { el.dataset.mid = m.id; const rx = reactPill(m.id); if (rx) { el.appendChild(rx); el.classList.add('has-rx'); } }
   if (g) {
     const go = document.createElement('button'); go.type = 'button'; go.className = 'cr-go'; go.textContent = 'Revanche';
@@ -2313,12 +2387,13 @@ function renderChat(fromPoll, quiet) {
     log.appendChild(e);
   }
   let prevDay = '', prev = null;
+  const recG = recGroupes(all.filter(m => m.kind === 'record'), m => m.name && m.beaten ? m.name + '|' + m.beaten + '|' + recFam(m.game) : '');
   const others = chat.msgs.filter(m => m.kind !== 'record' && m.kind !== 'coop' && m.name !== me), lastOther = fromPoll && chat.newIds && others.length && chat.newIds.has(others[others.length - 1].id) ? others[others.length - 1] : null;
   for (const m of all) {
     const day = dayLabel(m.at);
     if (day !== prevDay) { const d = document.createElement('div'); d.className = 'chat-day'; d.textContent = day; log.appendChild(d); prevDay = day; prev = null; }
     if (m.kind === 'coop' && m.meta) { log.appendChild(coopCard(m)); prev = null; continue; }   // sans meta (get_messages) : message ordinaire
-    if (m.kind === 'record') { log.appendChild(recordCard(m)); prev = null; continue; }
+    if (m.kind === 'record') { const gr = recG.get(m); if (gr !== null) log.appendChild(recordCard(m, gr)); prev = null; continue; }   // null = déjà dans la carte de son exploit
     const mine = m.name === me, grouped = prev && prev.name === m.name && m.at - prev.at < 5 * 60000;
     const row = document.createElement('div'); row.className = 'chat-msg' + (mine ? ' mine' : '') + (grouped ? ' grouped' : '') + (m.pending ? ' pending' : '') + (m.failed ? ' failed' : '');
     row.style.setProperty('--h', nameHue(m.name));

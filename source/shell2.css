@@ -2713,9 +2713,9 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 .cr-face img{width:100%;height:100%;object-fit:cover}
 .cr-face span{font-family:var(--display);font-size:26px;color:#fff3dc}
 @keyframes crPulse{0%,100%{box-shadow:0 0 0 3px rgba(124,240,160,.85),0 0 10px rgba(124,240,160,.3)}50%{box-shadow:0 0 0 6px rgba(124,240,160,.35),0 0 26px rgba(124,240,160,.6)}}
-.cr-txt{min-width:0}
-.cr-txt b{display:block;font-family:var(--display);font-weight:400;font-size:21px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cr-txt span{display:block;margin-top:2px;font-size:13.5px;font-weight:700;color:#ffd9a0}
+.callring .cr-txt{min-width:0}
+.callring .cr-txt b{display:block;font-family:var(--display);font-weight:400;font-size:21px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.callring .cr-txt span{display:block;margin-top:2px;font-size:13.5px;font-weight:700;color:#ffd9a0}
 .cr-btns{display:flex;gap:10px}
 .cr-btns button{position:relative;width:54px;height:54px;border-radius:50%;border:0;display:grid;place-items:center;font-size:24px;line-height:1;color:#fff;cursor:pointer;
   box-shadow:0 8px 18px rgba(0,0,0,.4)}
@@ -4503,3 +4503,27 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
   .atl-stab.atl-scartes tr.atl-sdet td{display:block}.atl-stab.atl-scartes tr.atl-sdet td::before{content:none}
 }
 .atl-sdem td:nth-child(4){white-space:normal;min-width:180px}
+
+/* 2.0.15 : la carte « record » du chat — « 🏆 Nouveau record », le NOM DU JEU en grand avec son image (l'aperçu de sa tuile), les têtes en
+   petit sur l'image, le niveau dessous, puis « X détrône Y ! » et les points ; une ligne par record battu quand un exploit en bat plusieurs */
+.chat-record.rc2{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:10px 12px}
+.chat-record.rc2 .cr-go{grid-column:1 / -1;justify-self:end;min-height:36px}
+.rc-img{position:relative;flex:0 0 auto;width:104px;height:78px;margin-top:4px;border-radius:12px;overflow:visible;
+  background:color-mix(in srgb,var(--acc) 30%,var(--night));box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 75%,transparent),0 6px 16px rgba(0,0,0,.35)}
+.rc-img canvas{display:block;width:100%;height:100%;border-radius:12px}
+.rc-img .rc-heads{position:absolute;right:-8px;bottom:-10px;width:56px;height:40px}
+.rc-img .rc-heads .chead.win{width:34px;height:34px;box-shadow:0 0 0 2px var(--acc),0 0 10px color-mix(in srgb,var(--acc) 60%,transparent)}
+.rc-img .rc-heads .chead.lose{width:24px;height:24px;box-shadow:0 0 0 2px #5a8fd6}
+.rc-img .rc-heads .cr-crown{top:-12px;font-size:14px}
+.rc-txt{min-width:0;display:grid;gap:3px;line-height:1.2}
+.rc-eb{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.rc-jeu{font-family:var(--display);font-weight:400;font-size:22px;line-height:1.05;letter-spacing:.01em;color:var(--ink);overflow-wrap:anywhere}
+.rc-lv{font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--acc) 55%,var(--ink))}
+.rc-who{margin-top:3px;font-size:14px;font-weight:800;color:var(--ink)}
+.rc-sc{font-size:12px;color:var(--muted)}
+.rc-l{list-style:none;margin:2px 0 0;padding:0;display:grid;gap:2px;font-size:12.5px;color:var(--ink)}
+.rc-l b{font-weight:700;color:color-mix(in srgb,var(--acc) 55%,var(--ink))}
+@media (max-width:460px){
+  .rc-img{width:88px;height:66px}
+  .rc-jeu{font-size:20px}
+}
