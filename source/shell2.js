@@ -2076,6 +2076,14 @@ function notifRow(n, isNew) {
   const li = document.createElement('li'); if (isNew) li.className = 'new';
   const tx = document.createElement('span'); tx.className = 'nt';
   if (n.kind === 'coop') return coopNotifRow(n, li, tx);
+  if (n.kind === 'atelier-q') {   // 2.0.29 : une notification à part pour les questions
+    const ic = atlGuideAv('avatar nt-game'); ic.style.background = '#ffd34d';
+    const b = document.createElement('b'); b.textContent = '❓ ' + gNM() + ' te pose ' + (n.n > 1 ? n.n + ' questions' : 'une question') + (n.projet ? ' sur « ' + n.projet + ' »' : '');
+    const sm = document.createElement('small'); sm.textContent = 'Touche pour répondre : Oui, Non, ou en quelques mots';
+    tx.append(b, sm); li.append(ic, tx); li.classList.add('click', 'nt-q');
+    li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); ATL.demVise = n.id; if (n.fiche) atlOuvrir(n.fiche); });
+    return li;
+  }
   if (n.kind === 'atelier') {   // l'Atelier des jeux a répondu au projet du joueur
     const ic = atlGuideAv('avatar nt-game'); ic.style.background = 'var(--gold)';
     const f = atlProjets().find(atlProjNew) || atlFiche(), b = document.createElement('b'); b.textContent = f && f.etat === 'alpha' ? '🎮 Ton jeu est prêt à tester !' : gNM() + ' t’a répondu !';
@@ -14333,7 +14341,18 @@ const atlLastReply = () => atlMsgs().reduce((m, x) => (x.atelier && String(x.at)
 const atlUnread = () => { const l = atlLastReply(); return !!l && !!ATL.cur && l > String(ATL.seen[atlSeenKey(ATL.cur)] || ''); };
 const atlWaiting = () => { const ms = atlMsgs(); return !!ms.length && !ms[ms.length - 1].atelier && ['en_discussion', 'brouillon', 'complete'].includes(atlEtat()); };
 function atlMarkSeen() { const l = atlLastReply(); if (l && ATL.name && ATL.cur) { ATL.seen[atlSeenKey(ATL.cur)] = l; store.set('jdw.atl.seen', ATL.seen); } }
-function atlNotifs() { try { return ATL && ATL_ON() && !isGuest() && ATL.name === cleanName(profile.name) && atlProjets().some(atlProjNew) ? [{ kind: 'atelier' }] : []; } catch (e) { return []; } }
+// 2.0.29 (Benjamin : « des encarts spéciaux pour répondre oui ou non, et une notification dédiée ») : les QUESTIONS de la mascotte (at_demandes.questions)
+const atlQAttente = x => !!(x && x.etat === 'vue' && Array.isArray(x.questions) && x.questions.some(q => q && !q.reponse));
+const atlQNb = x => (x && Array.isArray(x.questions) ? x.questions.filter(q => q && !q.reponse).length : 0);
+const atlQListe = () => (((typeof ATL !== 'undefined' && ATL && ATL.dem) || {}).demandes || []).filter(atlQAttente);
+function atlNotifs() {
+  try {
+    if (!(ATL && ATL_ON() && !isGuest() && ATL.name === cleanName(profile.name))) return [];
+    const out = atlQListe().map(x => ({ kind: 'atelier-q', id: x.id, fiche: x.fiche, projet: x.projet, n: atlQNb(x) }));
+    if (atlProjets().some(atlProjNew)) out.push({ kind: 'atelier' });
+    return out;
+  } catch (e) { return []; }
+}
 const atlVal = v => (v == null ? '' : Array.isArray(v) ? v.map(atlVal).filter(Boolean).join(' · ') : typeof v === 'object' ? Object.values(v).map(atlVal).filter(Boolean).join(' · ') : String(v).trim());
 // 2.0.19 (vocabulaire joueur : jamais « IA ») : l'origine d'un élément, telle que le joueur la lit
 const atlSrc = v => { const t = atlVal(v); return /\bIA\b|intelligence artificielle/i.test(t) ? 'dessiné pour ton jeu' : t; };
@@ -14586,11 +14605,12 @@ function atlRenderProjets() {
     if (Array.isArray(pj.prepa) && pj.prepa.length) b.appendChild(atlEl('span', 'atl-pprepa', '🛠️ V' + (((pj.version | 0) || 1) + 1) + ' en préparation'));
     if (att) b.appendChild(atlEl('span', 'atl-patt', '⏳ En attente'));
     // 2.0.16 (Benjamin : « ici j'ai la demande, mais pas sur la tuile ! ») : une offre à choisir, ou une réponse pas lue, se voit sur la tuile
-    const tk = ((ATL.dem || {}).demandes || []).filter(x => x && x.fiche === pj.id), ch = tk.filter(atlPropOuverte), rp = tk.filter(x => x.nouveau && x.reponse && !atlPropOuverte(x));
-    const vise = (ch[0] || rp[0] || {}).id || '';
-    if (ch.length || rp.length) b.appendChild(atlEl('span', 'atl-patt ' + (ch.length ? 'atl-pch' : 'atl-pre') + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), ch.length ? '💬 À choisir' + (ch.length > 1 ? ' (' + ch.length + ')' : '') : '✨ ' + rp.length + ' réponse' + (rp.length > 1 ? 's' : '')));
+    const tk = ((ATL.dem || {}).demandes || []).filter(x => x && x.fiche === pj.id), ch = tk.filter(atlPropOuverte), rp = tk.filter(x => x.nouveau && x.reponse && !atlPropOuverte(x) && !atlQAttente(x)), qq = tk.filter(atlQAttente);
+    const vise = (qq[0] || ch[0] || rp[0] || {}).id || '', nqq = qq.reduce((t, x) => t + atlQNb(x), 0);
+    if (nqq) b.appendChild(atlEl('span', 'atl-patt atl-pch atl-pq' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '❓ ' + nqq + (nqq > 1 ? ' questions' : ' question')));
+    else if (ch.length || rp.length) b.appendChild(atlEl('span', 'atl-patt ' + (ch.length ? 'atl-pch' : 'atl-pre') + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), ch.length ? '💬 À choisir' + (ch.length > 1 ? ' (' + ch.length + ')' : '') : '✨ ' + rp.length + ' réponse' + (rp.length > 1 ? 's' : '')));
     else if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew', '✉️ Nouvelle réponse'));
-    if (ch.length) b.classList.add('choix'); else if (rp.length) b.classList.add('rep');   // le contour de la tuile aussi
+    if (nqq || ch.length) b.classList.add('choix'); else if (rp.length) b.classList.add('rep');   // le contour de la tuile aussi
     b.addEventListener('click', () => { ATL.demVise = vise; atlOuvrir(pj.id); });
     // 20 h 50 (Benjamin) : la ROUE ⚙️ de chaque tuile (Renommer / Supprimer) ; à côté de la tuile, pour ne pas ouvrir le projet
     const w = atlEl('div', 'atl-pwrap'), rg = atlEl('button', 'atl-proue', '⚙️'); rg.type = 'button'; rg.setAttribute('aria-label', 'Réglages du projet « ' + (pj.titre || 'Mon jeu sans nom') + ' »');
@@ -14609,7 +14629,7 @@ function atlRenderProjets() {
 function atlOuvrir(id) {
   try { const pj = atlProjets().find(x => x.id === id); if (pj && (pj.version | 0) && ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || ''))) { const vv = store.get('jdw.atl.vvu', {}) || {}; if ((vv[id] | 0) < (pj.version | 0)) { vv[id] = pj.version | 0; store.set('jdw.atl.vvu', vv); } } } catch (e) {}
   atlMicStop(); atlLetterClose(true); atlErr('');
-  ATL.demOngP = ''; ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = null; ATL.lance = 0; ATL.tab = (((ATL.dem || {}).demandes || []).some(x => x && x.fiche === id && ((x.nouveau && x.reponse) || atlPropOuverte(x))) ? 'demandes' : ''); ATL.pSig = ''; ATL.basesOn = false; ATL.bq = 0; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
+  ATL.demOngP = ''; ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = null; ATL.lance = 0; ATL.tab = (((ATL.dem || {}).demandes || []).some(x => x && x.fiche === id && ((x.nouveau && x.reponse) || atlPropOuverte(x) || atlQAttente(x))) ? 'demandes' : ''); ATL.pSig = ''; ATL.basesOn = false; ATL.bq = 0; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
   const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (inp) { inp.placeholder = 'Décris ton jeu…'; inp.value = ''; }
   ATL.basesEnCours = false; ATL.prefill = true; ATL.brLast = '';   // un brouillon rouvert : son texte revient dans la case
   atlRender(); atlLoad(true);
@@ -15012,10 +15032,10 @@ function atlProjDemListe(W) {
   if (vz) { ATL.demAuto.add(vz.id + '|' + vz.etat); ATL.demOngP = fini(vz) ? 'faites' : 'encours'; ATL.demVu = ''; }
   else if (lu) { ATL.demAuto.add(lu.id + '|' + lu.etat); ATL.demOngP = fini(lu) ? 'faites' : 'encours'; ATL.demVu = ''; }
   const ong = ATL.demOngP === 'faites' ? 'faites' : 'encours', l = tout.filter(x => ong === 'faites' ? fini(x) : !fini(x));
-  const sig = ong + JSON.stringify(tout.map(x => [x.id, x.etat, x.reponse, (x.etapes || []).length, x.nouveau, !!x.choix, atlPropOuverte(x)]));
+  const sig = ong + JSON.stringify(tout.map(x => [x.id, x.etat, x.reponse, (x.etapes || []).length, x.nouveau, !!x.choix, atlPropOuverte(x), (x.questions || []).map(q => q && q.reponse ? 1 : 0).join('')]));
   if (box.dataset.sig === sig) return;
-  const ecrit = box.querySelector('.atl-dedit:not([hidden]) textarea');   // le joueur écrit une réponse : on ne touche à rien (relu au tour suivant)
-  if (ecrit && (ecrit.value.trim() || document.activeElement === ecrit)) return;
+  const ecrit = [...box.querySelectorAll('.atl-dedit:not([hidden]) textarea, .atl-q input')].find(e => e.value.trim() || document.activeElement === e);   // le joueur écrit une réponse : on ne touche à rien (relu au tour suivant)
+  if (ecrit) return;
   box.dataset.sig = sig;
   const premier = !box.childElementCount;
   atlSansSauter(box, () => {
@@ -16469,7 +16489,7 @@ function atlTravailMaj() {
   if (b.textContent !== txt) { b.textContent = txt; b.title = txt; }
 }
 const atlTravSig = () => JSON.stringify(((ATL.dem || {}).demandes || []).filter(x => x && x.etat === 'en_cours').map(x => x.id));
-const atlTuileSig = () => JSON.stringify(((ATL.dem || {}).demandes || []).filter(x => x && (atlPropOuverte(x) || (x.nouveau && x.reponse))).map(x => x.id));
+const atlTuileSig = () => JSON.stringify(((ATL.dem || {}).demandes || []).filter(x => x && (atlPropOuverte(x) || atlQAttente(x) || (x.nouveau && x.reponse))).map(x => [x.id, atlQNb(x)]));
 async function atlDemCharger(force) {
   if (!force && ATL.demAt && Date.now() - ATL.demAt < (ATL.open ? (atlDemEnCours().length ? 3000 : 19000) : 60000)) return ATL.dem;
   const etAvant = JSON.stringify(atlDemEnCours().map(x => [x.id, (x.etapes || []).length]));
@@ -16505,9 +16525,10 @@ function atlDemBtn(R) {
   const ouv = d && Array.isArray(d.demandes) ? d.demandes.filter(atlPropOuverte).length : 0;
   const enc = d && Array.isArray(d.demandes) ? d.demandes.filter(x => !['faite', 'impossible'].includes(x.etat)).length : 0;   // 2 h 05 : seulement celles en cours
   const rep0 = d && Array.isArray(d.demandes) ? d.demandes.filter(x => x && x.nouveau && (x.reponse || atlPropOuverte(x))).length : 0;   // 2.0.11 : des réponses à lire
-  const quoi = rep0 ? rep0 + (rep0 > 1 ? ' réponses de ' : ' réponse de ') + gN() : ouv ? ouv + ' à choisir' : '';
+  const nq = atlQListe().reduce((t, x) => t + atlQNb(x), 0);   // 2.0.29 : les questions d'abord
+  const quoi = nq ? '❓ ' + nq + (nq > 1 ? ' questions' : ' question') : rep0 ? rep0 + (rep0 > 1 ? ' réponses de ' : ' réponse de ') + gN() : ouv ? ouv + ' à choisir' : '';
   b.hidden = !!d && !n; b.textContent = atlPetit() ? '🎫' : '🎫 Mes demandes' + (quoi ? ' · ' + quoi : ' (' + enc + ')');
-  if (atlPetit() && (rep0 || ouv || enc)) b.appendChild(atlEl('span', 'atl-pastn', String(rep0 || ouv || enc)));
+  if (atlPetit() && (nq || rep0 || ouv || enc)) b.appendChild(atlEl('span', 'atl-pastn', nq ? '❓' + nq : String(rep0 || ouv || enc)));
   b.setAttribute('aria-label', 'Mes demandes : ' + (quoi || enc + ' en cours')); b.classList.toggle('nouveau', !!(d && (d.nouveaux > 0 || ouv)));
   if (!ATL.demAt || Date.now() - ATL.demAt > 60000) atlDemCharger(false);
 }
@@ -16611,6 +16632,60 @@ function atlOffreValider(x, o, solde, box) {
   row.append(no, ok); k.appendChild(row); O.appendChild(k); document.body.appendChild(O); ok.focus();
 }
 
+// 2.0.29 : les QUESTIONS de la mascotte dans le ticket — un ENCART numéroté par question, gros boutons (✅ Oui / ❌ Non ou les choix donnés),
+// « ou écris / dis-le 🎤 » ; la question répondue se replie avec sa réponse en vert ; « Envoyer mes réponses à … » (gratuit)
+function atlQuestions(x) {
+  const W = atlEl('div', 'atl-qs'), modif = atlQAttente(x) && !atlAdminIci();
+  const dessiner = () => {
+    W.textContent = '';
+    for (const q of x.questions) {
+      if (!q) continue;
+      const k = atlEl('div', 'atl-q' + (q.reponse ? ' ok' : '')), hd = atlEl('div', 'atl-qh');
+      hd.append(atlEl('span', 'atl-qn', String(q.n)), atlEl('b', 'atl-qt', String(q.q || '')));
+      k.appendChild(hd);
+      if (q.reponse) {
+        const rr = atlEl('div', 'atl-qr'); rr.append(atlEl('span', '', '✅ ' + String(q.reponse)));
+        if (modif) { const ch = atlEl('button', 'atl-qchg', 'changer'); ch.type = 'button'; ch.addEventListener('click', () => { q.reponse = null; dessiner(); }); rr.appendChild(ch); }
+        k.appendChild(rr); W.appendChild(k); continue;
+      }
+      if (!modif) { k.appendChild(atlEl('p', 'atl-qatt', atlAdminIci() ? '⏳ Pas encore de réponse' : '⏳ En attente')); W.appendChild(k); continue; }
+      const envoyer = async (v, bt) => {
+        v = String(v || '').trim(); if (!v) return;
+        for (const e of k.querySelectorAll('button, input')) e.disabled = true;
+        try { const r = await rpc('at_demande_repondre_question', { p_name: profile.name, p_id: x.id, p_n: q.n | 0, p_reponse: v, p_envoyer: false }, { quiet: true }); if (r && Array.isArray(r.questions)) x.questions = r.questions; else q.reponse = v; }
+        catch (e) { for (const el of k.querySelectorAll('button, input')) el.disabled = false; atlToast(atlWhy(e)); return; }
+        dessiner();
+      };
+      const choix = Array.isArray(q.choix) ? q.choix.filter(Boolean) : [];
+      if (choix.length) {
+        const rb = atlEl('div', 'atl-qbtns' + (choix.length > 2 ? ' n3' : ''));
+        for (const c0 of choix) {
+          const ico = /^oui$/i.test(c0) ? '✅ ' : /^non$/i.test(c0) ? '❌ ' : '';
+          const b = atlEl('button', 'btn ' + (/^non$/i.test(c0) ? 'btn-ghost' : 'btn-play') + ' atl-qb', ico + c0); b.type = 'button'; b.addEventListener('click', () => envoyer(c0, b)); rb.appendChild(b);
+        }
+        k.appendChild(rb);
+      }
+      const sug = Array.isArray(q.suggestions) ? q.suggestions.filter(Boolean) : [];
+      const lw = atlEl('div', 'atl-qlib'), inp = atlEl('input', 'atl-qin'), okb = atlEl('button', 'btn btn-play btn-sm', 'OK'); okb.type = 'button';
+      inp.maxLength = 500; inp.placeholder = choix.length ? 'ou écris-le…' : 'Ta réponse…';
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); envoyer(inp.value, okb); } });
+      okb.addEventListener('click', () => envoyer(inp.value, okb));
+      if (sug.length) { const sg = atlEl('div', 'atl-qsug'); for (const s0 of sug) { const b = atlEl('button', 'atl-qsg', s0); b.type = 'button'; b.addEventListener('click', () => { inp.value = inp.value.trim() ? inp.value.trim() + ', ' + s0 : s0; inp.focus(); }); sg.appendChild(b); } k.appendChild(sg); }
+      const tw = atlEl('div', 'atl-artw atl-micw'); tw.appendChild(inp); if (atlMicKind()) tw.appendChild(atlMicBouton(inp));
+      lw.append(tw, okb); k.appendChild(lw); W.appendChild(k);
+    }
+    if (modif) {
+      const manque = x.questions.filter(q => q && !q.reponse).length, go = atlEl('button', 'btn btn-play atl-qgo', manque ? '📨 Envoyer mes réponses ' + gA() + ' (encore ' + manque + ')' : '📨 Envoyer mes réponses ' + gA()); go.type = 'button'; go.disabled = !!manque;
+      go.addEventListener('click', async () => {
+        go.disabled = true;
+        try { await rpc('at_demande_repondre_question', { p_name: profile.name, p_id: x.id, p_n: null, p_reponse: '', p_envoyer: true }, { quiet: true }); W.textContent = ''; W.appendChild(atlEl('p', 'atl-propok', '📨 Merci ! ' + gNM() + ' lit tes réponses et revient vers toi ici.')); atlDemRafr(); }
+        catch (e) { go.disabled = false; atlToast(/sans reponse/.test(String(e && e.message)) ? 'Réponds d’abord à toutes les questions.' : atlWhy(e)); }
+      });
+      W.append(go, atlEl('small', 'atl-qfree', 'Gratuit : c’est la même demande.'));
+    }
+  };
+  dessiner(); return W;
+}
 // 2.0.10 : une demande (ticket) : état, texte, étapes en direct, réponse du guide, offre choisie
 function atlDemCarte(x) {
   if (ATL.demNeuf && ATL.demNeuf.has(x.id)) x = Object.assign({}, x, { nouveau: true });
@@ -16628,7 +16703,8 @@ function atlDemCarte(x) {
     const bu0 = t.querySelector('.atl-dembu'); if (bu0) t.insertBefore(fil, bu0); else if (hd) t.insertBefore(fil, hd.nextSibling); else t.appendChild(fil);   // dans l'ordre, la dernière réponse du guide en dessous
     if (x.etat === 'impossible' && hi[hi.length - 1].sorte === 'refus') { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = '🙅 Non merci'; }
   }
-  if (t && !atlAdminIci() && x.reponse && !x.choix && !atlPropOuverte(x) && ['vue', 'plus_tard'].includes(x.etat)) t.appendChild(atlDemActions(x, false));
+  if (t && Array.isArray(x.questions) && x.questions.length) { t.appendChild(atlQuestions(x)); if (atlQAttente(x)) { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = '❓ ' + (atlQNb(x) > 1 ? atlQNb(x) + ' questions' : '1 question'); c.classList.add('q'); } }
+  if (t && !atlAdminIci() && x.reponse && !x.choix && !atlPropOuverte(x) && !atlQAttente(x) && ['vue', 'plus_tard'].includes(x.etat)) t.appendChild(atlDemActions(x, false));
   // 2.0.17 (Benjamin : « le guide réfléchit à ce qu'il va dire pendant ce temps et ça se voit ») : tant que le guide n'a pas répondu,
   // une bulle « réfléchit » avec ses points qui bougent ; l'étape écrite par l'équipe (at_demande_avancer) s'y affiche en direct
   if (t && x.etat === 'envoyee' && !x.choix) {
@@ -16870,6 +16946,7 @@ async function atlAdminDemandes() {
     t.append(atlEl('b', 'atl-demet', (ATL_DEM_ET[x.etat] || x.etat) + (x.etat === 'vue' ? gN() : '') + (x.etat !== 'envoyee' && !isNaN(d1) ? ' · ' + fdt(d1) : '')),
       atlEl('small', '', (ATL_DEM_SO[x.sorte] || '') + ' · ' + fdt(d0) + (x.cout ? ' · ' + x.cout + ' 💎' : '')), atlEl('p', '', String(x.texte || '').slice(0, 400)));
     if (x.reponse) t.appendChild(atlEl('p', 'atl-demrep', '🤖 Réponse envoyée : ' + x.reponse));
+    if (Array.isArray(x.questions) && x.questions.length) t.appendChild(atlQuestions(x));   // 2.0.29 : les questions et les réponses du joueur
     const se = atlEl('select', 'atl-tousf'); for (const k of ['envoyee', 'vue', 'en_cours', 'faite', 'impossible']) { const o = new Option((ATL_DEM_ET[k] || k) + (k === 'vue' ? gN() : ''), k); if (k === x.etat) o.selected = true; se.appendChild(o); }
     const ta = atlEl('textarea', 'atl-arin'); ta.rows = 2; ta.maxLength = 1000; ta.placeholder = x.reponse ? 'Nouvelle réponse (facultatif)' : 'Réponse au joueur (facultatif, elle arrive aussi dans la discussion)';
     // 0 h 40 (Benjamin : « je ne vois pas les boutons de choix ») : les options, comme chez le joueur, et leur éditeur
@@ -16881,12 +16958,39 @@ async function atlAdminDemandes() {
     if (!x.choix && !['faite', 'impossible'].includes(x.etat)) {
       if (Array.isArray(x.propositions) && x.propositions.length) t.appendChild(atlPropEditeur(x, m));
       else { const eb = atlEl('button', 'btn btn-ghost btn-sm', '＋ Proposer des options'); eb.type = 'button'; eb.addEventListener('click', () => { eb.remove(); t.appendChild(atlPropEditeur(x, m)); }); t.appendChild(eb); }
+      const qb = atlEl('button', 'btn btn-ghost btn-sm', '❓ Poser des questions'); qb.type = 'button'; qb.addEventListener('click', () => { qb.remove(); t.appendChild(atlQEditeur(x, m)); }); t.appendChild(qb);
     }
     const ok = atlEl('button', 'btn btn-play btn-sm', 'Enregistrer'); ok.type = 'button';
     ok.addEventListener('click', async () => { ok.disabled = true; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'demande_etat', p_args: { id: x.id, etat: se.value, reponse: ta.value.trim() } }, { quiet: true }); x.etat = se.value; if (ta.value.trim()) x.reponse = ta.value.trim(); ok.textContent = '✅ Enregistré'; atlLoad(true); } catch (e) { ok.disabled = false; ok.textContent = 'Réessayer'; } });
     const row = atlEl('div', 'atl-tousfl'); row.append(se, ok); t.append(row, atlAvecMic(ta)); c.appendChild(t); P.appendChild(c);
   }
   P.appendChild(close);
+}
+// 2.0.29 : l'éditeur admin des questions (1 à 5) : la question, puis Oui / Non, des choix (séparés par « / ») ou une réponse libre (avec suggestions)
+function atlQEditeur(x, m) {
+  const E = atlEl('div', 'atl-qed'), lignes = atlEl('div', 'atl-qedl'), intro = atlEl('input', 'atl-qedi'), msg = atlEl('small');
+  intro.placeholder = 'Phrase d’introduction (facultatif)'; intro.maxLength = 300;
+  const ajouter = () => {
+    if (lignes.children.length >= 5) return;
+    const L = atlEl('div', 'atl-qedr'), q = atlEl('input'), sorte = atlEl('select'), ch = atlEl('input');
+    q.placeholder = 'Question ' + (lignes.children.length + 1); q.maxLength = 300;
+    for (const [v, t] of [['oui', '✅ Oui / ❌ Non'], ['choix', 'Choix'], ['libre', 'Réponse libre']]) sorte.appendChild(new Option(t, v));
+    ch.placeholder = 'Choix séparés par « / »'; ch.hidden = true;
+    sorte.addEventListener('change', () => { ch.hidden = sorte.value === 'oui'; ch.placeholder = sorte.value === 'libre' ? 'Suggestions séparées par « / » (facultatif)' : 'Choix séparés par « / »'; });
+    L.append(q, sorte, ch); L._v = () => { const t = q.value.trim(); if (!t) return null; const l = ch.value.split('/').map(z => z.trim()).filter(Boolean); return sorte.value === 'choix' ? { q: t, choix: l } : sorte.value === 'libre' ? { q: t, libre: true, suggestions: l } : { q: t }; };
+    lignes.appendChild(L);
+  };
+  ajouter();
+  const plus = atlEl('button', 'btn btn-ghost btn-sm', '＋ Une question'); plus.type = 'button'; plus.addEventListener('click', ajouter);
+  const go = atlEl('button', 'btn btn-play btn-sm', '❓ Envoyer les questions'); go.type = 'button';
+  go.addEventListener('click', async () => {
+    const qs = [...lignes.children].map(L => L._v()).filter(Boolean); if (!qs.length) { msg.textContent = 'Écris au moins une question.'; return; }
+    if (qs.some(q => q.choix && !q.choix.length)) { msg.textContent = 'Donne les choix (séparés par « / »).'; return; }
+    go.disabled = true; msg.textContent = '';
+    try { await rpc('at_admin_questionner', { p_name: profile.name, p_fiche: m.id, p_id: x.id, p_questions: qs, p_texte: intro.value.trim() || null }, { quiet: true }); msg.textContent = '✅ Questions envoyées au joueur.'; setTimeout(() => { try { atlAdminDemandes(); } catch (e) {} }, 700); }
+    catch (e) { go.disabled = false; msg.textContent = 'Pas possible : ' + String((e && e.message) || '').slice(0, 80); }
+  });
+  E.append(atlEl('b', '', '❓ Questions au joueur'), intro, lignes, plus, go, msg); return E;
 }
 // ---- 0 h (Benjamin) : le CADEAU DE BIENVENUE — 200 crédits une seule fois par compte, à la 1re ouverture de l'Atelier (at_bienvenue)
 async function atlBienvenue() {
