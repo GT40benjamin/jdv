@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : partage ton score dans le chat (borne 2.0.49)
+[sensinterdit] 💬 « Partager mon score dans le chat » envoie bien ta partie à la salle : « 73,31 km parcourus et 2 039 km/h de pointe à Sens Interdit ! Qui fait mieux ? ». Avant, le chat s’ouvrait mais rien ne partait.
 [chrono] ## 🏁 Turbo Chrono (borne 2.0.47) : des cartes de circuits bien rangées
 [chrono] 🏁 Les 4 circuits ont maintenant des cartes de même taille, bien alignées : les 4 côte à côte sur un grand écran, 2 par 2 sur un écran plus petit, l’une sous l’autre sur un téléphone debout.
 [chrono] 🏠 Dans chaque carte, le classement de la SALLE puis celui du MONDE prennent toute la largeur : les noms longs (EMPEREUR, MAXIMILIENNE…) et les temps tiennent en entier, alignés à droite, chiffre sous chiffre.
