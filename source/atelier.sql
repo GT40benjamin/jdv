@@ -2803,3 +2803,6 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 
 -- (correctif du guide de l équipe, 3 nov. 2026 1 h 45, report) : dans at_lire, la clé « prepa » lit at_demandes sous l alias « dq » (l alias « dm » portait
 -- le nom d une variable plpgsql, at_credit_demandes : erreur pour tout joueur ayant un projet). Ne jamais nommer un alias SQL comme une variable.
+
+-- (v49, 3 nov. 2026 2 h 15) : at_demandes.version_livree (remplie à « faite ») ; at_versions (historique, rempli par at_version_suivante) ;
+-- at_demande_etat(id, etat, reponse, version) ; at_lire fiche.versions. Texte complet : migration atelier_v49_versions.

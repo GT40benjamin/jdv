@@ -14876,7 +14876,11 @@ function atlRenderProjet(W, f) {
     p.appendChild(bar);
     p.appendChild(atlEl('p', 'atl-gaide', '🎮 Ton jeu s’ouvre en grand, comme sur la borne. Pendant la partie, touche P (ou ' + gN() + ', le petit bouton qui flotte) : arrêt sur image, tu montres avec le viseur ce qu’il faut changer, et ' + gN() + ' s’en occupe.'));
     const pub = atlEl('div', 'atl-pub'); pub.appendChild(atlEl('h3', '', et === 'alpha' ? '🌟 Quand il te plaît : publie-le !' : et === 'publie_monde' ? '🌍 Publié pour tout le monde' : '🌟 Publié dans ta salle'));
-    atlBoutonsJeu(pub, f, true); p.appendChild(pub);
+    atlBoutonsJeu(pub, f, true);
+    // 2 h (Benjamin) : publier reste possible pendant qu'une version se prépare ; le jeu publié n'est pas figé (la borne sert toujours la version courante)
+    pub.appendChild(atlEl('p', 'atl-pubvie', '🔄 Ton jeu publié reste vivant : chaque nouvelle version (V' + (vN + 1) + ', V' + (vN + 2) + '…) arrive automatiquement dans la borne. Tu peux continuer à l’améliorer ici avec ' + gN() + '.'));
+    if (prepa.length) pub.appendChild(atlEl('p', 'atl-pubvie', '🛠️ ' + gN() + ' prépare ta V' + (vN + 1) + ' : elle arrivera toute seule dans la borne quand elle sera prête.'));
+    p.appendChild(pub);
   } else {
     const p = pane('etat'), c = atlEl('div', 'atl-fin' + (et === 'refusee' ? '' : ' run'));
     if (et === 'refusee') c.append(atlEl('h2', '', 'Ce projet n’a pas été retenu'), atlEl('p', '', 'Tu peux en commencer un autre depuis « Mes projets ».'));
@@ -15373,7 +15377,16 @@ function atlRenderRoute(liste) {
   const idee = atlVal(fi.idee) || (ecrire ? String((R.querySelector('.atl-in') || {}).value || '').replace(/^Mon jeu \(en [23]D\) :[^\n]*\n?(Mon idée : )?/, '').trim() : '');
   ligne(s2, '💡', 'L’idée', idee ? '✔' : '…', etape(0) || (ecrire ? () => { const i = R.querySelector('.atl-in'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } } : null), !!idee, idee ? court(idee, 90) : '');
   [['personnages', '🦸', 'Personnages', 1], ['objets', '🎁', 'Objets', 2], ['decor', '🏞️', 'Décor', 3], ['sons', '🔊', 'Sons et bruitages', 4]].forEach(([k, ic, lab, i]) => { const l = atlListeDe(fi[k]); ligne(s2, ic, lab, l.length ? String(l.length) : '…', etape(i), !!l.length, l.length ? court(l.join(', '), 80) : ''); });
-  if (f && atlDevis(f)) B.appendChild(atlDevisEncart(f, fi, true));   // 23 h 30 : le devis, en lecture dans la feuille de route
+  if (f && atlDevis(f)) B.appendChild(atlDevisEncart(f, fi, true));
+  if (f && Array.isArray(f.versions) && f.versions.length) {   // 3 nov. 2 h 15 (Benjamin : « il faut toujours un versionnage »)
+    const sv = sec('📜 Les versions de ton jeu');
+    for (const v of f.versions) {
+      const d0 = new Date(v.at), r = atlEl('div', 'atl-vh');
+      r.append(atlEl('b', '', 'V' + v.v + (isNaN(d0) ? '' : ' · ' + d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))), atlEl('p', '', v.note || ''));
+      if (Array.isArray(v.demandes) && v.demandes.length) { const ul = atlEl('ul'); for (const t of v.demandes.slice(0, 6)) ul.appendChild(atlEl('li', '', String(t))); r.appendChild(ul); }
+      sv.appendChild(r);
+    }
+  }   // 23 h 30 : le devis, en lecture dans la feuille de route
   const s3 = sec('🎨 Le design');
   const els = f ? atlElemsFiche(fi) : [], faits = f ? els.filter(e => { const d = atlDessinDe(f, fi, e.nom); return d && !d.attente; }).length : 0, att = f && Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours.length : 0;
   ligne(s3, '🖼️', 'L’ambiance', f && f.design_en_cours ? '⏳' : f && f.design ? '✔' : '…', etape(5), !!(f && f.design));
@@ -16092,10 +16105,11 @@ function atlDemBtn(R) {
   const d = ATL.dem, n = d && Array.isArray(d.demandes) ? d.demandes.length : 0;
   if (atlAdminIci()) {   // les demandes du JOUEUR sur ce projet, pas celles de l'admin
     const l = Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet : [], ouv0 = l.filter(x => ['envoyee', 'vue', 'en_cours'].includes(x.etat)).length;
-    b.hidden = false; b.textContent = '📋 Demandes de ' + dispName(ATL.data.admin_voir.joueur) + ' (' + l.length + ')'; b.classList.toggle('nouveau', ouv0 > 0); return;
+    b.hidden = false; b.textContent = '📋 Demandes de ' + dispName(ATL.data.admin_voir.joueur) + ' (' + l.filter(x => !['faite', 'impossible'].includes(x.etat)).length + ')'; b.classList.toggle('nouveau', ouv0 > 0); return;
   }
   const ouv = d && Array.isArray(d.demandes) ? d.demandes.filter(atlPropOuverte).length : 0;
-  b.hidden = !n; b.textContent = '📋 Mes demandes (' + n + ')' + (ouv ? ' · 💬 ' + ouv + ' à choisir' : ''); b.classList.toggle('nouveau', !!(d && (d.nouveaux > 0 || ouv)));
+  const enc = d && Array.isArray(d.demandes) ? d.demandes.filter(x => !['faite', 'impossible'].includes(x.etat)).length : 0;   // 2 h 05 : seulement celles en cours
+  b.hidden = !n; b.textContent = '📋 Mes demandes (' + enc + ')' + (ouv ? ' · 💬 ' + ouv + ' à choisir' : ''); b.classList.toggle('nouveau', !!(d && (d.nouveaux > 0 || ouv)));
   if (!ATL.demAt || Date.now() - ATL.demAt > 60000) atlDemCharger(false);
 }
 // ---- 0 h 15 (Benjamin) : les PROPOSITIONS chiffrées d'une demande — un bouton par option (libellé et crédits fixés par le guide pour
@@ -16160,15 +16174,20 @@ async function atlMesDemandes() {
   const close = atlEl('button', 'btn btn-ghost btn-sm', 'Fermer'); close.type = 'button'; close.addEventListener('click', () => { z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
   P.append(atlEl('b', 'atl-cq', '📋 Mes demandes'), atlEl('p', '', 'Un instant…'));
   const d = await atlDemCharger(true); P.lastChild.remove();
-  const l = d && Array.isArray(d.demandes) ? d.demandes : [];
-  if (!l.length) P.appendChild(atlEl('p', 'atl-chv', 'Pas encore de demande.'));
+  const tout = d && Array.isArray(d.demandes) ? d.demandes : [], fini = x => ['faite', 'impossible'].includes(x.etat);
+  const ong = ATL.demOng === 'faites' ? 'faites' : 'encours', nEn = tout.filter(x => !fini(x)).length, nFa = tout.length - nEn;
+  const tabs = atlEl('div', 'atl-demtabs');
+  for (const [k, lab] of [['encours', 'En cours (' + nEn + ')'], ['faites', '✅ Faites (' + nFa + ')']]) { const b = atlEl('button', 'atl-demtab' + (k === ong ? ' on' : ''), lab); b.type = 'button'; b.addEventListener('click', () => { ATL.demOng = k; atlMesDemandes(); }); tabs.appendChild(b); }
+  P.appendChild(tabs);
+  const l = tout.filter(x => ong === 'faites' ? fini(x) : !fini(x));
+  if (!l.length) P.appendChild(atlEl('p', 'atl-chv', ong === 'faites' ? 'Pas encore de demande faite.' : 'Aucune demande en cours.'));
   for (const x of l) {
     const choisir = atlPropOuverte(x), et = choisir ? 'choisir' : x.etat, c = atlEl('div', 'atl-dem2' + (x.nouveau && x.etat !== 'envoyee' ? ' nouveau' : '') + ' e-' + et);
     const u = /^a\//.test(x.image || '') ? atlImgUrl(x.image) : atlIaUrl(x.image), vig = atlEl('div', 'atl-demv');
     if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; im.addEventListener('click', () => atlZoom(u)); vig.appendChild(im); } else vig.appendChild(atlEl('span', 'atl-demic', (ATL_DEM_SO[x.sorte] || '💬').split(' ')[0]));
     const t = atlEl('div', 'atl-demt'), d0 = new Date(x.at), hd = atlEl('div', 'atl-demh');
     const EB = { envoyee: '📨 Envoyée', vue: '👀 Vue', choisir: '💬 À choisir', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard' };
-    hd.append(atlEl('span', 'atl-demb2 b-' + et, EB[et] || et), atlEl('b', 'atl-demj', x.projet || ''), atlEl('small', 'atl-demd', (isNaN(d0) ? '' : d0.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + (x.cout ? ' · ' + x.cout + ' 💎' : '')));
+    hd.append(atlEl('span', 'atl-demb2 b-' + et, (EB[et] || et) + (et === 'faite' && x.version_livree ? ' · livrée en V' + x.version_livree : '')), atlEl('b', 'atl-demj', x.projet || ''), atlEl('small', 'atl-demd', (isNaN(d0) ? '' : d0.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + (x.cout ? ' · ' + x.cout + ' 💎' : '')));
     t.appendChild(hd);
     const txt = String(x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, ''), tp = atlEl('p', 'atl-demtx', txt); t.appendChild(tp);
     if (txt.length > 140) { const vp = atlEl('button', 'atl-demplus', 'voir plus'); vp.type = 'button'; vp.addEventListener('click', () => { const o = tp.classList.toggle('ouvert'); vp.textContent = o ? 'voir moins' : 'voir plus'; }); t.appendChild(vp); }
@@ -16288,8 +16307,12 @@ async function atlAdminDemandes() {
   const P = atlEl('div', 'atl-suivi atl-dems'); P.addEventListener('click', e => e.stopPropagation()); z.appendChild(P);
   const close = atlEl('button', 'btn btn-ghost btn-sm', 'Fermer'); close.type = 'button'; close.addEventListener('click', () => { z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
   P.appendChild(atlEl('b', 'atl-cq', '📋 Demandes du projet (admin)'));
-  const l = ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet : [];
-  if (!l.length) P.appendChild(atlEl('p', 'atl-chv', 'Aucune demande sur ce projet.'));
+  const tout = ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet : [], fini = x => ['faite', 'impossible'].includes(x.etat);
+  const ong = ATL.demOngA === 'faites' ? 'faites' : 'encours', tabs = atlEl('div', 'atl-demtabs');
+  for (const [k, lab] of [['encours', 'En cours (' + tout.filter(x => !fini(x)).length + ')'], ['faites', '✅ Faites (' + tout.filter(fini).length + ')']]) { const b = atlEl('button', 'atl-demtab' + (k === ong ? ' on' : ''), lab); b.type = 'button'; b.addEventListener('click', () => { ATL.demOngA = k; atlAdminDemandes(); }); tabs.appendChild(b); }
+  P.appendChild(tabs);
+  const l = tout.filter(x => ong === 'faites' ? fini(x) : !fini(x));
+  if (!l.length) P.appendChild(atlEl('p', 'atl-chv', ong === 'faites' ? 'Pas encore de demande faite.' : 'Aucune demande en cours sur ce projet.'));
   for (const x of l) {
     const c = atlEl('div', 'atl-dem e-' + x.etat), u = /^a\//.test(x.image || '') ? atlImgUrl(x.image) : atlIaUrl(x.image);
     if (u) { const im = atlEl('img'); im.alt = ''; im.src = u; im.addEventListener('click', () => atlZoom(u)); c.appendChild(im); } else c.appendChild(atlEl('span', 'atl-demic', (ATL_DEM_SO[x.sorte] || '💬').split(' ')[0]));
