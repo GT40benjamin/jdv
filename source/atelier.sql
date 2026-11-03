@@ -2794,3 +2794,6 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 
 -- (v44, 3 nov. 2026 1 h 12) : garde-fou at_gen_file (pegase_int.at_gen_garde, colonne motif : achat / demande:<id> / offert:<raison>:<admin> / montage / equipe ;
 -- sinon refus « generation sans credit ») ; at_suivi : sans_credit. Texte complet : migration atelier_v44_garde_generation.
+
+-- (v45-46, 3 nov. 2026 1 h 15 → 1 h 25) : image_par_planche 8, planches_perso_anime 3 ; at_demande_modif type anime ; at_lire : par_planche,
+-- planches_anime ; projets : monte (idée + premier design). Textes complets : migrations atelier_v45_planches_anime, atelier_v46_projets_monte.

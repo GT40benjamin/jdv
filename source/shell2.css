@@ -4293,3 +4293,9 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 #atl-ecoute{position:fixed;left:50%;top:max(8px,env(safe-area-inset-top));transform:translateX(-50%);z-index:2147483003;padding:6px 14px;border-radius:999px;background:#c8102e;color:#fff;font:700 14px var(--body);box-shadow:0 4px 16px rgba(0,0,0,.5);animation:atlPulseR 1.4s infinite;pointer-events:none}
 #atl-ecoute[hidden]{display:none}
 .atl-alerte{color:#ff8a8a}
+
+/* 1 h 15 : l'estimation des planches */
+.atl-manim{display:inline-flex;align-items:center;gap:4px;margin-left:auto;font:600 12px var(--body);color:#ffe9a8;cursor:pointer}
+.atl-mdet{font:600 13.5px var(--body);color:var(--ink)}.atl-mplus{font:700 13.5px var(--body);color:#9fe0a8}
+.atl-mlight .atl-mrow:not(:has(input:checked)){outline:2px dashed #9fe0a8;outline-offset:2px;border-radius:10px}
+.atl-mrow .atl-manim{grid-column:1/-1;justify-self:end;margin:2px 0 0}

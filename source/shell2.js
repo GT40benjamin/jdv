@@ -1540,7 +1540,7 @@ const foreignError = e => /^(chrome|moz|safari(-web)?)-extension:|^webkit-masked
 addEventListener('error', e => { if (!foreignError(e)) reportError(e.message, (e.error && e.error.stack) || ((e.filename || '') + ':' + e.lineno + ':' + e.colno)); });
 addEventListener('unhandledrejection', e => { const r = e.reason; reportError('Promesse : ' + ((r && r.message) || r), r && r.stack, { quiet: true }); });
 
-/* ================= Musique (assets/music/<morceau>.mp3, ElevenLabs) ================= */
+/* ================= Musique (assets/music/<morceau>.mp3) ================= */
 const MUS = { on: store.get('jdw.music', true) !== false, gain: null, buf: {}, order: [], cur: null, id: '', want: '', loopT: 0, seq: 0 };
 const MUSIC_VOL = 0.42, XFADE = 1.6;
 // niveau de la musique selon l'écran (accueil 1, en jeu 0.8, fin de partie 0.5) et baisse momentanée pendant un cri
@@ -14083,7 +14083,7 @@ const ATL_HIDE = new Set(['references', 'titre', 'notes_internes', 'planches']);
 const ATL_ACCORD = 'J’accepte que mon jeu soit gratuit et que l’administrateur décide s’il est proposé dans ma salle ou à tous (classement mondial), et qu’il se réserve le droit d’y faire toutes les modifications.';
 const ATL_ACTIVE = new Set(['brouillon', 'en_discussion', 'complete', 'design', 'design_choisi', 'envoyee', 'alpha', 'publie_salle', 'publie_monde']);
 const ATL_AFTER = new Set(['envoyee', 'acceptee', 'alpha', 'publie_salle', 'publie_monde']);   // la lettre est partie
-// images DESSINÉES par l'Atelier (Gemini, fonction Edge atelier-image ; seau public atelier-ia) : seuls les chemins i/<uuid>.<ext> s'affichent
+// images DESSINÉES par l'Atelier (notre IA, fonction Edge atelier-image ; seau public atelier-ia) : seuls les chemins i/<uuid>.<ext> s'affichent
 const atlIaUrl = f => /^i\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$/.test(String(f || '')) ? CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier-ia/' + f : '';
 const atlAdminIci = () => !!(ATL && ATL.adminVoir && ATL.cur === ATL.adminVoir.id && ATL.data && ATL.data.admin_voir);
 function atlCredTxt(v) { if (atlAdminIci()) { const av = ATL.data.admin_voir; return '💎 ' + dispName(av.joueur) + ' ' + Math.max(0, av.solde | 0) + ' · toi ' + Math.max(0, v | 0); } return '💎 ' + Math.max(0, v | 0) + ' crédits'; }
@@ -14186,6 +14186,7 @@ function atlVersion(p, att) {
   if (et === 'alpha') return '🎮 V' + v; if (et === 'publie_salle') return '🌟 V' + v + ' · publié'; if (et === 'publie_monde') return '🌍 V' + v + ' · publié pour tous';
   if (et === 'envoyee' || et === 'acceptee') return '🛠️ V1 en construction'; if (et === 'refusee') return 'Pas retenu';
   if (att) return '⏳ En attente ' + gDe();
+  if (p && p.monte && ['brouillon', 'en_discussion', 'complete', 'design', 'design_choisi'].includes(et)) return '🧩 Prêt à construire';   // 1 h 25
   if (['complete', 'design', 'design_choisi'].includes(et)) return '🎨 Le design';
   if (et === 'en_discussion') return '🧱 Montage du projet';
   return '📝 Brouillon';
@@ -14423,6 +14424,7 @@ function atlRenderProjets() {
   R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
 }
 function atlOuvrir(id) {
+  try { const pj = atlProjets().find(x => x.id === id); if (pj && (pj.version | 0) && ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || ''))) { const vv = store.get('jdw.atl.vvu', {}) || {}; if ((vv[id] | 0) < (pj.version | 0)) { vv[id] = pj.version | 0; store.set('jdw.atl.vvu', vv); } } } catch (e) {}
   atlMicStop(); atlLetterClose(true); atlErr('');
   ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = null; ATL.lance = 0; ATL.tab = ''; ATL.pSig = ''; ATL.basesOn = false; ATL.bq = 0; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
   const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (inp) { inp.placeholder = 'Décris ton jeu…'; inp.value = ''; }
@@ -15264,6 +15266,7 @@ function atlElemRenommer(cap, e, fi) {
 function atlModale() {
   const R = ATL.root, M = R.querySelector('.atl-mod'), f = atlFiche(); if (!f) return;
   const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, cr = atlCred(), ci = cr ? cr.cout | 0 : 10, cf = cr ? (cr.forme == null ? 3 : cr.forme | 0) : 3;
+  const per = Math.max(1, (cr && cr.par_planche) | 0 || 8), pa = Math.max(1, (cr && cr.planches_anime) | 0 || 3), animes = new Set();   // 1 h 15 : l'estimation
   const els = atlElemsFiche(fi).map(e => Object.assign(e, { fait: !!atlDessinDe(f, fi, e.nom), forme: atlForme(e.nom) }));
   M.textContent = ''; M.hidden = false;
   const card = atlEl('div', 'atl-mcard'); M.appendChild(card);
@@ -15273,6 +15276,11 @@ function atlModale() {
     const l = atlEl('label', 'atl-mrow'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = !e.fait && atlPrincipal(fi, e);   // les principaux d'abord
     const v = atlEl('span', 'atl-mvis'); if (e.forme) v.appendChild(atlFormeSvg(e.forme.forme, e.forme.couleur)); else v.textContent = '🖌️';
     l.append(cb, v, atlEl('span', 'atl-mnom', (atlPrincipal(fi, e) ? '⭐ ' : '') + e.nom), atlEl('small', 'atl-mtag' + (e.forme ? ' f' : ''), e.fait ? 'déjà créé' : e.forme ? 'forme · ' + cf + ' 💎' : 'élément'));
+    if (e.k === 'personnages' && !e.forme) {   // un personnage ANIMÉ : toutes ses poses (marche, repos…), plusieurs planches
+      const an = atlEl('label', 'atl-manim'), ac = atlEl('input'); ac.type = 'checkbox';
+      ac.addEventListener('change', () => { if (ac.checked) { animes.add(e.nom); cb.checked = true; } else animes.delete(e.nom); maj(); });
+      an.append(ac, atlEl('span', '', '🏃 animé ≈ ' + pa + ' planches')); l.appendChild(an);
+    }
     cb.addEventListener('change', maj); ul.appendChild(l); boxes.push([cb, e]);
   }
   const tot = atlEl('p', 'atl-mtot'), row = atlEl('div', 'atl-mbtns');
@@ -15281,16 +15289,26 @@ function atlModale() {
   const go = atlEl('button', 'btn btn-play', ''); go.type = 'button'; row.append(non, go);
   const er = atlEl('p', 'atl-werr'); er.hidden = true;
   card.append(ul, tot, er, row);
-  function calc() { const sel = boxes.filter(([cb]) => cb.checked).map(([, e]) => e), fo = sel.filter(e => e.forme), de = sel.filter(e => !e.forme), np = Math.ceil(de.length / 8); return { fo, de, np, cout: np * ci + fo.length * cf }; }
-  function maj() { const c = calc(); go.disabled = !c.fo.length && !c.de.length; go.textContent = 'Créer · ' + c.cout + ' 💎'; tot.textContent = c.de.length + ' élément' + (c.de.length > 1 ? 's' : '') + ' + ' + c.fo.length + ' forme' + (c.fo.length > 1 ? 's' : '') + ' = ' + c.cout + ' crédits'; }
+  function calc() { const sel = boxes.filter(([cb]) => cb.checked).map(([, e]) => e), fo = sel.filter(e => e.forme), an = sel.filter(e => !e.forme && animes.has(e.nom)), de = sel.filter(e => !e.forme && !animes.has(e.nom)), np = Math.ceil(de.length / per); return { fo, de, an, np, cout: np * ci + fo.length * cf + an.length * pa * ci }; }
+  function detail(c) {   // comment c'est compté, en clair
+    const L = [];
+    if (c.de.length) { L.push(c.de.length + ' élément' + (c.de.length > 1 ? 's' : '') + ' = ' + c.np + ' planche' + (c.np > 1 ? 's' : '') + ' = ' + c.np * ci + ' 💎'); const reste = c.np * per - c.de.length; if (reste > 0) L.push('Tu peux encore ajouter ' + reste + ' élément' + (reste > 1 ? 's' : '') + ' pour le même prix !'); }
+    for (const e of c.an) L.push(e.nom + ' animé ≈ ' + pa + ' planches = ' + pa * ci + ' 💎');
+    if (c.fo.length) L.push(c.fo.length + ' forme' + (c.fo.length > 1 ? 's' : '') + ' = ' + c.fo.length * cf + ' 💎');
+    return L;
+  }
+  function maj() { const c = calc(); go.disabled = !c.fo.length && !c.de.length && !c.an.length; go.textContent = 'Créer · ' + c.cout + ' 💎'; tot.textContent = detail(c).join(' · ') || 'Coche ce que tu veux créer.'; return; tot.textContent = c.de.length + ' élément' + (c.de.length > 1 ? 's' : '') + ' + ' + c.fo.length + ' forme' + (c.fo.length > 1 ? 's' : '') + ' = ' + c.cout + ' crédits'; }
   let sur = false;
   go.addEventListener('click', async () => {
     const c = calc(); if (go.disabled || ATL.sending) return;
     if (cr && (cr.solde | 0) < c.cout) { er.hidden = false; er.textContent = 'Il te manque des crédits : décoche des éléments, ou recharge tes crédits.'; atlCreditsBtn(er); return; }
     if (!sur) {   // 0 h 45 : « Créer N éléments · X 💎 ? Oui / Non », avec la liste
-      const q = atlEl('div', 'atl-mconf'), n = c.de.length + c.fo.length, oui = atlEl('button', 'btn btn-play', 'Oui, créer'), nn = atlEl('button', 'btn btn-ghost', 'Non'); oui.type = nn.type = 'button';
-      q.append(atlEl('b', '', 'Créer ' + n + ' élément' + (n > 1 ? 's' : '') + ' · ' + c.cout + ' 💎 ?'), atlEl('p', '', c.de.concat(c.fo).map(e => e.nom).join(' · ')));
-      const r2 = atlEl('div', 'atl-mbtns'); r2.append(nn, oui); q.appendChild(r2); row.hidden = true; card.appendChild(q);
+      const q = atlEl('div', 'atl-mconf'), n = c.de.length + c.fo.length + c.an.length, oui = atlEl('button', 'btn btn-play', 'Oui, créer · ' + c.cout + ' 💎'), nn = atlEl('button', 'btn btn-ghost', 'Non'); oui.type = nn.type = 'button';
+      q.append(atlEl('b', '', 'Créer ' + n + ' élément' + (n > 1 ? 's' : '') + ' · ' + c.cout + ' 💎 ?'), atlEl('p', '', c.de.concat(c.an, c.fo).map(e => e.nom).join(' · ')));
+      for (const t of detail(c)) q.appendChild(atlEl('p', /même prix/.test(t) ? 'atl-mplus' : 'atl-mdet', t));
+      const r2 = atlEl('div', 'atl-mbtns');
+      if (c.de.length && c.np * per - c.de.length > 0) { const pl = atlEl('button', 'btn btn-ghost', '＋ Ajouter d’autres éléments à cette planche'); pl.type = 'button'; pl.addEventListener('click', () => { q.remove(); row.hidden = false; ul.classList.add('atl-mlight'); ul.scrollIntoView({ block: 'nearest' }); }); r2.appendChild(pl); }
+      r2.append(nn, oui); q.appendChild(r2); row.hidden = true; card.appendChild(q);
       nn.addEventListener('click', () => { q.remove(); row.hidden = false; });
       oui.addEventListener('click', () => { sur = true; q.remove(); row.hidden = false; go.click(); });
       return;
@@ -15298,8 +15316,9 @@ function atlModale() {
     sur = false;
     ATL.sending = true; go.disabled = true; er.hidden = true;
     try {
-      const r = await rpc('at_dessins_demander', { p_name: profile.name, p_fiche: f.id, p_elements: c.de.map(e => e.nom), p_formes: c.fo.map(e => e.forme) }, { quiet: true });
-      if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
+      let r = null;
+      if (c.de.length || c.fo.length) { r = await rpc('at_dessins_demander', { p_name: profile.name, p_fiche: f.id, p_elements: c.de.map(e => e.nom), p_formes: c.fo.map(e => e.forme) }, { quiet: true }); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); }
+      for (const e of c.an) { const ra = await rpc('at_demande_modif', { p_name: profile.name, p_fiche: f.id, p_nom: e.nom, p_path: null, p_texte: '', p_type: 'anime' }, { quiet: true }); if (ra && Number.isFinite(+ra.solde)) atlSolde(ra.solde); }   // le guide crée toutes ses poses
       f.dessins_en_cours = (Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours : []).concat(c.de.map(e => e.nom));
       fi.formes = (Array.isArray(fi.formes) ? fi.formes : []).filter(x => !c.fo.some(e => atlNorm(e.nom) === atlNorm(x && x.nom))).concat(c.fo.map(e => e.forme)); f.fiche = fi;
       M.hidden = true; M.textContent = ''; atlRenderWiz(); atlRenderRoute(false);
@@ -15430,18 +15449,22 @@ function atlAccueil(box, ps, max) {
   const A = atlEl('div', 'atl-acc'), tx = atlEl('div', 'atl-acct');
   const nom = profile && profile.name ? dispName(profile.name) : '';
   tx.append(atlEl('b', '', gNM()), atlEl('p', 'atl-accq', 'Bonjour' + (nom ? ' ' + nom : '') + ' ! 👋 Qu’est-ce qu’on fait aujourd’hui ?'));
-  const news = atlEl('div', 'atl-accn');
-  for (const pj of ps.filter(atlProjNew).slice(0, 3)) {
-    const b = atlEl('button', 'atl-accnew', pj.etat === 'alpha' ? '🎉 Ta V1 de « ' + (pj.titre || 'Mon jeu sans nom') + ' » est prête !' : '✉️ Tu as un nouveau message sur « ' + (pj.titre || 'Mon jeu sans nom') + ' »');
-    b.type = 'button'; b.addEventListener('click', () => atlOuvrir(pj.id)); news.appendChild(b);
-  }
+  // 1 h 25 (Benjamin : « le guide n'est pas à jour en haut ») : 1) un choix à faire 2) une nouvelle réponse 3) une NOUVELLE version (le bon
+  // numéro, seulement si c'est nouveau depuis la dernière visite) 4) un projet prêt à construire
+  const news = atlEl('div', 'atl-accn'), titre = pj => '« ' + (pj.titre || 'Mon jeu sans nom') + ' »', vus = store.get('jdw.atl.vvu', {}) || {}, faits = new Set(), lignes = [];
+  const dms = ATL.dem && Array.isArray(ATL.dem.demandes) ? ATL.dem.demandes : [];
+  for (const pj of ps) if (dms.some(d => d.fiche === pj.id && atlPropOuverte(d))) lignes.push([pj, '💬 Tu as un choix à faire sur ' + titre(pj), () => atlMesDemandes()]);
+  for (const pj of ps.filter(atlProjNew)) lignes.push([pj, '✉️ Nouvelle réponse sur ' + titre(pj), () => atlOuvrir(pj.id)]);
+  for (const pj of ps) { const v = (pj.version | 0) || 0; if (v && ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')) && v > ((vus[pj.id] | 0) || 0)) lignes.push([pj, '🎉 Ta V' + v + ' de ' + titre(pj) + ' est prête !', () => { vus[pj.id] = v; store.set('jdw.atl.vvu', vus); ATL.tab = 'jeu'; atlOuvrir(pj.id); }]); }
+  for (const pj of ps) if (pj.monte && ['brouillon', 'en_discussion', 'complete', 'design', 'design_choisi'].includes(String(pj.etat || ''))) lignes.push([pj, '🧩 ' + titre(pj) + ' est prêt à construire', () => atlOuvrir(pj.id)]);
+  for (const [pj, t, fn] of lignes) { if (faits.has(pj.id) || news.childNodes.length >= 3) continue; faits.add(pj.id); const b = atlEl('button', 'atl-accnew', t); b.type = 'button'; b.addEventListener('click', fn); news.appendChild(b); }
   if (news.childNodes.length) tx.appendChild(news);
   const act = atlEl('div', 'atl-acca'), btn = (t, cls, fn, off) => { const b = atlEl('button', 'btn btn-sm ' + cls, t); b.type = 'button'; b.disabled = !!off; b.addEventListener('click', fn); act.appendChild(b); };
   btn('＋ Nouveau projet', 'btn-play', atlNouveau, ps.length >= max);
   const br = ps.find(pj => ['brouillon', 'en_discussion', 'complete'].includes(String(pj.etat || '')));
   if (br) btn('📝 Reprendre « ' + (br.titre || 'Mon jeu sans nom') + ' »', 'btn-ghost', () => atlOuvrir(br.id));
   const v1 = ps.find(pj => ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')));
-  if (v1) btn('🎮 Tester ma V1 de « ' + (v1.titre || 'Mon jeu sans nom') + ' »', 'btn-ghost', () => { ATL.tab = 'jeu'; atlOuvrir(v1.id); });
+  if (v1) btn('🎮 Tester ma V' + ((v1.version | 0) || 1) + ' de « ' + (v1.titre || 'Mon jeu sans nom') + ' »', 'btn-ghost', () => { const vv = store.get('jdw.atl.vvu', {}) || {}; vv[v1.id] = (v1.version | 0) || 1; store.set('jdw.atl.vvu', vv); ATL.tab = 'jeu'; atlOuvrir(v1.id); });
   tx.appendChild(act);
   const pic = atlGuideAnim(news.childNodes.length ? 'joie' : 'accueil'); pic.classList.add('atl-accimg');
   A.append(pic, tx); box.appendChild(A);
@@ -16475,7 +16498,7 @@ async function atlChoisir(msg, n, b) {
   catch (e) { atlErr(atlWhy(e)); atlRender(); }
   finally { ATL.sending = false; }
 }
-// ---------- l'Atelier DESSINE (Gemini, fonction Edge atelier-image ; crédits Elixir : Atelier+ ou packs, 2 par image) ----------
+// ---------- l'Atelier DESSINE (notre IA, fonction Edge atelier-image ; crédits Elixir : Atelier+ ou packs, 2 par image) ----------
 async function atlIa(body) {
   const tok = await acctToken(profile);
   const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/atelier-image', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ p_name: profile.name, p_fiche: ATL.cur || null }, body)) }, 180000);
@@ -16509,7 +16532,7 @@ async function atlDessinePlanche(force) {
   } catch (e) { ATL.iaK = 'ratee'; ATL.iaMsg = e && e.offline ? 'Pas de réseau : réessaie dans un moment.' : 'Oups, la création n’a pas pu se faire. Réessaie dans un moment.'; }
   finally { ATL.drawing = false; await atlLoad(true); }
 }
-// ---------- l'Atelier PROPOSE les planches (fiche.planches) ; le joueur confirme, puis seulement Gemini dessine (Benjamin, 15 h 05) ----------
+// ---------- l'Atelier PROPOSE les planches (fiche.planches) ; le joueur confirme, puis seulement notre IA crée (Benjamin, 15 h 05) ----------
 function atlPlanchesAFaire() {
   const f = atlFiche(), fi = (f && f.fiche && typeof f.fiche === 'object') ? f.fiche : {};
   if (!Array.isArray(fi.planches)) return [];
