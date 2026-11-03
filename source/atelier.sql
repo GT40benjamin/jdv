@@ -2823,3 +2823,7 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 
 -- (v53, 3 nov. 2026 10 h 10, borne 2.0.10) : at_demande_ecrite(name, fiche, texte) : une demande ÉCRITE depuis l'onglet « 🎫 Mes demandes »
 -- (jeu jouable), au prix cout_demande, ticket créé par at_demande_auto (sorte 'message', cout noté). Texte complet : migration v53_demande_ecrite.
+
+-- (v54, 3 nov. 2026 10 h 30, borne 2.0.11) : PRIX PLANCHER des offres : propositions[].plancher (prix calculé par l'équipe ; les offres existantes :
+-- plancher = prix). at_admin_proposer passe atl.admin = 1 : at_demande_proposer refuse « prix plancher : « X » minimum N credits » ; une option
+-- ajoutée par l'admin : minimum = max(plus petit plancher, coût réel de la demande × 2, devis_<type> × qte). Texte complet : migration v54_prix_plancher.

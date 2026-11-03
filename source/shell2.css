@@ -4443,3 +4443,28 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-dhist .atl-pmsgs{max-height:420px;overflow-y:auto;margin-top:8px}
 .atl-dembu.nouveau{outline:2px solid #ffd34d;background:rgba(255,211,77,.12);animation:atlFade .3s ease-out}
 .atl-dembu > div > b{color:#ffe9a8}
+
+/* 2.0.11 : boutons de publication dans l'en-tête ; tickets */
+.atl-phpub{margin-left:auto;display:grid;gap:8px;justify-items:end;max-width:min(420px,45%)}
+.atl-phpub .atl-jbtns{justify-content:flex-end;margin:0}
+.atl-phpub .atl-pubv{justify-items:end;text-align:right}
+.atl-phpub .atl-pubvie{margin:0;font-size:13px;color:var(--muted)}
+@media (max-width:600px){
+  .atl-phpub{margin:0;max-width:none;width:100%;justify-items:stretch}
+  .atl-phpub .atl-jbtns{flex-direction:column}.atl-phpub .atl-jbtns .btn,.atl-phpub .atl-pubvb{width:100%;white-space:normal}
+  .atl-phpub .atl-pubv{justify-items:stretch;text-align:left}
+}
+.atl-dplus{justify-self:start;margin-bottom:10px}.atl-dplus.on{opacity:.75}
+.atl-dnew[hidden]{display:none}
+.atl-dem2.neuf{outline:2px solid #ffd34d;box-shadow:0 0 0 6px rgba(255,211,77,.12)}
+.atl-dnouv{padding:2px 8px;border-radius:999px;background:#ff5a5a;color:#fff;font:800 12px var(--body)}
+.atl-dembu{font-size:16px}.atl-dembu p{font-size:16px;line-height:1.45;margin:4px 0 0}
+.atl-livre{margin:6px 0 0;font-weight:800;color:#9fe3b0}
+
+/* 2.0.11 : les offres modifiables sur la carte (admin) */
+.atl-ofadm .atl-tousf,.atl-ofadm .atl-arin{width:100%;box-sizing:border-box}
+.atl-ofmin{color:#9fe3b0;font-weight:700}
+.atl-ofadmb{display:flex;gap:6px;justify-content:flex-end}
+.atl-ofcs{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
+.atl-ofplus{display:grid;place-items:center;min-height:140px;border-style:dashed;cursor:pointer;color:#ffe9a8;font:800 16px var(--body)}
+.atl-dem2{scroll-margin-top:140px}

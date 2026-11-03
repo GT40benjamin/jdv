@@ -38,6 +38,17 @@ for (const f of files) {
     if (/__IMG_(PILOT|HEAD|FACE)__/.test(t) && !/pleingaz-src\.html$/.test(f) && !/build2\.py$/.test(f)) bad.push(f + ' : emplacement de photo de Plein Gaz non remplacé');
   }
 }
+// 3 nov. 2026 (borne 2.0.9) : une version d'un jeu de l'Atelier déjà en ligne (assets/jeux/<id>/v<N>.js et son dossier v<N>/) ne se
+// réécrit JAMAIS : la version publiée sur la borne ne change pas en cachette ; une correction devient une nouvelle version
+try {
+  const enLigne = execSync('git ls-tree -r --name-only origin/main -- assets/jeux', { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(f => /^assets\/jeux\/[a-z0-9_-]+\/v\d+(\.js|\/)/.test(f));
+  for (const f of enLigne) {
+    const full = path.join(ROOT, f);
+    if (!fs.existsSync(full)) { bad.push(f + ' : version déjà en ligne supprimée (une version publiée ne se retire pas)'); continue; }
+    const avant = execSync('git rev-parse origin/main:' + f, { cwd: ROOT, encoding: 'utf8' }).trim(), now = execSync('git hash-object "' + full + '"', { cwd: ROOT, encoding: 'utf8' }).trim();
+    if (avant !== now) bad.push(f + ' : version déjà en ligne modifiée (fais une nouvelle version v<N+1> à la place)');
+  }
+} catch (e) { if (!/not a valid object name|unknown revision/.test(String(e && e.message))) bad.push('assets/jeux : vérification des versions impossible (' + String(e && e.message).slice(0, 80) + ')'); }
 // Vieux appareils (borne d'avant la 1.7, restée ouverte dans un onglet ou ressortie du cache du navigateur) : ils se mettent à jour
 // TOUT SEULS en lisant site.json à la racine puis en rechargeant « ./?v=<build> », que l'accueil (index.html) renvoie vers jouer/.
 // Ce chemin ne doit jamais casser (vérifié le 15 oct. 2026 : ~/jdv-tools/duotest/stuck-clients/sim-stuck.js).
