@@ -6,6 +6,19 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🔊 Pégase 0.9.9.45 : le monde se met à sonner (borne 2.0.53)
+[pegase] 👣 Dehors, tes pas sonnent enfin selon le sol : herbe, terre, sable, gravier, pavés, pontons et ponts en bois.
+[pegase] 🚲 À vélo, on entend les pneus rouler, plus fort quand tu vas vite, et le cliquet de la roue libre quand tu ne pédales pas.
+[pegase] ☂️ Le parapluie claque en s'ouvrant et se froisse en se fermant ; la boîte aux lettres grince et ses lettres bruissent.
+[pegase] 🐺 Les animaux muets ont leur vrai cri : le loup hurle la nuit, le cerf brame à l'aube, moutons et chèvres bêlent, la vipère siffle, la grenouille appelle et la biche donne l'alerte en fuyant.
+[pegase] 🎵 La musique de l'écran de chargement et du téléchargement joue même quand la musique d'ambiance est coupée dans les réglages.
+[pegase] 🍸 Les mains de Désiré ne rentrent plus dans son ventre ni dans son tablier.
+[pegase] 🌂 Les habitants tiennent leur parapluie la main bien fermée autour du manche.
+[pegase] 🌧️ La nuit sous la pluie, plus de grosses barres blanches devant la caméra : les gouttes toutes proches restent fines.
+[pegase] 🎥 La caméra ne saute plus en passant sous le store de Rosalie ni en frôlant son présentoir de biais.
+[pegase] ⛰️ Sur une paroi trop raide, tu glisses doucement jusqu'en bas au lieu de rester perchée, et jamais dans l'eau profonde sous l'arche.
+[pegase] 🏞️ Le bout de la rivière du haut descend en pente douce jusqu'aux galets : plus de mur d'eau.
+[pegase] 🐟 Les bancs de poissons des criques ne nagent plus dans le sable.
 [chrono] ## 🏁 Turbo Chrono : l’aide des touches bien lisible (borne 2.0.51)
 [chrono] ⌨️ Sous les cartes des circuits, la ligne des touches (accélérer, freiner, tourner…) est un peu plus bas, sur un fond sombre : elle se lit en entier par-dessus le stade.
 [remparts] ## 🏰 Remparts ! : ton score partagé dans le chat (borne 2.0.51)
