@@ -14403,8 +14403,13 @@ const atlUnread = () => { const l = atlLastReply(); return !!l && !!ATL.cur && l
 const atlWaiting = () => { const ms = atlMsgs(); return !!ms.length && !ms[ms.length - 1].atelier && ['en_discussion', 'brouillon', 'complete'].includes(atlEtat()); };
 function atlMarkSeen() { const l = atlLastReply(); if (l && ATL.name && ATL.cur) { ATL.seen[atlSeenKey(ATL.cur)] = l; store.set('jdw.atl.seen', ATL.seen); } }
 // 2.0.29 (Benjamin : « des encarts spéciaux pour répondre oui ou non, et une notification dédiée ») : les QUESTIONS de la mascotte (at_demandes.questions)
-const atlQAttente = x => !!(x && x.etat === 'vue' && Array.isArray(x.questions) && x.questions.some(q => q && !q.reponse));
-const atlQNb = x => (x && Array.isArray(x.questions) ? x.questions.filter(q => q && !q.reponse).length : 0);
+// 2.0.54 (bug ed2fea3d de SAMBA : 3 réponses enregistrées, jamais envoyées, le bouton avait disparu au rafraîchissement) : « tout répondu,
+// pas encore parti » (réponses plus récentes que la dernière réponse de la mascotte) compte comme une attente du joueur — le serveur envoie
+// pourtant tout seul à la dernière réponse (v86) et la sonnette rattrape au bout d'une minute
+const atlQPret = x => { if (!x || x.etat !== 'vue' || !Array.isArray(x.questions) || !x.questions.length || x.questions.some(q => q && !q.reponse)) return false;
+  const t = Math.max(...x.questions.map(q => +new Date((q && q.at) || 0) || 0)); return t > (+new Date(x.etat_at || x.at || 0) || 0); };
+const atlQAttente = x => !!(x && x.etat === 'vue' && Array.isArray(x.questions) && (x.questions.some(q => q && !q.reponse) || atlQPret(x)));
+const atlQNb = x => (x && Array.isArray(x.questions) ? x.questions.filter(q => q && !q.reponse).length || (atlQPret(x) ? 1 : 0) : 0);
 const atlQListe = () => (((typeof ATL !== 'undefined' && ATL && ATL.dem) || {}).demandes || []).filter(atlQAttente);
 function atlNotifs() {
   try {
@@ -16763,15 +16768,18 @@ function atlQuestions(x, o) {
   const adm = atlAdminIci(), W = atlEl('div', 'atl-qs'), modif = o.modif != null ? !!o.modif : atlQAttente(x);
   const repondre = o.repondre || ((n, v, env) => adm ? rpc('at_admin_repondre_question', { p_name: profile.name, p_fiche: ATL.adminVoir.id, p_id: x.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true })
     : rpc('at_demande_repondre_question', { p_name: profile.name, p_id: x.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true }));
+  const envoye = () => { W.textContent = ''; W.appendChild(atlEl('p', 'atl-qetat ok', '✅ Envoyé à ' + gNM())); W.appendChild(atlEl('p', 'atl-propok', adm ? '📨 Réponses envoyées à ' + gN() + ' (répondu par l’admin).' : '📨 Merci ! ' + gNM() + ' lit tes réponses et revient vers toi ici.'));
+    if (o.apres) o.apres(); else if (adm) setTimeout(() => { try { atlAdminDemandes(); } catch (e) {} }, 700); else atlDemRafr(); };
   const dessiner = () => {
     W.textContent = '';
+    if (x.questions.some(q => q && q.reponse)) W.appendChild(modif ? atlEl('p', 'atl-qetat', '📝 Brouillon · pas encore envoyé') : atlEl('p', 'atl-qetat ok', '✅ Envoyé à ' + gNM()));
     for (const q of x.questions) {
       if (!q) continue;
       const k = atlEl('div', 'atl-q' + (q.reponse ? ' ok' : '')), hd = atlEl('div', 'atl-qh');
       hd.append(atlEl('span', 'atl-qn', String(q.n)), atlEl('b', 'atl-qt', String(q.q || '')));
       k.appendChild(hd);
       if (q.reponse) {
-        const rr = atlEl('div', 'atl-qr'); rr.append(atlEl('span', '', '✅ ' + String(q.reponse))); if (q.par === 'admin') rr.appendChild(atlEl('small', 'atl-qpar', '✍️ répondu par l’admin'));
+        const rr = atlEl('div', 'atl-qr'); rr.append(atlEl('span', '', (modif ? '✏️ ' : '✅ ') + String(q.reponse))); if (q.par === 'admin') rr.appendChild(atlEl('small', 'atl-qpar', '✍️ répondu par l’admin'));
         if (modif) { const ch = atlEl('button', 'atl-qchg', 'changer'); ch.type = 'button'; ch.addEventListener('click', () => { q.reponse = null; dessiner(); }); rr.appendChild(ch); }
         k.appendChild(rr); W.appendChild(k); continue;
       }
@@ -16780,8 +16788,10 @@ function atlQuestions(x, o) {
       const envoyer = async (v, bt) => {
         v = String(v || '').trim(); if (!v) return;
         for (const e of k.querySelectorAll('button, input')) e.disabled = true;
-        try { const r = await repondre(q.n | 0, v, false); if (r && Array.isArray(r.questions)) x.questions = r.questions; else { q.reponse = v; if (adm) q.par = 'admin'; } }
+        let r = null;
+        try { r = await repondre(q.n | 0, v, false); if (r && Array.isArray(r.questions)) x.questions = r.questions; else { q.reponse = v; q.at = new Date().toISOString(); if (adm) q.par = 'admin'; } }
         catch (e) { for (const el of k.querySelectorAll('button, input')) el.disabled = false; atlToast(atlWhy(e)); return; }
+        if (r && r.envoye) { envoye(); return; }   // 2.0.54 : la dernière réponse part toute seule
         dessiner();
       };
       const choix = Array.isArray(q.choix) ? q.choix.filter(Boolean) : [];
@@ -16803,13 +16813,16 @@ function atlQuestions(x, o) {
       lw.append(tw, okb); k.appendChild(lw); W.appendChild(k);
     }
     if (modif) {
-      const manque = x.questions.filter(q => q && !q.reponse).length, lib = adm ? '📨 Envoyer les réponses' : '📨 Envoyer mes réponses ' + gA(), go = atlEl('button', 'btn btn-play atl-qgo', manque ? lib + ' (encore ' + manque + ')' : lib); go.type = 'button'; go.disabled = !!manque;
+      const manque = x.questions.filter(q => q && !q.reponse).length, aucune = manque === x.questions.filter(Boolean).length, lib = adm ? '📨 Envoyer les réponses' : '📨 Envoyer mes réponses ' + gA();
+      const go = atlEl('button', (manque && !aucune ? 'btn btn-ghost btn-sm' : 'btn btn-play') + ' atl-qgo' + (manque ? '' : ' gros'), manque && !aucune ? '📨 Envoyer maintenant (' + manque + ' sans réponse)' : lib); go.type = 'button'; go.disabled = aucune;
       go.addEventListener('click', async () => {
         go.disabled = true;
-        try { await repondre(null, '', true); W.textContent = ''; W.appendChild(atlEl('p', 'atl-propok', adm ? '📨 Réponses envoyées à ' + gN() + ' (répondu par l’admin).' : '📨 Merci ! ' + gNM() + ' lit tes réponses et revient vers toi ici.')); if (o.apres) o.apres(); else if (adm) setTimeout(() => { try { atlAdminDemandes(); } catch (e) {} }, 700); else atlDemRafr(); }
-        catch (e) { go.disabled = false; atlToast(/sans reponse/.test(String(e && e.message)) ? 'Réponds d’abord à toutes les questions.' : atlWhy(e)); }
+        try { await repondre(null, '', true); envoye(); }
+        catch (e) { go.disabled = false; atlToast(/sans reponse/.test(String(e && e.message)) ? 'Réponds d’abord à une question au moins.' : atlWhy(e)); }
       });
+      if (!manque) W.appendChild(atlEl('p', 'atl-qtout', '✅ Tout est répondu ! Envoie à ' + gNM() + ' 👇'));
       W.append(go, atlEl('small', 'atl-qfree', adm ? 'Les réponses seront marquées « ✍️ répondu par l’admin », chez toi et chez le joueur.' : 'Gratuit : c’est la même demande.'));
+      if (!manque) setTimeout(() => { try { if (go.isConnected) go.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} }, 250);
     }
   };
   dessiner(); return W;
@@ -16861,7 +16874,7 @@ function atlDemCarte(x) {
     const fil = atlEl('div', 'atl-demfil'), tp = t.querySelector('.atl-demtx'), vp = t.querySelector('.atl-demplus'), net = v => String(v || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '');
     const L = (qui, tx, box) => { const q = atlEl('p', 'atl-dfl ' + qui); q.append(atlEl('b', '', qui === 'g' ? gNM() + ' : ' : 'Toi : '), document.createTextNode(tx)); (box || fil).appendChild(q); };
     const H = (h, box) => { if (h.reponse) L('g', h.reponse, box); if (h.sorte === 'reponse') L('j', '↪ ' + h.texte, box); else if (h.sorte === 'modif') L('j', '✏️ ' + net(h.texte), box); else if (h.sorte === 'refus') L('j', '🙅 Non merci' + (h.mot ? ' : ' + h.mot : ''), box);
-      else if (h.sorte === 'reponses' && Array.isArray(h.questions)) for (const q of h.questions) if (q && q.reponse) L('j', '↪ ' + q.q + ' → ' + q.reponse, box); };
+      else if (box && h.sorte === 'reponses' && Array.isArray(h.questions)) for (const q of h.questions) if (q && q.reponse) L('j', '↪ ' + q.q + ' → ' + q.reponse, box); };
     const bu0 = t.querySelector('.atl-dembu');
     if (mi < 0) {
       L('j', net((hi.find(h => h.avant) || {}).avant || x.texte).split('\n\n↪ ')[0]);
@@ -16881,7 +16894,7 @@ function atlDemCarte(x) {
     }
     if (x.etat === 'impossible' && hi[hi.length - 1].sorte === 'refus') { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = '🙅 Non merci'; }
   }
-  if (t && Array.isArray(x.questions) && x.questions.length) { t.appendChild(atlQuestions(x)); if (atlQAttente(x)) { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = '❓ ' + (atlQNb(x) > 1 ? atlQNb(x) + ' questions' : '1 question'); c.classList.add('q'); } }
+  if (t && Array.isArray(x.questions) && x.questions.length) { t.appendChild(atlQuestions(x)); if (atlQAttente(x)) { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = atlQPret(x) ? '📨 À envoyer' : '❓ ' + (atlQNb(x) > 1 ? atlQNb(x) + ' questions' : '1 question'); c.classList.add('q'); } }
   if (t && !atlAdminIci() && x.reponse && !x.choix && !atlPropOuverte(x) && !atlQAttente(x) && ['vue', 'plus_tard'].includes(x.etat)) t.appendChild(atlDemActions(x, false));
   // 2.0.17 (Benjamin : « le guide réfléchit à ce qu'il va dire pendant ce temps et ça se voit ») : tant que le guide n'a pas répondu,
   // une bulle « réfléchit » avec ses points qui bougent ; l'étape écrite par l'équipe (at_demande_avancer) s'y affiche en direct
