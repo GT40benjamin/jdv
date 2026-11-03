@@ -2866,3 +2866,4 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- membre (p_salle = la salle ouverte) — il suit son auteur ; at_fiches.salle ne limite plus rien.
 -- 2.0.31 (migration v76, appliquée) : monde_demande_at dans la liste des projets de at_lire (pastille « publication mondiale demandée »).
 -- 2.0.32 (migration v77, appliquée) : at_suis_admin(name) = {admin} (at_admins ou patron) : le mode test d'un appareil n'existe que pour ces comptes.
+-- 2.0.33 (migrations v78-v79, appliquées) : pegase_int.at_q_repondre (cœur), at_admin_repondre_question (par = 'admin') ; at_admin_valider_liste, at_monde_decider (version publiée + ticket du joueur fermé avec la réponse), at_admin_monde_decider.

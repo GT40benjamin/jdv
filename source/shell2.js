@@ -2083,6 +2083,14 @@ function notifRow(n, isNew) {
   const li = document.createElement('li'); if (isNew) li.className = 'new';
   const tx = document.createElement('span'); tx.className = 'nt';
   if (n.kind === 'coop') return coopNotifRow(n, li, tx);
+  if (n.kind === 'atelier-v') {   // 2.0.33 : une validation admin (publication mondiale demandée)
+    const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '🛡️'; ic.style.background = '#7a4cff';
+    const b = document.createElement('b'); b.textContent = '🛡️ ' + dispName(n.joueur || '') + ' demande la publication mondiale de « ' + (n.titre || 'son jeu') + ' »';
+    const sm = document.createElement('small'); sm.textContent = 'Touche pour valider ou refuser';
+    tx.append(b, sm); li.append(ic, tx); li.classList.add('click', 'nt-v');
+    li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); setTimeout(() => { try { atlMesDemandes(); } catch (e) {} }, 300); });
+    return li;
+  }
   if (n.kind === 'atelier-q') {   // 2.0.29 : une notification à part pour les questions
     const ic = atlGuideAv('avatar nt-game'); ic.style.background = '#ffd34d';
     const b = document.createElement('b'); b.textContent = '❓ ' + gNM() + ' te pose ' + (n.n > 1 ? n.n + ' questions' : 'une question') + (n.projet ? ' sur « ' + n.projet + ' »' : '');
@@ -14361,7 +14369,7 @@ const atlQListe = () => (((typeof ATL !== 'undefined' && ATL && ATL.dem) || {}).
 function atlNotifs() {
   try {
     if (!(ATL && ATL_ON() && !isGuest() && ATL.name === cleanName(profile.name))) return [];
-    const out = atlQListe().map(x => ({ kind: 'atelier-q', id: x.id, fiche: x.fiche, projet: x.projet, n: atlQNb(x) }));
+    const out = (ATL.aValider || []).map(v => ({ kind: 'atelier-v', fiche: v.fiche, joueur: v.joueur, titre: v.titre })).concat(atlQListe().map(x => ({ kind: 'atelier-q', id: x.id, fiche: x.fiche, projet: x.projet, n: atlQNb(x) })));
     if (atlProjets().some(atlProjNew)) out.push({ kind: 'atelier' });
     return out;
   } catch (e) { return []; }
@@ -16546,6 +16554,7 @@ async function atlDemCharger(force) {
   ATL.demAt = Date.now();
   const avant = JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id)), tuAvant = atlTuileSig(), trAvant = atlTravSig();
   try { ATL.dem = await rpc('at_mes_demandes', { p_name: profile.name }, { quiet: true }); } catch (e) {}
+  try { const cr0 = atlCred(); if (cr0 && cr0.tous_projets) { const l = await rpc('at_admin_valider_liste', { p_name: profile.name }, { quiet: true }); ATL.aValider = Array.isArray(l) ? l : []; } else ATL.aValider = []; } catch (e) {}   // 2.0.33 : « 🛡️ À valider »
   if (ATL.root) atlDemBtn(ATL.root);
   if (ATL.open && JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id)) !== avant) { ATL.pSig = ''; try { atlRender(); } catch (e) {} }   // les boutons d'une nouvelle proposition dans la discussion
   else if (ATL.open && !ATL.cur && !ATL.nouveau && atlTuileSig() !== tuAvant) try { atlRenderProjets(); } catch (e) {}   // 2.0.16 : les pastilles des tuiles
@@ -16576,9 +16585,10 @@ function atlDemBtn(R) {
   const enc = d && Array.isArray(d.demandes) ? d.demandes.filter(x => !['faite', 'impossible'].includes(x.etat)).length : 0;   // 2 h 05 : seulement celles en cours
   const rep0 = d && Array.isArray(d.demandes) ? d.demandes.filter(x => x && x.nouveau && (x.reponse || atlPropOuverte(x))).length : 0;   // 2.0.11 : des réponses à lire
   const nq = atlQListe().reduce((t, x) => t + atlQNb(x), 0);   // 2.0.29 : les questions d'abord
-  const quoi = nq ? '❓ ' + nq + (nq > 1 ? ' questions' : ' question') : rep0 ? rep0 + (rep0 > 1 ? ' réponses de ' : ' réponse de ') + gN() : ouv ? ouv + ' à choisir' : '';
+  const nv = (ATL.aValider || []).length;   // 2.0.33 : les validations admin d'abord
+  const quoi = nv ? '🛡️ ' + nv + ' à valider' : nq ? '❓ ' + nq + (nq > 1 ? ' questions' : ' question') : rep0 ? rep0 + (rep0 > 1 ? ' réponses de ' : ' réponse de ') + gN() : ouv ? ouv + ' à choisir' : '';
   b.hidden = !!d && !n; b.textContent = atlPetit() ? '🎫' : '🎫 Mes demandes' + (quoi ? ' · ' + quoi : ' (' + enc + ')');
-  if (atlPetit() && (nq || rep0 || ouv || enc)) b.appendChild(atlEl('span', 'atl-pastn', nq ? '❓' + nq : String(rep0 || ouv || enc)));
+  if (atlPetit() && (nv || nq || rep0 || ouv || enc)) b.appendChild(atlEl('span', 'atl-pastn', nv ? '🛡️' + nv : nq ? '❓' + nq : String(rep0 || ouv || enc)));
   b.setAttribute('aria-label', 'Mes demandes : ' + (quoi || enc + ' en cours')); b.classList.toggle('nouveau', !!(d && (d.nouveaux > 0 || ouv)));
   if (!ATL.demAt || Date.now() - ATL.demAt > 60000) atlDemCharger(false);
 }
@@ -16685,7 +16695,10 @@ function atlOffreValider(x, o, solde, box) {
 // 2.0.29 : les QUESTIONS de la mascotte dans le ticket — un ENCART numéroté par question, gros boutons (✅ Oui / ❌ Non ou les choix donnés),
 // « ou écris / dis-le 🎤 » ; la question répondue se replie avec sa réponse en vert ; « Envoyer mes réponses à … » (gratuit)
 function atlQuestions(x) {
-  const W = atlEl('div', 'atl-qs'), modif = atlQAttente(x) && !atlAdminIci();
+  // 2.0.33 (Benjamin : « moi, en tant qu'admin, je peux répondre à la place des gens ») : en mode admin, les mêmes boutons, l'appel admin
+  const adm = atlAdminIci(), W = atlEl('div', 'atl-qs'), modif = atlQAttente(x);
+  const repondre = (n, v, env) => adm ? rpc('at_admin_repondre_question', { p_name: profile.name, p_fiche: ATL.adminVoir.id, p_id: x.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true })
+    : rpc('at_demande_repondre_question', { p_name: profile.name, p_id: x.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true });
   const dessiner = () => {
     W.textContent = '';
     for (const q of x.questions) {
@@ -16694,15 +16707,16 @@ function atlQuestions(x) {
       hd.append(atlEl('span', 'atl-qn', String(q.n)), atlEl('b', 'atl-qt', String(q.q || '')));
       k.appendChild(hd);
       if (q.reponse) {
-        const rr = atlEl('div', 'atl-qr'); rr.append(atlEl('span', '', '✅ ' + String(q.reponse)));
+        const rr = atlEl('div', 'atl-qr'); rr.append(atlEl('span', '', '✅ ' + String(q.reponse))); if (q.par === 'admin') rr.appendChild(atlEl('small', 'atl-qpar', '✍️ répondu par l’admin'));
         if (modif) { const ch = atlEl('button', 'atl-qchg', 'changer'); ch.type = 'button'; ch.addEventListener('click', () => { q.reponse = null; dessiner(); }); rr.appendChild(ch); }
         k.appendChild(rr); W.appendChild(k); continue;
       }
-      if (!modif) { k.appendChild(atlEl('p', 'atl-qatt', atlAdminIci() ? '⏳ Pas encore de réponse' : '⏳ En attente')); W.appendChild(k); continue; }
+      if (!modif) { k.appendChild(atlEl('p', 'atl-qatt', adm ? '⏳ Pas encore de réponse' : '⏳ En attente')); W.appendChild(k); continue; }
+      if (adm) k.appendChild(atlEl('small', 'atl-qadm', '🔒 admin : tu peux répondre à la place du joueur'));
       const envoyer = async (v, bt) => {
         v = String(v || '').trim(); if (!v) return;
         for (const e of k.querySelectorAll('button, input')) e.disabled = true;
-        try { const r = await rpc('at_demande_repondre_question', { p_name: profile.name, p_id: x.id, p_n: q.n | 0, p_reponse: v, p_envoyer: false }, { quiet: true }); if (r && Array.isArray(r.questions)) x.questions = r.questions; else q.reponse = v; }
+        try { const r = await repondre(q.n | 0, v, false); if (r && Array.isArray(r.questions)) x.questions = r.questions; else { q.reponse = v; if (adm) q.par = 'admin'; } }
         catch (e) { for (const el of k.querySelectorAll('button, input')) el.disabled = false; atlToast(atlWhy(e)); return; }
         dessiner();
       };
@@ -16725,16 +16739,47 @@ function atlQuestions(x) {
       lw.append(tw, okb); k.appendChild(lw); W.appendChild(k);
     }
     if (modif) {
-      const manque = x.questions.filter(q => q && !q.reponse).length, go = atlEl('button', 'btn btn-play atl-qgo', manque ? '📨 Envoyer mes réponses ' + gA() + ' (encore ' + manque + ')' : '📨 Envoyer mes réponses ' + gA()); go.type = 'button'; go.disabled = !!manque;
+      const manque = x.questions.filter(q => q && !q.reponse).length, lib = adm ? '📨 Envoyer les réponses' : '📨 Envoyer mes réponses ' + gA(), go = atlEl('button', 'btn btn-play atl-qgo', manque ? lib + ' (encore ' + manque + ')' : lib); go.type = 'button'; go.disabled = !!manque;
       go.addEventListener('click', async () => {
         go.disabled = true;
-        try { await rpc('at_demande_repondre_question', { p_name: profile.name, p_id: x.id, p_n: null, p_reponse: '', p_envoyer: true }, { quiet: true }); W.textContent = ''; W.appendChild(atlEl('p', 'atl-propok', '📨 Merci ! ' + gNM() + ' lit tes réponses et revient vers toi ici.')); atlDemRafr(); }
+        try { await repondre(null, '', true); W.textContent = ''; W.appendChild(atlEl('p', 'atl-propok', adm ? '📨 Réponses envoyées à ' + gN() + ' (répondu par l’admin).' : '📨 Merci ! ' + gNM() + ' lit tes réponses et revient vers toi ici.')); if (adm) setTimeout(() => { try { atlAdminDemandes(); } catch (e) {} }, 700); else atlDemRafr(); }
         catch (e) { go.disabled = false; atlToast(/sans reponse/.test(String(e && e.message)) ? 'Réponds d’abord à toutes les questions.' : atlWhy(e)); }
       });
-      W.append(go, atlEl('small', 'atl-qfree', 'Gratuit : c’est la même demande.'));
+      W.append(go, atlEl('small', 'atl-qfree', adm ? 'Les réponses seront marquées « ✍️ répondu par l’admin », chez toi et chez le joueur.' : 'Gratuit : c’est la même demande.'));
     }
   };
   dessiner(); return W;
+}
+// 2.0.33 (Benjamin : « il faut que cette demande soit dans mes demandes de ticket, en haut, dans ma partie ») : les VALIDATIONS ADMIN —
+// aujourd'hui les demandes de publication mondiale (at_admin_valider_liste / at_admin_monde_decider) ; le bloc pourra en recevoir d'autres
+function atlValiderBloc() {
+  const B = atlEl('section', 'atl-valid'); B.appendChild(atlEl('b', 'atl-validh', '🛡️ À valider par l’admin'));
+  for (const v of ATL.aValider || []) {
+    const c = atlEl('div', 'atl-validc'), im = atlEl('div', 'atl-validi'), u = atlIaUrl(v.vignette);
+    if (u) { const i = atlEl('img'); i.alt = ''; i.src = u; im.appendChild(i); } else im.textContent = '🎮';
+    const t = atlEl('div', 'atl-validt'), vv = (v.version | 0) || 1;
+    t.append(atlEl('b', '', v.titre || 'Sans nom'), atlEl('small', '', '👤 ' + dispName(v.joueur || '') + (v.createur ? ' · by ' + v.createur : '') + ' · V' + vv),
+      atlEl('p', 'atl-validq', '🌍 demande la publication mondiale' + (v.at ? ' · ' + new Date(v.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '')));
+    const row = atlEl('div', 'atl-validb'), es = atlEl('button', 'btn btn-ghost btn-sm', '▶ Essayer'), oui = atlEl('button', 'btn btn-play atl-validoui', '✅ Oui, publication mondiale'), non = atlEl('button', 'btn btn-ghost atl-validnon', '❌ Non');
+    es.type = oui.type = non.type = 'button';
+    es.addEventListener('click', () => { const z = ATL.root.querySelector('.atl-zoom'); if (z) { z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); } atlVoirProjet(v.fiche); });
+    const mot = atlEl('input', 'atl-validmot'); mot.placeholder = 'Un mot pour ' + dispName(v.joueur || '') + ' (facultatif)'; mot.maxLength = 300;
+    const msg = atlEl('small', 'atl-validmsg');
+    const decider = async ok => {
+      if (!await atlConfirmer(ok ? '🌍 Publication mondiale de « ' + (v.titre || '') + ' » ?' : '❌ Refuser la publication mondiale ?', ok ? 'Le jeu de ' + dispName(v.joueur || '') + ' sera sur TOUTES les bornes, pour tout le monde, avec le classement mondial.' : dispName(v.joueur || '') + ' recevra ta réponse dans son ticket.', ok ? '✅ Oui, publier' : 'Oui, refuser')) return;
+      oui.disabled = non.disabled = true;
+      try {
+        await rpc('at_admin_monde_decider', { p_name: profile.name, p_fiche: v.fiche, p_ok: ok, p_message: mot.value.trim() || null }, { quiet: true });
+        try { poke('atljeux', 'jdw-all'); } catch (e) {}   // en direct : la tuile arrive (ou reste) sur toutes les bornes
+        ATL.aValider = (ATL.aValider || []).filter(x => x.fiche !== v.fiche);
+        c.textContent = ''; c.appendChild(atlEl('p', 'atl-propok', ok ? '🌍 « ' + (v.titre || '') + ' » est en publication mondiale. ' + dispName(v.joueur || '') + ' a sa réponse.' : '❌ Refusé. ' + dispName(v.joueur || '') + ' a sa réponse.'));
+        try { atlDemBtn(ATL.root); refreshBell(); } catch (e) {}
+      } catch (e) { oui.disabled = non.disabled = false; msg.textContent = 'Pas possible : ' + String((e && e.message) || '').slice(0, 80); }
+    };
+    oui.addEventListener('click', () => decider(true)); non.addEventListener('click', () => decider(false));
+    row.append(es, oui, non); t.append(row, mot, msg); c.append(im, t); B.appendChild(c);
+  }
+  return B;
 }
 // 2.0.10 : une demande (ticket) : état, texte, étapes en direct, réponse du guide, offre choisie
 function atlDemCarte(x) {
@@ -16788,6 +16833,7 @@ async function atlMesDemandes() {
   const close = atlEl('button', 'btn btn-ghost btn-sm', 'Fermer'); close.type = 'button'; close.addEventListener('click', () => { z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
   P.append(atlEl('b', 'atl-cq', '📋 Mes demandes'), atlEl('p', '', 'Un instant…'));
   const d = await atlDemCharger(true); P.lastChild.remove();
+  if ((ATL.aValider || []).length && !atlAdminIci()) P.appendChild(atlValiderBloc());   // 2.0.33 : « 🛡️ À valider par l'admin », en haut
   const tout = d && Array.isArray(d.demandes) ? d.demandes : [], fini = x => ['faite', 'impossible'].includes(x.etat);
   const ong = ATL.demOng === 'faites' ? 'faites' : 'encours', nEn = tout.filter(x => !fini(x)).length, nFa = tout.length - nEn;
   const tabs = atlEl('div', 'atl-demtabs');
