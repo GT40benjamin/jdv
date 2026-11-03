@@ -4420,3 +4420,6 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
   .atl-stab.atl-scartes tr.atl-stotl td:empty{display:none}
   .atl-stab.atl-scartes tr.atl-stotl td{border-top:0}.atl-stab.atl-scartes tr.atl-stotl{border-top:2px solid var(--line)}
 }
+
+/* 2.0.8 : une nouvelle version sortie pendant la partie */
+.atl-vnew{display:block;width:100%;margin:0 0 10px;padding:10px 14px;border:0;border-radius:12px;background:#ffd34d;color:#2a1340;font:800 14px var(--body);cursor:pointer;animation:atlFade .25s ease-out}

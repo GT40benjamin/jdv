@@ -1464,7 +1464,8 @@ setInterval(() => {
   const per = CALLG.cur && !CALLG.cur.missed ? 2000 : RT.ok ? 30000 : 15000;
   if (Date.now() - CALLG.at >= per - 300) callgPoll();
 }, 1000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) CALLG.at = 0; });   // retour sur la borne : relire tout de suite
+document.addEventListener('visibilitychange', () => { if (!document.hidden) CALLG.at = 0; });
+document.addEventListener('visibilitychange', () => { try { if (!document.hidden && ATL && ATL.open) atlLoad(true); } catch (e) {} });   // 2.0.8 : l'Atelier à jour dès le retour   // retour sur la borne : relire tout de suite
 
 /* ================= D'une page du site à l'autre (28 oct. 2026 : la borne, Pégase et le studio sont des pages séparées) =================
    Pégase s'ouvre dans SON onglet sur un ordinateur (Benjamin : « Pégase sera dans sa propre fenêtre ») ; téléphone et appli Android : la même vue.
@@ -14846,14 +14847,27 @@ function atlProjMsgs(W, f) {
   if (!ms.length) l.appendChild(atlEl('p', 'atl-chv', 'Pas encore de message.'));
   if (bas) l.scrollTop = l.scrollHeight;
 }
+// 2.0.8 (Benjamin : l'en-tête et la tuile disaient V3, l'historique V4) : chaque badge de la page relit f.version (at_fiches.version_jeu) ;
+// une version sortie pendant qu'on joue : « 🆕 Nouvelle version Vn · touche pour recharger » (le jeu en cours n'est pas coupé)
+function atlVerMaj(W, f) {
+  const v = (f.version | 0) || 1, pet = W.querySelector('.atl-pet'), gv = W.querySelector('.atl-gver');
+  if (pet) { const t = atlVersion(f); if (pet.textContent !== t) pet.textContent = t; }
+  if (gv && gv.textContent !== 'V' + v) gv.textContent = 'V' + v;
+  const avant = +W.dataset.ver || v; W.dataset.ver = String(v);
+  if (v === avant) return;
+  const fr = W.querySelector('.atl-gframe'); if (!fr || !fr.querySelector('iframe')) { ATL.pSig = ''; atlRender(); return; }
+  let b = W.querySelector('.atl-vnew');
+  if (!b) { b = atlEl('button', 'atl-vnew'); b.type = 'button'; b.addEventListener('click', () => { ATL.pSig = ''; atlRender(); }); const box = W.querySelector('.atl-pbox'); (box || W).prepend(b); }
+  b.textContent = '🆕 Nouvelle version V' + v + ' · touche pour recharger';
+}
 function atlRenderProjet(W, f) {
   const R = ATL.root, et = String(f.etat || ''), fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {};
   const jouable = !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(et), g = jouable ? (window.JDW_GAMES || {})[f.jeu] : null;
   R.querySelector('.atl-hs').textContent = jouable ? (et === 'alpha' ? 'Ton jeu est prêt à tester !' : 'Ton jeu est publié') : et === 'refusee' ? 'Projet' : 'Conception en cours';
   const as = Array.isArray(f.assets) ? f.assets.filter(a => a && typeof a === 'object') : [];
   const sig = [f.id, et, f.jeu || '', (f.design && f.design.f) || '', as.length, JSON.stringify(fi).length, f.titre || '', f.salle || '', f.monde_demande_at || '', String(!!g)].join('|');
-  if (ATL.pSig === sig && W.querySelector('.atl-pbox')) { atlProjMsgs(W, f); return; }
-  atlFrameStop(); ATL.pSig = sig; W.textContent = '';
+  if (ATL.pSig === sig && W.querySelector('.atl-pbox')) { atlProjMsgs(W, f); atlVerMaj(W, f); return; }
+  atlFrameStop(); ATL.pSig = sig; W.textContent = ''; W.dataset.ver = String((f.version | 0) || 1);
   const box = atlEl('div', 'atl-pbox'); W.appendChild(box);
   // en-tête : le design, le titre, l'état
   const dz = (f.design && atlIaUrl(f.design.f)) || atlIaUrl((as.find(a => a.sorte === 'grande image' && atlIaUrl(a.image)) || {}).image);
@@ -15122,7 +15136,7 @@ function atlFinAtelier() {
   const row = $('jdw-again').closest('.row'); (row || $('jdw-again')).after(box);
 }
 function atlRetourProjet(tab) { ATL.retourTab = tab; backToLibrary(); }
-if (window.JDW_PG_TEST) window.__jdwAtl = { fin: sc => showEnd(sc), jouer: () => atlJouerVrai(atlFiche()), son: () => ({ joue: !!(ATL_SON && !ATL_SON.paused), t: ATL_SON ? ATL_SON.currentTime : 0, u: ATL_SON_U }), etat: () => ({ jeu: ATL.jeu, tab: ATL.tab, open: ATL.open }) };   // essais seulement
+if (window.JDW_PG_TEST) window.__jdwAtl = { fin: sc => showEnd(sc), jouer: () => atlJouerVrai(atlFiche()), son: () => ({ joue: !!(ATL_SON && !ATL_SON.paused), t: ATL_SON ? ATL_SON.currentTime : 0, u: ATL_SON_U }), etat: () => ({ jeu: ATL.jeu, tab: ATL.tab, open: ATL.open }), lire: () => atlLoad(true) };   // essais seulement
 function atlArretJeu() {
   if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2')) return;
   try { if (current && current.inst && current.inst.pause) current.inst.pause(); } catch (e) {}
@@ -16266,7 +16280,7 @@ async function atlMesDemandes() {
 async function atlTousProjets(box) {
   const sec = atlEl('section', 'atl-tous'); box.appendChild(sec);
   sec.append(atlEl('h2', 'atl-ph', '🗂️ Tous les projets (admin)'));
-  let l = ATL.tous && Date.now() - ATL.tous.at < 60000 ? ATL.tous.l : null;
+  let l = ATL.tous && Date.now() - ATL.tous.at < 15000 ? ATL.tous.l : null;
   if (!l) { try { l = await rpc('at_tous_projets', { p_name: profile.name }, { quiet: true }); ATL.tous = { at: Date.now(), l }; } catch (e) { sec.appendChild(atlEl('p', 'atl-chv', 'Liste indisponible.')); return; } }
   if (!Array.isArray(l)) return;
   const fj = atlEl('select', 'atl-tousf'), fe = atlEl('select', 'atl-tousf'), g = atlEl('div', 'atl-pgrid');
