@@ -18,6 +18,8 @@
 [pegase] 🪷 Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.
 [pegase] 🌊 Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.
 [pegase] ⛰️ Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr.
+[atelier] ## 🎁 Les surprises de ton guide (borne 2.0.14)
+[atelier] 🎁 Quand ton guide améliore ou répare ton jeu de lui-même, tu le vois dans « 🎫 Mes demandes » : « Proposé par » ou « Correction de », avec ce qui change et la version où c’est arrivé.
 [atelier] ## ⭐ Atelier+ : deux formules (borne 2.0.13)
 [atelier] ⭐ Atelier+ existe en deux formules : 3 € par mois pour 400 crédits, ou 8 € par mois pour 1 300 crédits. Tes crédits s’ajoutent chaque mois, sans limite. Tu changes de formule ou tu résilies quand tu veux.
 [atelier] ## 🎫 Les réponses de ton guide, bien en vue (borne 2.0.11)

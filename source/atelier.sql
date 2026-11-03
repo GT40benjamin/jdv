@@ -2837,3 +2837,8 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- at_abo_preparer(name, formule, renonce) l'exigent (« renonciation requise ») et la gardent (at_achats / at_abos : renonce_at, renonce_texte).
 -- Fonctions Edge : stripe-paiement v5 (vrais prix Stripe par lookup_key, metadata renonce, portail réglé pour changer de formule, sans prorata),
 -- stripe-config v3 (« Brancher Stripe » crée les deux prix et règle le portail). Migration v56_abo_deux_formules_renonciation.
+
+-- (v57, 3 nov. 2026 11 h 40, borne 2.0.14) : at_admin_agir 'version' = « 📣 Annoncer un changement au joueur » : note obligatoire, at_version_suivante,
+-- et un TICKET gratuit (at_demandes sorte 'propose' | 'correction', faite, version_livree = Vn). Migration v57_annoncer_changement.
+-- (v58, borne 2.0.14) : 📊 Suivi PAR DEMANDE : pegase_int.at_suivi_demandes() (une ligne par ticket, « 🏗️ Conception », « 🎁 offert », générations
+-- payées, messages ; crédits payés, coût réel, gain, détail) et pegase_int.at_suivi_resume() (le mois) dans at_suivi. Migration v58_suivi_par_demande.
