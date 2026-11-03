@@ -173,7 +173,7 @@ function mount(root, api) {
   }
   loadImages().then(() => { if (state === 'load') state = 'title'; chargerSons(); }, () => { loadErr = true; if (state === 'load') state = 'title'; });
 
-  // ---------- les bruitages (assets/lune.sons.bin, MP3 d'ElevenLabs) : joués par la borne (api.audio.sample : « son coupé » respecté) ----------
+  // ---------- les bruitages (assets/lune.sons.bin, sons créés pour le jeu) : joués par la borne (api.audio.sample : « son coupé » respecté) ----------
   // la musique, elle, est jouée en boucle par la borne (assets/music/lune-1.mp3)
   const SONS = {};
   const VOL = { ramasser: 1.2, piece: 0.9, alerte: 0.55, impact: 1.1, oxygene: 0.6, decollage: 0.55 };

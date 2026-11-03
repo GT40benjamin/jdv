@@ -6,7 +6,7 @@
 // À la fin de chaque niveau il retrouve un ami (Pompon, Piquant, Hulotte, Roussette) qui le suit ; au grand chêne, tout le monde rentre.
 // Bonus : gland magique (vitesse), feuille-ressort (super saut), champignons rebondissants. Score = des points.
 // Images : planches de l'Atelier découpées, emballées dans assets/noisette.bin (~/jdv-tools/noisette/emballer.py) ;
-// sons : assets/noisette.sons.bin (ElevenLabs) ; musique : assets/music/noisette-1.mp3 (jouée en boucle par la borne).
+// sons : assets/noisette.sons.bin (sons créés pour le jeu) ; musique : assets/music/noisette-1.mp3 (jouée en boucle par la borne).
 const ROOT = () => window.JDW_ROOT || '';
 const TAU = Math.PI * 2;
 const GRAV = 2300, SAUT = 900, SAUT_RESSORT = 1480, SAUT_CHAMPI = 1240;

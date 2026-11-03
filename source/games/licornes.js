@@ -237,7 +237,7 @@ function mount(root, api) {
   }
 
   // ---------- sons (fabriqués par le programme) ----------
-  // ---------- les vrais bruitages (assets/licornes.sons.bin, MP3 d'ElevenLabs, joués par la borne : « son coupé » respecté) ----------
+  // ---------- les vrais bruitages (assets/licornes.sons.bin, sons créés pour le jeu, joués par la borne : « son coupé » respecté) ----------
   // quand un son est là, il remplace le petit bip ; la musique, elle, est jouée en boucle par la borne (assets/music/licornes-1.mp3)
   const SONS = {}, SVOL = { acheter: 0.8, eclosion: 0.9, contente: 0.8, vendre: 0.75, accessoire: 0.7, nid: 0.8 };   // sons déjà mis au même niveau (~/jdv-tools/licornes/sons.py)
   (async () => {
