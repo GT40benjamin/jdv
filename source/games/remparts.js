@@ -7,7 +7,7 @@
 // Une seule variable globale en plus : window.JDW_TD. Atelier : ~/jdv-tools/duotest/towerdefense (fiche REPRISE.md).
 const ID = 'remparts', NOM = 'Remparts !';
 const ROOT = () => window.JDW_ROOT || '';
-const WANT = 'td-7cbac789';
+const WANT = 'td-1d7bffd6';
 const STORE = {};
 async function fetchBytes(url, onProg, guess, signal, opt) {
   const r = await fetch(url, Object.assign({ signal }, opt || {}));
@@ -177,7 +177,9 @@ function mount(root, api) {
   };
   Promise.all([loadEngine((p) => { pe = p; prog(); }, ac && ac.signal), loadPack((p) => { pp = p; prog(); }, ac && ac.signal, 'magie')]).then(([E, pack]) => {
     if (dead) return;
-    try { inst = E.play(root, api, pack); } catch (e) { fail(e); return; }
+    // pack.more('crypte', progression) : le paquet de la Crypte oubliée, chargé seulement quand on y entre
+    const more = (nom, onP) => loadPack(onP || (() => {}), ac && ac.signal, nom);
+    try { inst = E.play(root, api, Object.assign({ more }, pack)); } catch (e) { fail(e); return; }
     if (inst && inst.ready && inst.ready.catch) inst.ready.catch((e) => fail(e));
   }).catch((e) => { if (!dead) fail(e); });
   return proxy;
@@ -216,6 +218,38 @@ function preview(ctx, w, h, t) {
   ctx.restore();
   if (!VT || VT.w !== w || VT.h !== h) VT = vTitle(w, h);
   ctx.drawImage(VT.c, 0, 0, w, h);
+  carte(ctx, w, h, t);
+}
+// LA CARTE SUR LA TUILE (4 nov. 2026) : en bas de la vignette, les 4 mondes (allumés quand gagnés) puis les 4 portes de la Crypte oubliée
+// (ouvertes / fermées, et combien de niveaux gagnés derrière chacune). Le jeu écrit le résumé dans localStorage « jdw.remparts.carte.<joueur> ».
+const CW = ['#a78bfa', '#5ad08a', '#9ad8ff', '#ff7a3a'], CD = [['#ff9a3a', '🎃'], ['#e8b04a', '🕯️'], ['#3ad0c8', '🌊'], ['#ff9ad8', '☁️']];
+let CARTE = null, CARTE_T = 0;
+function carteData() {
+  const now = Date.now(); if (now - CARTE_T < 2000) return CARTE; CARTE_T = now;
+  try { const pr = JSON.parse(localStorage.getItem('jdw.profile') || 'null'), nm = pr && pr.name; CARTE = nm ? JSON.parse(localStorage.getItem('jdw.remparts.carte.' + nm) || 'null') : null; } catch (e) { CARTE = null; }
+  return CARTE;
+}
+function carte(ctx, w, h, t) {
+  const D = carteData() || { m: [0, 0, 0, 0], c: [[], [], [], []], o: 0 };
+  const r = Math.max(5, Math.min(h * 0.075, w * 0.03)), y = h - r * 1.9, gap = r * 2.5, x0 = w / 2 - gap * 4.5;
+  ctx.save();
+  ctx.fillStyle = 'rgba(12,6,24,.62)'; const bx = x0 - r * 1.4, bw = gap * 9 + r * 0.8, by = y - r * 1.45, bh = r * 2.9;
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, r); else ctx.rect(bx, by, bw, bh); ctx.fill();
+  ctx.strokeStyle = 'rgba(216,180,106,.7)'; ctx.lineWidth = Math.max(1, r * 0.16); ctx.stroke();
+  // les 4 mondes : rond plein et lumineux quand gagné, creux sinon
+  D.m.forEach((st, i) => { const x = x0 + i * gap; ctx.beginPath(); ctx.arc(x, y, r * 0.78, 0, TAU);
+    if (st > 0) { ctx.shadowColor = CW[i]; ctx.shadowBlur = r; ctx.fillStyle = CW[i]; ctx.fill(); ctx.shadowBlur = 0; } else { ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = r * 0.18; ctx.stroke(); } });
+  // la crypte : un crâne, puis 4 portes en arc (ouverte = couleur du monde + son emblème ; fermée = grise) et leurs niveaux gagnés (5 points)
+  ctx.font = Math.round(r * 1.5) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = D.o ? 1 : 0.45; ctx.fillText('💀', x0 + 4 * gap, y); ctx.globalAlpha = 1;
+  D.c.forEach((L, k) => {
+    const x = x0 + (5 + k) * gap, open = D.o && (k === 0 || (D.c[k - 1] || [])[4] > 0), won = (L || []).filter((s) => s > 0).length;
+    const pw = r * 0.95, ph = r * 1.25; ctx.beginPath(); ctx.moveTo(x - pw, y + ph * 0.75); ctx.lineTo(x - pw, y - ph * 0.15); ctx.arc(x, y - ph * 0.15, pw, Math.PI, 0); ctx.lineTo(x + pw, y + ph * 0.75); ctx.closePath();
+    if (open) { const pulse = 0.75 + 0.25 * Math.sin(t * 2 + k); ctx.shadowColor = CD[k][0]; ctx.shadowBlur = r * 1.2 * pulse; ctx.fillStyle = CD[k][0]; ctx.fill(); ctx.shadowBlur = 0;
+      ctx.font = Math.round(r * 1.05) + 'px sans-serif'; ctx.fillText(CD[k][1], x, y - ph * 0.05); }
+    else { ctx.fillStyle = 'rgba(90,80,110,.85)'; ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(x - r * 0.28, y - r * 0.1, r * 0.56, r * 0.45); }
+    for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(x - pw * 0.8 + i * pw * 0.4, y + ph * 0.75 + r * 0.32, r * 0.13, 0, TAU); ctx.fillStyle = i < won ? '#ffd34d' : 'rgba(255,255,255,.25)'; ctx.fill(); }
+  });
+  ctx.restore();
 }
 
 window.JDW_GAMES = window.JDW_GAMES || {};

@@ -6,6 +6,18 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## 🏰 Remparts ! : la Crypte oubliée cache quatre mondes (borne 2.0.69)
+[remparts] 💀 La Crypte oubliée (après les Forges ardentes) s’ouvre maintenant sur une carte : quatre mondes cachés, 5 niveaux chacun, à jouer dans l’ordre.
+[remparts] 🎃 Le Cimetière des lanternes : nuit bleue, tombes, mausolées et citrouilles allumées ; les squelettes armés se relèvent une fois… et des tombes s’ouvrent au milieu du chemin.
+[remparts] 🕯️ Les Catacombes royales : sous terre, à la lueur des torches ; une tour posée sur un autel doré tire 50 % plus vite, et les couloirs se croisent.
+[remparts] 🌊 Le Village englouti : une île de sable dans une mer turquoise, des maisons noyées et des nénuphars ; sur les courants, poissons et crapauds nagent plus vite.
+[remparts] ☁️ Le Royaume des nuages : une île rose qui flotte dans le ciel, avec ses moulins ; lapins, poulets, pigeons… et les volants arrivent en nuées.
+[remparts] 👑 Le 5e niveau de chaque monde a son gardien (Roi des tombes, Roi des catacombes, Roi des abysses, Dragon des nuages) et des pièges : c’est très difficile, mais on peut gagner !
+[remparts] ⚠️ Chaque gardien a son attaque, et on la voit venir : un cercle grandit au sol. Le Roi des tombes réveille des squelettes devant lui, le Roi des catacombes assomme les tours proches, le Roi des abysses lance un raz-de-marée qui pousse les monstres, le Dragon crache du feu sur une tour.
+[remparts] 🎵 Chaque monde caché a sa propre musique.
+[remparts] 🗺️ Sur la tuile de Remparts !, une petite carte montre tes mondes gagnés et les portes de la Crypte déjà ouvertes, avec les niveaux gagnés derrière chacune.
+[remparts] 👻 Tu avais joué l’ancienne Crypte (sa carte unique) ? Ton record reste dans 🏆 Records (« L’ancienne Crypte »), il compte toujours dans ton total, et la première porte de la nouvelle Crypte t’est ouverte.
+[remparts] 🏆 Chaque niveau a ses records de la salle et son record 🌍 mondial ; le tableau des copains a une colonne 💀 pour toute la Crypte.
 [pegase] ## 🐈 Pégase 0.9.9.46 : le village s'anime en sons (borne 2.0.67)
 [pegase] 👣 Les habitants qui passent près de toi font leurs pas sur le sol où ils marchent : herbe, sable, gravier, pierre, bois.
 [pegase] 🐈 Les chats miaulent doucement quand tu approches et ronronnent si tu restes tout près d'eux.
