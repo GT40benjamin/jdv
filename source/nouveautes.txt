@@ -6,6 +6,17 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## 🏰 Remparts ! : 80 nouveaux niveaux, 20 dans chaque monde (borne 2.0.79)
+[remparts] 🗺️ Quand tu as gagné un monde, sa tuile ouvre maintenant sa carte : le niveau classique (tes records et tes étoiles restent), puis 4 régions de 5 niveaux, à jouer dans l'ordre.
+[remparts] 🌿 La Forêt enchantée : la Clairière des fées, le Bois des lucioles (la nuit, des nuées de volants), le Lac des fées (courants) et le Cœur de la forêt (trois portes, des sorciers partout).
+[remparts] 🌷 Le Jardin maudit : les Allées fleuries, le Potager hanté (des monstres sortent des citrouilles !), le Marais aux crapauds et le Labyrinthe de ronces (les monstres se relèvent).
+[remparts] 💎 Les Grottes de glace : les Grottes bleues, le Lac gelé, la Tempête de neige et le Palais de cristal.
+[remparts] 🌋 Les Forges ardentes : les Mines, la Coulée de lave, les Fonderies et le Cœur du volcan, une île au-dessus du gouffre.
+[remparts] 🎨 Chaque région a son décor, sa lumière, ses monstres et sa règle.
+[remparts] 📈 De plus en plus dur : chemins plus courts, jusqu'à trois portes, moins de places pour les tours, plus de monstres et plus costauds. Le niveau 20 de chaque monde est vraiment difficile… mais il se gagne !
+[remparts] 👑 Au bout de chaque région, un gardien t'attend. Son attaque s'annonce par un cercle au sol et « ⚠️ » : éblouir tes tours, cracher du feu, faire sortir des soldats ou lancer une vague qui pousse les monstres.
+[remparts] 🏆 Chaque monde compte maintenant ses 20 niveaux dans ton total, dans les Records et dans le tableau des copains.
+[remparts] ⭕ Sur la tuile, un anneau doré autour de chaque monde se remplit à mesure que tu gagnes ses 20 niveaux.
 [chrono] ## 🏁 Turbo Chrono : routes lisses, Les Nuages en folie, une musique par circuit (borne 2.0.78)
 [chrono] 🛣️ Le Volcan, La Plage, La Forêt et Les Nuages ont des routes bien plus lisses : fini les à-coups dans les bosses, dans les virages relevés et à l'entrée des loopings.
 [chrono] ☁️ Les Nuages sont redessinés : une plongée façon grand huit, un saut géant d'île en île, un virage mur, un double looping, une hélice qui descend et des chicanes au-dessus du vide. Passe par-dessus les rambardes… et tu tombes dans les nuages !

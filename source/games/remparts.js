@@ -7,7 +7,7 @@
 // Une seule variable globale en plus : window.JDW_TD. Atelier : ~/jdv-tools/duotest/towerdefense (fiche REPRISE.md).
 const ID = 'remparts', NOM = 'Remparts !';
 const ROOT = () => window.JDW_ROOT || '';
-const WANT = 'td-1d7bffd6';
+const WANT = 'td-65336192';
 const STORE = {};
 async function fetchBytes(url, onProg, guess, signal, opt) {
   const r = await fetch(url, Object.assign({ signal }, opt || {}));
@@ -238,7 +238,10 @@ function carte(ctx, w, h, t) {
   ctx.strokeStyle = 'rgba(216,180,106,.7)'; ctx.lineWidth = Math.max(1, r * 0.16); ctx.stroke();
   // les 4 mondes : rond plein et lumineux quand gagné, creux sinon
   D.m.forEach((st, i) => { const x = x0 + i * gap; ctx.beginPath(); ctx.arc(x, y, r * 0.78, 0, TAU);
-    if (st > 0) { ctx.shadowColor = CW[i]; ctx.shadowBlur = r; ctx.fillStyle = CW[i]; ctx.fill(); ctx.shadowBlur = 0; } else { ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = r * 0.18; ctx.stroke(); } });
+    if (st > 0) { ctx.shadowColor = CW[i]; ctx.shadowBlur = r; ctx.fillStyle = CW[i]; ctx.fill(); ctx.shadowBlur = 0; } else { ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = r * 0.18; ctx.stroke(); }
+    // ses 20 niveaux (4 régions × 5) : un anneau doré qui se remplit autour du monde
+    const rw = (D.r || [])[i] || 0; if (st > 0) { ctx.lineWidth = r * 0.2; ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.beginPath(); ctx.arc(x, y, r * 1.08, 0, TAU); ctx.stroke();
+      if (rw) { ctx.strokeStyle = '#ffd34d'; ctx.beginPath(); ctx.arc(x, y, r * 1.08, -Math.PI / 2, -Math.PI / 2 + TAU * Math.min(1, rw / 20)); ctx.stroke(); } } });
   // la crypte : un crâne, puis 4 portes en arc (ouverte = couleur du monde + son emblème ; fermée = grise) et leurs niveaux gagnés (5 points)
   ctx.font = Math.round(r * 1.5) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = D.o ? 1 : 0.45; ctx.fillText('💀', x0 + 4 * gap, y); ctx.globalAlpha = 1;
   D.c.forEach((L, k) => {
