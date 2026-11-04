@@ -4958,3 +4958,9 @@ canvas.atl-demimg{display:block;width:100%;aspect-ratio:16/10;border-radius:14px
   .atl-ginfo{max-width:none;width:100%}
   .atl-acc .atl-acca,.atl-psub2{display:none}   /* « Mes projets » : « ＋ Nouveau projet », « Reprendre », « Tester » = les tuiles juste en dessous */
 }
+
+/* 2.0.98 : une offre ou des questions remplacées (le joueur a écrit depuis) : grises, repliées, sans bouton */
+.atl-remplacee{margin:6px 0 0;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px dashed rgba(255,255,255,.18);color:var(--muted);font:600 13px/1.35 var(--body)}
+.atl-mremp .atl-b{opacity:.55;filter:grayscale(.6)}
+.atl-dremp{opacity:.7}
+.atl-dremp .atl-dembu{filter:grayscale(.6)}

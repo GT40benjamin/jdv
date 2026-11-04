@@ -14647,7 +14647,7 @@ function atlMarkSeen() { const l = atlLastReply(); if (l && ATL.name && ATL.cur)
 // pourtant tout seul à la dernière réponse (v86) et la sonnette rattrape au bout d'une minute
 const atlQPret = x => { if (!x || x.etat !== 'vue' || !Array.isArray(x.questions) || !x.questions.length || x.questions.some(q => q && !q.reponse)) return false;
   const t = Math.max(...x.questions.map(q => +new Date((q && q.at) || 0) || 0)); return t > (+new Date(x.etat_at || x.at || 0) || 0); };
-const atlQAttente = x => !!(x && x.etat === 'vue' && Array.isArray(x.questions) && (x.questions.some(q => q && !q.reponse) || atlQPret(x)));
+const atlQAttente = x => !!(x && !x.remplacee && x.etat === 'vue' && Array.isArray(x.questions) && (x.questions.some(q => q && !q.reponse) || atlQPret(x)));
 const atlQNb = x => (x && Array.isArray(x.questions) ? x.questions.filter(q => q && !q.reponse).length || (atlQPret(x) ? 1 : 0) : 0);
 const atlQListe = () => (((typeof ATL !== 'undefined' && ATL && ATL.dem) || {}).demandes || []).filter(atlQAttente);
 function atlNotifs() {
@@ -15054,7 +15054,8 @@ function atlBubble(m, wel) {
   }
   col.appendChild(bub);
   // 2.0.36 (Benjamin : « il m'a répondu avec des questions, mais peut-on faire la forme question ? ») : les encarts, comme dans les tickets
-  if (at && !wel && Array.isArray(m.questions) && m.questions.length) {
+  if (at && !wel && Array.isArray(m.questions) && m.questions.length && m.remplacee && !m.q_envoye) { col.appendChild(atlRemplacee(true)); li.classList.add('atl-mremp'); }
+  else if (at && !wel && Array.isArray(m.questions) && m.questions.length) {
     const ouv = !m.q_envoye && m.questions.some(q => q && !q.reponse), qx = { id: m.id, questions: m.questions, etat: 'vue' };
     col.appendChild(atlQuestions(qx, { modif: ouv || (!m.q_envoye && m.questions.length > 0),
       repondre: (n, v, env) => atlAdminIci() ? rpc('at_admin_message_repondre', { p_name: profile.name, p_fiche: ATL.adminVoir.id, p_msg: m.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true })
@@ -15064,6 +15065,7 @@ function atlBubble(m, wel) {
   if (at && m.demande && ATL.dem && Array.isArray(ATL.dem.demandes)) {
     const x = ATL.dem.demandes.find(d => d.id === m.demande), der = atlTousMsgs().filter(z => z.demande === m.demande && z.atelier).pop();
     if (x && atlPropOuverte(x) && der && der.id === m.id) col.appendChild(atlPropBoutons(x));
+    else if (x && x.remplacee && !x.choix && der && der.id === m.id) { col.appendChild(atlRemplacee(false)); li.classList.add('atl-mremp'); }
   }
   if (at && !wel && m.bouton && !atlAdminIci()) {   // 2.0.94 : « ＋ Nouveau projet » (une idée pour un autre jeu) ou « ▶️ Jouer »
     const f0 = atlFiche(), bt = atlEl('button', 'btn btn-play btn-sm atl-mbouton', m.bouton === 'nouveau_projet' ? '＋ Nouveau projet' : '▶️ Jouer à ma V' + (((f0 && f0.version) | 0) || 1)); bt.type = 'button';
@@ -15410,14 +15412,14 @@ const atlDemAuto = (x, vz) => atlPropOuverte(x) || atlQAttente(x) || (!!vz && vz
 function atlDemOuvert(x, vz) { const o = ATL.demOuv = ATL.demOuv || {}; if (o[x.id] == null && atlDemAuto(x, vz)) o[x.id] = true; return !!o[x.id]; }   // dépliée une fois : elle le reste (rien ne saute)
 function atlDemBasc(x, ouv) { (ATL.demOuv = ATL.demOuv || {})[x.id] = !ouv; }
 function atlDemSuivi(x, ouv, basc) {
-  const ch = atlPropOuverte(x), q = atlQAttente(x), et = ch ? 'choisir' : q ? 'questions' : x.etat, r = atlEl('button', 'atl-dligne e-' + et + (ouv ? ' ouv' : '')); r.type = 'button'; r.dataset.id = x.id;
-  const EB = { envoyee: '📨 Envoyée', vue: '👀 Vue', choisir: '💬 À choisir', questions: '❓ À répondre', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard' };
+  const ch = atlPropOuverte(x), q = atlQAttente(x), et = ch ? 'choisir' : q ? 'questions' : x.remplacee && !x.choix && !['faite', 'impossible'].includes(x.etat) ? 'remplacee' : x.etat, r = atlEl('button', 'atl-dligne e-' + et + (ouv ? ' ouv' : '')); r.type = 'button'; r.dataset.id = x.id;
+  const EB = { envoyee: '📨 Envoyée', vue: '👀 Vue', choisir: '💬 À choisir', questions: '❓ À répondre', remplacee: '🔁 Remplacée', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard' };
   const tx = String((x.choix && x.choix.libelle) || x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '').split('\n')[0].replace(/^💡 Idée de la discussion : /, '💡 ');
   const ld = Array.isArray(x.etapes) && x.etapes.length ? x.etapes[x.etapes.length - 1] : null, m = ld && String(ld.texte || ld.etape || '').match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i);
   const av = atlEl('span', 'atl-dlav');
   if (x.etat === 'faite') av.textContent = x.version_livree ? '✅ V' + x.version_livree : '✅';
   else if (x.etat === 'en_cours') { const bar = atlEl('span', 'atl-travbar' + (m ? '' : ' indet')), i = atlEl('i'); if (m && +m[2] > 0) i.style.width = Math.round(Math.min(+m[1], +m[2]) / +m[2] * 100) + '%'; bar.appendChild(i); av.append(bar, atlEl('small', '', m ? 'Étape ' + Math.min(+m[1], +m[2]) + ' / ' + m[2] : 'en cours')); }
-  r.append(atlEl('span', 'atl-demb2 b-' + (et === 'questions' ? 'vue' : et), EB[et] || et), atlEl('span', 'atl-dltx', tx), av, atlEl('span', 'atl-dlfl', '▾'));
+  r.append(atlEl('span', 'atl-demb2 b-' + (et === 'questions' || et === 'remplacee' ? 'vue' : et), EB[et] || et), atlEl('span', 'atl-dltx', tx), av, atlEl('span', 'atl-dlfl', '▾'));
   if (x.nouveau && (x.reponse || ch)) r.classList.add('neuf');
   r.addEventListener('click', basc); return r;
 }
@@ -15459,11 +15461,12 @@ function atlDiscVu(f, at) {
   v[f.id] = at; const k = Object.keys(v); if (k.length > 80) delete v[k[0]]; store.set('jdw.atl.discvu', v);
 }
 function atlDiscDems(f) { return (atlAdminIci() ? (ATL.data.demandes_projet || []) : (((ATL.dem || {}).demandes) || [])).filter(x => x && (atlAdminIci() || x.fiche === f.id)); }
-const atlDiscSig = x => !x ? '' : [x.etat, x.etat_at, x.choix ? 1 : 0, (x.etapes || []).length, (x.questions || []).map(q => q && q.reponse ? 1 : 0).join(''), atlPropOuverte(x) ? 1 : 0, String(x.reponse || '').length].join(',');
+const atlDiscSig = x => !x ? '' : [x.etat, x.etat_at, x.remplacee ? 1 : 0, x.choix ? 1 : 0, (x.etapes || []).length, (x.questions || []).map(q => q && q.reponse ? 1 : 0).join(''), atlPropOuverte(x) ? 1 : 0, String(x.reponse || '').length].join(',');
 // une réponse de la mascotte sur une demande : sa bulle, avec les questions à choix et la carte d'offres (les mêmes que dans « Mes demandes »)
 function atlDiscBulleDem(x, at) {
   const b = atlBubble({ atelier: true, texte: x.reponse ? String(x.reponse) : '', at }), col = b.querySelector('.atl-mc'), tm = col.querySelector('.atl-t');
   if (!x.reponse) { const bb = col.querySelector('.atl-b'); if (bb) bb.remove(); }
+  if (x.remplacee) { col.insertBefore(atlRemplacee(Array.isArray(x.questions) && x.questions.length && !(Array.isArray(x.propositions) && x.propositions.length)), tm); b.classList.add('atl-mremp'); return b; }
   if (Array.isArray(x.questions) && x.questions.length) col.insertBefore(atlQuestions(x), tm);
   if (atlPropOuverte(x)) col.insertBefore(atlPropBoutons(x), tm);
   return b;
@@ -15482,7 +15485,7 @@ function atlDiscFil(f) {
   const add = (at, k, g, el, w) => L.push({ at: String(at || ''), t: T(at), k, g, el, w: !!w });
   const dem = id => atlDiscDems(f).find(d => d.id === id);
   for (const m of atlDiscMsgs().concat((ATL.discPend || []).filter(m => m.fiche === f.id)))
-    add(m.at, 'm' + (m.id || 'p') + (m.pending ? 'p' : '') + (m.q_envoye ? 'e' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : '') + (m.demande ? atlDiscSig(dem(m.demande)) : ''), !!m.atelier && !m.pending, () => atlBubble(m), !m.atelier && !m.pending);
+    add(m.at, 'm' + (m.id || 'p') + (m.pending ? 'p' : '') + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : '') + (m.demande ? atlDiscSig(dem(m.demande)) : ''), !!m.atelier && !m.pending, () => atlBubble(m), !m.atelier && !m.pending);
   for (const x of atlDiscDems(f)) {
     const ne = atlDiscDe(x), hi = Array.isArray(x.historique) ? x.historique.filter(h => h && h.sorte) : [], et = Array.isArray(x.etapes) ? x.etapes : [], sd = atlDiscSig(x), env = x.etat === 'envoyee';
     const J = (tx, at, cls) => () => { const bl = atlBubble({ texte: tx, at }); bl.classList.add(cls || 'atl-fdem'); return bl; };
@@ -15527,7 +15530,7 @@ function atlDiscBloc(f) {
       go.disabled = true; msg.textContent = 'J’envoie…';
       const enBas = () => { const lg = b.querySelector('.atl-disclog'); if (lg) lg.scrollTop = lg.scrollHeight; };   // son propre message : toujours en bas du fil
       ATL.discPend = [{ texte: t, pending: true, at: new Date().toISOString(), fiche: f.id }]; atlDiscMaj(ATL.root.querySelector('.atl-wiz'), f, true); enBas();
-      try { await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true }); ta.value = ''; msg.textContent = ATL_DISC_AIDE + '.'; await atlLoad(true); }
+      try { await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true }); ta.value = ''; msg.textContent = ATL_DISC_AIDE + '.'; ATL.demAt = 0; await atlDemCharger(true); await atlLoad(true); }
       catch (e) { msg.textContent = atlWhy(e); }
       finally { ATL.discPend = []; go.disabled = false; atlDiscMaj(ATL.root.querySelector('.atl-wiz'), f, true); enBas(); }
     };
@@ -17346,7 +17349,10 @@ function atlDemBtn(R) {
 // ---- 0 h 15 (Benjamin) : les PROPOSITIONS chiffrées d'une demande — un bouton par option (libellé et crédits fixés par le guide pour
 // CETTE demande, rien de codé ici) + « ⏸️ Plus tard » ; option grisée si le solde ne suffit pas ; « Utiliser N 💎 ? Oui / Non »
 // (at_demande_accepter : débit une seule fois ; at_demande_plus_tard : rien n'est débité)
-function atlPropOuverte(x) { return !!(x && Array.isArray(x.propositions) && x.propositions.length && !x.choix && !['faite', 'impossible'].includes(x.etat)); }
+// 2.0.98 (l'admin : « l'ancienne carte d'offre reste OUVERTE alors qu'il a déjà écrit en dessous ») : dès que le joueur écrit (ou répond autrement),
+// les offres et questions plus anciennes sont FERMÉES côté serveur (SQL v110 : remplacee_at, at_offres_remplacer) : grises, repliées, sans bouton
+const atlRemplacee = q => { const l = atlEl('p', 'atl-remplacee', q ? '🔁 Questions remplacées : ' + gNM() + ' te prépare la suite' : '🔁 Offre remplacée : ' + gNM() + ' te prépare la nouvelle'); return l; };
+function atlPropOuverte(x) { return !!(x && !x.remplacee && Array.isArray(x.propositions) && x.propositions.length && !x.choix && !['faite', 'impossible'].includes(x.etat)); }
 function atlPropBoutons(x, comme) {
   // 3 nov. 1 h 15 (Benjamin : « fais mieux, plutôt que de faire bouger les boutons ») : une CARTE D'OFFRE par option — titre, ce qui est
   // inclus, gros prix, « Choisir » ; l'offre conseillée a un liseré et « ⭐ Conseillé » ; « Plus tard » en lien discret ; la validation
@@ -17584,8 +17590,9 @@ function atlDemCarte(x) {
     }
     if (x.etat === 'impossible' && hi[hi.length - 1].sorte === 'refus') { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = '🙅 Non merci'; }
   }
-  if (t && Array.isArray(x.questions) && x.questions.length) { t.appendChild(atlQuestions(x)); if (atlQAttente(x)) { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = atlQPret(x) ? '📨 À envoyer' : '❓ ' + (atlQNb(x) > 1 ? atlQNb(x) + ' questions' : '1 question'); c.classList.add('q'); } }
-  if (t && !atlAdminIci() && x.reponse && !x.choix && !atlPropOuverte(x) && !atlQAttente(x) && ['vue', 'plus_tard'].includes(x.etat)) t.appendChild(atlDemActions(x, false));
+  if (t && x.remplacee && !x.choix) { t.appendChild(atlRemplacee(Array.isArray(x.questions) && x.questions.length && !(Array.isArray(x.propositions) && x.propositions.length))); c.classList.add('atl-dremp'); }
+  else if (t && Array.isArray(x.questions) && x.questions.length) { t.appendChild(atlQuestions(x)); if (atlQAttente(x)) { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = atlQPret(x) ? '📨 À envoyer' : '❓ ' + (atlQNb(x) > 1 ? atlQNb(x) + ' questions' : '1 question'); c.classList.add('q'); } }
+  if (t && !atlAdminIci() && !x.remplacee && x.reponse && !x.choix && !atlPropOuverte(x) && !atlQAttente(x) && ['vue', 'plus_tard'].includes(x.etat)) t.appendChild(atlDemActions(x, false));
   // 2.0.17 (Benjamin : « le guide réfléchit à ce qu'il va dire pendant ce temps et ça se voit ») : tant que le guide n'a pas répondu,
   // une bulle « réfléchit » avec ses points qui bougent ; l'étape écrite par l'équipe (at_demande_avancer) s'y affiche en direct
   if (t && x.etat === 'envoyee' && !x.choix) {
@@ -18010,6 +18017,8 @@ function atlWhy(e) {
   if (/credits insuffisants/.test(m)) return 'Plus assez de crédits : passe à Atelier+ ou recharge tes crédits.';
   if (e && (e.acct || e.guest)) return 'Connecte-toi à ton compte pour créer ton jeu.';
   // 2.0.97 (l'admin : « afficher la VRAIE raison, jamais Oups… réessaie ») : chaque refus du filtre (pegase_int.at_filtre) dit pourquoi ; le texte reste dans la case
+  if (/offre remplacee/.test(m)) return 'Cette offre a été remplacée : ' + gNM() + ' te prépare la nouvelle, elle arrive dans la discussion.';
+  if (/questions remplacees/.test(m)) return 'Ces questions ont été remplacées : ' + gNM() + ' te prépare la suite dans la discussion.';
   if (/filtre protege/.test(m)) return 'Je ne peux pas utiliser le nom d’un jeu, d’un film ou d’un personnage qui existe déjà : décris-moi ton idée avec tes mots 😊 (ton texte est resté dans la case)';
   if (/filtre violence/.test(m)) return 'Ton jeu est pour tous les âges : pas de sang ni de mots comme « tuer ». Dis-le autrement, par exemple « battre », « attraper » ou « faire disparaître » 😊 (ton texte est resté dans la case)';
   if (/filtre adulte/.test(m)) return 'Ce mot n’est pas pour un jeu de tous les âges : dis-le autrement 😊 (ton texte est resté dans la case)';
