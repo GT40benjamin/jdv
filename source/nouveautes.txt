@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🦋 Abracadabra : les papillons et les oiseaux volent pour de vrai (borne 2.0.90)
+[abracadabra] 🦋 « Un papillon » : une nuée de vrais papillons, petits et colorés, avec leurs ailes qui battent ; ils tourbillonnent, se posent ailes fermées, puis repartent.
+[abracadabra] 🦅 Les oiseaux s'envolent : posés un moment, ils prennent leur envol, tournent en grands cercles dans le ciel en battant des ailes puis en planant, et reviennent se poser. Le pégase vole aussi, et la guêpe et les moustiques bourdonnent en l'air.
+[abracadabra] 🪜 Sur l'échelle, les villageois descendent vraiment barreau par barreau : les mains serrent les barreaux, un pied après l'autre.
+[abracadabra] ☂️ Avec les parapluies, chacun tient vraiment la poignée dans sa main, bras levé, à sa taille.
 [sensinterdit] ## ⛔ Sens Interdit : 5 nouveaux mondes après l'Espace, neige et pluie plus légères (borne 2.0.89)
 [sensinterdit] 🌕 Après la Route des Étoiles, la course continue dans 5 nouveaux mondes, chacun avec son décor, sa lumière, sa musique et son tunnel : La Lune (cratères, bases en dômes, la Terre dans le ciel), L'Océan (la route sous la mer dans un tube de verre, coraux, algues, poissons, méduses, une baleine), La Forêt des Champignons (champignons géants qui brillent, lucioles), Le Pays des Bonbons (sucettes, sucres d'orge, glaces, maisons-cupcakes, lac de chocolat) et La Cité d'Or (colonnes de marbre, îles volantes aux tours dorées, au-dessus d'une mer de nuages).
 [sensinterdit] 🚗 Dans ces nouveaux mondes, de plus en plus de voitures en face : rangées de deux, puis de trois, et des vagues serrées. Il reste toujours une voie libre bien lisible, et frôler rapporte toujours.
