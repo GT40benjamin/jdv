@@ -16381,7 +16381,7 @@ async function atlNomSave(v) {
   ATL.nomLoc = v; ATL.pSig = '';
   const id = ATL.cur || await atlBrouillon(); if (!id) return;
   try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: id, p_cle: 'titre', p_valeur: v }, { quiet: true }); atlToast('✏️ « ' + v + ' » enregistré'); atlLoad(true); }
-  catch (e) { atlToast(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie'); atlLoad(true); }
+  catch (e) { atlToast(/filtre protege/.test(String(e && e.message)) ? 'Ce nom existe déjà (jeu, film ou personnage) : invente le tien, il sera encore mieux 😊' : /filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas pour un jeu de tous les âges : essaie un autre 😊' : 'Nom pas enregistré : ' + atlWhy(e)); atlLoad(true); }
 }
 
 // ---- 20 h 25 (Benjamin) : en entrant dans l'Atelier, le guide est là : il dit bonjour, propose quoi faire, signale les nouveautés
@@ -16444,7 +16444,7 @@ function atlRenommerTuile(w, pj) {
     if (garder && v.length >= 2 && v !== (pj.titre || '')) {
       pj.titre = v;
       try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: pj.id, p_cle: 'titre', p_valeur: v }, { quiet: true }); atlToast('✏️ « ' + v + ' » enregistré'); }
-      catch (e) { atlToast(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie'); }
+      catch (e) { atlToast(/filtre protege/.test(String(e && e.message)) ? 'Ce nom existe déjà (jeu, film ou personnage) : invente le tien, il sera encore mieux 😊' : /filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas pour un jeu de tous les âges : essaie un autre 😊' : 'Nom pas enregistré : ' + atlWhy(e)); }
     }
     atlRender(); atlLoad(true);
   };
@@ -16892,7 +16892,7 @@ function atlEncRenommer(c, it, f, fi) {
         const k = it.k || ATL_CATS.find(x => x[0] === it.cat)[3];
         if (k && ['brouillon', 'en_discussion', 'complete'].includes(String(f.etat || '')) && atlListeDe(fi[k]).some(x => atlNorm(x) === atlNorm(it.nom))) atlEtape(k, atlListeDe(fi[k]).map(x => (atlNorm(x) === atlNorm(it.nom) ? v : x)));
         atlToast('✏️ « ' + v + ' » enregistré');
-      } catch (e) { atlToast(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie'); }
+      } catch (e) { atlToast(/filtre protege/.test(String(e && e.message)) ? 'Ce nom existe déjà (jeu, film ou personnage) : invente le tien, il sera encore mieux 😊' : /filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas pour un jeu de tous les âges : essaie un autre 😊' : 'Nom pas enregistré : ' + atlWhy(e)); }
     }
     ATL.pSig = ''; atlRender(); atlLoad(true);
   };
@@ -18009,7 +18009,16 @@ function atlWhy(e) {
   if (/choix en cours/.test(m)) return 'Termine d’abord tes choix (ou touche « Je veux modifier »).';
   if (/credits insuffisants/.test(m)) return 'Plus assez de crédits : passe à Atelier+ ou recharge tes crédits.';
   if (e && (e.acct || e.guest)) return 'Connecte-toi à ton compte pour créer ton jeu.';
-  return 'Oups, le message n’est pas parti. Réessaie.';
+  // 2.0.97 (l'admin : « afficher la VRAIE raison, jamais Oups… réessaie ») : chaque refus du filtre (pegase_int.at_filtre) dit pourquoi ; le texte reste dans la case
+  if (/filtre protege/.test(m)) return 'Je ne peux pas utiliser le nom d’un jeu, d’un film ou d’un personnage qui existe déjà : décris-moi ton idée avec tes mots 😊 (ton texte est resté dans la case)';
+  if (/filtre violence/.test(m)) return 'Ton jeu est pour tous les âges : pas de sang ni de mots comme « tuer ». Dis-le autrement, par exemple « battre », « attraper » ou « faire disparaître » 😊 (ton texte est resté dans la case)';
+  if (/filtre adulte/.test(m)) return 'Ce mot n’est pas pour un jeu de tous les âges : dis-le autrement 😊 (ton texte est resté dans la case)';
+  if (/filtre haine/.test(m)) return 'Ce mot n’est pas possible dans l’Atelier : dis-le autrement 😊 (ton texte est resté dans la case)';
+  if (/texte vide|reponse vide/.test(m)) return 'Écris d’abord ton message 😊';
+  if (/projet ferme|projet inconnu/.test(m)) return 'Ce projet n’est plus ouvert : choisis un autre projet dans « Mes projets ».';
+  if (/pas jouable/.test(m)) return 'Ton jeu n’est pas encore prêt à tester : ' + gN() + ' te prévient dès qu’il l’est 🔔';
+  if (/compte requis/.test(m)) return 'Connecte-toi à ton compte pour envoyer ton message.';
+  return 'Ton message n’est pas parti (' + (m.replace(/^[^:]*error:\s*/i, '').slice(0, 60) || 'souci de connexion') + ') : il est resté dans la case, réessaie dans un moment.';
 }
 // image de référence : réduite sur l'appareil (1600 px, JPEG), annoncée (at_dire), puis envoyée dans le seau « atelier »
 // SÉCURITÉ (Benjamin, 2 nov. : « verrouiller toute possibilité de fichiers virus ») : seulement JPEG, PNG ou WebP reconnus à leurs OCTETS
