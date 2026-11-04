@@ -168,6 +168,8 @@
 [atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : {g} monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
 [atelier] 🎁 À ta première visite, {g} t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
 
+[abracadabra] ## 🐕 Abracadabra : le lévrier et la statue de renard reviennent (borne 2.0.68)
+[abracadabra] 🐕 Le lévrier, le chien de chasse, la truie et la statue de renard apparaissent de nouveau quand on les dit.
 [abracadabra] ## 🌿 Abracadabra : plus personne ne s'envole, et la nature plus belle (borne 2.0.66)
 [abracadabra] 🦖 Quand le T-rex surgit, les villageois s'enfuient en courant… sans plus jamais grimper en l'air sur les toits.
 [abracadabra] 🐢 Mission 6 : la tortue accoste au bord de la plage, tout le monde descend les pieds dans le sable.
