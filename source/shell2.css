@@ -3560,7 +3560,10 @@ body.atl-on #jdw-modes{visibility:hidden}
   padding:5px 14px;border-radius:999px;background:linear-gradient(180deg,#ffe680,#ffb020);color:#3a1a00;border:2px solid #fff6c9;
   font:400 13px var(--display);letter-spacing:.06em;box-shadow:0 4px 14px rgba(0,0,0,.5),0 0 0 2px rgba(58,26,0,.35)}
 .tile-mine.theirs{background:linear-gradient(180deg,#d6c2ff,#9a6cff);color:#1e0a45;border-color:#efe6ff;font-size:11px}
+/* 2.0.87 : un jeu de l'Atelier qui publie une nouvelle version porte « ✨ Mis à jour » (en bas à GAUCHE : le ruban « MON JEU » tient la droite) */
 .tile-wrap.atl-game .tile-new{display:none}
+.tile-wrap.atl-game .tile-img > .tile-new.maj{display:block;left:8px;right:auto;bottom:10px}
+@media (max-width:700px){.tile-wrap.atl-game .tile-img > .tile-new.maj{left:5px;bottom:7px;padding:2px 6px;font-size:8.5px;letter-spacing:.01em}}
 .tile-wrap.atl-mine > .tile{border-color:#ffc23d;box-shadow:0 0 0 2px rgba(255,194,61,.55),0 10px 24px rgba(0,0,0,.35)}
 .tile-mod{position:absolute;right:8px;bottom:6px;z-index:3;height:30px;padding:0 10px;border-radius:9px;border:1px solid #ffc23d;cursor:pointer;
   background:color-mix(in srgb,#ffc23d 22%,var(--card));color:var(--ink);font:700 12px/1 var(--body);white-space:nowrap}

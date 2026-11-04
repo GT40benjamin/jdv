@@ -2140,7 +2140,7 @@ function notifRow(n, isNew) {
   if (n.kind === 'atelier-maj') {   // 2.0.87 : nouvelle version publiée d'un jeu de l'Atelier (pour tout le monde)
     const g = gameById(n.game);
     const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = ATL_EMO[n.game] || '🎮'; if (g) ic.style.background = g.accent;
-    const b = document.createElement('b'); b.textContent = (ATL_EMO[n.game] || '✨') + ' ' + (n.titre || (g && g.title) || 'Un jeu de l’Atelier') + ' : V' + n.v + ' !';
+    const b = document.createElement('b'); b.textContent = (n.titre || (g && g.title) || 'Un jeu de l’Atelier') + ' : V' + n.v + ' !';
     const sm = document.createElement('small'); sm.textContent = (n.note ? (n.note.length > 140 ? n.note.slice(0, 139) + '…' : n.note) + ' · ' : '') + 'touche pour y jouer';
     tx.append(b, sm); li.append(ic, tx); li.classList.add('click');
     li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (g) { markGameSeen(n.game); openGame(g); } });
