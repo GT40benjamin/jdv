@@ -17377,10 +17377,10 @@ function atlPropBoutons(x, comme) {
     k.appendChild(atlEl('b', 'atl-oft', String(o.libelle || 'Option')));
     const det = Array.isArray(o.details) ? o.details.filter(Boolean) : [];
     if (det.length) { const ul = atlEl('ul', 'atl-ofl'); for (const d of det) ul.appendChild(atlEl('li', '', String(d))); k.appendChild(ul); }
-    k.appendChild(atlEl('div', 'atl-ofp', c ? c + ' 💎' : 'Offert'));
-    const b = atlEl('button', 'btn ' + (manque > 0 ? 'btn-ghost' : 'btn-play') + ' atl-ofgo', manque > 0 ? 'Il te manque ' + manque + ' 💎' : 'Choisir'); b.type = 'button';
+    k.appendChild(atlEl('div', 'atl-ofp', c ? c.toLocaleString('fr-FR') + ' 💎' : 'Offert'));
+    const b = atlEl('button', 'btn ' + (manque > 0 ? 'btn-ghost' : 'btn-play') + ' atl-ofgo', manque > 0 ? 'Il te manque ' + manque.toLocaleString('fr-FR') + ' crédits' : 'Choisir'); b.type = 'button';
     if (comme) b.disabled = true;
-    else if (manque > 0) { b.disabled = true; const rb = atlEl('button', 'btn btn-ghost btn-sm', '💎 Recharger'); rb.type = 'button'; rb.addEventListener('click', atlRecharger); k.append(b, rb); grille.appendChild(k); continue; }
+    else if (manque > 0) { b.disabled = true; const rb = atlEl('button', 'btn btn-ghost btn-sm', '💎 Voir les packs de crédits'); rb.type = 'button'; rb.addEventListener('click', atlRecharger); k.append(b, rb); grille.appendChild(k); continue; }
     else b.addEventListener('click', () => atlOffreValider(x, o, solde, box));
     k.appendChild(b); grille.appendChild(k);
   }
@@ -17449,7 +17449,7 @@ function atlOffreValider(x, o, solde, box) {
   O.setAttribute('role', 'dialog'); O.setAttribute('aria-modal', 'true'); O.setAttribute('aria-label', 'Confirmer mon choix');
   k.append(atlGuideAv('atl-wav'), atlEl('b', 'atl-oft', String(o.libelle || '')));
   const det = Array.isArray(o.details) ? o.details.filter(Boolean) : []; if (det.length) { const ul = atlEl('ul', 'atl-ofl'); for (const d of det) ul.appendChild(atlEl('li', '', String(d))); k.appendChild(ul); }
-  k.append(atlEl('div', 'atl-ofp', c ? c + ' 💎' : 'Offert'), atlEl('p', 'atl-ofsolde', 'Ton solde : ' + solde + ' → ' + (solde - c) + ' 💎'), atlEl('small', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.'));
+  k.append(atlEl('div', 'atl-ofp', c ? c.toLocaleString('fr-FR') + ' 💎' : 'Offert'), atlEl('p', 'atl-ofsolde', 'Ton solde : ' + solde + ' → ' + (solde - c) + ' 💎'), atlEl('small', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.'));
   const er = atlEl('p', 'atl-werr'); er.hidden = true; k.appendChild(er);
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), ok = atlEl('button', 'btn btn-play', 'Confirmer'); no.type = ok.type = 'button';
   const ferme = () => O.remove();
