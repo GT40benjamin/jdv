@@ -10,6 +10,8 @@
 [chrono] 👑 Le rond du champion sur la tuile Turbo Chrono montre enfin sa photo, comme sur les autres tuiles et dans le classement (avant, un joueur qui a un surnom dans la salle n'avait qu'une lettre).
 [chrono] 🥇 Les médailles d'or du Volcan, de la Plage, de la Forêt et des Nuages comptent maintenant pour le titre de champion (avant, seulement les 4 premiers circuits).
 [chrono] 📋 Classement › Turbo Chrono et « Tes positions » en fin de course montrent les 8 circuits.
+[borne] ## 💬 « Discuter du jeu » : toujours le même fil (borne 2.0.109)
+[borne] 💬 Ton fil avec {g} reste le même partout : chaque réponse arrive au même endroit, avec « ✉️ Nouvelle réponse » sur la tuile tant que tu ne l’as pas lue.
 [borne] ## 💬 Des réponses plus rapides dans « Discuter du jeu » (borne 2.0.108)
 [borne] 💬 {g} peut maintenant te répondre à tout moment dans « Discuter du jeu », même pendant qu’il travaille sur ton jeu : sa réponse arrive dans ton fil et « ✉️ Nouvelle réponse » s’allume sur la tuile de ton projet.
 [borne] ## ✉️ « Nouvelle réponse » : une seule règle (borne 2.0.106)
