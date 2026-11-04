@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🏷️ Chaque tuile dit qui a fait le jeu, et sa version (borne 2.0.83)
+[borne] 🏷️ Sous chaque tuile (Classique, Duel, Coop), une petite ligne « by … · V… » : « by Elixir Game Studio » pour les jeux du studio, le nom du créateur pour les jeux de l'Atelier, et le numéro de la version, qui monte à chaque mise à jour.
+[atelier] ## 🖼️ L'image de ta tuile, exactement comme sur la borne (borne 2.0.83)
+[atelier] 🖼️ « Modifier l'image de ta tuile » montre maintenant ta vraie tuile, au même format, avec son titre et « by … » ; ta tuile dans « Mes projets » est la même aussi.
 [chrono] ## 🏁 Turbo Chrono : la lave qui engloutit, des rambardes solides, des flèches dans le bon sens (borne 2.0.82)
 [chrono] 🌋 Le Volcan : des passages sans rambarde au-dessus de la lave autour des sauts… et si tu tombes, la voiture est engloutie par la lave dans une explosion de feu !
 [chrono] 🧱 Les rambardes sont pleines des deux côtés (on voyait à travers par derrière) et les deux brins des loopings ne se croisent plus.

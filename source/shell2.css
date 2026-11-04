@@ -4827,3 +4827,23 @@ body.atl-on .lose-tip{display:none}
 .atl-jaqlab{color:var(--muted);font:700 12.5px var(--body)}
 canvas.atl-demimg{display:block;width:100%;aspect-ratio:16/10;border-radius:14px}
 .atl-phv canvas{display:block;width:100%;height:100%;object-fit:cover}
+/* 2.0.83 : l'aperçu de « Modifier l'image de ta tuile » = la tuile elle-même (même format, recadrée au centre) ; l'en-tête aussi au format de la tuile */
+.atl-tuileap{margin:0 auto;pointer-events:none}
+.atl-tuileap .tile-img > img,.atl-gtw .tile-img > img.atl-gtimg{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+.atl-phv{aspect-ratio:4/3}
+.atl-phv img,.atl-phv canvas{object-position:center}
+/* 2.0.83 : Suivi — un bloc par projet (totaux dans l'en-tête), colonne Version, total tous projets */
+.atl-sgrp{margin:10px 0;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.03);overflow:hidden}
+.atl-sgrph{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:10px 14px;cursor:pointer;list-style:none}
+.atl-sgrph::-webkit-details-marker{display:none}
+.atl-sgrph::before{content:'▸';color:var(--muted)}.atl-sgrp[open] > .atl-sgrph::before{content:'▾'}
+.atl-sgrpt{font:800 15px var(--body)}
+.atl-sgrph small{color:var(--muted)}
+.atl-sgrpv{display:flex;flex-wrap:wrap;gap:4px 12px;margin-left:auto;font:700 13.5px var(--body)}
+.atl-sgrp .atl-swrap{padding:0 8px 8px}
+.atl-sver{white-space:nowrap;font-weight:800;color:#ffe9a8}
+.atl-sgrptot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:12px 0 6px;padding:12px 14px;border-radius:14px;border:2px solid #ffd34d;background:rgba(255,211,77,.08);font:700 14px var(--body)}
+.atl-sgrptot b:first-child{font-weight:900;margin-right:auto}
+@media (max-width:640px){.atl-sgrpv{margin-left:0;width:100%}.atl-sgrptot b:first-child{width:100%}}
+.atl-pv canvas{display:block;width:100%;height:100%}   /* 2.0.83 : la jaquette dessinée par le jeu dans « Mes projets » */
+.tile-wrap:has(.tile-map:not([hidden])) .tile-by{padding-right:44px;box-sizing:border-box}   /* 2.0.83 : « by … · Vn » jamais sous le bouton de la carte */
