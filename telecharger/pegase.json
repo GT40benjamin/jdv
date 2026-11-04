@@ -1,26 +1,30 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 94,
-  "versionName": "0.9.9.46",
-  "size": 1236197614,
-  "sha256": "fa926a47144ff9b7d24e7c88a3d9c9e5ab5345939171dc145a1519f530d71c5b",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v94/pegase-0.9.9.46.apk",
+  "versionCode": 95,
+  "versionName": "0.9.9.47",
+  "size": 1236207678,
+  "sha256": "26811a264ccc836c3d976e419ed5684224a801fee23d5eedf9ea409079ceeb78",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v95/pegase-0.9.9.47.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Les habitants qui passent près de toi font leurs pas sur le sol où ils marchent : herbe, sable, gravier, pierre, bois.",
-    "Les chats miaulent doucement quand tu approches et ronronnent si tu restes tout près d'eux.",
-    "La grande sauterelle verte et la cigale chantent depuis leur buisson.",
-    "S'asseoir sur un banc et se relever fait un doux froissement de vêtements.",
-    "Un petit clic feutré sur les boutons des écrans qui étaient muets : sac, barre d'objets, bar, téléphone…",
-    "Désiré montre ses deux mains, de face comme de trois quarts : plus de main cachée derrière le tablier.",
-    "Au bar, sur PC, le visage de Désiré est enfin éclairé : on voit ses yeux et son sourire.",
-    "Sur téléphone, les personnages dans l'hôtel, les boutiques et les maisons ont une lumière chaude : on voit enfin leurs visages.",
-    "Plus d'herbe qui pousse au fond de la mer ; les algues, elles, restent."
+    "Nouvelle case « Afficher les FPS » dans Réglages : un petit compteur en haut à droite.",
+    "La caméra ne rentre plus dans ta tête au coin du magasin de Rosalie.",
+    "Le chemin du Clos est maintenant à plat.",
+    "Sous l'arche de la rivière, la caméra se décale : tu restes entière à l'écran, plus cachée derrière la roche."
   ],
   "historique": [
+    {
+      "version": "0.9.9.47",
+      "notes": [
+        "Nouvelle case « Afficher les FPS » dans Réglages : un petit compteur en haut à droite.",
+        "La caméra ne rentre plus dans ta tête au coin du magasin de Rosalie.",
+        "Le chemin du Clos est maintenant à plat.",
+        "Sous l'arche de la rivière, la caméra se décale : tu restes entière à l'écran, plus cachée derrière la roche."
+      ]
+    },
     {
       "version": "0.9.9.46",
       "notes": [
@@ -82,23 +86,6 @@
         "Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.",
         "De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.",
         "Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps."
-      ]
-    },
-    {
-      "version": "0.9.9.42",
-      "notes": [
-        "Les cerfs, les biches, les sangliers, les ours, les loups et les bouquetins qui broutent ou se reposent lèvent la tête et se tournent vers toi quand tu approches. Ils te fixent tant que tu restes là, puis se remettent à brouter quand tu t'éloignes. Si tu t'approches trop, ils s'enfuient.",
-        "Quand une bête va boire, elle se tourne bien face à l'eau avant de baisser la tête. Plus de bêtes vont boire au vrai bord de l'eau, dont l'ours du sud-est.",
-        "Les chevaux ont enfin leur vraie taille. Ils se méfient de plus loin et partent au galop ; les vaches s'écartent aussi un peu plus tôt.",
-        "Plus de faux bébés : les marcassins, qui étaient des sangliers adultes rapetissés, sont retirés.",
-        "Dans « Mon sac », chaque objet a un bouton « Mettre dans la barre » (X à la manette) : outils, graines, récoltes, poissons, objets précieux… La case « Sac » au bout de la barre montre le dessin du sac et sa touche.",
-        "L'héroïne tient l'arrosoir pour de vrai : le coude plié, l'anse bien dans la main.",
-        "Quand tu te colles dans l'angle d'un mur, la caméra ne saute plus dans le mur.",
-        "Les inscriptions des géants sont gravées net : lettres sombres, bords taillés, plus de flou.",
-        "Dehors, les clients de l'hôtel qui vont à l'avion ou se promènent sur la place marchent bien sur le sol, plus dans le vide.",
-        "Plus de tête de cerf en trophée à l'hôtel : dans Pégase, on ne chasse pas les animaux.",
-        "Dans les criques, les idoles des Maures montrent leurs bandes jaunes, blanches et noires quand tu les regardes de près. La nuit, ces poissons ne brillent plus.",
-        "À vélo, le bord herbeux du plateau de l'est ne t'arrête plus « contre un rocher » : le retour de l'estuaire au village se fait d'une traite."
       ]
     }
   ]

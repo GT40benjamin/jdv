@@ -1,42 +1,46 @@
 {
-  "version": "0.9.9.46",
-  "build": 97,
-  "size": 1671502985,
-  "sha256": "a330419736f76a4e8fd5b4d01923d65d46994bea40a1b31dd9876ff8dd5acead",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v97/Pegase-PC-2026-11-04-0.9.9.46.zip",
-  "manifest": "6ddafabd404b9255ea709fc51701a2024cbacb669f169ac211304fe1c477d363",
+  "version": "0.9.9.47",
+  "build": 98,
+  "size": 1671505236,
+  "sha256": "151dc9713a9b6335323c22bc5ed297671413c7c80c85b636af093dfefc0fb90a",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v98/Pegase-PC-2026-11-04-0.9.9.47.zip",
+  "manifest": "8869397fef62c49f16f278c008e517daab0586c563eda7bb05aee9aaeae047f7",
   "patchs": [
     {
+      "de": "0.9.9.46",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v98/Pegase-PC-patch-0.9.9.46.zip",
+      "taille": 3112132,
+      "sha256": "986bd91f8c0650c04e8685bddab5ef8a562bc76a597e9d6774c846be974e25ad"
+    },
+    {
       "de": "0.9.9.45",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v97/Pegase-PC-patch-0.9.9.45.zip",
-      "taille": 4989107,
-      "sha256": "204f735f5890a6ee23ea678eb6dc4a93b00d3eb9b5a4a194f06992dbfd01eb8a"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v98/Pegase-PC-patch-0.9.9.45.zip",
+      "taille": 4966110,
+      "sha256": "c917bf9a2b92011edf0826b4053a1d0accd9a0ba1936fe8c600391f8f4065924"
     },
     {
       "de": "0.9.9.44",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v97/Pegase-PC-patch-0.9.9.44.zip",
-      "taille": 6258296,
-      "sha256": "dcb5179caa78a047a242e89e59b458b88c6bbc841efe09f27ae2e5c1fce243a2"
-    },
-    {
-      "de": "0.9.9.43",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v97/Pegase-PC-patch-0.9.9.43.zip",
-      "taille": 6355097,
-      "sha256": "6b9978ddc4977ef6b61027d71524c78558210030584af53e5d08ea8db88c5704"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v98/Pegase-PC-patch-0.9.9.44.zip",
+      "taille": 6254018,
+      "sha256": "4338eaff71570bae9be68b36bb4cfa5177ef852b7fb76bc922f1b3d984951f08"
     }
   ],
   "notes": [
-    "Les habitants qui passent près de toi font leurs pas sur le sol où ils marchent : herbe, sable, gravier, pierre, bois.",
-    "Les chats miaulent doucement quand tu approches et ronronnent si tu restes tout près d'eux.",
-    "La grande sauterelle verte et la cigale chantent depuis leur buisson.",
-    "S'asseoir sur un banc et se relever fait un doux froissement de vêtements.",
-    "Un petit clic feutré sur les boutons des écrans qui étaient muets : sac, barre d'objets, bar, téléphone…",
-    "Désiré montre ses deux mains, de face comme de trois quarts : plus de main cachée derrière le tablier.",
-    "Au bar, sur PC, le visage de Désiré est enfin éclairé : on voit ses yeux et son sourire.",
-    "Sur téléphone, les personnages dans l'hôtel, les boutiques et les maisons ont une lumière chaude : on voit enfin leurs visages.",
-    "Plus d'herbe qui pousse au fond de la mer ; les algues, elles, restent."
+    "Nouvelle case « Afficher les FPS » dans Réglages : un petit compteur en haut à droite.",
+    "La caméra ne rentre plus dans ta tête au coin du magasin de Rosalie.",
+    "Le chemin du Clos est maintenant à plat.",
+    "Sous l'arche de la rivière, la caméra se décale : tu restes entière à l'écran, plus cachée derrière la roche."
   ],
   "historique": [
+    {
+      "version": "0.9.9.47",
+      "notes": [
+        "Nouvelle case « Afficher les FPS » dans Réglages : un petit compteur en haut à droite.",
+        "La caméra ne rentre plus dans ta tête au coin du magasin de Rosalie.",
+        "Le chemin du Clos est maintenant à plat.",
+        "Sous l'arche de la rivière, la caméra se décale : tu restes entière à l'écran, plus cachée derrière la roche."
+      ]
+    },
     {
       "version": "0.9.9.46",
       "notes": [
@@ -98,23 +102,6 @@
         "Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.",
         "De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.",
         "Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps."
-      ]
-    },
-    {
-      "version": "0.9.9.42",
-      "notes": [
-        "Les cerfs, les biches, les sangliers, les ours, les loups et les bouquetins qui broutent ou se reposent lèvent la tête et se tournent vers toi quand tu approches. Ils te fixent tant que tu restes là, puis se remettent à brouter quand tu t'éloignes. Si tu t'approches trop, ils s'enfuient.",
-        "Quand une bête va boire, elle se tourne bien face à l'eau avant de baisser la tête. Plus de bêtes vont boire au vrai bord de l'eau, dont l'ours du sud-est.",
-        "Les chevaux ont enfin leur vraie taille. Ils se méfient de plus loin et partent au galop ; les vaches s'écartent aussi un peu plus tôt.",
-        "Plus de faux bébés : les marcassins, qui étaient des sangliers adultes rapetissés, sont retirés.",
-        "Dans « Mon sac », chaque objet a un bouton « Mettre dans la barre » (X à la manette) : outils, graines, récoltes, poissons, objets précieux… La case « Sac » au bout de la barre montre le dessin du sac et sa touche.",
-        "L'héroïne tient l'arrosoir pour de vrai : le coude plié, l'anse bien dans la main.",
-        "Quand tu te colles dans l'angle d'un mur, la caméra ne saute plus dans le mur.",
-        "Les inscriptions des géants sont gravées net : lettres sombres, bords taillés, plus de flou.",
-        "Dehors, les clients de l'hôtel qui vont à l'avion ou se promènent sur la place marchent bien sur le sol, plus dans le vide.",
-        "Plus de tête de cerf en trophée à l'hôtel : dans Pégase, on ne chasse pas les animaux.",
-        "Dans les criques, les idoles des Maures montrent leurs bandes jaunes, blanches et noires quand tu les regardes de près. La nuit, ces poissons ne brillent plus.",
-        "À vélo, le bord herbeux du plateau de l'est ne t'arrête plus « contre un rocher » : le retour de l'estuaire au village se fait d'une traite."
       ]
     }
   ]
