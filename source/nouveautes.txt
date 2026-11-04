@@ -6,18 +6,20 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 💎 L’Atelier parle de « coût » (borne 2.0.96)
+[borne] 💎 Partout dans l’Atelier, les offres, les boutons et les messages disent maintenant « coût » : « son coût », « ça coûte 30 crédits ».
 [borne] ## 📱 La page de ton projet, plus simple (borne 2.0.95)
 [borne] 📱 Sur téléphone, le haut de la page d’un projet ne garde que son titre et sa version : la grande image est déjà dans la tuile « Comme les autres la voient », et les onglets Jouer, Mes demandes et Éléments arrivent tout de suite.
 [borne] 🌍 Les deux gros boutons de publication deviennent une seule liste « Publication : » (Non publié, Dans mes salles, Demander la mise en ligne mondiale). Elle montre toujours où en est ton jeu, par exemple « Mondial », et demande la même confirmation qu’avant.
 [borne] ⚙️ L’image de ta tuile, le sens de l’écran et le nom du créateur sont rangés dans « Réglages du jeu ». Sur téléphone, « Mes projets » ne montre plus deux fois les mêmes raccourcis.
 [borne] ## 💬 Tout ton projet dans une seule conversation (borne 2.0.94)
-[borne] 💬 « Discuter du jeu » raconte maintenant tout ton projet, dans l’ordre : tes demandes, les réponses et les questions, les propositions avec leur prix, chaque étape du travail en direct (« Étape 2/4 ») et chaque livraison.
+[borne] 💬 « Discuter du jeu » raconte maintenant tout ton projet, dans l’ordre : tes demandes, les réponses et les questions, les propositions avec leur coût, chaque étape du travail en direct (« Étape 2/4 ») et chaque livraison.
 [borne] 🎉 À chaque nouvelle version, un message « Ta V… est sortie ! » te dit ce qu’elle apporte, avec un gros bouton « ▶️ Essayer » qui lance le jeu tout de suite. Le même bandeau t’attend en haut de la page du projet tant que tu ne l’as pas essayée.
 [borne] 🎫 « Mes demandes » devient ton suivi : une ligne par demande, avec son état et sa barre d’avancement ; touche une ligne pour la déplier. Une proposition se choisit au même endroit dans la conversation ou dans le suivi : les deux se mettent à jour ensemble.
 [borne] ＋ Une idée pour un autre jeu ? Le bouton « Nouveau projet » est juste sous la conversation.
 [borne] ## 💬 Discute de ton jeu, gratuitement (borne 2.0.93)
 [borne] 💬 Sur la page de chaque projet, nouveau bouton « Discuter · gratuit » : un fil de discussion rien que pour ce jeu, en tête de « 🎫 Mes demandes ». Pose tes questions, raconte tes idées, demande des conseils (« comment rendre mon boss plus dur ? », « des idées de nouveaux mondes ? ») : discuter ne coûte jamais de crédits.
-[borne] 💡 Si une idée demande du travail, la réponse arrive avec une proposition et son prix, ou des questions à choix, directement dans le fil : rien n’est payé ni lancé sans ton clic.
+[borne] 💡 Si une idée demande du travail, la réponse arrive avec une proposition et son coût, ou des questions à choix, directement dans le fil : rien n’est payé ni lancé sans ton clic.
 [borne] 🔴 Un point rouge sur « Mes demandes » et sur le bouton te montre qu’on t’a répondu.
 [pegase] ## 📊 Pégase 0.9.9.47 : compteur de FPS, caméra plus sage, chemin du Clos à plat (borne 2.0.92)
 [pegase] 📊 Nouvelle case « Afficher les FPS » dans Réglages : un petit compteur en haut à droite.
@@ -189,7 +191,7 @@
 [atelier] ## ✅ L’option choisie, en détail (borne 2.0.58)
 [atelier] ✅ Une fois une option choisie, ton ticket affiche tout ce qu’elle contient, juste sous ton choix.
 [atelier] ## ✍️ L’admin peut choisir une option pour toi (borne 2.0.57)
-[atelier] ✍️ Si tu le lui demandes, l’admin peut choisir une option de ton ticket à ta place : c’est écrit dans ton ticket et dans la cloche (« ✍️ L’admin a choisi pour toi »), avec le prix pris sur tes crédits, ou offert.
+[atelier] ✍️ Si tu le lui demandes, l’admin peut choisir une option de ton ticket à ta place : c’est écrit dans ton ticket et dans la cloche (« ✍️ L’admin a choisi pour toi »), avec son coût pris sur tes crédits, ou offert.
 [atelier] ## 📨 Tes réponses partent toutes seules (borne 2.0.54)
 [atelier] 📨 Dès que tu as répondu à toutes les questions de {g}, tes réponses lui sont envoyées tout de suite, dans tes demandes comme dans la discussion. Tant que ce n’est pas parti, c’est marqué « 📝 Brouillon », avec un gros bouton pour envoyer ; ensuite « ✅ Envoyé ».
 [atelier] ## ✏️ Une demande modifiée repart à neuf (borne 2.0.50)
@@ -472,7 +474,7 @@
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
 [atelier] ## 🧾 Le devis de ton jeu (borne 1.63.112)
-[atelier] 🧾 Avant de lancer la conception, tu vois le devis de ton jeu : chaque élément avec son prix en crédits. Retire (✕) ce dont tu n'as pas besoin et le total baisse ; ↩ pour le remettre.
+[atelier] 🧾 Avant de lancer la conception, tu vois le détail de ton jeu : chaque élément avec son coût en crédits. Retire (✕) ce dont tu n'as pas besoin et le total baisse ; ↩ pour le remettre.
 
 [atelier] ## ✨ Ton idée est offerte (borne 1.63.111)
 [atelier] ✨ Raconter ton idée de jeu ne coûte rien, et écrire ou garder ton brouillon reste gratuit.
@@ -515,7 +517,7 @@
 [atelier] 💎 Touche ton solde de crédits dans l'Atelier pour le recharger : choisis un pack, le paiement se fait sur la page sécurisée de Stripe, et tes crédits arrivent tout seuls. Tu peux toujours demander des crédits à l'administrateur. (Pour l'instant en essai : « Bientôt disponible ».)
 
 [atelier] ## 🎵 Ajoute des musiques et des sons quand tu veux (borne 1.63.95)
-[atelier] 🎵 Ton jeu est livré avec une musique (60 s, en boucle). Dans « Musiques » et « Sons », « ＋ Créer » te permet d'en demander d'autres à {g}, quand tu veux : le prix est écrit sur le bouton.
+[atelier] 🎵 Ton jeu est livré avec une musique (60 s, en boucle). Dans « Musiques » et « Sons », « ＋ Créer » te permet d'en demander d'autres à {g}, quand tu veux : le coût est écrit sur le bouton.
 [atelier] 💎 Les crédits utilisés ne sont pas remboursés, même si un dessin rate : c'est écrit près de chaque bouton qui coûte des crédits.
 [atelier] 🛠️ Pendant ta V1, la touche P et {g} flottant font l'arrêt sur image ; ton jeu se met en pause avec lui et reprend tout seul quand tu touches « Reprendre ».
 
@@ -598,15 +600,15 @@
 [atelier] ## 🚀 Crée ton jeu en une seule fois, puis étape par étape (borne 1.63.58)
 [atelier] ✨ Décris ton jeu une seule fois, au clavier ou au micro : l'Atelier remplit toute ta fiche et dessine un premier design de ton jeu.
 [atelier] 🧭 Ensuite, relis ton projet étape par étape : L'idée, Personnages, Objets, Décor, Sons, Le design. Sur chaque étape, ajoute ou enlève ce que tu veux (＋ / ✕), c'est gratuit.
-[atelier] 🎨 Ton design ne te plaît pas ? Refais-le, ou dis ce que tu veux changer : le prix en crédits est écrit sur le bouton.
+[atelier] 🎨 Ton design ne te plaît pas ? Refais-le, ou dis ce que tu veux changer : le coût en crédits est écrit sur le bouton.
 [atelier] 🚀 Quand tout est prêt, touche « Lancer la conception » : l'écran « Conception en cours… » tourne jusqu'à ce que ton jeu soit prêt, puis la cloche 🔔 te prévient et « ▶ Tester mon jeu » apparaît.
 [atelier] 🤖 Ton jeu est créé avec l'aide de l'IA. Plus de lettre à signer ni de planches à choisir.
 
 [atelier] ## 🔒 Les nouveautés du labo restent entre admins (borne 1.63.57)
 [atelier] 🔒 Les notes, les étiquettes « Nouveau » / « Mis à jour » et le message « Mise à jour installée » d'une version qui ne change que des jeux en essai ne s'affichent que sur les appareils en mode test. Un joueur normal ne voit rien de différent.
 
-[atelier] ## 🎁 Un seul prix pour tout ton jeu (borne 1.63.55)
-[atelier] 🎁 Quand ta fiche est prête, l'Atelier te donne LE prix de ton jeu en crédits : un seul prix, pour tout (images, sons, construction). Plus de planches ni de petits prix à calculer.
+[atelier] ## 🎁 Un seul coût pour tout ton jeu (borne 1.63.55)
+[atelier] 🎁 Quand ta fiche est prête, l'Atelier te donne LE coût de ton jeu en crédits : un seul coût, pour tout (images, sons, construction). Plus de planches ni de petits coûts à calculer.
 [atelier] 📮 Tu envoies ton projet : les crédits sont payés une seule fois, ton projet est scellé, et notre équipe construit ton jeu. Tu suis son avancée dans l'Atelier, et la cloche 🔔 te prévient quand il est prêt à tester.
 
 [abracadabra] ## 🐺 Abracadabra : le loup et le hibou bien entendus (borne 1.63.54)
@@ -658,7 +660,7 @@
 [atelier] ✂️ L'Atelier retrouve chaque dessin sur ta planche, même s'il n'est pas tout à fait rangé comme prévu, et le montre bien découpé dans la discussion et dans ta fiche.
 
 [atelier] ## ✅ L'Atelier te propose ta planche, tu confirmes (borne 1.63.43)
-[atelier] 🎨 Plus besoin de demander les dessins toi-même : quand ton projet est bien ficelé, l'Atelier te PROPOSE la liste de tout ce qu'il va dessiner (le moins de planches possible, souvent une seule), avec le prix.
+[atelier] 🎨 Plus besoin de demander les dessins toi-même : quand ton projet est bien ficelé, l'Atelier te PROPOSE la liste de tout ce qu'il va dessiner (le moins de planches possible, souvent une seule), avec son coût.
 [atelier] ✅ Touche « Oui, dessine ma planche » pour lancer le dessin, ou « Je veux encore changer » pour ajouter ou modifier des éléments avant. Rien n'est dessiné (ni payé) sans ton accord.
 
 [abracadabra] ## 🐑 Abracadabra : les moutons dispersés… et le loup de la crête (borne 1.63.42)
@@ -669,7 +671,7 @@
 [atelier] ## 🧩 Les planches : tous les éléments de ton jeu sur un seul dessin (borne 1.63.40)
 [atelier] 🧩 Écris tous les éléments de ton jeu séparés par des virgules (le héros, les ennemis, les objets, les bonus…) puis touche « Dessine » : l'Atelier les dessine TOUS sur une seule planche, bien rangés en grille.
 [atelier] ⭐ Important : une planche = 10 crédits, quel que soit le nombre d'éléments (jusqu'à 9). Mets-y tout ce que tu veux ! Un fond ou un titre a une image à lui tout seul.
-[atelier] ✂️ Chaque élément de la planche est découpé et rangé dans ta fiche, rubrique « Ce qu'il y aura dans ton jeu », avec la liste des planches prévues et leur prix total.
+[atelier] ✂️ Chaque élément de la planche est découpé et rangé dans ta fiche, rubrique « Ce qu'il y aura dans ton jeu », avec la liste des planches prévues et leur coût total.
 
 [remparts] ## 🔮 Remparts magiques, en essai : vue d'en haut et emplacements choisis (borne 1.63.39)
 [remparts] 🦅 La caméra est plus haute : on voit tout le chemin et les monstres même derrière les grandes tours.
