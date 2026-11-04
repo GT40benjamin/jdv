@@ -14941,7 +14941,7 @@ function atlRenderProjets() {
     const tk = ((ATL.dem || {}).demandes || []).filter(x => x && x.fiche === pj.id), ch = tk.filter(atlPropOuverte), rp = tk.filter(x => x.nouveau && x.reponse && !atlPropOuverte(x) && !atlQAttente(x)), qq = tk.filter(atlQAttente);
     const vise = (qq[0] || ch[0] || rp[0] || {}).id || '', nqq = qq.reduce((t, x) => t + atlQNb(x), 0) + ((pj.q_msg | 0) || 0);
     if (nqq) b.appendChild(atlEl('span', 'atl-patt atl-pch atl-pq' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '❓ ' + nqq + (nqq > 1 ? ' questions' : ' question')));
-    else if (ch.length || rp.length) b.appendChild(atlEl('span', 'atl-patt ' + (ch.length ? 'atl-pch' : 'atl-pre') + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), ch.length ? '💬 À choisir' + (ch.length > 1 ? ' (' + ch.length + ')' : '') : '✨ ' + rp.length + ' réponse' + (rp.length > 1 ? 's' : '')));
+    else if (ch.length || rp.length) b.appendChild(atlEl('span', 'atl-patt ' + (ch.length ? 'atl-pch' : 'atl-pre') + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), ch.length ? '💡 Offre à choisir' + (ch.length > 1 ? ' (' + ch.length + ')' : '') : '✨ ' + rp.length + ' réponse' + (rp.length > 1 ? 's' : '')));
     else if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '✉️ Nouvelle réponse'));   // 2.0.91 : sous « 🛠️ en cours », plus par-dessus
     if (nqq || ch.length) b.classList.add('choix'); else if (rp.length) b.classList.add('rep');   // le contour de la tuile aussi
     b.addEventListener('click', () => { ATL.demVise = vise; atlOuvrir(pj.id); });
@@ -14974,7 +14974,7 @@ function atlNouveau() {
   atlRender();
   const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Raconte ton nouveau jeu…'; if (!TOUCH) inp.focus();
 }
-function atlListe() { atlBrFlush(); ATL.basesEnCours = false; atlFrameStop(); atlMicStop(); atlLetterClose(true); atlErr(''); ATL.cur = null; ATL.nouveau = false; ATL.choix = null; atlRender(); atlLoad(true); }
+function atlListe() { atlBrFlush(); ATL.basesEnCours = false; atlFrameStop(); atlMicStop(); atlLetterClose(true); atlErr(''); ATL.cur = null; ATL.nouveau = false; ATL.choix = null; atlRender(); ATL.demAt = 0; atlLoad(true); atlDemCharger(true);   /* 2.0.103 : « Mes projets » relu à chaque retour (badges jamais périmés) */ atlLoad(true); }
 function atlRenderFiche() {
   const R = ATL.root; if (!R || ATL.editing) return;   // une section en cours de modification n'est pas redessinée
   const f = atlFiche(), fi = (f && f.fiche && typeof f.fiche === 'object') ? f.fiche : {}, et = atlEtat(), mine = f && (ATL_ACTIVE.has(et) || et === 'acceptee');
