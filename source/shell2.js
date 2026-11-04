@@ -15533,11 +15533,11 @@ function atlDiscBloc(f) {
   hd.append(atlGuideAv(), atlEl('b', '', atlDiscTitre()), atlEl('span', 'atl-discgr', 'Gratuit'), atlEl('i', 'atl-discdot'), atlEl('span', 'atl-discfl', '▾'));
   hd.addEventListener('click', () => atlDiscOuvrir(ATL.discFerme === f.id, true));
   const corps = atlEl('div', 'atl-discc'); corps.appendChild(atlEl('div', 'atl-pmsgs atl-disclog'));
-  {   // 2.0.108 : en mode admin aussi (même case, même « Envoyer » ; le message part comme celui de la mascotte)
-    const adm = atlAdminIci(), aide = adm ? '🛡️ Tu réponds comme ' + gNM() + ' : le joueur verra un message de ' + gNM() : ATL_DISC_AIDE;
+  {   // 2.0.109 : en mode admin, le fil EXACTEMENT comme le joueur (le wrapper admin envoie at_discuter en message de la mascotte)
+    const adm = atlAdminIci(), aide = ATL_DISC_AIDE;
     const ta = atlEl('textarea', 'atl-dnin atl-discin'); ta.rows = 2;
-    ta.placeholder = adm ? 'Ta réponse au joueur…' : 'Pose ta question ou raconte ton idée (ex. « où en est mon jeu ? », « comment rendre mon boss plus dur ? », « tu as des idées de nouveaux mondes ? »)';
-    const go = atlEl('button', 'btn btn-play atl-discgo', '📨 Envoyer'), msg = atlEl('small', 'atl-dnmsg' + (adm ? ' atl-discadm' : ''), aide + '.'); go.type = 'button';
+    ta.placeholder = 'Pose ta question ou raconte ton idée (ex. « où en est mon jeu ? », « comment rendre mon boss plus dur ? », « tu as des idées de nouveaux mondes ? »)';
+    const go = atlEl('button', 'btn btn-play atl-discgo', '📨 Envoyer'), msg = atlEl('small', 'atl-dnmsg', aide + '.'); go.type = 'button';
     // 2.0.100 (l'admin : « pouvoir encore lui parler même quand il réfléchit ») : la case et « Envoyer » ne sont JAMAIS bloqués ; chaque message
     // s'affiche tout de suite et part dans une file (dans l'ordre, un après l'autre) ; un refus remet son texte dans la case
     const W0 = () => ATL.root.querySelector('.atl-wiz'), enBas = () => { const lg = b.querySelector('.atl-disclog'); if (lg) lg.scrollTop = lg.scrollHeight; };   // son propre message : toujours en bas du fil
@@ -15565,7 +15565,7 @@ function atlDiscBloc(f) {
     const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
     const rg = atlEl('p', 'atl-discrg'), np = atlEl('button', 'atl-discnp', '＋ Nouveau projet'); np.type = 'button'; np.addEventListener('click', atlNouveau);
     rg.append(document.createTextNode('Ici, on parle seulement de « ' + (f.titre || 'ton jeu') + ' ». Une idée pour un autre jeu ? '), np);
-    row.append(tw, go); corps.append(row, msg); if (!adm) corps.appendChild(rg);
+    row.append(tw, go); corps.append(row, msg, rg);
   }
   b.append(hd, corps); return b;
 }
