@@ -14924,7 +14924,7 @@ function atlRenderProjets() {
   if (ATL.adminVoir) { ATL.adminVoir = null; atlAdminBandeau(); }
   const ps = atlProjets(), cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
   atlAccueil(box, ps, max);
-  box.append(atlEl('h2', 'atl-ph', 'Mes projets'), atlEl('p', 'atl-psub', ps.length ? 'Touche un projet pour le continuer, ou commence-en un nouveau.' : 'Commence ton premier jeu : touche « Nouveau projet » !'));
+  box.append(atlEl('h2', 'atl-ph', 'Mes projets'), atlEl('p', 'atl-psub' + (ps.length ? ' atl-psub2' : ''), ps.length ? 'Touche un projet pour le continuer, ou commence-en un nouveau.' : 'Commence ton premier jeu : touche « Nouveau projet » !'));
   const g = atlEl('div', 'atl-pgrid');
   for (const pj of ps) {
     const b = atlEl('button', 'atl-ptile' + (atlProjNew(pj) ? ' new' : '')); b.type = 'button';
@@ -15591,15 +15591,14 @@ function atlVSortie(W, f) {
   const tx = atlEl('div'); tx.append(atlEl('b', '', '🎉 Ta V' + v + ' est sortie !'), atlEl('small', '', vh && vh.note ? String(vh.note) : 'Essaie-la tout de suite.'));
   const go = atlEl('button', 'btn btn-play atl-essai', '▶️ Essayer ma V' + v); go.type = 'button'; go.addEventListener('click', () => atlJouerVrai(f));
   bn.append(atlGuideAv(), tx, go);
-  const hd = box.querySelector('.atl-phd'); if (hd) hd.insertAdjacentElement('afterend', bn); else box.prepend(bn);
+  const nav = box.querySelector('.atl-ptabs'), hd = box.querySelector('.atl-phd'); if (nav) nav.insertAdjacentElement('afterend', bn); else if (hd) hd.insertAdjacentElement('afterend', bn); else box.prepend(bn);
 }
 // 2.0.8 (Benjamin : l'en-tête et la tuile disaient V3, l'historique V4) : chaque badge de la page relit f.version (at_fiches.version_jeu) ;
 // une version sortie pendant qu'on joue : « 🆕 Nouvelle version Vn · touche pour recharger » (le jeu en cours n'est pas coupé)
 function atlPubV(pv, f) {
   const et = String(f.etat || ''), v = (f.version | 0) || 1, vp = f.version_publiee | 0, publie = /^publie_/.test(et);
   const auto = f.auto_publier !== false, occ = atlTravaille(f), sig = [et, v, vp, atlAdminIci() ? 1 : 0, occ, auto ? 1 : 0].join('|'); if (pv.dataset.sig === sig) return; pv.dataset.sig = sig; pv.textContent = '';
-  const phrase = 'Une fois publié, chaque modification reste dans l’Atelier : reviens ici pour la publier à tout le monde.';
-  if (!publie) { pv.appendChild(atlEl('p', 'atl-pubvie', phrase)); return; }
+  if (!publie) return;   // 2.0.95 : plus de « Une fois publié, chaque modification reste… » (publication automatique)
   // 2.0.76 (Benjamin : « publication automatique ») : un jeu déjà publié (salle ou monde) — case cochée par défaut, l'auteur ou l'admin la décoche ;
   // cochée, chaque nouvelle version part toute seule sur la borne, au même endroit (serveur : at_version_suivante, at_fiches.auto_publier)
   if (vp > 0) {
@@ -15624,7 +15623,7 @@ function atlPubV(pv, f) {
       });
       pv.appendChild(b);
     }
-  } else pv.appendChild(atlEl('p', 'atl-pubvie', '🎮 Sur la borne : V' + v + '. ' + (vp > 0 && auto ? 'Tes prochaines versions y partiront toutes seules.' : phrase)));
+  } else pv.appendChild(atlEl('p', 'atl-pubvie atl-pubok', '🎮 Sur la borne : V' + v + '.' + (vp > 0 && auto ? ' Tes prochaines versions y partiront toutes seules.' : '')));   // 2.0.95 : téléphone, caché (la pastille et la case le disent déjà)
 }
 function atlVerMaj(W, f) {
   { const pv = W.querySelector('.atl-pubv'); if (pv) atlPubV(pv, f); }
@@ -15654,9 +15653,7 @@ function atlRenderProjet(W, f) {
   const hv = atlEl('div', 'atl-phv'); { const jq = atlJaquette(f, jouable ? g : null); if (jq.tagName === 'IMG') jq.addEventListener('click', () => atlZoom(jq.src)); hv.appendChild(jq); }   // 2.0.81 : la jaquette unique, pas l'affiche du design
   const ht = atlEl('div', 'atl-pht');
   ht.append(atlEl('h1', '', f.titre || 'Mon jeu sans nom'), atlEl('span', 'atl-pet atl-pet-' + et + atlPastCls(f), atlVersion(f)));
-  ht.appendChild(atlEl('small', '', 'Commencé le ' + atlDate(f.created_at) + (f.envoyee_at ? ' · conception lancée le ' + atlDate(f.envoyee_at) : '')));
-  hd.append(hv, ht); box.appendChild(hd);
-  try { atlVSortie(W, f); } catch (e) {}   // 2.0.94 : « 🎉 Ta Vn est sortie ! » tant qu'il ne l'a pas essayée
+  hd.append(hv, ht); box.appendChild(hd); if (jouable) hd.classList.add('jouable');   // 2.0.95 : téléphone, l'image est dans la tuile plus bas
   // 2.0.11 (Benjamin : « Publier dans ma salle » et « mise en ligne mondiale » dans l'EN-TÊTE, à droite du titre ; « pour l'instant on va faire comme ça »)
   if (jouable && !atlAdminIci()) { const hp = atlEl('div', 'atl-phpub'); atlBoutonsJeu(hp, f, true); const pv = atlEl('div', 'atl-pubv'); hp.appendChild(pv); atlPubV(pv, f); hd.appendChild(hp); }
   // 20 h 35 (Benjamin) : la fiche et les dessins sont dans la feuille de route (à droite) ; ici : Jouer + Discussion, ou la V1 en construction
@@ -15666,6 +15663,7 @@ function atlRenderProjet(W, f) {
     const nav = atlEl('div', 'atl-ptabs'); nav.setAttribute('role', 'tablist');
     for (const [k, lab] of T) { const b = atlEl('button', 'atl-ptab', k === 'elements' && atlElNeufs(f) ? lab + ' ✨' + atlElNeufs(f) : lab); b.type = 'button'; b.dataset.k = k; b.setAttribute('role', 'tab'); b.addEventListener('click', () => atlProjTab(k)); nav.appendChild(b); }
     box.appendChild(nav);
+    try { atlVSortie(W, f); } catch (e) {}   // 2.0.94 : « 🎉 Ta Vn est sortie ! » tant qu'il ne l'a pas essayée (2.0.95 : sous les onglets)
   }
   const pane = k => { const p = atlEl('section', 'atl-pane'); p.dataset.k = k; p.setAttribute('role', 'tabpanel'); box.appendChild(p); return p; };
   // 🎮 Jouer
@@ -15711,8 +15709,9 @@ function atlRenderProjet(W, f) {
     if (atlAdminIci()) ib('📋 Demandes de ' + dispName(ATL.data.admin_voir.joueur), atlAdminDemandes); else ib('🎫 Demander un changement', () => atlProjTab('demandes'), 'btn-play');
     ib(atlDiscTitre(), () => atlDiscOuvrir(), 'btn-ghost atl-discbtn');   // 2.0.93 / 2.0.94 (l'admin : « un nom explicite »)
     if (!atlAdminIci()) inf.appendChild(atlEl('small', 'atl-discsous', ATL_DISC_AIDE));
-    ib('🖼️ Modifier l’image de ta tuile', () => atlVignetteDem(f, vg));
-    inf.appendChild(atlOrientChoix(f, g)); inf.appendChild(atlCreateurChamp(f));
+    { const rg = atlEl('details', 'atl-greg'); rg.open = !atlPetit(); rg.appendChild(atlEl('summary', '', '⚙️ Réglages du jeu'));   // 2.0.95 : les réglages rares, repliés sur téléphone
+      const vb = atlEl('button', 'btn btn-sm btn-ghost', '🖼️ Modifier l’image de ta tuile'); vb.type = 'button'; vb.addEventListener('click', () => atlVignetteDem(f, vg));
+      rg.append(vb, atlOrientChoix(f, g), atlCreateurChamp(f)); inf.appendChild(rg); }
     fr.appendChild(inf); p.appendChild(fr);
     const bar = atlEl('div', 'atl-gbar');
     const fs = atlEl('button', 'btn btn-ghost btn-sm', '⛶ Plein écran'); fs.type = 'button'; fs.disabled = !g;
@@ -15724,7 +15723,6 @@ function atlRenderProjet(W, f) {
     const fl = atlGuideAv('atl-garret'); fl.setAttribute('role', 'button'); fl.tabIndex = 0; fl.title = 'Arrêt sur image : montre ' + gA() + ' ce qu’il faut changer (touche P)'; fl.addEventListener('click', () => atlArret()); fr.appendChild(fl);
     p.appendChild(bar);
     p.appendChild(atlEl('p', 'atl-gaide', '🎮 Ton jeu s’ouvre en grand, comme sur la borne. Pendant la partie, touche P (ou ' + gN() + ', le petit bouton qui flotte) : arrêt sur image, tu montres avec le viseur ce qu’il faut changer, et ' + gN() + ' s’en occupe.'));
-    if (prepa.length) p.appendChild(atlEl('p', 'atl-pubvie', '🛠️ ' + gN() + ' prépare ta V' + (vN + 1) + ' : tu l’essaieras ici, puis tu choisiras de la publier.'));
   } else {
     const p = pane('etat'), c = atlEl('div', 'atl-fin' + (et === 'refusee' ? '' : ' run'));
     if (et === 'refusee') c.append(atlEl('h2', '', 'Ce projet n’a pas été retenu'), atlEl('p', '', 'Tu peux en commencer un autre depuis « Mes projets ».'));
@@ -16403,7 +16401,8 @@ function atlAccueil(box, ps, max) {
   for (const pj of ps) if (pj.monte && ['brouillon', 'en_discussion', 'complete', 'design', 'design_choisi'].includes(String(pj.etat || ''))) lignes.push([pj, '🧩 ' + titre(pj) + ' est prêt à construire', () => atlOuvrir(pj.id)]);
   for (const [pj, t, fn] of lignes) { if (faits.has(pj.id) || news.childNodes.length >= 3) continue; faits.add(pj.id); const b = atlEl('button', 'atl-accnew', t); b.type = 'button'; b.addEventListener('click', fn); news.appendChild(b); }
   if (news.childNodes.length) tx.appendChild(news);
-  const act = atlEl('div', 'atl-acca'), btn = (t, cls, fn, off) => { const b = atlEl('button', 'btn btn-sm ' + cls, t); b.type = 'button'; b.disabled = !!off; b.addEventListener('click', fn); act.appendChild(b); };
+  const act = atlEl('div', 'atl-acca'), btn =   // 2.0.95 : sur téléphone, ces raccourcis sont cachés (les mêmes tuiles juste en dessous)
+    (t, cls, fn, off) => { const b = atlEl('button', 'btn btn-sm ' + cls, t); b.type = 'button'; b.disabled = !!off; b.addEventListener('click', fn); act.appendChild(b); };
   btn('＋ Nouveau projet', 'btn-play', atlNouveau, ps.length >= max);
   const br = ps.find(pj => ['brouillon', 'en_discussion', 'complete'].includes(String(pj.etat || '')));
   if (br) btn('📝 Reprendre « ' + (br.titre || 'Mon jeu sans nom') + ' »', 'btn-ghost', () => atlOuvrir(br.id));
@@ -18342,39 +18341,46 @@ function atlBoutonsJeu(bn, f, sansTester) {
     atlClose(); try { markGameSeen(g.id); } catch (e) {} openGame(g);
   });
   if (!sansTester) row.appendChild(t);
-  if (et === 'alpha') {   // 2.0.30 (Benjamin : « on rentre dans une salle avec nos jeux, c'est la règle ») : toutes les salles de l'auteur
-    const ps = atlEl('button', 'btn btn-ghost btn-sm', '🌟 Publier dans mes salles'); ps.type = 'button'; if (occ) { ps.disabled = true; ps.title = atlAttendsTxt(occ); }
-    ps.addEventListener('click', async () => {
+  if (/^(alpha|publie_salle|publie_monde)$/.test(String(et || ''))) row.appendChild(atlPubListe(f, occ));   // 2.0.95 : une liste « Publication : »
+  bn.appendChild(row);
+  if (occ && row.querySelector('button[disabled]:not(.atl-mannul), select[disabled]')) bn.appendChild(atlEl('p', 'atl-attends', atlAttendsTxt(occ)));   // sous les boutons, jamais hors de l'écran
+}
+// 2.0.95 (l'admin : « remplace les 2 gros boutons par UNE liste déroulante Publication : ») : la liste montre toujours l'état (Non publié,
+// Dans mes salles, Mondial demandé, Mondial) ; chaque choix fait exactement ce que faisait son bouton, avec la même confirmation
+// (2.0.30 : toutes les salles de l'auteur ; 2.0.16 : annuler une demande mondiale envoyée par erreur) ; pendant le travail de la mascotte : grisée
+function atlPubListe(f, occ) {
+  const et = String(f.etat || ''), asked = !!f.monde_demande_at, w = atlEl('label', 'atl-pubsel'), s = atlEl('select');
+  const cur = et === 'publie_monde' ? 'monde' : asked ? 'demande' : et === 'publie_salle' ? 'salles' : 'non';
+  const O = (v, t, ok) => { const o = atlEl('option', '', t); o.value = v; o.disabled = !ok && v !== cur; s.appendChild(o); };
+  O('non', 'Non publié', false);
+  O('salles', '🌟 Dans mes salles', et === 'alpha');
+  if (et === 'publie_monde') O('monde', '🌍 Mondial', false);
+  else if (asked) O('demande', '⏳ Mise en ligne mondiale demandée', false);
+  else O('demander', '🌍 Demander la mise en ligne mondiale', et === 'alpha' || et === 'publie_salle');
+  if (asked && et !== 'publie_monde' && !atlAdminIci()) O('annuler', '↩️ Annuler ma demande mondiale', true);
+  s.value = cur; if (occ) { s.disabled = true; w.title = atlAttendsTxt(occ); }
+  w.append(atlEl('span', 'atl-publab', 'Publication :'), s);
+  s.addEventListener('change', async () => {
+    const v = s.value; s.value = cur; if (v === cur) return;
+    if (v === 'salles') {
       if (!room || !room.id) { atlToast('Rejoins d’abord une salle pour y publier ton jeu'); return; }
       if (!await atlConfirmer('🌟 Publier dans mes salles ?', 'Ton jeu « ' + (f.titre || 'sans titre') + ' » (V' + ((f.version | 0) || 1) + ') apparaîtra sur la borne de tous les joueurs de TOUTES tes salles, avec son classement. Il te suit : dans chaque salle que tu rejoindras, il arrivera avec toi.')) return;
-      ps.disabled = true;
+      s.disabled = true;
       try { await rpc('at_publier_salle', { p_name: profile.name, p_fiche: f.id, p_salle: room.id }, { quiet: true }); atlToast('🌟 Publié dans toutes tes salles !'); try { atlJeuxLoad(); } catch (e) {} await atlLoad(true); }
-      catch (e) { ps.disabled = false; atlErr(/pas membre/.test(String(e && e.message)) ? 'Tu n’es pas dans cette salle.' : /pas pret/.test(String(e && e.message)) ? 'Ton jeu n’est pas encore prêt.' : atlWhy(e)); }
-    });
-    row.appendChild(ps);
-  }
-  if (et === 'alpha' || et === 'publie_salle') {
-    const asked = !!f.monde_demande_at, mw = atlEl('button', 'btn btn-ghost btn-sm', asked ? '⏳ Demande mondiale envoyée' : '🌍 Demander la mise en ligne mondiale'); mw.type = 'button'; mw.disabled = asked || !!occ; if (occ && !asked) mw.title = atlAttendsTxt(occ);
-    mw.addEventListener('click', async () => {
+      catch (e) { s.disabled = false; atlErr(/pas membre/.test(String(e && e.message)) ? 'Tu n’es pas dans cette salle.' : /pas pret/.test(String(e && e.message)) ? 'Ton jeu n’est pas encore prêt.' : atlWhy(e)); }
+    } else if (v === 'demander') {
       if (!await atlConfirmer('🌍 Demander la mise en ligne mondiale ?', 'L’admin regardera ton jeu. S’il dit oui, il sera sur TOUTES les bornes, pour tout le monde, invités compris. Tu pourras annuler ta demande tant que l’admin n’a pas répondu.', '✅ Oui, envoyer ma demande')) return;
-      mw.disabled = true;
-      try { await rpc('at_demander_monde', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); mw.textContent = '⏳ Demande mondiale envoyée'; atlToast('Demande envoyée 🌍'); await atlLoad(true); }
-      catch (e) { mw.disabled = false; atlErr(atlWhy(e)); }
-    });
-    row.appendChild(mw);
-    if (asked && !atlAdminIci()) {   // 2.0.16 : annuler une demande envoyée par erreur
-      const an = atlEl('button', 'btn btn-ghost btn-sm atl-mannul', '↩️ Annuler ma demande'); an.type = 'button';
-      an.addEventListener('click', async () => {
-        if (!await atlConfirmer('↩️ Annuler ta demande ?', 'Ta demande de mise en ligne mondiale sera retirée. Tu pourras la refaire plus tard.', 'Oui, annuler')) return;
-        an.disabled = true;
-        try { await rpc('at_monde_annuler', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); atlToast('↩️ Demande annulée'); await atlLoad(true); }
-        catch (e) { an.disabled = false; atlErr(atlWhy(e)); }
-      });
-      row.appendChild(an);
+      s.disabled = true;
+      try { await rpc('at_demander_monde', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); atlToast('Demande envoyée 🌍'); await atlLoad(true); }
+      catch (e) { s.disabled = false; atlErr(atlWhy(e)); }
+    } else if (v === 'annuler') {
+      if (!await atlConfirmer('↩️ Annuler ta demande ?', 'Ta demande de mise en ligne mondiale sera retirée. Tu pourras la refaire plus tard.', 'Oui, annuler')) return;
+      s.disabled = true;
+      try { await rpc('at_monde_annuler', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); atlToast('↩️ Demande annulée'); await atlLoad(true); }
+      catch (e) { s.disabled = false; atlErr(atlWhy(e)); }
     }
-  }
-  bn.appendChild(row);
-  if (occ && row.querySelector('button[disabled]:not(.atl-mannul)')) bn.appendChild(atlEl('p', 'atl-attends', atlAttendsTxt(occ)));   // sous les boutons, jamais hors de l'écran
+  });
+  return w;
 }
 // ---------- le SUIVI des dépenses (admins seulement, at_suivi) : chaque dessin, son coût estimé, le total du mois sur le budget ----------
 function atlSTab(heads, lignes, cls) {

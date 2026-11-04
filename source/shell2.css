@@ -4936,3 +4936,25 @@ canvas.atl-demimg{display:block;width:100%;aspect-ratio:16/10;border-radius:14px
 @media (max-width:640px){.atl-sgrpv{margin-left:0;width:100%}.atl-sgrptot b:first-child{width:100%}}
 .atl-pv canvas{display:block;width:100%;height:100%}   /* 2.0.83 : la jaquette dessinée par le jeu dans « Mes projets » */
 .tile-wrap:has(.tile-map:not([hidden])) .tile-by{padding-right:44px;box-sizing:border-box}   /* 2.0.83 : « by … · Vn » jamais sous le bouton de la carte */
+
+/* 2.0.95 (l'admin : « le haut de la page est trop chargé ») : « Publication : » en liste ; téléphone : pas de grande image (la tuile est plus bas),
+   les onglets juste sous le titre ; les réglages rares repliés dans « ⚙️ Réglages du jeu » */
+.atl-pubsel{display:flex;align-items:center;gap:8px;font:700 14px var(--body);color:var(--muted)}
+.atl-pubsel select{min-width:0;max-width:100%;padding:8px 34px 8px 12px;border-radius:10px;border:1px solid rgba(255,211,77,.45);background:#1b1233 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffd34d' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 12px center;color:var(--ink);font:700 14px var(--body);appearance:none;-webkit-appearance:none;cursor:pointer}
+.atl-pubsel select:disabled{opacity:.6;cursor:default}
+.atl-pubsel select option{background:#1b1233;color:var(--ink)}
+.atl-greg{width:100%;margin-top:4px;border-top:1px solid var(--line);padding-top:8px}
+.atl-greg summary{cursor:pointer;color:var(--muted);font:700 14px var(--body);padding:4px 0}
+.atl-greg[open] summary{margin-bottom:8px}
+.atl-greg > *:not(summary){margin-top:8px}
+@media (max-width:600px){
+  .atl-phd.jouable .atl-phv{display:none}
+  .atl-phd.jouable{gap:8px;padding:10px 12px}
+  .atl-phd.jouable .atl-pht h1{font-size:26px;margin:0}
+  .atl-pubsel{width:100%;min-width:0;box-sizing:border-box}.atl-pubsel select{flex:1 1 0;width:0;min-width:0;text-overflow:ellipsis}
+  .atl-phd.jouable .atl-pht{min-width:0;width:100%}.atl-phpub .atl-pubok{display:none}
+  .atl-phpub .atl-autopub{font-size:13px}
+  .atl-gaide{display:none}
+  .atl-ginfo{max-width:none;width:100%}
+  .atl-acc .atl-acca,.atl-psub2{display:none}   /* « Mes projets » : « ＋ Nouveau projet », « Reprendre », « Tester » = les tuiles juste en dessous */
+}
