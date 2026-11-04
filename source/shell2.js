@@ -15524,15 +15524,27 @@ function atlDiscBloc(f) {
     const ta = atlEl('textarea', 'atl-dnin atl-discin'); ta.rows = 2;
     ta.placeholder = 'Pose ta question ou raconte ton idée (ex. « où en est mon jeu ? », « comment rendre mon boss plus dur ? », « tu as des idées de nouveaux mondes ? »)';
     const go = atlEl('button', 'btn btn-play atl-discgo', '📨 Envoyer'), msg = atlEl('small', 'atl-dnmsg', ATL_DISC_AIDE + '.'); go.type = 'button';
-    const envoyer = async () => {
+    // 2.0.100 (l'admin : « pouvoir encore lui parler même quand il réfléchit ») : la case et « Envoyer » ne sont JAMAIS bloqués ; chaque message
+    // s'affiche tout de suite et part dans une file (dans l'ordre, un après l'autre) ; un refus remet son texte dans la case
+    const W0 = () => ATL.root.querySelector('.atl-wiz'), enBas = () => { const lg = b.querySelector('.atl-disclog'); if (lg) lg.scrollTop = lg.scrollHeight; };   // son propre message : toujours en bas du fil
+    const envoyer = () => {
       atlMicFin();
-      const t = ta.value.trim(); if (!t || go.disabled) { ta.focus(); return; }
-      go.disabled = true; msg.textContent = 'J’envoie…';
-      const enBas = () => { const lg = b.querySelector('.atl-disclog'); if (lg) lg.scrollTop = lg.scrollHeight; };   // son propre message : toujours en bas du fil
-      ATL.discPend = [{ texte: t, pending: true, at: new Date().toISOString(), fiche: f.id }]; atlDiscMaj(ATL.root.querySelector('.atl-wiz'), f, true); enBas();
-      try { await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true }); ta.value = ''; msg.textContent = ATL_DISC_AIDE + '.'; ATL.demAt = 0; await atlDemCharger(true); await atlLoad(true); }
-      catch (e) { msg.textContent = atlWhy(e); }
-      finally { ATL.discPend = []; go.disabled = false; atlDiscMaj(ATL.root.querySelector('.atl-wiz'), f, true); enBas(); }
+      const t = ta.value.trim(); if (!t) { ta.focus(); return; }
+      if (!(ATL.discPend || []).some(x => !x.envoye)) ATL.discErr = false;
+      ta.value = ''; msg.textContent = 'J’envoie…';
+      const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id };
+      ATL.discPend = (ATL.discPend || []).concat([pm]); atlDiscMaj(W0(), f, true); enBas();
+      ATL.discFile = (ATL.discFile || Promise.resolve()).then(async () => {
+        let ok = false;
+        try { await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true }); ok = true; }
+        catch (e) { ATL.discErr = true; msg.textContent = atlWhy(e); ta.value = ta.value.trim() ? t + '\n' + ta.value : t; }   // rien n'est perdu
+        if (ok) pm.envoye = true; else ATL.discPend = (ATL.discPend || []).filter(x => x !== pm);
+        if (!(ATL.discPend || []).some(x => !x.envoye)) {   // la file est vide : on relit tout (les messages arrivés, les offres remplacées)
+          try { ATL.demAt = 0; await atlDemCharger(true); await atlLoad(true); } catch (e) {}
+          ATL.discPend = (ATL.discPend || []).filter(x => !x.envoye); if (!ATL.discErr) msg.textContent = ATL_DISC_AIDE + '.';   // un refus reste affiché
+        }
+        atlDiscMaj(W0(), f, true); enBas();
+      });
     };
     go.addEventListener('click', envoyer);
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !atlPetit()) { e.preventDefault(); envoyer(); } });   // ordinateur : Entrée envoie, Maj+Entrée va à la ligne
