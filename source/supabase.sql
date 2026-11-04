@@ -2483,6 +2483,7 @@ insert into public.chrono_tracks (id, laps, splits, min_ms) values
 on conflict (id) do update set laps = excluded.laps, splits = excluded.splits, min_ms = excluded.min_ms;
 alter table public.chrono_tracks add column if not exists ver int not null default 2;
 update public.chrono_tracks set ver = 1 where ver <> 1;   -- 1.46.2 (PATOU) : les temps d'avant le départ derrière la ligne comptent de nouveau ; les vieilles pages (octet 0) restent refusées
+update public.chrono_tracks set ver = 3 where id in ('volcan', 'plage', 'foret', 'nuages') and ver < 3;   -- 2.0.78 : les 4 nouveaux circuits redessinés (routes lissées, Les Nuages refaits) : leurs anciens temps ne comptent plus (masqués, pas effacés)
 
 create table if not exists public.chrono_runs (
   track text not null references public.chrono_tracks(id) on delete cascade,

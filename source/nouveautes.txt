@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[chrono] ## 🏁 Turbo Chrono : routes lisses, Les Nuages en folie, une musique par circuit (borne 2.0.78)
+[chrono] 🛣️ Le Volcan, La Plage, La Forêt et Les Nuages ont des routes bien plus lisses : fini les à-coups dans les bosses, dans les virages relevés et à l'entrée des loopings.
+[chrono] ☁️ Les Nuages sont redessinés : une plongée façon grand huit, un saut géant d'île en île, un virage mur, un double looping, une hélice qui descend et des chicanes au-dessus du vide. Passe par-dessus les rambardes… et tu tombes dans les nuages !
+[chrono] 🎵 Chaque circuit a maintenant sa propre musique.
+[chrono] ✨ Plus beaux : la lave rougeoie au-dessus des coulées du Volcan, des arbres d'automne, des fleurs et des troncs à l'écorce sombre dans La Forêt, des palmes plus touffues à La Plage, un temple doré sur une île des Nuages.
+[chrono] 🏆 Les tracés ont changé : les classements de ces 4 circuits repartent de zéro, à toi le premier record !
 [atelier] ## 🧭 Les choix de {G} plus faciles à trouver (borne 2.0.77)
 [atelier] ↓ Sur téléphone, quand {G} te propose plusieurs choix, « 4 choix ↓ » s'affiche au-dessus, et une petite flèche sous le premier te montre qu'il y en a d'autres plus bas.
 [atelier] ✉️ Quand {G} corrige une offre juste après l'avoir envoyée, tu ne reçois plus deux messages pareils : le même message est mis à jour.

@@ -35,7 +35,11 @@ const LOOPS = {
   'rempartsboss-1': 'Combat/Boss Battle 1 Loop.wav',
   // la Crypte oubliée (4 nov. 2026) : une musique par monde caché
   'rempartscimetiere-1': 'Seasonal/Halloween/Halloween LOOP.wav', 'rempartscatacombes-1': 'Dungeons/Dangerous Dungeon LOOP.wav',
-  'rempartsenglouti-1': 'Locations/Remote Island - Main Loop.wav', 'rempartsnuages-1': 'Platform/Soaring LOOP NO SOLO.wav'
+  'rempartsenglouti-1': 'Locations/Remote Island - Main Loop.wav', 'rempartsnuages-1': 'Platform/Soaring LOOP NO SOLO.wav',
+  // Turbo Chrono (2.0.77) : une musique par circuit (api.music('chrono<circuit>')) ; Le Stade garde celle de Plein Gaz
+  'chronohuit-1': 'Combat/Sea Battle LOOP.wav', 'chronofolie-1': 'Combat/Boss Battle 4 Loop.wav', 'chronoorbite-1': 'Space/Orbit LOOP.wav',
+  'chronovolcan-1': 'Combat/Tribal Chase LOOP.wav', 'chronoplage-1': 'Platform/Jungle 2 LOOP.wav', 'chronoforet-1': 'Locations/Ethnic Textures LOOP.wav',
+  'chrononuages-1': 'Fantasy Orchestral/Upbeat City LOOP.wav'
 };
 // volume visé (efficace) par morceau, s'il doit sonner plus fort que 0,12 : l'accueil (ElevenLabs) est vers -14 à -17 dBFS ;
 // au-delà de la crête, un limiteur doux (pas de saturation dure). Les autres morceaux ne changent pas.
