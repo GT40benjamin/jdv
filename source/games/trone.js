@@ -11,6 +11,15 @@
 // à partir des virages ; un virage manqué = il redemande la liste. Sans salle (invité, hors ligne) : seul contre les robots.
 // Vue : 3D vue de haut, penchée (carrelage avec reflets, murs en relief lumineux, ombres) ; images : assets/jeux/trone/v1/trone.bin
 // (planches de l'Atelier découpées, ~/jdv-tools/trone/emballer.py) ; sons : assets/jeux/trone/v1/sons.bin (chasse d'eau, turbo, plouf).
+// V2 (correction offerte, 4 nov.) : chaque mur est UN tuyau de porcelaine continu (coins pleins et arrondis, plus de barres qui se
+// chevauchent, de trous ni de bouts qui dépassent, à toute vitesse) ; il SORT DE LA CUVETTE (un tuyau remonte du mur jusque dans la
+// cuvette, avec bulles et onde ; de face, le mur passe derrière le trône) ; reflet clair sur le dessus, ombre au sol, halo léger ; les
+// noms des joueurs sont dessinés par-dessus tous les murs, sur leur fond. Sons : ceux de la V1.
+// LE TRÔNE EN 3D (demande de l'admin) : un modèle 3D fait par nous (Blender, ~/jdv-tools/trone/v2/wc3d.py : pied, cuvette, lunette,
+// abattant, réservoir, socle et EMBOUT chromé au dos) rendu en 8 directions sous l'angle de l'arène (assets/jeux/trone/v2/trone.bin) ;
+// il est toujours tourné vers sa marche, pivote en ~80 ms au virage (petit écrasement), et le mur sort du bout de son embout, sans jour.
+// FLUIDITÉ (téléphone modeste) : le carrelage et les murs finis sont dessinés une fois dans des images cachées (une paire par rangée,
+// une par joueur, complétée quand son mur avance, effacée en fondu quand il est éliminé : rien n'est refait en pleine course) ; seuls les bouts qui suivent les trônes sont redessinés à chaque image.
 const ROOT = () => window.JDW_ROOT || '';
 const TAU = Math.PI * 2;
 const DX = [0, 1, 0, -1], DZ = [-1, 0, 1, 0];   // directions : 0 = vers le haut de l'écran, 1 = droite, 2 = bas, 3 = gauche
@@ -27,7 +36,14 @@ const DEPARTS = [[0.25, 0.1, 2], [0.75, 0.9, 0], [0.1, 0.75, 1], [0.9, 0.25, 3],
 // sprite de la toilette selon sa direction (vue de dos quand elle s'éloigne) ; FACE = l'ovale du couvercle (centre x, y, rayons, en fraction)
 const WC = ['wc-dos', 'wc-face', 'wc-face2', 'wc-face-g'];
 const FACE = { 'wc-face': [0.485, 0.245, 0.165, 0.215], 'wc-face2': [0.54, 0.245, 0.165, 0.215], 'wc-face-g': [0.515, 0.245, 0.165, 0.215] };
-const PIED = 0.86;   // hauteur (fraction de l'image) du point posé au sol, au centre de la case
+// V2 : la cuvette (l'ouverture) sur chaque vue ; de face (vers nous), le mur passe derrière le trône : seulement les bulles
+const CUVETTE = { 'wc-dos': [0.5, 0.47, 1], 'wc-face': [0.684, 0.62, 1], 'wc-face-g': [0.307, 0.62, 1], 'wc-face2': [0.687, 0.605, 0] };
+const PIED = 0.86;
+// V2 : le trône 3D. 8 vues wc3d-<k> (k × 45°, 0 = vers l'est, 2 = vers le nord, 4 = ouest, 6 = sud) ; par vue, en fraction de l'image
+// (carrée) : [pied au sol, bout de l'embout, centre de l'abattant, haut du réservoir]. L'image fait 4,4 cases de large (2 unités du
+// modèle) : 1 unité = 2,2 cases, et le bout de l'embout est à 0,515 unité derrière le pied ≈ 1,13 case
+const VUE3D = [[[0.5,0.62],[0.2425,0.5089],[0.465,0.3212],[0.385,0.2178]], [[0.5,0.62],[0.3179,0.626],[0.4753,0.3372],[0.4187,0.2701]], [[0.5,0.62],[0.5,0.6744],[0.5,0.3437],[0.5,0.2917]], [[0.5,0.62],[0.6821,0.626],[0.5247,0.3372],[0.5813,0.2701]], [[0.5,0.62],[0.7575,0.5089],[0.535,0.3212],[0.615,0.2178]], [[0.5,0.62],[0.6821,0.3919],[0.5247,0.3053],[0.5813,0.1656]], [[0.5,0.62],[0.5,0.3434],[0.5,0.2987],[0.5,0.1439]], [[0.5,0.62],[0.3179,0.3919],[0.4753,0.3053],[0.4187,0.1656]]];
+const YAW = [90, 0, 270, 180], BOUT = 0.515 * 2.2, LARGE3D = 4.4;   // hauteur (fraction de l'image) du point posé au sol, au centre de la case
 
 /* ---------- images (paquet NOI1 : en-tête JSON [nom, début, longueur, ancre_x, hauteur_relative] + WebP) ---------- */
 const IMG = {};
@@ -46,7 +62,7 @@ async function lirePaquet(url) {
 }
 function loadImages() {
   if (LOAD) return LOAD;
-  LOAD = lirePaquet(ROOT() + 'assets/jeux/trone/v1/trone.bin');
+  LOAD = lirePaquet(ROOT() + 'assets/jeux/trone/v2/trone.bin');
   LOAD.catch(() => { LOAD = null; });
   return LOAD;
 }
@@ -176,12 +192,12 @@ function preview(ctx, w, h, t) {
       ctx.fillStyle = gf; ctx.fillRect(xa, y + t2 / 2 - hm, xw, hm);
       ctx.fillStyle = melange(col[0], '#ffffff', 0.45); ctx.fillRect(xa, y - t2 / 2 - hm, xw, t2);
       ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(xa, y - hm - 1, xw, 2);
-      const im = IMG[s > 0 ? 'wc-face' : 'wc-face-g'];
+      const vu = s > 0 ? 0 : 4, A = VUE3D[vu], im = IMG['wc3d-' + vu];
       if (im) {
-        const ww = c * 2.1, hh = ww * im.height / im.width, X = xb * c, Y = y;
+        const ww = c * 2.1 * LARGE3D / 1.95, hh = ww, X = xb * c, Y = y;
         ctx.fillStyle = 'rgba(20,50,80,.25)'; ctx.beginPath(); ctx.ellipse(X + c * 0.1, Y + c * 0.08, c * 0.7, c * 0.32, 0, 0, TAU); ctx.fill();
-        ctx.drawImage(reduite(im, hh), X - ww / 2, Y - hh * PIED, ww, hh);
-        const F = FACE[s > 0 ? 'wc-face' : 'wc-face-g'], R = ww * 0.38, fx = X - ww / 2 + F[0] * ww, fy = Y - hh * PIED + F[1] * hh;
+        ctx.drawImage(reduite(im, hh), X - A[0][0] * ww, Y - A[0][1] * hh, ww, hh);
+        const R = c * 2.1 * 0.38, fx = X + (A[2][0] - A[0][0]) * ww, fy = Y + (A[2][1] - A[0][1]) * hh;
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(fx, fy, R * 1.08, 0, TAU); ctx.fill();
         const g = ctx.createRadialGradient(fx - R * 0.3, fy - R * 0.4, R * 0.1, fx, fy, R); g.addColorStop(0, bot ? '#2c4258' : melange(col[0], '#ffffff', 0.6)); g.addColorStop(1, bot ? '#091019' : col[1]);
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy, R, 0, TAU); ctx.fill();
@@ -533,7 +549,10 @@ function mount(root, api) {
         if (moiI >= 0 && (pend.length || turboOn) && now - dernierI > 300) envoyerI();
         if (now - pingT > 2500) { pingT = now; envoyerI(); }
         // l'hôte ne répond plus : la course s'arrête
-        if (Date.now() - hoteVu > 3500) { M = null; moiI = -1; ecran = 'salon'; ecT = 0; msg('La course s’est arrêtée : l’hôte est parti', 3200); }
+        // V2 : 8 s sans nouvelles (3,5 s avant : un vieux téléphone retombait au salon par erreur) ; parti pour de bon (il l'a dit) : tout de suite
+        const hpe = PEERS.get(hoteDeLaPartie);
+        if (Date.now() - hoteVu > 8000 || (hpe && hpe.st === 'parti' && Date.now() - hoteVu > 400)) {
+        M = null; moiI = -1; ecran = 'salon'; ecT = 0; msg('La course s’est arrêtée : l’hôte est parti', 3200); }
       }
       if (M && moiI >= 0) {
         const e = M.ents[moiI];
@@ -596,7 +615,7 @@ function mount(root, api) {
     if (ecran === 'salon') salon(t);
     else if (ecran === 'course' && M) hud(t);
     else if (ecran === 'podium') dessinerPodium(t);
-    if (toast) { const a = Math.min(1, toast.a * 4, (toast.f - toast.a) * 3); ctx.globalAlpha = a; pastille(toast.t, W / 2, 66, 17, '#fff', 'rgba(8,24,38,.85)'); ctx.globalAlpha = 1; }
+    if (toast) { const a = Math.min(1, toast.a * 4, (toast.f - toast.a) * 3); ctx.globalAlpha = a; pastille(toast.t, W / 2, 66, 17, '#fff', 'rgb(8,24,38)'); ctx.globalAlpha = 1; }   // V2 : fond plein (rien ne transparaît dessous)
     if (enPause) { ctx.fillStyle = 'rgba(5,14,22,.72)'; ctx.fillRect(0, 0, W, H); texte('PAUSE', W / 2, H / 2 - 30, 44, '#fff', FD); texte(enLigne() && M && !M.demo ? 'La course continue en ligne — touche pour revenir' : 'Touche pour reprendre', W / 2, H / 2 + 22, 17, '#bfe6f5'); }
   }
   function fondSombre() { const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0f2a3d'); g.addColorStop(1, '#07121b'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
@@ -658,49 +677,84 @@ function mount(root, api) {
       const gs = ctx.createLinearGradient(0, yb, 0, yb + c * 0.8); gs.addColorStop(0, 'rgba(5,20,32,.45)'); gs.addColorStop(1, 'rgba(5,20,32,0)'); ctx.fillStyle = gs; ctx.fillRect(0, yb, W, c * 0.8);
     }
     // le carrelage de la grille : damier blanc / bleu très clair, joints, et la lumière qui glisse dessus
-    const ax = Math.max(0, x0), bx = Math.min(N - 1, x1), az = Math.max(0, z0), bz = Math.min(N - 1, z1);
-    ctx.fillStyle = '#eaf4fa'; ctx.fillRect(sx(0), sy(0), N * c, N * c * K);
-    ctx.fillStyle = '#d4e6f1';
-    for (let z = az; z <= bz; z++) for (let x = ax + ((ax + z) % 2 ? 0 : 1); x <= bx; x += 2) ctx.fillRect(sx(x), sy(z), c, c * K);
-    if (c > 9) {
-      ctx.strokeStyle = 'rgba(140,175,198,.55)'; ctx.lineWidth = Math.max(0.6, c * 0.035); ctx.beginPath();
-      for (let x = ax; x <= bx + 1; x++) { ctx.moveTo(sx(x), sy(az)); ctx.lineTo(sx(x), sy(bz + 1)); }
-      for (let z = az; z <= bz + 1; z++) { ctx.moveTo(sx(ax), sy(z)); ctx.lineTo(sx(bx + 1), sy(z)); }
-      ctx.stroke();
+    // V2 : dessiné une fois dans une toile cachée (à la taille des cases, au pixel près), puis recopié : avant, ~1 800 cases par image
+    const F = solCache(N, c); if (F) ctx.drawImage(F.can, sx(0), sy(0), N * c, N * c * K);
+    else {
+      const ax = Math.max(0, x0), bx = Math.min(N - 1, x1), az = Math.max(0, z0), bz = Math.min(N - 1, z1);
+      ctx.fillStyle = '#eaf4fa'; ctx.fillRect(sx(0), sy(0), N * c, N * c * K);
+      ctx.fillStyle = '#d4e6f1';
+      for (let z = az; z <= bz; z++) for (let x = ax + ((ax + z) % 2 ? 0 : 1); x <= bx; x += 2) ctx.fillRect(sx(x), sy(z), c, c * K);
+      if (c > 9) {
+        ctx.strokeStyle = 'rgba(140,175,198,.55)'; ctx.lineWidth = Math.max(0.6, c * 0.035); ctx.beginPath();
+        for (let x = ax; x <= bx + 1; x++) { ctx.moveTo(sx(x), sy(az)); ctx.lineTo(sx(x), sy(bz + 1)); }
+        for (let z = az; z <= bz + 1; z++) { ctx.moveTo(sx(ax), sy(z)); ctx.lineTo(sx(bx + 1), sy(z)); }
+        ctx.stroke();
+      }
+      const gl = ctx.createLinearGradient(sx(0), sy(0), sx(N), sy(N)); gl.addColorStop(0, 'rgba(255,255,255,.5)'); gl.addColorStop(0.35, 'rgba(255,255,255,0)'); gl.addColorStop(0.62, 'rgba(255,255,255,.18)'); gl.addColorStop(1, 'rgba(80,120,150,.12)');
+      ctx.fillStyle = gl; ctx.fillRect(sx(0), sy(0), N * c, N * c * K);
     }
-    const gl = ctx.createLinearGradient(sx(0), sy(0), sx(N), sy(N)); gl.addColorStop(0, 'rgba(255,255,255,.5)'); gl.addColorStop(0.35, 'rgba(255,255,255,0)'); gl.addColorStop(0.62, 'rgba(255,255,255,.18)'); gl.addColorStop(1, 'rgba(80,120,150,.12)');
-    ctx.fillStyle = gl; ctx.fillRect(sx(0), sy(0), N * c, N * c * K);
-    // les murs : les morceaux (un par case pour les murs qui descendent, pour bien les trier avec les toilettes)
-    const rangs = new Map(), add = (r, o) => { let a = rangs.get(r); if (!a) rangs.set(r, a = []); a.push(o); };
+    // V2 : les murs. Chaque mur est UN tracé continu (les virages, puis l'arrière du trône), coupé seulement aux lignes des rangées
+    // pour être bien trié avec les toilettes ; les coins sont des jointures arrondies du même tracé (rien ne se chevauche ni ne dépasse)
+    // (V2, fluidité : presque rien n'est créé à chaque image — les listes par rangée sont réutilisées, et la découpe des murs FINIS de
+    // chaque joueur est gardée tant qu'il ne tourne pas ; seul le bout qui suit le trône est recalculé)
+    const rangs = RANGS; for (const a of rangs.values()) a.length = 0;
+    const add = (r, o) => { let a = rangs.get(r); if (!a) rangs.set(r, a = []); a.push(o); };
     const tetes = [];
+    if (S.r !== murcR || S !== murcS) { for (const R of RANGC.values()) POOL.push(R.sous, R.dessus); RANGC.clear(); MEMO.clear(); murcR = S.r; murcS = S; }
+    const Lb = BOUT * Math.max(c * LARGE3D, 58) / (c * LARGE3D);
     S.ents.forEach((e, i) => {
       const p = S === M ? pos(e, i) : pos2(S, e); if (!p) return;
       const f = e.vivant ? 1 : e.fade; if (f <= 0.01 && !e.vivant) { if (S.ph !== 'compte') tetes.push({ e, i, p }); return; }
-      const P = p.pts.slice(); if (e.vivant) P.push([p.x - 0.5, p.z - 0.5]);
-      for (let k = 0; k + 1 < P.length; k++) {
-        const a = P[k], b = P[k + 1]; if (!a || !b) continue;
-        const ax2 = a[0] + 0.5, az2 = a[1] + 0.5, bx2 = b[0] + 0.5, bz2 = b[1] + 0.5;
-        if (Math.abs(az2 - bz2) < 0.01) add(Math.floor(az2 + T), { x0: Math.min(ax2, bx2) - T, x1: Math.max(ax2, bx2) + T, z0: az2 - T, z1: az2 + T, col: e.col, f });
-        else { const za = Math.min(az2, bz2) - T, zb = Math.max(az2, bz2) + T;
-          for (let r = Math.floor(za); r < zb; r++) { const q0 = Math.max(za, r), q1 = Math.min(zb, r + 1); if (q1 - q0 > 0.001) add(Math.floor(q1 - 0.0001), { x0: ax2 - T, x1: ax2 + T, z0: q0, z1: q1, col: e.col, f, v: 1, bout: q1 >= zb - 0.0001 }); } }
+      // la signature des virages (sans rien créer) : nombre, somme pondérée des cases, vivant
+      let sg = p.pts.length * 7 + (e.vivant ? 1 : 0) + e.col * 13;
+      for (let k = 0; k < p.pts.length; k++) { const q = p.pts[k]; sg = (sg * 31 + (q ? q[0] * 97 + q[1] * 89 + 1 : 5)) % 2147483629; }
+      let m = MEMO.get(i);
+      if (!m || m.sg !== sg) {
+        // les virages en un ou plusieurs tracés (invité : un virage pas encore reçu = un coude à angle droit en attendant)
+        const runs = []; let run = [];
+        for (const q of p.pts) { if (!q) { if (run.length > 1) runs.push(run); run = []; continue; } const v = [q[0] + 0.5, q[1] + 0.5], l = run[run.length - 1];
+          if (l && l[0] !== v[0] && l[1] !== v[1]) run.push([v[0], l[1]]);
+          if (!l || l[0] !== v[0] || l[1] !== v[1]) run.push(v); }
+        if (run.length) runs.push(run);
+        const fixes = []; let vif = null, vifA = true;
+        runs.forEach((r0, ri) => {
+          const dernier = e.vivant && ri === runs.length - 1;
+          const pcs = r0.length > 1 ? parRangee(r0) : [];
+          // vivant : le dernier morceau (la rangée du dernier virage) continue jusqu'au trône : il est recalculé à chaque image
+          const nf = dernier ? pcs.length - 1 : pcs.length;
+          for (let k = 0; k < nf; k++) for (const ch of couper(pcs[k], 8)) fixes.push({ mur: ch, col: e.col, f: 1, ei: i, direct: false });
+          if (dernier) { if (pcs.length) { vif = pcs[pcs.length - 1].pts.slice(); vifA = pcs.length === 1; } else { vif = r0.slice(); vifA = true; } }
+        });
+        m = { sg, fixes, vif, vifA }; MEMO.set(i, m);
       }
-      tetes.push({ e, i, p });
+      for (const o of m.fixes) { o.f = f; add(o.mur.r, o); }
+      let fin = null;   // le bout du mur, au bout de l'embout, derrière le trône
+      if (e.vivant && m.vif) {
+        const run = m.vif.slice(), l = run[run.length - 1];
+        if (l && Math.abs(l[0] - p.x) > 1e-3 && Math.abs(l[1] - p.z) > 1e-3) run.push(DX[p.d] ? [l[0], p.z] : [p.x, l[1]]);
+        run.push([p.x, p.z]);
+        fin = recule(run, Lb);
+        if (run.length >= 2) {
+          const pcs = parRangee(run); if (pcs.length) { pcs[0].a = m.vifA; }
+          pcs.forEach((pc, pi) => { const dern = pi === pcs.length - 1;   // (même découpe vivant ou fini : un tronçon garde sa signature)
+            for (const ch of couper(pc, 8)) add(pc.r, { mur: ch, col: e.col, f, ei: i, direct: dern && ch.fin }); });
+        }
+      }
+      tetes.push({ e, i, p, fin });
     });
     // ombres portées, lueurs et reflets des murs sur le carrelage (avant tout le reste ; la lumière vient d'en haut à gauche)
     ctx.save(); ctx.beginPath(); ctx.rect(sx(0), sy(0), N * c, N * c * K); ctx.clip();
-    const vis = o => !(o.x1 < cam.x - W / 2 / c - 1 || o.x0 > cam.x + W / 2 / c + 1);
+    const vis = o => !(o.mur.x1 < cam.x - W / 2 / c - 1 || o.mur.x0 > cam.x + W / 2 / c + 1);
+    zoomEnCours = Math.abs(c - camPrec) > c * 0.004; camPrec = c; rangBudget = 10;
+    const avant = o => vis(o) && o.direct;
     const hm = Math.max(hp(HM), 7);
-    ctx.fillStyle = 'rgba(28,62,92,.2)';
-    for (const [, a] of rangs) for (const o of a) { if (!vis(o)) continue; ctx.globalAlpha = o.f; const lx = hm * 0.55, ly = hm * 0.35;
-      ctx.beginPath(); ctx.moveTo(sx(o.x0), sy(o.z1)); ctx.lineTo(sx(o.x1), sy(o.z1)); ctx.lineTo(sx(o.x1), sy(o.z0)); ctx.lineTo(sx(o.x1) + lx, sy(o.z0) + ly); ctx.lineTo(sx(o.x1) + lx, sy(o.z1) + ly); ctx.lineTo(sx(o.x0) + lx, sy(o.z1) + ly); ctx.closePath(); ctx.fill(); }
-    for (const [, a] of rangs) for (const o of a) {
-      if (!vis(o)) continue; const col = COUL[o.col][0];
-      ctx.fillStyle = col;
-      for (const [e2, al] of [[0.62, 0.05], [0.38, 0.07], [0.18, 0.1]]) { ctx.globalAlpha = al * o.f; ctx.fillRect(sx(o.x0 - e2), sy(o.z0 - e2), (o.x1 - o.x0 + e2 * 2) * c, (o.z1 - o.z0 + e2 * 2) * c * K); }
-      // le reflet du mur dans le carrelage (sous sa face avant, qui s'efface)
-      const y = sy(o.z1), hh = hm * o.f * 0.7, g = ctx.createLinearGradient(0, y, 0, y + hh); g.addColorStop(0, col); g.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.globalAlpha = 0.32 * o.f; ctx.fillStyle = g; ctx.fillRect(sx(o.x0), y, (o.x1 - o.x0) * c, hh);
-    }
+    for (const [, a] of rangs) for (const o of a) { if (o.wc || !avant(o)) continue; ctx.globalAlpha = o.f; ctx.strokeStyle = 'rgba(28,62,92,.22)'; tracer(o.mur, hm * 0.55, hm * 0.35, 2 * T); }
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [, a] of rangs) for (const o of a) { if (o.wc || !avant(o)) continue; const col = COUL[o.col][0]; ctx.strokeStyle = col;
+      for (const [e2, al] of [[0.85, 0.035], [0.5, 0.05], [0.25, 0.07]]) { ctx.globalAlpha = al * o.f; tracer(o.mur, 0, 0, 2 * T + e2); } }
+    ctx.globalCompositeOperation = 'source-over';
+    // le reflet du mur dans le carrelage, juste devant sa base
+    for (const [, a] of rangs) for (const o of a) { if (o.wc || !avant(o)) continue; ctx.strokeStyle = COUL[o.col][0]; ctx.globalAlpha = 0.2 * o.f; tracer(o.mur, 0, hm * 0.22, 2 * T * 0.9); }
     ctx.restore(); ctx.globalAlpha = 1;
     // le rebord de la grille (porcelaine) : nord, côtés
     rebord(-1, -1, N + 1, 0, 0.45); rebord(-1, 0, 0, N, 0.45); rebord(N, 0, N + 1, N, 0.45);
@@ -709,7 +763,8 @@ function mount(root, api) {
     for (const q of tetes) add(Math.floor(q.p.z + 0.45), { wc: q });
     // les rangées, du fond vers nous
     const ks = [...rangs.keys()].sort((a, b) => a - b);
-    for (const r of ks) { const a = rangs.get(r); for (const o of a) if (!o.wc) mur(o); for (const o of a) if (o.wc) toilette(o.wc, t); }
+    etiquettes.length = 0;
+    for (const r of ks) { const a = rangs.get(r); rangee(r, a, N); for (const o of a) if (o.wc) toilette(o.wc, t); }
     rebord(-1, N, N + 1, N + 1, 0.45);
     // éclaboussures et gouttes
     for (const s of splashs) {
@@ -718,6 +773,143 @@ function mount(root, api) {
     }
     for (const p of parts) { const a = 1 - p.t / p.d; ctx.globalAlpha = a; ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(sx(p.x), sy(p.z) - hp(p.y), Math.max(1.2, c * 0.09), 0, TAU); ctx.fill(); }
     ctx.globalAlpha = 1;
+    // V2 : les noms, par-dessus tous les murs (avant, un mur d'une rangée plus proche passait sur l'étiquette)
+    for (const f of etiquettes) f();
+  }
+  // V2 : un morceau de mur tracé dans le repère du sol (x, z en cases ; la vue penchée écrase z), décalé de (dx, dy) pixels à l'écran ;
+  // bouts arrondis seulement aux vrais bouts du mur (aux lignes des rangées, les morceaux se touchent bord à bord)
+  function tracer(pc, dx, dy, w) { tracerG(ctx, pc, sx(0), sy(0), dx, dy, w); }
+  function tracerG(ctx, pc, ox, oy, dx, dy, w, cc) {
+    const q = pc.pts; if (q.length < 2) return; cc = cc || cam.c;
+    ctx.save(); ctx.translate(ox + dx, oy + dy); ctx.scale(cc, cc * K);
+    ctx.lineWidth = w; ctx.lineCap = 'butt'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(q[0][0], q[0][1]); for (let k = 1; k < q.length; k++) ctx.lineTo(q[k][0], q[k][1]); ctx.stroke();
+    if (pc.a || pc.b) { ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); if (pc.a) { ctx.moveTo(q[0][0] + w / 2, q[0][1]); ctx.arc(q[0][0], q[0][1], w / 2, 0, TAU); } if (pc.b) { const l = q[q.length - 1]; ctx.moveTo(l[0] + w / 2, l[1]); ctx.arc(l[0], l[1], w / 2, 0, TAU); } ctx.fill(); }
+    ctx.restore();
+  }
+  // un tracé coupé aux lignes des rangées (z entier) : [{ r, pts, a, b, x0, x1 }] (a / b = vrai début / vraie fin du mur)
+  function parRangee(run) {
+    const out = []; let cur = [run[0]];
+    const ferme = (b) => { if (cur.length > 1) { let za = 1e9, zb = -1e9, xa = 1e9, xb = -1e9; for (const p of cur) { za = Math.min(za, p[1]); zb = Math.max(zb, p[1]); xa = Math.min(xa, p[0]); xb = Math.max(xb, p[0]); }
+      out.push({ r: Math.floor((za + zb) / 2), pts: cur, a: !out.length, b, x0: xa - T, x1: xb + T }); } };
+    for (let k = 1; k < run.length; k++) {
+      const a = run[k - 1], b = run[k];
+      if (Math.abs(a[1] - b[1]) > 1e-6) {
+        const s = b[1] > a[1] ? 1 : -1;
+        for (let B = s > 0 ? Math.floor(a[1]) + 1 : Math.ceil(a[1]) - 1; s > 0 ? B < b[1] - 1e-6 : B > b[1] + 1e-6; B += s) {
+          if (Math.abs(B - a[1]) < 1e-6) continue;
+          const px = a[0] + (b[0] - a[0]) * (B - a[1]) / (b[1] - a[1]); cur.push([px, B + s * 0.04]); ferme(false); cur = [[px, B]];   // (déborde de 0,04 case : pas de fine ligne au raccord)
+        }
+      }
+      cur.push(b);
+    }
+    ferme(true);
+    if (out.length && !out[0].a) out[0].a = true;
+    return out;
+  }
+  // raccourcit la fin d'un tracé de L cases (en suivant ses virages) ; rend le nouveau bout
+  function recule(run, L) {
+    while (run.length > 1 && L > 0) {
+      const b = run[run.length - 1], a = run[run.length - 2], d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (d <= L) { run.pop(); L -= d; continue; }
+      const k = (d - L) / d; run[run.length - 1] = [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]; L = 0;
+    }
+    return run.length ? run[run.length - 1] : null;
+  }
+  // V2 : un morceau coupé en tronçons de L cases au plus le long de son tracé (bouts droits aux coupures) ; fin = le dernier tronçon
+  function couper(pc, L) {
+    const q = pc.pts, out = []; let cur = [q[0]], lon = 0;
+    const ferme = (der) => { let xa = 1e9, xb = -1e9; for (const p of cur) { xa = Math.min(xa, p[0]); xb = Math.max(xb, p[0]); }
+      out.push({ r: pc.r, pts: cur, a: !out.length && pc.a, b: der && pc.b, x0: xa - T, x1: xb + T, fin: der }); };
+    for (let k = 1; k < q.length; k++) {
+      let a = q[k - 1]; const b = q[k], d = Math.hypot(b[0] - a[0], b[1] - a[1]); let reste = d;
+      // (chaque tronçon déborde de 0,04 case sur le suivant : pas de fine ligne au raccord)
+      while (lon + reste > L + 1e-6) { const u = (L - lon) / reste, m = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u], ux = (b[0] - a[0]) / d, uz = (b[1] - a[1]) / d; cur.push([m[0] + ux * 0.04, m[1] + uz * 0.04]); ferme(false); cur = [m]; reste -= L - lon; lon = 0; a = m; }
+      cur.push(b); lon += reste;
+    }
+    ferme(true);
+    return out;
+  }
+  let murcR = -1, murcS = null, camPrec = 0, zoomEnCours = false, rangBudget = 10;
+  const SIGS = [], NEUFS = [], POOL = [], DIRECT = [];
+  // V2 : le carrelage de la grille (damier, joints, lumière qui glisse) dans une toile cachée ; refait si la taille des cases change
+  let SOLC = null;
+  function solCache(N, c) {
+    const cq = Math.max(2, Math.round(c * 2) / 2), cle = N + '|' + cq;
+    if (SOLC && SOLC.cle === cle) return SOLC;
+    const w = N * cq, h = N * cq * K, dp = Math.max(0.5, Math.min(dpr, Math.sqrt(4e6 / Math.max(1, w * h))));
+    const can = document.createElement('canvas'); can.width = Math.max(1, Math.ceil(w * dp)); can.height = Math.max(1, Math.ceil(h * dp));
+    const g = can.getContext('2d'); if (!g) return null; g.scale(dp, dp);
+    g.fillStyle = '#eaf4fa'; g.fillRect(0, 0, w, h); g.fillStyle = '#d4e6f1';
+    for (let z = 0; z < N; z++) for (let x = (z % 2 ? 0 : 1); x < N; x += 2) g.fillRect(x * cq, z * cq * K, cq, cq * K);
+    if (cq > 9) { g.strokeStyle = 'rgba(140,175,198,.55)'; g.lineWidth = Math.max(0.6, cq * 0.035); g.beginPath();
+      for (let x = 0; x <= N; x++) { g.moveTo(x * cq, 0); g.lineTo(x * cq, h); } for (let z = 0; z <= N; z++) { g.moveTo(0, z * cq * K); g.lineTo(w, z * cq * K); } g.stroke(); }
+    const gl = g.createLinearGradient(0, 0, w, h); gl.addColorStop(0, 'rgba(255,255,255,.5)'); gl.addColorStop(0.35, 'rgba(255,255,255,0)'); gl.addColorStop(0.62, 'rgba(255,255,255,.18)'); gl.addColorStop(1, 'rgba(80,120,150,.12)');
+    g.fillStyle = gl; g.fillRect(0, 0, w, h);
+    return (SOLC = { cle, can });
+  }
+  // V2 : une rangée de murs. Les murs FINIS de chaque joueur dans cette rangée vivent dans 2 images à lui (dessous : ombres, halos,
+  // reflets ; dessus : les tuyaux), à la taille exacte des cases. Un tronçon fini y est AJOUTÉ (3 par image au plus, dans tout l'écran) ;
+  // l'image s'agrandit en recopiant l'ancienne ; un joueur éliminé : ses images s'effacent en fondu (rien n'est refait). Les images ne
+  // sont refaites que si la taille des cases change (zoom : mises à l'échelle en attendant, 6 par image au plus). Les bouts vivants : en direct.
+  const RANGC = new Map();
+  const sigMur = o => { let g = (o.col + 1) * 7; for (const p of o.mur.pts) g = (g * 131 + Math.round(p[0] * 997) * 7 + Math.round(p[1] * 991)) % 2147483629; return g * 4 + (o.mur.a ? 1 : 0) + (o.mur.b ? 2 : 0); };
+  const GROUPES = new Map(), VUS_R = [], VUS_F = [], RANGS = new Map(), MEMO = new Map();
+  function rangee(r, a, N) {
+    const c = cam.c, yr = sy(r), h = Math.max(hp(HM), 7);
+    if (yr - h - c * 2 > H || yr + c * K + c * 2 < 0) return;   // rangée hors de l'écran (ses images sont gardées)
+    for (const g of GROUPES.values()) g.length = 0; const direct = DIRECT; direct.length = 0;
+    for (const o of a) { if (o.wc) continue; if (o.direct) { direct.push(o); continue; } let g = GROUPES.get(o.ei); if (!g) GROUPES.set(o.ei, g = []); g.push(o); }
+    const halo = 0.45 * c + 2, mL = halo, mR = halo + h * 0.55 + 2, mT = h + halo * K + 3, mB = halo * K + h * 0.6 + T * c * K + 4;
+    VUS_R.length = 0; VUS_F.length = 0;
+    for (const [ei, fixes] of GROUPES) { if (!fixes.length) continue;
+      const cle = ei * 1000 + r; let R = RANGC.get(cle);
+      const refaire = R && (zoomEnCours ? Math.abs(R.c - c) > c * 0.6 : Math.abs(R.c - c) > c * 0.01);
+      if (refaire && rangBudget <= 0) { (VUS_R.push(R), VUS_F.push(fixes[0].f)); for (const o of fixes) { const g = sigMur(o); if (!R.faits.has(g)) direct.push(o); } continue; }   // (mise à l'échelle en attendant son tour)
+      if (refaire) { rangBudget--; POOL.push(R.sous, R.dessus); R = null; }
+      // les bornes (en cases) de ce que l'image doit couvrir
+      let xa = 1e9, xb = -1e9; for (const o of fixes) for (const p of o.mur.pts) { if (p[0] < xa) xa = p[0]; if (p[0] > xb) xb = p[0]; }
+      xa -= T; xb += T;
+      const neufs = NEUFS; neufs.length = 0; for (const o of fixes) { const g = sigMur(o); if (!R || !R.faits.has(g)) { o.sig = g; neufs.push(o); } }
+      let neuve = false;
+      if (!R || xa < R.xa || xb > R.xb) {   // nouvelle image, ou plus grande (on recopie l'ancienne : rien n'est redessiné)
+        if (rangBudget <= 0) { if (R) (VUS_R.push(R), VUS_F.push(fixes[0].f)); for (const o of (R ? neufs : fixes)) direct.push(o); continue; }   // (10 images neuves par image au plus)
+        rangBudget--; neuve = true;
+        const nxa = Math.min(xa, R ? R.xa : xa) - 4, nxb = Math.max(xb, R ? R.xb : xb) + 4, w = (nxb - nxa) * c + mL + mR, hh = c * K + mT + mB;
+        const dp = Math.max(0.5, Math.min(dpr, Math.sqrt(9e4 / Math.max(1, w * hh))));
+        const mk = () => { const k = POOL.pop() || document.createElement('canvas'), W2 = Math.max(1, Math.ceil(w * dp)), H2 = Math.max(1, Math.ceil(hh * dp)); if (k.width !== W2 || k.height !== H2) { k.width = W2; k.height = H2; } const g = k.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W2, H2); g.globalAlpha = 1; g.setTransform(dp, 0, 0, dp, 0, 0); return k; };   // (toiles réutilisées : rien de neuf à ramasser)
+        const N2 = { c, hm: h, xa: nxa, xb: nxb, x: nxa * c - mL, y: r * c * K - mT, w, h: hh, sous: mk(), dessus: mk(), faits: R ? R.faits : new Set() };
+        if (R) { const dx = R.x - N2.x; N2.sous.getContext('2d').drawImage(R.sous, dx, 0, R.w, R.h); N2.dessus.getContext('2d').drawImage(R.dessus, dx, 0, R.w, R.h); POOL.push(R.sous, R.dessus); }
+        R = N2; RANGC.set(cle, R);
+      }
+      // les tronçons finis nouveaux, ajoutés à l'image (3 par image en tout ; les autres en direct en attendant)
+      if (neufs.length) {
+        const cc = R.c, hm = R.hm, ox = -R.x, oy = -R.y, gs = R.sous.getContext('2d'), gd = R.dessus.getContext('2d');
+        for (const o of neufs) {
+          gs.strokeStyle = 'rgba(28,62,92,.22)'; tracerG(gs, o.mur, ox, oy, hm * 0.55, hm * 0.35, 2 * T, cc);
+          gs.strokeStyle = COUL[o.col][0]; for (const [e2, al] of [[0.85, 0.035], [0.5, 0.05], [0.25, 0.07]]) { gs.globalAlpha = al; tracerG(gs, o.mur, ox, oy, 0, 0, 2 * T + e2, cc); }
+          gs.globalAlpha = 0.2; tracerG(gs, o.mur, ox, oy, 0, hm * 0.22, 2 * T * 0.9, cc); gs.globalAlpha = 1;
+          corps(gd, o.mur, ox, oy, COUL[o.col], hm, cc);
+          R.faits.add(o.sig);
+        }
+      }
+      (VUS_R.push(R), VUS_F.push(fixes[0].f));
+    }
+    // d'abord tous les dessous (ombres, halos), puis tous les tuyaux de la rangée
+    for (let j = 0; j < VUS_R.length; j++) { const R = VUS_R[j], k = c / R.c; ctx.globalAlpha = VUS_F[j]; ctx.drawImage(R.sous, sx(0) + R.x * k, sy(0) + R.y * k, R.w * k, R.h * k); }
+    for (let j = 0; j < VUS_R.length; j++) { const R = VUS_R[j], k = c / R.c; ctx.globalAlpha = VUS_F[j]; ctx.drawImage(R.dessus, sx(0) + R.x * k, sy(0) + R.y * k, R.w * k, R.h * k); }
+    ctx.globalAlpha = 1;
+    for (const o of direct) mur(o);
+  }
+  const etiquettes = [];
+  // V2 : l'angle affiché du trône rejoint sa direction de marche (90° en 80 ms) ; pivK = 1 pendant le pivot (pour l'écrasement)
+  function vueDe(e, d) {
+    const now = performance.now(), cible = YAW[d];
+    if (e.ang == null) e.ang = cible;
+    const dt = Math.min(0.1, Math.max(0, (now - (e.angT || now)) / 1000)); e.angT = now;
+    const df = ((cible - e.ang + 540) % 360) - 180, pas = 1125 * dt;
+    e.ang = Math.abs(df) <= pas ? cible : (e.ang + Math.sign(df) * pas + 360) % 360;
+    e.pivK = Math.min(1, Math.abs(((cible - e.ang + 540) % 360) - 180) / 45);
+    return Math.round(e.ang / 45) % 8;
   }
   // la démo : positions exactes
   function pos2(S, e) { if (!e.vivant) return { x: e.mortX, z: e.mortZ, d: e.d, pts: e.pts }; return { x: e.x + 0.5 + DX[e.d] * e.pr, z: e.z + 0.5 + DZ[e.d] * e.pr, d: e.d, pts: e.pts }; }
@@ -729,19 +921,21 @@ function mount(root, api) {
     ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.fillRect(X, Y - hh, w, Math.max(1, c * 0.04));
   }
   function mur(o) {
-    const c = cam.c, X = sx(o.x0), w = (o.x1 - o.x0) * c; if (X > W + 4 || X + w < -4) return;
-    const h = Math.max(hp(HM), 7) * o.f, Yb = sy(o.z1), Yt = sy(o.z0) - h, col = COUL[o.col];
-    if (Yt > H + 4 || Yb < -4) return;
+    const pc = o.mur, c = cam.c; if (pc.pts.length < 2) return;
+    if (sx(pc.x1) < -8 || sx(pc.x0) > W + 8) return;
     ctx.globalAlpha = Math.min(1, o.f * 1.5);
-    // face avant (vers nous) : de la couleur sombre à la couleur
-    const gf = ctx.createLinearGradient(0, Yb - h, 0, Yb); gf.addColorStop(0, col[0]); gf.addColorStop(1, col[1]);
-    ctx.fillStyle = gf; ctx.fillRect(X, Yb - h, w, h);
-    // le dessus : clair, presque blanc au milieu (le mur brille)
-    ctx.fillStyle = melange(col[0], '#ffffff', 0.45); ctx.fillRect(X, Yt, w, Yb - h - Yt + 0.6);
-    ctx.fillStyle = 'rgba(255,255,255,.75)'; if (o.v) ctx.fillRect(X + w * 0.35, Yt, w * 0.3, Yb - h - Yt + 0.6); else ctx.fillRect(X, Yt + (Yb - h - Yt) * 0.35, w, Math.max(1, (Yb - h - Yt) * 0.3));
-    // les bandes lumineuses de la face avant
-    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(X, Yb - h * 0.62, w, Math.max(1, h * 0.08));
+    corps(ctx, pc, sx(0), sy(0), COUL[o.col], Math.max(hp(HM), 7) * o.f);
     ctx.globalAlpha = 1;
+  }
+  // le tuyau de porcelaine lumineuse : les flancs (du sombre au vif), le dessus avec son liseré et un reflet net
+  function corps(g, pc, ox, oy, col, h, cc) {
+    const c = cc || cam.c, n = Math.max(3, Math.ceil(h / Math.max(1.6, c * T * K * 1.1)));
+    for (let k = 0; k < n; k++) { g.strokeStyle = melange(col[1], col[0], 0.15 + 0.85 * k / n); tracerG(g, pc, ox, oy, 0, -h * k / n, 2 * T, c); }
+    g.strokeStyle = melange(col[0], '#ffffff', 0.25); tracerG(g, pc, ox, oy, 0, -h * 0.62, 2 * T, c);
+    g.strokeStyle = col[0]; tracerG(g, pc, ox, oy, 0, -h * 0.85, 2 * T, c);
+    g.strokeStyle = col[1]; tracerG(g, pc, ox, oy, 0, -h, 2 * T + 0.07, c);
+    g.strokeStyle = melange(col[0], '#ffffff', 0.18); tracerG(g, pc, ox, oy, 0, -h, 2 * T - 0.02, c);
+    g.strokeStyle = melange(col[0], '#ffffff', 0.8); tracerG(g, pc, ox, oy, 0, -h - c * K * T * 0.15, 2 * T * 0.22, c);   // (opaque : pas de trait plus clair aux raccords)
   }
   // une toilette : ombre (déjà faite), image selon la direction, tête du joueur sur le couvercle, anneau de couleur, nom
   function toilette(q, t) {
@@ -753,16 +947,29 @@ function mount(root, api) {
     // l'anneau de couleur au sol
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = e.vivant ? 0.55 : 0.2; ctx.strokeStyle = col[0]; ctx.lineWidth = Math.max(2, c * 0.1);
     ctx.beginPath(); ctx.ellipse(X, Y, c * 0.68, c * 0.68 * K, 0, 0, TAU); ctx.stroke(); ctx.restore();
-    const nomIm = WC[p.d], im = IMG[nomIm];
-    const sq = 1 + (e.tourne || 0) * 0.12, w = Math.max(c * 1.95, 26) * k * sq, hh = im ? w / sq * im.height / im.width : c * 1.8;
+    // V2 : le trône 3D, tourné vers sa marche (8 vues), qui pivote en ~80 ms au virage avec un petit écrasement
+    const vu = vueDe(e, p.d), A = VUE3D[vu], im = IMG['wc3d-' + vu];
+    const sq = 1 + (e.tourne || 0) * 0.12, pv = e.pivK || 0, w = Math.max(c * LARGE3D, 58) * k, hh = w;
     ctx.save(); ctx.translate(X, Y + y0); if (rot) ctx.rotate(Math.sin(rot) * 0.4);
     if (e.tb && e.vivant) ctx.translate(Math.sin(t * 60) * c * 0.03, 0);
-    if (im) ctx.drawImage(reduite(im, hh), -w / 2, -hh * PIED, w, hh);
+    ctx.scale(sq * (1 - pv * 0.1), 1 + pv * 0.07 - (sq - 1) * 0.25);
+    if (im) ctx.drawImage(reduite(im, hh), -A[0][0] * w, -A[0][1] * hh, w, hh);
     else { ctx.fillStyle = '#f4f8fb'; ctx.beginPath(); ctx.ellipse(0, -c * 0.4, c * 0.6, c * 0.5, 0, 0, TAU); ctx.fill(); }
+    // le « jus » de la couleur du joueur au bout de l'embout (d'où sort le mur) : de face quand il s'éloigne, de profil de côté ;
+    // caché derrière le trône quand il vient vers nous
+    if (e.vivant && k > 0.9 && vu <= 4) {
+      const bx = (A[1][0] - A[0][0]) * w, by = (A[1][1] - A[0][1]) * hh, r = w * 0.095 * 0.82, ya = vu * Math.PI / 4;
+      const rx = r * Math.max(0.18, Math.abs(Math.sin(ya))), ry = r * 0.77, pu = 0.6 + 0.25 * Math.sin(t * 9 + i);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = pu; ctx.fillStyle = col[0];
+      ctx.beginPath(); ctx.ellipse(bx, by, rx * 1.1, ry * 1.1, 0, 0, TAU); ctx.fill(); ctx.restore();
+      ctx.fillStyle = col[1]; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.ellipse(bx, by, rx * 0.6, ry * 0.6, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = melange(col[0], '#ffffff', 0.4); ctx.lineWidth = Math.max(1.5, c * 0.05); ctx.beginPath(); ctx.ellipse(bx, by, rx, ry, 0, 0, TAU); ctx.stroke();
+    }
     // LE VISAGE (tout l'humour du jeu) : un grand médaillon rond sur le couvercle relevé (vues de face) ou au-dessus du réservoir
     // (de dos), toujours tourné vers nous, même pendant un virage ; les robots : un écran avec deux grands yeux de leur couleur
-    const F = FACE[nomIm] || [0.5, 0.2], R = Math.max(w / sq * 0.38, 13 * k);
-    const fx = -w / 2 + F[0] * w, fy = -hh * PIED + F[1] * hh + (FACE[nomIm] ? 0 : -R * 0.15);
+    // (V2 : sur l'abattant relevé ; de dos, au-dessus du réservoir)
+    const dos = vu >= 1 && vu <= 3, F = dos ? A[3] : A[2], R = Math.max(Math.max(c * 1.95, 26) * 0.38, 13) * k;
+    const fx = (F[0] - A[0][0]) * w, fy = (F[1] - A[0][1]) * hh - (dos ? R * 0.35 : 0);
     ctx.save(); ctx.translate(fx, fy); ctx.scale(1 / sq, 1);
     ctx.fillStyle = 'rgba(10,30,50,.28)'; ctx.beginPath(); ctx.arc(R * 0.1, R * 0.14, R * 1.08, 0, TAU); ctx.fill();
     ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, R * 1.08, 0, TAU); ctx.fill();
@@ -783,12 +990,13 @@ function mount(root, api) {
     ctx.restore();
     ctx.restore();
     // le nom au-dessus du médaillon
-    if (e.vivant && (c > 14 || i === moiI)) {
-      const yy = Y - hh * PIED + F[1] * hh - R * 1.35 - 9;
-      ctx.font = '700 ' + Math.round(clamp(c * 0.36, 10, 15)) + 'px ' + FB; const s = i === moiI ? 'TOI' : e.nom, tw = ctx.measureText(s).width + 10;
-      rr(ctx, X - tw / 2, yy - 9, tw, 18, 9); ctx.fillStyle = 'rgba(6,20,32,.72)'; ctx.fill();
+    if (e.vivant && (c > 14 || i === moiI)) etiquettes.push(() => {
+      // collé en haut (sous le bandeau du haut et ses messages) : l'étiquette passe sous le trône
+      let yy = Y + y0 + fy - R * 1.35 - 9; if (yy - 10 < (H > W ? 140 : 96)) yy = Y + c * K * 0.7 + 14;
+      ctx.font = '700 ' + Math.round(clamp(c * 0.36, 10, 15)) + 'px ' + FB; const s = i === moiI ? 'TOI' : e.nom, tw = ctx.measureText(s).width + 12;
+      rr(ctx, X - tw / 2, yy - 10, tw, 20, 10); ctx.fillStyle = 'rgba(6,20,32,.85)'; ctx.fill(); ctx.strokeStyle = col[0]; ctx.lineWidth = 1.5; ctx.stroke();
       ctx.fillStyle = col[0]; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(s, X, yy + 1);
-    }
+    });
   }
   function bulle(x, y, r, e, i) {
     const col = COUL[e.col];
@@ -887,7 +1095,9 @@ function mount(root, api) {
     ctx.save(); rr(ctx, x - 4, y - 4, s + 8, s + 8, 10); ctx.fillStyle = 'rgba(6,20,32,' + (0.75 * a) + ')'; ctx.fill();
     ctx.fillStyle = 'rgba(230,242,250,' + a + ')'; ctx.fillRect(x, y, s, s);
     const k = s / M.N; ctx.lineWidth = Math.max(1.5, k * 0.9); ctx.lineCap = 'square';
-    M.ents.forEach((e, i) => { if (!e.vivant && e.fade <= 0) return; const p = pos(e, i); if (!p) return; const P = p.pts.slice(); if (e.vivant) P.push([p.x - 0.5, p.z - 0.5]);
+    M.ents.forEach((e, i) => { if (!e.vivant && e.fade <= 0) return; const p = pos(e, i); if (!p) return; const P = [];   // V2 : avec un coude à angle droit là où un virage n'est pas encore reçu (comme les murs)
+      for (const q of p.pts) { const l = P[P.length - 1]; if (q && l && l[0] !== q[0] && l[1] !== q[1]) P.push([q[0], l[1]]); P.push(q); }
+      if (e.vivant) { const h = [p.x - 0.5, p.z - 0.5], l = P[P.length - 1]; if (l && Math.abs(l[0] - h[0]) > 1e-3 && Math.abs(l[1] - h[1]) > 1e-3) P.push(DX[p.d] ? [l[0], h[1]] : [h[0], l[1]]); P.push(h); }
       ctx.globalAlpha = e.vivant ? 1 : e.fade; ctx.strokeStyle = COUL[e.col][1]; ctx.beginPath(); P.forEach((q, a) => { if (!q) return; const u = x + (q[0] + 0.5) * k, v = y + (q[1] + 0.5) * k; if (a) ctx.lineTo(u, v); else ctx.moveTo(u, v); }); ctx.stroke();
       if (e.vivant) { ctx.fillStyle = COUL[e.col][0]; ctx.beginPath(); ctx.arc(x + p.x * k, y + p.z * k, i === moiI ? 4.5 : 3, 0, TAU); ctx.fill(); if (i === moiI) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = Math.max(1.5, k * 0.9); } } });
     ctx.restore();
@@ -1044,7 +1254,7 @@ function mount(root, api) {
     _test: {
       ecran: () => ecran, M: () => M, moi: () => moiI, hote: () => suisHote(), peers: () => [...PEERS.entries()].map(([id, p]) => [id, p.nom, p.st]),
       lancer: () => lancerPartie(), cfg: (t, b) => { if (t != null) cfg.t = t; if (b != null) cfg.b = b; }, tourner, turbo, maDir, pos: i => M && pos(M.ents[i], i),
-      tactile: v => { tactile = !!v; }, finManche: () => { if (M && M.hote && M.ph === 'course') finManche(); }, podiumEssai: sc => montrerPodium(sc), sons: () => JOUES.slice(), podium: () => podium, cam: () => ({ ...cam }), boutons, rtt: () => rtt, pend: () => pend.slice()
+      tactile: v => { tactile = !!v; }, finManche: () => { if (M && M.hote && M.ph === 'course') finManche(); }, podiumEssai: sc => montrerPodium(sc), sons: () => JOUES.slice(), podium: () => podium, cam: () => ({ ...cam }), murc: () => ({ rangees: RANGC.size }), boutons, rtt: () => rtt, pend: () => pend.slice()
     }
   };
 }
