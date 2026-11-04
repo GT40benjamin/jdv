@@ -1,0 +1,1770 @@
+(() => {
+'use strict';
+// La Maison des Licornes — premier jeu né à l'Atelier des jeux (projet a5badecc, auteur PATOU), version alpha (2 nov. 2026).
+// Un tapis magique défile avec des œufs, des accessoires et des biberons à acheter avec les PIÈCES DU JEU (jamais d'argent réel) ;
+// les œufs éclosent dans la couveuse, les bébés grandissent (biberon), on habille, on revend au panneau VENDRE, et deux adultes
+// dans le nid d'amour donnent un nouvel œuf. V3 (demandes de PATOU, 3 nov.) : la partie se joue en MANCHES — des enfants viennent à la
+// fenêtre de droite, une bulle montre la licorne qu'ils veulent (âge, couleur, accessoire, scintillante) ; livre-leur assez de licornes
+// avant la fin du temps, puis la manche suivante en demande une de plus, en un peu moins de temps. Score = la valeur de toute ta Maison.
+// V9 (offerte, 3 nov.) : la couleur de CHAQUE œuf (touche un œuf de la couveuse pour la choisir ou la changer), une couveuse de 3 œufs
+// (5 avec la grande) pour que plusieurs licornes naissent et se promènent ensemble, et une vraie fin de partie avec ton score.
+// V10 (demande de PATOU, 3 nov.) : on GLISSE un œuf du tapis jusque dans la couveuse pour l'acheter (sinon il revient au tapis,
+// « Pas assez de pièces ») ; toucher la couveuse change SA couleur et les bébés naissent de cette couleur (grosses pastilles au-dessus) ;
+// la licorne ARC-EN-CIEL, très rare, plaît à tous les enfants, vaut beaucoup de points et brille de toutes ses couleurs.
+// V11 (demandes de PATOU, 3 nov.) : 10 MAISONS peintes, du simple jardin au palace : on achète chaque maison d'un toucher quand on a
+// assez de pièces (elle brille alors ; la jauge de gauche montre ce qui manque) ; calme au début, puis jusqu'à 2 enfants à la fois ;
+// une musique toutes les 2 maisons (quand la borne les a). Images : assets/jeux/licornes/v11/maisons.bin (~/jdv-tools/licornes/emballer_v11.py).
+// V12 (correction) : avec 2 enfants, les 2 tuiles ne se touchent plus (paysage : l'une au-dessus de l'autre, chacune avec sa bulle de
+// refus à sa droite ; portrait : la petite tuile à gauche du mur, sa bulle à droite).
+// V13 (demande de PATOU, 3 nov.) : la musique du palace joue dès l'écran d'accueil, passe en fondu à celle du jardin quand la partie
+// commence, et revient sur la carte de fin.
+// V14 (correction de l'Atelier, règle « plein écran, toujours », 3 nov.) : plus aucune bande rose sur les bords — le décor de la
+// maison (et l'écran d'accueil) est prolongé en miroir jusqu'aux vrais bords de l'écran, jamais étiré ; pièces, jauge et valeur
+// s'accrochent aux vrais bords (téléphone couché 19,5:9, tablette 4:3, PC).
+// V15 (demande de l'admin, 3 nov. : « on perd de la place avec les côtés… on pourrait gagner plus de place pour les licornes ») : en
+// paysage la scène prend le VRAI format de l'écran (20:9 = 1707 de large au lieu de 1344) ; la maison couvre tout l'écran (agrandie,
+// calée sur la ligne du sol, jamais étirée), le tapis et le comptoir s'allongent par bandes, l'enclos des licornes s'élargit, les deux
+// enfants se tiennent côte à côte quand il y a la place, et sur téléphone le coin haut-gauche reste libre (boutons ✕ et son de la borne).
+// V16 (correction de l'Atelier, 3 nov. : « la cape on ne la voit pas, on ne voit pas grand-chose ») : les accessoires se VOIENT sur la
+// licorne (plus grands, devant le corps, bordés de blanc ; la cape étoilée posée sur le dos, du garrot à la croupe) partout : en jeu, sur
+// la carte de la licorne, dans la demande de l'enfant et sur la carte de fin ; la demande écrit l'accessoire en toutes lettres
+// (« avec la cape étoilée »), la carte de la licorne dit s'il manque quelque chose pour un enfant, et le refus dit lequel (« Il me faut
+// la cape étoilée ! ») ; en paysage, deux enfants = deux tuiles côte à côte au-dessus des licornes (plus rien ne passe derrière elles).
+// Images : planches dessinées pour l'Atelier, découpées et emballées dans assets/licornes.bin (~/jdv-tools/licornes/emballer.py).
+// V17 (cadeau de l'admin, 4 nov.) : dans le nid d'amour, les deux licornes se font un CÂLIN tout doux (elles se blottissent, se regardent,
+// penchent la tête l'une vers l'autre et se frottent le museau, lueur rose, cœurs qui montent lentement en se balançant) ; la MAISON
+// est plus lumineuse et plus gaie (chaque image éclaircie une fois : tons moyens relevés, couleurs plus vives, contours inchangés).
+const ROOT = () => window.JDW_ROOT || '';
+const TAU = Math.PI * 2;
+// manche n : livrer n + 1 licornes, en 120 s pour la 1re puis 10 % de moins à chaque manche (55 s au moins)
+const objectifDe = n => n + 1, tempsDe = n => Math.max(55, Math.round(120 * Math.pow(0.9, n - 1)));
+const ENFANTS = ['lila', 'tom', 'nina'];
+const POT_PRIX = 10;
+const FOULEE = 70, FOULEE_BEBE = 46;   // pixels parcourus par pas complet (8 images de marche)
+
+/* ---------- images (paquet LIC1 : en-tête JSON + WebP à la suite) ---------- */
+const IMG = {};
+let LOAD = null, LOADED = false;
+async function lirePaquet(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('images ' + r.status);
+  const b = new Uint8Array(await r.arrayBuffer());
+  if (String.fromCharCode(b[0], b[1], b[2], b[3]) !== 'LIC1') throw new Error('paquet illisible');
+  const n = b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24);
+  const idx = JSON.parse(new TextDecoder().decode(b.subarray(8, 8 + n))), base = 8 + n;
+  await Promise.all(idx.map(([nom, o, l]) => new Promise(res => {
+    const im = new Image(); im.onload = () => { IMG[nom] = im; res(); }; im.onerror = () => res();
+    im.src = URL.createObjectURL(new Blob([b.subarray(base + o, base + o + l)], { type: 'image/webp' }));
+  })));
+}
+// V11 : les 10 maisons (chargées à côté, sans retarder le jeu : sans elles, le fond d'avant)
+let LOADM = null;
+const loadMaisons = () => LOADM || (LOADM = lirePaquet(ROOT() + 'assets/jeux/licornes/v11/maisons.bin').catch(() => { LOADM = null; }));
+function loadImages() {
+  if (LOAD) return LOAD;
+  LOAD = (async () => {
+    const r = await fetch(ROOT() + 'assets/licornes.bin');
+    if (!r.ok) throw new Error('images ' + r.status);
+    const b = new Uint8Array(await r.arrayBuffer());
+    if (String.fromCharCode(b[0], b[1], b[2], b[3]) !== 'LIC1') throw new Error('paquet illisible');
+    const n = b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24);
+    const idx = JSON.parse(new TextDecoder().decode(b.subarray(8, 8 + n))), base = 8 + n;
+    await Promise.all(idx.map(([nom, o, l]) => new Promise(res => {
+      const im = new Image(); im.onload = () => { IMG[nom] = im; res(); }; im.onerror = () => res();
+      im.src = URL.createObjectURL(new Blob([b.subarray(base + o, base + o + l)], { type: 'image/webp' }));
+    })));
+    LOADED = true;
+  })();
+  LOAD.catch(() => { LOAD = null; });
+  return LOAD;
+}
+
+/* ---------- le catalogue ---------- */
+const OEUFS = {
+  commun: { img: 'oeuf-commun', prix: 20, eclot: 7, bebe: 'bebe-rose', valBebe: 30, nom: 'Œuf commun' },
+  rare: { img: 'oeuf-rare', prix: 70, eclot: 9, bebe: 'bebe-arc', valBebe: 95, nom: 'Œuf rare' },
+  leg: { img: 'oeuf-legendaire', prix: 200, eclot: 12, bebe: 'bebe-arc', valBebe: 270, nom: 'Œuf légendaire' }
+};
+const ADULTES = {
+  blanche: { img: 'adulte-blanche', val: 80, rang: 0, nom: 'Licorne blanche' },
+  arc: { img: 'adulte-arc', val: 700, rang: 2, nom: 'Licorne arc-en-ciel' },   // V10 : seulement les vraies arc-en-ciel (très rares)
+  nuit: { img: 'adulte-nuit', val: 450, rang: 2, nom: 'Licorne nuit étoilée' },
+  doree: { img: 'adulte-doree', val: 900, rang: 3, nom: 'Licorne dorée' }
+};
+// ax, ay : place sur la licorne (fraction de la boîte du dessin, tournée vers la droite) ; s : taille (fraction de la hauteur) ; b : dessiné derrière
+// V16 : rot = tourné (radians ; la cape, dessinée de face, est couchée sur le dos : col vers le garrot, le bas vers la croupe) ; le = son nom avec l'article
+const ACC = {
+  couronne: { prix: 40, nom: 'Couronne', le: 'la couronne', a: { ax: 0.76, ay: 0.06, s: 0.32 }, k: { ax: 0.68, ay: 0.06, s: 0.36 } },
+  noeud: { prix: 15, nom: 'Nœud rose', le: 'le nœud rose', a: { ax: 0.6, ay: 0.26, s: 0.26 }, k: { ax: 0.44, ay: 0.24, s: 0.3 } },
+  lunettes: { prix: 20, nom: 'Lunettes cœur', le: 'les lunettes cœur', a: { ax: 0.85, ay: 0.21, s: 0.2 }, k: { ax: 0.76, ay: 0.36, s: 0.24 } },
+  ailes: { prix: 60, nom: 'Ailes d’ange', le: 'les ailes d’ange', a: { ax: 0.42, ay: 0.24, s: 0.56, b: 1 }, k: { ax: 0.4, ay: 0.34, s: 0.56, b: 1 } },
+  cape: { prix: 45, nom: 'Cape étoilée', le: 'la cape étoilée', a: { ax: 0.45, ay: 0.47, s: 0.44, rot: 1.25 }, k: { ax: 0.5, ay: 0.58, s: 0.42, rot: 1.25 } },
+  chapeau: { prix: 30, nom: 'Chapeau de fée', le: 'le chapeau de fée', a: { ax: 0.72, ay: 0.02, s: 0.36 }, k: { ax: 0.62, ay: 0.02, s: 0.4 } },
+  collier: { prix: 25, nom: 'Collier de perles', le: 'le collier de perles', a: { ax: 0.68, ay: 0.4, s: 0.22 }, k: { ax: 0.64, ay: 0.56, s: 0.24 } },
+  fers: { prix: 35, nom: 'Fers dorés', le: 'les fers dorés', a: { ax: 0.5, ay: 0.89, s: 0.2 }, k: { ax: 0.5, ay: 0.9, s: 0.2 } },
+  tiare: { prix: 80, nom: 'Tiare arc-en-ciel', le: 'la tiare arc-en-ciel', a: { ax: 0.76, ay: 0.08, s: 0.3 }, k: { ax: 0.66, ay: 0.08, s: 0.34 } }
+};
+const ACC_IDS = Object.keys(ACC);
+// V10 : la chance qu'un œuf donne une licorne ARC-EN-CIEL (elle va avec toutes les demandes) ; les autres bébés des œufs rares
+// et légendaires naissent violets et dorés (avant, ils avaient tous le dessin arc-en-ciel)
+// V11 : les 10 maisons et leur prix (en pièces du jeu) ; une musique toutes les 2 maisons
+const MAISONS = [['Le jardin', 0], ['Le jardin fleuri', 120], ['La cabane', 200], ['La petite maison', 300], ['La maison douillette', 450],
+  ['La grande maison', 650], ['Le manoir', 900], ['Le château', 1200], ['Le château de cristal', 1600], ['Le palace', 2100]];
+const DEUX_ENFANTS = 6, DEUX_SOUVENT = 8;   // 2e enfant possible dès la maison 6, souvent dès la 8
+const ARC_CHANCE = { commun: 0.02, rare: 0.14, leg: 0.4 }, TEINTE_OEUF = { commun: null, rare: 272, leg: 50 }, ARC_VAL_BEBE = 260, ARC_BONUS = 100;
+const BIB_PRIX = 5;
+const GCOUV_PRIX = 120;   // la grande couveuse (5 œufs à la fois depuis la V9, 4 avant) passe de temps en temps sur le tapis (demande de PATOU, 3 nov.)
+// la couleur choisie pour l'œuf qui couve : l'œuf et le bébé prennent cette couleur (demande de PATOU, 3 nov.)
+const FEM = { Violet: 'violette', Bleu: 'bleue', Vert: 'verte' };   // V16 : « Grande verte »
+const COULEURS = [{ n: 'Rose', h: 330, c: '#ff8cc6' }, { n: 'Violet', h: 272, c: '#b48cff' }, { n: 'Bleu', h: 205, c: '#6fc2ff' },
+  { n: 'Vert', h: 125, c: '#7fdc8a' }, { n: 'Jaune', h: 50, c: '#ffd84d' }, { n: 'Orange', h: 25, c: '#ffa25a' }];
+// une image recolorée (teinte choisie, ombres et reflets gardés) : les traits sombres et les blancs restent tels quels ; gardée en cache
+const TEINTES = {};
+function teinte(nom, h) {
+  const im = IMG[nom]; if (!im || h == null) return im;
+  const k = nom + '|' + h; if (TEINTES[k]) return TEINTES[k];
+  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+  const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+  try {
+    const d = x.getImageData(0, 0, c.width, c.height), a = d.data, H = h / 360;
+    const f = (p, q, t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+    for (let i = 0; i < a.length; i += 4) {
+      if (a[i + 3] < 8) continue;
+      const R = a[i] / 255, G = a[i + 1] / 255, B = a[i + 2] / 255, mx = Math.max(R, G, B), mn = Math.min(R, G, B), l = (mx + mn) / 2, dd = mx - mn;
+      if (l < 0.26 || dd < 0.06) continue;   // traits, yeux et blancs : intacts
+      let sa = dd / (1 - Math.abs(2 * l - 1)); sa = Math.max(0.5, Math.min(1, sa));
+      const q = l < 0.5 ? l * (1 + sa) : l + sa - l * sa, p2 = 2 * l - q;
+      a[i] = f(p2, q, H + 1 / 3) * 255; a[i + 1] = f(p2, q, H) * 255; a[i + 2] = f(p2, q, H - 1 / 3) * 255;
+    }
+    x.putImageData(d, 0, 0);
+  } catch (e) { return im; }
+  return (TEINTES[k] = c);
+}
+const EMOJI = { 'oeuf-commun': '🥚', 'oeuf-rare': '🥚', 'oeuf-legendaire': '🥚', biberon: '🍼', piece: '🪙', vendre: '💰', couveuse: '🫧', nid: '💞', etoile: '⭐' };
+
+function drawImg(ctx, nom, x, y, w, h, hue) {
+  const im = hue == null ? IMG[nom] : teinte(nom, hue);
+  if (im) { ctx.drawImage(im, x, y, w, h); return; }
+  ctx.save(); ctx.font = Math.round(h * 0.8) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(EMOJI[nom] || (ADULTES[nom] || nom.startsWith('bebe') || nom.startsWith('adulte') ? '🦄' : '🎀'), x + w / 2, y + h / 2); ctx.restore();
+}
+// un pot de peinture : bocal en verre, peinture de la couleur, couvercle, une coulure
+function drawPot(ctx, x, y, w, h, hue) {
+  const c = (COULEURS.find(k => k.h === hue) || COULEURS[0]).c, cx = x + w / 2, bw = w * 0.62, bh = h * 0.62, by = y + h * 0.3;
+  ctx.save();
+  ctx.fillStyle = 'rgba(90,50,110,0.18)'; ctx.beginPath(); ctx.ellipse(cx, y + h * 0.95, bw * 0.5, h * 0.05, 0, 0, TAU); ctx.fill();
+  pill(ctx, cx - bw / 2, by, bw, bh, bw * 0.22); ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fill();
+  pill(ctx, cx - bw / 2 + 3, by + bh * 0.28, bw - 6, bh * 0.72 - 3, bw * 0.2); ctx.fillStyle = c; ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillRect(cx - bw * 0.32, by + bh * 0.36, bw * 0.1, bh * 0.45);
+  pill(ctx, cx - bw / 2, by, bw, bh, bw * 0.22); ctx.strokeStyle = '#b07aa8'; ctx.lineWidth = 2; ctx.stroke();
+  pill(ctx, cx - bw * 0.42, by - h * 0.13, bw * 0.84, h * 0.15, 5); ctx.fillStyle = '#f2a8cf'; ctx.fill(); ctx.stroke();
+  ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(cx + bw * 0.28, by + 2, bw * 0.12, h * 0.07, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + bw * 0.3, by + h * 0.09, bw * 0.06, h * 0.06, 0, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+// V16 : l'image d'un accessoire avec son contour, préparée une fois (contour blanc 4,5 px + liseré violet 7 px, à la taille de l'image)
+const TOUR = {};
+function accTour(a) {
+  if (TOUR[a]) return TOUR[a];
+  const im = IMG[a]; if (!im || !im.width) return null;
+  const p = 9, w = im.width + 2 * p, h = im.height + 2 * p, toile = () => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const sil = (r, col) => { const c = toile(), x = c.getContext('2d'); for (let i = 0; i < 16; i++) { const t = i * TAU / 16; x.drawImage(im, p + Math.cos(t) * r, p + Math.sin(t) * r); } x.globalCompositeOperation = 'source-in'; x.fillStyle = col; x.fillRect(0, 0, w, h); return c; };
+  try { const c = toile(), x = c.getContext('2d'); x.drawImage(sil(7, 'rgba(122,63,160,0.6)'), 0, 0); x.drawImage(sil(4.5, '#ffffff'), 0, 0); x.drawImage(im, p, p); return (TOUR[a] = { c, p }); } catch (e) { return null; }
+}
+function drawObjet(ctx, nom, x, y, w, h) { if (typeof nom === 'string' && nom.startsWith('pot:')) drawPot(ctx, x, y, w, h, +nom.slice(4)); else drawImg(ctx, nom, x, y, w, h); }
+const ratio = nom => { if (typeof nom === 'string' && nom.startsWith('pot:')) return 0.8; const im = IMG[nom]; return im && im.height ? im.width / im.height : 1; };
+function star(ctx, x, y, r, rot) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) { const a = rot + i * Math.PI / 4, rr = i % 2 ? r * 0.32 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+  ctx.closePath(); ctx.fill();
+}
+function heart(ctx, x, y, s) {
+  ctx.beginPath(); ctx.moveTo(x, y + s * 0.35);
+  ctx.bezierCurveTo(x - s, y - s * 0.3, x - s * 0.4, y - s, x, y - s * 0.45);
+  ctx.bezierCurveTo(x + s * 0.4, y - s, x + s, y - s * 0.3, x, y + s * 0.35); ctx.fill();
+}
+function pill(ctx, x, y, w, h, r) { r = Math.min(r, h / 2, w / 2); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+/* ---------- la tuile vivante (aperçu de la borne et de l'Atelier) : un ciel pastel, un arc-en-ciel, des nuages qui glissent, des étoiles
+   qui scintillent, des collines en barbe à papa, et trois licornes du jeu qui respirent et sautillent (demande de PATOU, 3 nov.) ---------- */
+function nuage(ctx, x, y, s) {
+  ctx.fillStyle = 'rgba(190,150,210,0.18)'; ctx.beginPath(); ctx.ellipse(x, y + s * 0.42, s * 0.95, s * 0.16, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.beginPath();
+  ctx.arc(x - s * 0.55, y + s * 0.08, s * 0.32, 0, TAU); ctx.arc(x - s * 0.12, y - s * 0.12, s * 0.44, 0, TAU); ctx.arc(x + s * 0.38, y, s * 0.36, 0, TAU); ctx.arc(x + s * 0.72, y + s * 0.14, s * 0.24, 0, TAU);
+  ctx.rect(x - s * 0.8, y + s * 0.08, s * 1.6, s * 0.3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,214,236,0.55)'; ctx.beginPath(); ctx.ellipse(x - s * 0.25, y + s * 0.3, s * 0.5, s * 0.08, 0, 0, TAU); ctx.fill();
+}
+function etoile4(ctx, x, y, r) { ctx.beginPath(); ctx.moveTo(x, y - r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.quadraticCurveTo(x, y, x, y + r); ctx.quadraticCurveTo(x, y, x - r, y); ctx.quadraticCurveTo(x, y, x, y - r); ctx.fill(); }
+function preview(ctx, w, h, t) {
+  try { loadImages(); } catch (e) { /* rien */ }
+  const k = Math.min(w / 400, h / 300);
+  // le ciel
+  const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#cfe9ff'); g.addColorStop(0.5, '#f1dcff'); g.addColorStop(1, '#ffe0ef');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  // l'arc-en-ciel, qui brille doucement
+  const ax = w * 0.5, ay = h * 0.86, R = h * 0.66, bands = ['#ffb3c8', '#ffd2a8', '#fff0a8', '#c8f2b8', '#b8e2ff', '#d2c2ff'];
+  ctx.save(); ctx.globalAlpha = 0.62 + Math.sin(t * 1.5) * 0.08; ctx.lineCap = 'round';
+  bands.forEach((c, i) => { ctx.strokeStyle = c; ctx.lineWidth = h * 0.034; ctx.beginPath(); ctx.arc(ax, ay, R - i * h * 0.032, Math.PI * 1.02, Math.PI * 1.98); ctx.stroke(); });
+  ctx.restore();
+  // des étoiles qui scintillent
+  for (let i = 0; i < 12; i++) {
+    const sx = ((i * 0.618 + 0.07) % 1) * w, sy = ((i * 0.371 + 0.05) % 0.55) * h, a = Math.max(0, Math.sin(t * 2.2 + i * 1.7));
+    ctx.globalAlpha = 0.35 + a * 0.65; ctx.fillStyle = ['#fff7b0', '#ffffff', '#ffd6ec', '#d8ccff'][i % 4]; etoile4(ctx, sx, sy, (2.5 + a * 3.5) * k);
+  }
+  ctx.globalAlpha = 1;
+  // des nuages qui glissent (ils reviennent de l'autre côté)
+  for (let i = 0; i < 3; i++) { const s = (32 + i * 9) * k, x = ((t * (7 + i * 3) * k + i * w * 0.42) % (w + s * 3)) - s * 1.5, y = h * (0.16 + i * 0.13); nuage(ctx, x, y, s); }
+  // les collines en barbe à papa
+  ctx.fillStyle = '#ffd3e6'; ctx.beginPath(); ctx.ellipse(w * 0.2, h * 1.02, w * 0.48, h * 0.26, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#d4f5e4'; ctx.beginPath(); ctx.ellipse(w * 0.85, h * 1.04, w * 0.5, h * 0.27, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ffe4f0'; ctx.beginPath(); ctx.ellipse(w * 0.5, h * 1.1, w * 0.62, h * 0.24, 0, 0, TAU); ctx.fill();
+  for (let i = 0; i < 16; i++) { ctx.fillStyle = ['#ff9fc8', '#9fdcff', '#ffe27a', '#b9a4ff'][i % 4]; ctx.beginPath(); ctx.arc(((i * 0.414) % 1) * w, h * (0.9 + ((i * 0.27) % 0.08)), 1.8 * k, 0, TAU); ctx.fill(); }
+  // les licornes : la grande arc-en-ciel, le bébé rose qui sautille, la dorée ; elles respirent (images de repos du jeu)
+  const L3 = [{ n: 'adulte-arc', x: 0.25, hh: 0.42, f: 1, ph: 0 }, { n: 'adulte-doree', x: 0.77, hh: 0.42, f: -1, ph: 0.9 }, { n: 'bebe-rose', x: 0.52, hh: 0.3, f: 1, ph: 0.4, saute: 1 }];
+  const sol = h * 0.9;
+  for (const o of L3) {
+    const im = IMG[o.n + '-r' + (Math.floor(t / 0.55 + o.ph * 4) % 4)] || IMG[o.n]; if (!im) continue;
+    const per = o.saute ? 1.3 : 3.4, p = ((t + o.ph * per) % per) / per, hop = p < 0.32 ? Math.sin(p / 0.32 * Math.PI) : 0;
+    const hh = h * o.hh, ww = hh * im.width / im.height, y = sol - hop * h * (o.saute ? 0.12 : 0.05), sq = p < 0.04 || (p > 0.3 && p < 0.36) ? 0.94 : 1;
+    ctx.fillStyle = 'rgba(160,90,150,' + (0.2 - hop * 0.08) + ')'; ctx.beginPath(); ctx.ellipse(w * o.x, sol, ww * (0.3 - hop * 0.06), h * 0.025, 0, 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(w * o.x, y); ctx.scale(o.f / sq * (sq < 1 ? 0.97 : 1), sq); ctx.drawImage(im, -ww / 2, -hh, ww, hh); ctx.restore();
+  }
+  // des cœurs qui montent et des étincelles autour du bébé
+  for (let i = 0; i < 4; i++) {
+    const p = ((t * 0.35 + i / 4) % 1), x = w * (0.36 + i * 0.09) + Math.sin(t * 2 + i) * 6 * k, y = sol - h * 0.25 - p * h * 0.35;
+    ctx.globalAlpha = Math.sin(p * Math.PI) * 0.9; ctx.fillStyle = ['#ff8cc6', '#ffa8d4', '#ff7eb6', '#ffb3c7'][i]; heart(ctx, x, y, (5 + p * 3) * k);
+  }
+  for (let i = 0; i < 5; i++) { const a = t * 1.4 + i * 1.26, r = Math.max(0, Math.sin(t * 3 + i * 2)); ctx.globalAlpha = r; ctx.fillStyle = '#fff3a6'; star(ctx, w * 0.52 + Math.cos(a) * w * 0.11, sol - h * 0.16 + Math.sin(a) * h * 0.09, (2 + r * 3.5) * k, t + i); }
+  ctx.globalAlpha = 1;
+  // le titre
+  const lg = IMG.logo, by = Math.sin(t * 2) * 2 * k;
+  if (lg) { const lw = w * 0.64, lh = lw * lg.height / lg.width; ctx.fillStyle = 'rgba(255,255,255,0.62)'; pill(ctx, (w - lw) / 2 - 8 * k, h * 0.03 + by - 4 * k, lw + 16 * k, lh + 8 * k, 16 * k); ctx.fill(); ctx.drawImage(lg, (w - lw) / 2, h * 0.03 + by, lw, lh); }
+  else { ctx.fillStyle = '#9b5fc0'; ctx.font = 'bold ' + Math.round(h * 0.11) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('La Maison des Licornes', w / 2, h * 0.05 + by); }
+}
+
+/* ---------- le jeu ---------- */
+function mount(root, api) {
+  const FONT = api.fonts || { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" };
+  const RF = "'Trebuchet MS', 'Segoe UI', system-ui, sans-serif";
+  const audio = api.audio || { tone() {}, noise() {} };
+  const pad = api.pad || null;
+  let dead = false, raf = 0, last = 0, paused = false, overSent = false, FAST = 1;
+  root.innerHTML = '';
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;outline:none';
+  root.appendChild(canvas);
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const PB_PAUSE = '<svg viewBox="0 0 24 24" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>';
+  const PB_PLAY = '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5 L19 12 L8 19 Z" fill="currentColor"/></svg>';
+  const pauseBtn = document.createElement('button');
+  pauseBtn.type = 'button'; pauseBtn.setAttribute('aria-label', 'Pause'); pauseBtn.innerHTML = PB_PAUSE;
+  pauseBtn.style.cssText = 'position:absolute;top:6px;right:6px;width:46px;height:46px;border-radius:14px;border:2px solid rgba(255,255,255,0.8);background:rgba(190,120,200,0.75);color:#fff;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;z-index:3';
+  root.appendChild(pauseBtn);
+
+  // ---------- mise en page : coordonnées logiques (paysage = le décor 1344 × 768 ; portrait = 720 de large) ----------
+  let W = 1, H = 1, dpr = 1, portrait = false, LW = 1344, LH = 768, sc = 1, ox = 0, oy = 0, L = null;
+  let V = { x: 0, y: 0, w: LW, h: LH };   // V14 : tout l'écran, en coordonnées logiques (déborde de LW × LH sur un écran plus large ou plus haut)
+  function layout() {
+    portrait = H > W * 1.12;
+    if (!portrait) {
+      // V15 : la largeur suit l'écran (1344 au moins, 1843 au plus = 21:9) ; d = la place gagnée, distribuée au jeu
+      LH = 768; LW = Math.round(Math.min(1843, Math.max(1344, LH * W / H))); sc = Math.min(W / LW, H / LH);
+      const d = LW - 1344, wc = d >= 262 ? 152 : 0;   // wc : le comptoir s'allonge d'une bande de rayures (152)
+      // téléphone couché : les ronds ✕ et son de la borne (2 × 44 px, en haut à gauche) ; le tapis commence après eux
+      let flot = 0; try { flot = matchMedia('(orientation: landscape) and (max-height: 500px)').matches ? 112 / sc + 8 : 0; } catch (e) { flot = 0; }
+      const gL = Math.max(0, Math.min(d, flot - 150));
+      L = {
+        hud: { y: 4, h: 46, g: flot },
+        belt: { x0: 210 + gL, x1: 1185 + d, y: 128, sz: 74 },
+        trous: { g: { x: 214 + gL, bas: 135, w: 108, h: 84 }, d: { x: 1176 + d, bas: 135, w: 108, h: 84 } },
+        couv: { x: 236, y: 318, w: 156, h: 150 }, nid: { x: 470 + wc, y: 346, w: 176, h: 124 },
+        enclos: { x: 770 + wc, y: 548, w: 530 + d - wc, h: 66 },   // le sol carrelé à droite (l'aquarium est retiré du fond : demande de PATOU, 2 nov. 23 h)
+        fen: { x: 994 + d, y: 196, w: 184, h: 206 }, bulle: { x: 816 + d, y: 196, w: 168, h: 206 },   // la fenêtre des clients (à droite) et la bulle de l'enfant
+        carte: { x: 806 + d, y: 186, w: 382, h: 226 }, refus: { x: 1196 + d, y: 196, w: 142, h: 206, cote: 'd' },   // V10 : SA tuile, la bulle de refus à droite
+        tray: { x: 196, y: 636, w: 566 + wc, h: 116 },
+        act: { x: 790 + d, y: 630, w: 520, h: 120 },
+        msgY: 300, d, wc, gL
+      };
+    } else {
+      // portrait (2 h 10, Benjamin : « il faut absolument le détecter ») : de haut en bas, le tapis, la scène (mur à sa taille naturelle +
+      // sol carrelé qui prend toute la hauteur en plus), puis la rangée couveuse · nid (sur le comptoir) · fenêtre du client, l'inventaire
+      // et les boutons collés en bas : rien d'étiré, rien qui se chevauche, pas de vide
+      LW = 720; LH = Math.max(1150, 720 * H / W); sc = Math.min(W / LW, H / LH); LH = Math.max(1150, H / sc);
+      const actY = LH - 16 - 116, trayY = actY - 10 - 112, rowY = trayY - 12 - 300, sceneY = 206, sceneH = rowY - 20 - sceneY;
+      const wallH = Math.min(218, sceneH * 0.42), floorH = sceneH - wallH;
+      L = {
+        hud: { y: 8, h: 56 },
+        belt: { x0: 18, x1: 702, y: 150, sz: 74, draw: { x: 0, y: 116, w: 720 } },
+        trous: { g: { x: 34, bas: 156, w: 88, h: 90 }, d: { x: 686, bas: 156, w: 88, h: 90 } },
+        scene: { x: 8, y: sceneY, w: 704, h: sceneH, wallH },
+        enclos: { x: 70, y: sceneY + wallH + floorH * 0.28, w: 580, h: floorH * 0.6 },   // les pieds sur le carrelage
+        counterDraw: { x: 8, y: rowY + 128, w: 470 },
+        couv: { x: 40, y: rowY, w: 160, h: 150 }, nid: { x: 236, y: rowY + 28, w: 190, h: 130 },
+        fen: { x: 494, y: rowY + 40, w: 212, h: 206 }, bulle: { x: 504, y: rowY - 134, w: 192, h: 166 },
+        carte: { x: 486, y: rowY - 144, w: 228, h: 400 }, refus: { x: 268, y: rowY + 8, w: 210, h: 150, cote: 'g' },   // V10 : SA tuile ; refus à gauche (pas de place à droite)
+        tray: { x: 16, y: trayY, w: 688, h: 112 },
+        act: { x: 16, y: actY, w: 688, h: 116 },
+        msgY: sceneY + sceneH * 0.45
+      };
+    }
+    // V11 : la jauge de la maison (à gauche) et la place du 2e enfant (dès la maison 6)
+    const p1 = { carte: L.carte, bulle: L.bulle, fen: L.fen, refus: L.refus };
+    let deux;
+    if (!portrait) {
+      L.jauge = { x: 16, y: 196, w: 74, h: 330 };
+      // V12 : 2 enfants = 2 tuiles l'une au-dessus de l'autre, séparées de 14, chaque bulle de refus à droite de son enfant
+      // V15 : écran large = les 2 tuiles CÔTE À CÔTE (l'enfant 1 à droite, le 2e à sa gauche), la bulle de refus sous chaque enfant
+      // V16 : toujours côte à côte, à droite du nid, plus étroites s'il le faut (PC 16:9, 4:3) : avant, les 2 tuiles l'une au-dessus de
+      // l'autre descendaient derrière les licornes de l'enclos (on ne voyait plus ni la demande ni les accessoires)
+      const g0 = L.nid.x + L.nid.w + 14, cw = Math.min(382, Math.floor((LW - 16 - g0 - 14) / 2)), fx = Math.round(cw * 0.492);
+      const c = x => ({ carte: { x, y: 186, w: cw, h: 214 }, bulle: { x: x + 10, y: 192, w: Math.round(cw * 0.44), h: 200 }, fen: { x: x + fx, y: 192, w: cw - fx - 10, h: 200 },
+        refus: { x: x + Math.round(cw * 0.25), y: 408, w: Math.round(cw * 0.707), h: 118, cote: 'h' } });
+      const x1 = LW - 16 - cw; deux = [c(x1), c(x1 - 14 - cw)];
+    } else {
+      const S = L.scene, hh = Math.max(150, Math.min(196, S.wallH - 10));
+      L.jauge = { x: 10, y: S.y + 14, w: 58, h: Math.min(330, S.h - 40) };
+      // V12 : la petite tuile à gauche du mur (loin de la grande, en bas à droite), sa bulle de refus à sa droite
+      deux = [p1, { carte: { x: 76, y: S.y + 6, w: 238, h: hh }, bulle: { x: 82, y: S.y + 10, w: 112, h: hh - 8 }, fen: { x: 200, y: S.y + 10, w: 108, h: hh - 8 },
+        refus: { x: 324, y: S.y + 10, w: 250, h: Math.min(140, hh), cote: 'd' } }];
+    }
+    L.places1 = [p1, deux[1]]; L.places2 = deux;
+    ox = (W - LW * sc) / 2; oy = (H - LH * sc) / 2;
+    V = { x: -ox / sc, y: -oy / sc, w: W / sc, h: H / sc };
+    L.jauge.x += V.x;   // V14 : la jauge s'accroche au vrai bord gauche
+  }
+  function resize() {
+    const r = root.getBoundingClientRect();
+    W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height));
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    layout();
+  }
+  resize();
+  const ro = new ResizeObserver(() => { if (!dead) resize(); });
+  ro.observe(root);
+
+  // ---------- état ----------
+  let state = LOADED ? 'title' : 'load', stT = 0, timeLeft = tempsDe(1), coins = 60, best = 0;
+  let manche = 1, vendues = 0, gagne = 0, dernier = '';
+  // V11 : jusqu'à 2 enfants (place 0 = la grande tuile, place 1 = la petite, dès la maison 6) ; la maison achetée
+  let kids = [null, null], kidT = [1.2, 99], niveau = 1, maisonVal = 0, prevNiv = 0, transT = 0;
+  const deuxEnfants = () => niveau >= DEUX_ENFANTS;
+  const PL = () => deuxEnfants() || kids[1] ? L.places2 : L.places1;   // V12 : la place des tuiles selon le nombre d'enfants
+  const prochaine = () => niveau < 10 ? MAISONS[niveau] : null;   // [nom, prix] de la maison suivante
+  const maisonPrete = () => state === 'play' && niveau < 10 && coins >= MAISONS[niveau][1];
+  let belt = [], beltT = 0.3, beltN = 0, couv = [], queue = [], tray = [], bib = 1, unis = [], nid = [null, null], nidT = 0, nidEgg = null;
+  let sel = null, parts = [], texts = [], flyers = [], msg = null, drag = null, down = null, uid = 1, hover = null, tick = -1, loadErr = '';
+  const NID_DUREE = 8, MAX_UNIS = 8, MAX_TRAY = 8, MAX_QUEUE = 3;
+  let livrees = 0, bilan = null;   // le bilan de la fin de partie
+  // V10 : la couleur de la COUVEUSE (null = sa couleur à elle) : tous les œufs qui couvent la prennent, et les bébés naissent de cette couleur
+  let couvCol = null;
+  const nouvelOeuf = (t, p) => ({ t, p: p || 0, done: false, wob: 0, col: couvCol });
+  function teindreCouv(h) {
+    couvCol = h; for (const o of couv) if (!o.done) o.col = h;
+    const k = COULEURS.find(c => c.h === h), G = couvGeo(), c = G.c;
+    snd.dress(); sparkle(c.x + c.w / 2, c.y + c.h * 0.45, 16, k.c, 130); floatText(c.x + c.w / 2, c.y - (portrait ? 92 : 96), 'Bébés en ' + k.n.toLowerCase(), '#9a4fb8');
+  }
+  let grande = false, grandeT = 30;   // la grande couveuse : achetée ? prochaine apparition sur le tapis
+  const cap = () => grande ? 5 : 3;   // V9 : 3 œufs au chaud dès le départ (2 avant), 5 avec la grande couveuse
+
+  const estPot = a => typeof a === 'string' && a.startsWith('pot:'), hueDe = a => +a.slice(4);
+  const prixTray = a => estPot(a) ? POT_PRIX : ACC[a].prix;
+  function valeur(u) {
+    let v = u.bebe ? (u.arc ? ARC_VAL_BEBE : OEUFS[u.ligne].valBebe) : ADULTES[u.adulte].val;
+    for (const a of u.accs) v += Math.round(ACC[a].prix * 1.5);
+    return u.brille ? v * 2 : v;   // une licorne scintillante vaut le double
+  }
+  function score() {
+    let s = coins + bib * BIB_PRIX;
+    for (const u of unis) s += valeur(u);
+    for (const u of nid) if (u) s += valeur(u);
+    for (const c of couv) s += OEUFS[c.t].prix;
+    for (const t of queue) s += OEUFS[t].prix;
+    for (const a of tray) s += prixTray(a);
+    if (nidEgg) s += OEUFS[nidEgg].prix;
+    if (grande) s += GCOUV_PRIX;
+    s += maisonVal;   // V11 : la maison achetée compte dans la valeur
+    return Math.max(0, Math.round(s));
+  }
+
+  // ---------- sons (fabriqués par le programme) ----------
+  // ---------- les vrais bruitages (assets/licornes.sons.bin, sons créés pour le jeu, joués par la borne : « son coupé » respecté) ----------
+  // quand un son est là, il remplace le petit bip ; la musique, elle, est jouée en boucle par la borne (assets/music/licornes-1.mp3)
+  const SONS = {}, SVOL = { acheter: 0.8, eclosion: 0.9, contente: 0.8, vendre: 0.75, accessoire: 0.7, nid: 0.8 };   // sons déjà mis au même niveau (~/jdv-tools/licornes/sons.py)
+  (async () => {
+    const S = api.audio && api.audio.sample; if (!S) return;
+    try {
+      const r = await fetch(ROOT() + 'assets/licornes.sons.bin'); if (!r.ok) return;
+      const b = new Uint8Array(await r.arrayBuffer()), n = b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24);
+      const idx = JSON.parse(new TextDecoder().decode(b.subarray(8, 8 + n))), base = 8 + n;
+      for (const [nom, o, l] of idx) { if (dead) return; try { SONS[nom] = await S.decode(b.slice(base + o, base + o + l).buffer); } catch (e) { /* rien */ } }
+    } catch (e) { /* pas de son : le jeu marche quand même */ }
+  })();
+  const vrai = (nom, rate) => { if (!SONS[nom]) return false; try { return api.audio.sample.play(SONS[nom], SVOL[nom] || 1, rate || 1) !== false; } catch (e) { return false; } };
+  const snd = {
+    buy() { if (vrai('acheter', 0.97 + Math.random() * 0.06)) return; audio.tone(880, 0.08, 'sine', 0.07, 1320); setTimeout(() => !dead && audio.tone(1320, 0.1, 'sine', 0.05, 1760), 70); },
+    no() { audio.tone(260, 0.12, 'triangle', 0.07, 200); },
+    hatch() { if (vrai('eclosion')) return; [660, 880, 1100, 1320].forEach((f, i) => setTimeout(() => !dead && audio.tone(f, 0.12, 'sine', 0.06), i * 70)); },
+    grow() { audio.tone(520, 0.25, 'sine', 0.06, 1040); },
+    adult() { if (vrai('contente')) return; [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => !dead && audio.tone(f, 0.16, 'triangle', 0.05), i * 80)); },
+    dress() { if (vrai('accessoire', 0.95 + Math.random() * 0.1)) return; audio.tone(1500, 0.06, 'sine', 0.05, 2200); setTimeout(() => !dead && audio.tone(1900, 0.08, 'sine', 0.04, 2600), 60); },
+    sell() { if (vrai('vendre')) return; [1568, 2093, 1568, 2637].forEach((f, i) => setTimeout(() => !dead && audio.tone(f, 0.07, 'square', 0.03), i * 60)); },
+    love() { if (vrai('nid')) return; audio.tone(440, 0.3, 'sine', 0.05, 660); setTimeout(() => !dead && audio.tone(554, 0.35, 'sine', 0.05, 830), 160); },
+    pick() { audio.tone(700, 0.05, 'sine', 0.04, 900); },
+    tick() { audio.tone(1200, 0.04, 'square', 0.03); },
+    go() { audio.tone(660, 0.12, 'sine', 0.07); setTimeout(() => !dead && audio.tone(990, 0.2, 'sine', 0.07), 120); }
+  };
+
+  // ---------- effets ----------
+  function sparkle(x, y, n, col, spread) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * TAU, v = (0.4 + Math.random()) * (spread || 120);
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, t: 0, d: 0.6 + Math.random() * 0.6, r: 5 + Math.random() * 7, c: col || ['#fff7b0', '#ffc6ec', '#c9b6ff', '#b5f1ff'][i % 4], k: 'star', rot: Math.random() * 3 });
+    }
+  }
+  function coeurDoux(x, y) { parts.push({ x, y, vx: (Math.random() - 0.5) * 14, vy: -26 - Math.random() * 14, t: 0, d: 2.6, r: 9 + Math.random() * 6, c: ['#ff7eb6', '#ff9fd0', '#ffb3c7'][Math.floor(Math.random() * 3)], k: 'heart', doux: 1 }); }
+  function hearts(x, y, n) {
+    for (let i = 0; i < n; i++) parts.push({ x: x + (Math.random() - 0.5) * 60, y, vx: (Math.random() - 0.5) * 40, vy: -60 - Math.random() * 60, t: 0, d: 1.2, r: 10 + Math.random() * 8, c: ['#ff7eb6', '#ff9fd0', '#ffb3c7'][i % 3], k: 'heart' });
+  }
+  // V10 : la fête d'une licorne arc-en-ciel (étincelles de toutes les couleurs)
+  const ARC_COLS = ['#ff7eb6', '#ffb35a', '#ffe36b', '#7fe08f', '#6fc6ff', '#b48cff'];
+  function arcFete(x, y, s) {
+    ARC_COLS.forEach(c => sparkle(x, y, 7, c, 230));
+    if (s) { floatText(x, y - 40, s, '#b04fd0'); try { api.celebrate && api.celebrate(s); } catch (e) { /* rien */ } }
+  }
+  // ---------- V11 : la maison qu'on achète (du jardin au palace) ----------
+  function musique(id) {   // seulement si la borne a ce morceau (sinon la musique du jeu continue)
+    try { if (api.music && window.JDW_MUSIC && window.JDW_MUSIC[id]) api.music(id, { level: true }); } catch (e) { /* rien */ }
+  }
+  const musiqueMaison = () => musique('licmaison' + Math.ceil(niveau / 2));   // 5 musiques, une toutes les 2 maisons
+  let flash = 0;
+  function acheterMaison() {
+    if (!maisonPrete()) return false;
+    const [nom, prix] = MAISONS[niveau];
+    coins -= prix; maisonVal += prix; prevNiv = niveau; niveau++; transT = IMG['maison' + prevNiv] && IMG['maison' + niveau] ? 1 : 0;
+    if (niveau === DEUX_ENFANTS && !kids[1]) kidT[1] = 3;
+    if (niveau % 2 === 1) musiqueMaison();   // 3, 5, 7, 9 : la musique grandit avec la maison
+    snd.adult(); flash = 1;
+    for (let i = 0; i < 6; i++) ARC_COLS.forEach(c => sparkle(LW * (0.1 + Math.random() * 0.8), LH * (0.12 + Math.random() * 0.45), 3, c, 200));
+    floatText(LW / 2, L.msgY - 40, 'Niveau ' + niveau + ' : ' + nom + ' !', '#b04fd0');
+    try { api.celebrate && api.celebrate(niveau === 10 ? 'Ton palace !' : nom + ' !'); } catch (e) { /* rien */ }
+    return true;
+  }
+  // la jauge : la maison suivante et ce qui manque ; pleine = elle brille, « Touche ! »
+  function drawJauge() {
+    if (state !== 'play' && state !== 'ready') return;
+    const J = L.jauge, nx = prochaine(), pret = maisonPrete(), k = nx ? Math.min(1, coins / nx[1]) : 1, pul = 1 + Math.sin(stT * 6) * 0.05;
+    ctx.save();
+    if (pret || !nx) { const g = ctx.createRadialGradient(J.x + J.w / 2, J.y + J.h / 2, 4, J.x + J.w / 2, J.y + J.h / 2, J.h * 0.7); g.addColorStop(0, 'rgba(255,230,120,0.6)'); g.addColorStop(1, 'rgba(255,230,120,0)'); ctx.fillStyle = g; ctx.fillRect(J.x - 60, J.y - 60, J.w + 120, J.h + 120); }
+    ctx.fillStyle = 'rgba(90,50,110,0.16)'; pill(ctx, J.x + 3, J.y + 5, J.w, J.h, J.w / 2); ctx.fill();
+    pill(ctx, J.x, J.y, J.w, J.h, J.w / 2); ctx.fillStyle = 'rgba(255,248,252,0.92)'; ctx.fill(); ctx.lineWidth = pret ? 4 : 2.5; ctx.strokeStyle = pret ? '#ffc93c' : '#e6a9c9'; ctx.stroke();
+    const cx = J.x + J.w / 2, r = J.w * 0.42, cy = J.y + r + 8;
+    ctx.save(); ctx.translate(cx, cy); if (pret) ctx.scale(pul, pul);
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fillStyle = pret ? '#ffe27a' : '#fbe3f0'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = pret ? '#e0a020' : '#e6a9c9'; ctx.stroke();
+    ctx.font = Math.round(r * 1.05) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(niveau >= 9 ? '🏰' : niveau >= 4 ? '🏡' : niveau >= 3 ? '🛖' : '🌷', 0, 2);
+    ctx.restore();
+    ctx.font = 'bold ' + (portrait ? 13 : 14) + 'px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#8a4fb0';
+    ctx.fillText('Niv. ' + niveau, cx, cy + r + 12);
+    const bx = cx - J.w * 0.2, bw = J.w * 0.4, by = cy + r + 26, bh = J.y + J.h - 56 - by;
+    ctx.fillStyle = 'rgba(230,200,220,0.9)'; pill(ctx, bx, by, bw, bh, bw / 2); ctx.fill();
+    if (k > 0) {
+      const g = ctx.createLinearGradient(0, by + bh, 0, by); g.addColorStop(0, pret || !nx ? '#ffb020' : '#7fd38a'); g.addColorStop(1, pret || !nx ? '#ffe36b' : '#bdf0a8');
+      ctx.fillStyle = g; pill(ctx, bx, by + bh * (1 - k), bw, Math.max(bw, bh * k), bw / 2); ctx.fill();
+    }
+    if (pret) for (let i = 0; i < 3; i++) { const t = (stT * 0.8 + i / 3) % 1; ctx.fillStyle = '#fff6b0'; star(ctx, bx + bw / 2 + Math.sin(i * 2 + stT) * bw, by + bh * (1 - t), 3 + Math.sin(t * Math.PI) * 4, stT * 2 + i); }
+    ctx.font = 'bold ' + (portrait ? 13 : 14) + 'px ' + RF; ctx.fillStyle = pret ? '#c07a00' : '#8a4fb0';
+    ctx.fillText(!nx ? '✨ Palace' : pret ? 'Touche !' : '🪙' + nx[1], cx, J.y + J.h - 36, J.w - 6);
+    if (nx && !pret) { ctx.font = (portrait ? 11 : 12) + 'px ' + RF; ctx.fillStyle = '#a07ab8'; ctx.fillText('encore ' + Math.max(0, nx[1] - coins), cx, J.y + J.h - 18, J.w - 8); }
+    ctx.restore();
+  }
+  // quand on peut acheter : la maison brille (voile doré qui respire, étoiles sur les murs) ; le flash de la transformation
+  function drawMaisonBrille() {
+    if (flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + (flash * 0.8).toFixed(3) + ')'; ctx.fillRect(V.x, V.y, V.w, V.h); }
+    if (!maisonPrete()) return;
+    const a = 0.16 + Math.sin(stT * 3) * 0.08, g = ctx.createRadialGradient(LW / 2, LH * 0.3, LH * 0.15, LW / 2, LH * 0.3, LW * 0.75);
+    g.addColorStop(0, 'rgba(255,240,170,0)'); g.addColorStop(1, 'rgba(255,214,90,' + a.toFixed(3) + ')'); ctx.fillStyle = g; ctx.fillRect(V.x, V.y, V.w, V.h);
+    for (let i = 0; i < 7; i++) {
+      const t = (stT * 0.6 + i / 7) % 1, x = LW * ((i * 0.137 + 0.08) % 1), y = (portrait ? L.scene.y + 20 : 40) + ((i * 97) % (portrait ? 160 : 200));
+      ctx.globalAlpha = Math.sin(t * Math.PI); ctx.fillStyle = '#fff3a0'; star(ctx, x, y, 4 + t * 5, stT + i);
+    }
+    ctx.globalAlpha = 1;
+  }
+  function floatText(x, y, s, col) { texts.push({ x, y, s, c: col || '#7a3fa0', t: 0 }); }
+  function say(s) { msg = { s, t: 0 }; }
+
+  // ---------- licornes ----------
+  function newUni(ligne, x, y) {
+    const r = Math.random();
+    const arc = Math.random() < ARC_CHANCE[ligne];
+    const adulte = arc ? 'arc' : ligne === 'commun' ? 'blanche' : ligne === 'rare' ? (r < 0.55 ? 'blanche' : 'nuit') : (r < 0.45 ? 'nuit' : 'doree');
+    const u = { id: uid++, ligne, adulte, arc, bebe: true, brille: ligne === 'leg' && !arc, col: null, lait: 0, laitT: 0, accs: [], u: Math.random(), v: Math.random(), tu: Math.random(), tv: Math.random(), wait: 1 + Math.random() * 2, face: Math.random() < 0.5 ? -1 : 1, ph: Math.random() * 6, hop: 0, pop: 0.6 };
+    if (x != null) { u.u = Math.min(1, Math.max(0, (x - L.enclos.x) / L.enclos.w)); u.v = Math.min(1, Math.max(0, (y - L.enclos.y) / L.enclos.h)); }
+    return u;
+  }
+  function uniImg(u) { return u.bebe ? (u.arc ? 'bebe-arc' : 'bebe-rose') : ADULTES[u.adulte].img; }
+  // la pose du moment : marche (8 images, au rythme des pas) ou repos (4 images de respiration) ; ailleurs (nid, glissé) : debout
+  function uniPose(u) {
+    const nm = uniImg(u);
+    if (u.nid == null && !(drag && drag.u === u) && u.marche && IMG[nm + '-m0']) return nm + '-m' + (Math.floor(u.step || 0) % 8);
+    if (IMG[nm + '-r0']) return nm + '-r' + (Math.floor(((u.repos || 0) + u.id * 0.37) / 0.6) % 4);
+    return nm;
+  }
+  function uniH(u) { const base = portrait ? 190 : 150; return base * (u.bebe ? 0.74 : 1); }
+  // V17 : le câlin du nid (0 → 1 en une seconde quand les deux licornes y sont, tant que l'œuf n'est pas là)
+  const calinK = () => nid[0] && nid[1] && !nidEgg ? Math.min(1, nidT / 1.1) : 0;
+  function uniPos(u) {   // pied de la licorne (logique)
+    if (u.nid != null) { const n = L.nid, k = calinK(), e = k * k * (3 - 2 * k), s = u.nid ? -1 : 1;
+      // elles se blottissent : chacune glisse vers l'autre, puis elles se balancent tout doucement ensemble
+      return { x: n.x + n.w * ((u.nid ? 0.8 : 0.2) + s * (0.03 * e + 0.012 * e * Math.sin(stT * 1.3))), y: n.y + n.h * 0.62 }; }
+    return { x: L.enclos.x + u.u * L.enclos.w, y: L.enclos.y + u.v * L.enclos.h };
+  }
+  function uniBox(u) {
+    const p = drag && drag.u === u ? { x: drag.x, y: drag.y + uniH(u) * 0.45 } : uniPos(u);
+    const h = uniH(u) * (u.nid != null ? 0.72 : 1), w = h * ratio(uniImg(u));
+    return { x: p.x - w / 2, y: p.y - h, w, h, fx: p.x, fy: p.y };
+  }
+  function grow(u, n) {
+    if (!u.bebe) return;
+    u.lait += n; const b = uniBox(u);
+    if (u.lait >= 3) {
+      u.bebe = false; u.pop = 0.8; snd.adult(); sparkle(b.x + b.w / 2, b.y + b.h / 2, 26, null, 200);
+      floatText(b.x + b.w / 2, b.y, ADULTES[u.adulte].nom + ' !', '#9a4fd0');
+      if (u.arc) arcFete(b.x + b.w / 2, b.y + b.h / 2, 'Une grande arc-en-ciel !');
+      if (u.adulte === 'doree' || u.adulte === 'nuit') { try { api.celebrate && api.celebrate(u.adulte === 'doree' ? 'Une licorne dorée !' : 'Une licorne étoilée !'); } catch (e) { /* rien */ } }
+    } else { u.pop = 0.4; snd.grow(); sparkle(b.x + b.w / 2, b.y + b.h * 0.4, 8); }
+  }
+
+  // ---------- tapis ----------
+  function spawnItem() {
+    beltN++;
+    const prog = Math.min(1, (manche - 1) / 8), r = Math.random();
+    let it; const vifs = kids.filter(Boolean), client = vifs[Math.floor(Math.random() * vifs.length)] || null;
+    if (!grande && grandeT <= 0 && !belt.some(i => i.k === 'gcouv')) { grandeT = 40 + Math.random() * 20; it = { k: 'gcouv', prix: GCOUV_PRIX, img: 'couveuse', x: L.trous.d.x + 6, bob: 0, shake: 0 }; belt.push(it); return; }
+    const pRare = 0.12 + prog * 0.06, pLeg = 0.035 + prog * 0.04;
+    if (beltN % 6 === 1 || r < 0.26) it = { k: 'egg', t: 'commun' };
+    else if (r < 0.26 + pRare) it = { k: 'egg', t: 'rare' };
+    else if (r < 0.26 + pRare + pLeg) it = { k: 'egg', t: 'leg' };
+    else if (r < 0.55) it = { k: 'acc', t: client && client.want.acc && Math.random() < 0.4 ? client.want.acc : ACC_IDS[Math.floor(Math.random() * ACC_IDS.length)] };
+    else if (r < 0.77) it = { k: 'pot', t: client && Math.random() < 0.5 ? client.want.col : COULEURS[Math.floor(Math.random() * COULEURS.length)].h };   // un pot de couleur
+    else it = { k: 'bib' };
+    it.prix = it.k === 'egg' ? OEUFS[it.t].prix : it.k === 'acc' ? ACC[it.t].prix : it.k === 'pot' ? POT_PRIX : BIB_PRIX;
+    it.img = it.k === 'egg' ? OEUFS[it.t].img : it.k === 'acc' ? it.t : it.k === 'pot' ? 'pot:' + it.t : 'biberon';
+    it.x = L.trous.d.x + 6; it.bob = Math.random() * 6; it.shake = 0;
+    belt.push(it);
+  }
+  const visible = it => it.x > L.trous.g.x + 18 && it.x < L.trous.d.x - 18;
+  // la couveuse dessinée (un peu plus grande avec la grande couveuse) et la place de chaque œuf sur la paille
+  function couvGeo() {
+    const c0 = L.couv, k = grande ? 1.28 : 1, c = { x: c0.x + c0.w * (1 - k) / 2, y: c0.y + c0.h * (1 - k), w: c0.w * k, h: c0.h * k };
+    const nx = c.x + c.w / 2, ny = c.y + c.h * 0.63, nrx = c.w * (grande ? 0.31 : 0.26), nry = c.h * 0.075;
+    const n = couv.length, s = n > 3 ? 0.26 : n > 2 ? 0.3 : n > 1 ? 0.36 : 0.44, eh = c0.h * s;
+    return { c0, c, nx, ny, nrx, nry, n, eh };
+  }
+  function eggBox(i, g) {
+    g = g || couvGeo(); const o = couv[i], ew = g.eh * ratio(OEUFS[o.t].img);
+    const cx = g.nx + (g.n > 1 ? (i - (g.n - 1) / 2) * Math.min(ew * 1.02, g.nrx * 2 / g.n) : 0), cy = g.ny + g.nry * 0.25;
+    return { x: cx - ew / 2, y: cy - g.eh, w: ew, h: g.eh, cx, cy, ew };
+  }
+  // les pastilles de couleur de la couveuse, au-dessus d'elle, tant qu'un œuf couve (V10 : bien plus grosses, pour le doigt)
+  function palette() {
+    if (state !== 'play' || !couv.some(o => !o.done)) return [];
+    const c = L.couv, r0 = portrait ? 28 : 21, gap = portrait ? 64 : 50, n = COULEURS.length, x0 = Math.max(18 + r0, Math.min(LW - 18 - r0 - gap * (n - 1), c.x + c.w / 2 - gap * (n - 1) / 2)), y = c.y - (portrait ? 14 : 22);
+    // V17 : en portrait, 2 rangées de 3 juste au-dessus de la couveuse (avant, la rangée de 6 passait sous le nid et ses licornes)
+    if (portrait) { const g2 = 60, r2 = 26, xa = Math.max(18 + r2, c.x + c.w / 2 - g2); return COULEURS.map((k, i) => ({ hue: k.h, c: k.c, n: k.n, x: xa + (i % 3) * g2 - r2, y: c.y - 42 - (i < 3 ? g2 : 0) - r2, w: r2 * 2, h: r2 * 2 })); }   // (le cadre s'arrête 8 px au-dessus du dôme de la couveuse)
+    return COULEURS.map((k, i) => ({ hue: k.h, c: k.c, n: k.n, x: x0 + i * gap - r0, y: y - r0, w: r0 * 2, h: r0 * 2 }));
+  }
+  function itemBox(it) { const s = L.belt.sz * (it.k === 'gcouv' ? 1.25 : 1), w = s * Math.min(1.3, ratio(it.img)), h = w / ratio(it.img); const hh = Math.min(h, s * 1.05), ww = hh * ratio(it.img); return { x: it.x - ww / 2, y: L.belt.y - hh - Math.abs(Math.sin(it.bob)) * 3, w: ww, h: hh }; }
+  // V10 : `de` = l'endroit où le doigt a lâché l'objet glissé (l'achat part de là, en douceur) ; rend vrai si c'est acheté
+  function buy(it, de) {
+    const b0 = itemBox(it), b = de ? { x: de.x - b0.w / 2, y: de.y - b0.h / 2, w: b0.w, h: b0.h } : b0;
+    if (coins < it.prix) { it.shake = 0.4; snd.no(); say('Pas assez de pièces : vends une licorne au panneau VENDRE'); return false; }
+    let to;
+    if (it.k === 'gcouv') {
+      coins -= it.prix; belt.splice(belt.indexOf(it), 1); snd.buy(); grande = true;
+      floatText(b.x + b.w / 2, b.y, '-' + it.prix, '#c0507a'); sparkle(b.x + b.w / 2, b.y + b.h / 2, 16, '#ffd34d', 160);
+      flyers.push({ img: 'couveuse', x0: b.x + b.w / 2, y0: b.y + b.h / 2, x1: L.couv.x + L.couv.w / 2, y1: L.couv.y + L.couv.h / 2, t: 0, s: b.h });
+      say('Grande couveuse : 5 œufs à la fois !');
+      return true;
+    }
+    if (it.k === 'egg') {
+      if (couv.length < cap()) to = 'couv'; else if (queue.length < MAX_QUEUE) to = 'queue';
+      else { it.shake = 0.4; snd.no(); say('La couveuse est pleine !'); return false; }
+    } else if (it.k === 'acc' || it.k === 'pot') {
+      if (tray.length >= MAX_TRAY) { it.shake = 0.4; snd.no(); say('Ton coffre à accessoires est plein : habille tes licornes !'); return false; }
+      to = 'tray';
+    } else to = 'bib';
+    coins -= it.prix; belt.splice(belt.indexOf(it), 1); snd.buy();
+    floatText(b.x + b.w / 2, b.y, '-' + it.prix, '#c0507a'); sparkle(b.x + b.w / 2, b.y + b.h / 2, 8);
+    if (to === 'couv') couv.push(nouvelOeuf(it.t));
+    if (to === 'queue') queue.push(it.t);
+    if (to === 'tray') tray.push(it.k === 'pot' ? 'pot:' + it.t : it.t);
+    if (to === 'bib') bib = Math.min(99, bib + 1);
+    const dest = to === 'couv' || to === 'queue' ? { x: L.couv.x + L.couv.w / 2, y: L.couv.y + L.couv.h * 0.4 } : { x: L.tray.x + 40, y: L.tray.y + L.tray.h / 2 };
+    flyers.push({ img: it.img, x0: b.x + b.w / 2, y0: b.y + b.h / 2, x1: dest.x, y1: dest.y, t: 0, s: Math.max(b.w, b.h) });
+    return true;
+  }
+
+  // ---------- V10 : glisser un objet du tapis (un œuf jusque dans la couveuse = acheté ; le reste jusqu'au coffre) ----------
+  const tenu = it => !!(drag && drag.it === it);
+  const placeAt = (p, m) => deuxEnfants() && inBox(p, PL()[1].carte, m) ? 1 : inBox(p, PL()[0].carte, m) ? 0 : -1;
+  function zoneCouv() { const c = couvGeo().c; return { x: c.x - 40, y: c.y - 50, w: c.w + 80, h: c.h + 90 }; }
+  function zoneDe(it) { return it.k === 'egg' || it.k === 'gcouv' ? zoneCouv() : { x: L.tray.x - 20, y: L.tray.y - 30, w: L.tray.w + 40, h: L.tray.h + 50 }; }
+  function retour(it, p) { it.ret = { x: p.x, y: p.y, t: 0 }; }   // il revient en douceur à sa place sur le tapis
+  function deposer(it, p) {
+    if (!belt.includes(it)) return;
+    if (!inBox(p, zoneDe(it))) { retour(it, p); if (it.k === 'egg') say('Pose l’œuf dans la couveuse pour l’acheter'); return; }
+    if (coins < it.prix) { retour(it, p); it.shake = 0.5; snd.no(); floatText(p.x, p.y - 30, 'Pas assez de pièces', '#d04070'); say('Pas assez de pièces : vends une licorne au panneau VENDRE'); return; }
+    if (!buy(it, p)) retour(it, p);
+  }
+
+  // ---------- actions ----------
+  function retirer(u) { if (u.nid != null) nid[u.nid] = null; else unis.splice(unis.indexOf(u), 1); if (sel === u) sel = null; nidT = 0; }
+  // revendre au marchand (pour faire de la place) : la moitié de sa valeur, ne compte pas pour la manche
+  function sell(u) {
+    const v = Math.round(valeur(u) / 2), b = uniBox(u);
+    coins += v; snd.sell(); sparkle(b.x + b.w / 2, b.y + b.h / 2, 10, '#ffd34d', 140); floatText(b.x + b.w / 2, b.y, '+' + v + ' pièces', '#c08a10');
+    retirer(u);
+  }
+  // ---------- les clients (des enfants à la fenêtre de droite) ----------
+  function nouveauClient(i) {
+    const autre = kids[1 - i] && kids[1 - i].k;
+    let k; do { k = ENFANTS[Math.floor(Math.random() * ENFANTS.length)]; } while ((k === dernier || k === autre) && ENFANTS.length > 2);
+    dernier = k;
+    const R = Math.random;
+    const want = { adulte: manche >= 3 && R() < 0.4, col: COULEURS[Math.floor(R() * COULEURS.length)].h,
+      acc: manche >= 4 && R() < 0.45 ? ACC_IDS[Math.floor(R() * ACC_IDS.length)] : null, brille: manche >= 5 && R() < 0.15 };
+    const patMax = Math.max(25, 55 - (manche - 1) * 3);
+    kids[i] = { k, want, etat: 'arrive', et: 0, pat: patMax, patMax, ph: Math.random() * 6, place: i };
+  }
+  // la couleur d'une licorne : celle qu'on lui a donnée (œuf ou pot), sinon sa couleur de naissance quand elle en a une franche
+  // (bug signalé par Benjamin : un bébé rose de naissance était refusé pour « bébé rose » tant qu'on ne repassait pas le pot)
+  const couleur = u => u.col != null ? u.col : uniImg(u) === 'bebe-rose' ? 330 : uniImg(u) === 'adulte-doree' ? 50 : null;
+  // V10 : une licorne arc-en-ciel va avec TOUTES les demandes (âge, couleur, accessoire, scintillante)
+  const convient = (u, w) => u.arc || !u.bebe === w.adulte && couleur(u) === w.col && (!w.acc || u.accs.includes(w.acc)) && (!w.brille || u.brille);
+  // V11 : à quel enfant ? celui de la tuile visée, sinon celui qui attend cette licorne, sinon le premier qui attend
+  function livrer(u, i) {
+    if (i == null) { const ok = [0, 1].filter(j => kids[j] && kids[j].etat === 'attend'); i = ok.find(j => convient(u, kids[j].want)); if (i == null) i = ok.length ? ok[0] : 0; }
+    const client = kids[i];
+    if (!client || client.etat !== 'attend') { snd.no(); say('Attends qu’un enfant arrive à la fenêtre'); return; }
+    if (!convient(u, client.want)) {
+      client.etat = 'decu'; client.et = 0; snd.no();
+      // V10 : une vraie bulle de BD qui sort de l'enfant (à droite de sa tuile), plus de message au milieu de l'écran
+      const w = client.want, manque = [], nc = COULEURS.find(c => c.h === w.col).n.toLowerCase();
+      if (!u.bebe !== w.adulte) manque.push(w.adulte ? 'une grande' : 'un bébé');
+      if (couleur(u) !== w.col) manque.push(nc === 'orange' ? 'de l’orange' : 'du ' + nc);
+      if (w.acc && !u.accs.includes(w.acc)) manque.push(ACC[w.acc].le);   // V16 : « Il me faut la cape étoilée ! »
+      if (w.brille && !u.brille) manque.push('qui scintille');
+      client.refus = 'Il me faut ' + (manque.length > 1 ? manque.slice(0, -1).join(', ') + ' et ' + manque[manque.length - 1] : manque[0]) + ' !';
+      return;
+    }
+    const v = valeur(u) + 15 + (u.arc ? ARC_BONUS : 0), b = uniBox(u), f = PL()[i].fen;
+    coins += v; gagne += v; vendues++; livrees++; snd.sell(); retirer(u);
+    if (u.arc) { arcFete(f.x + f.w / 2, f.y + f.h / 2, 'Une arc-en-ciel ! Quel bonheur !'); hearts(f.x + f.w / 2, f.y + 20, 6); }
+    flyers.push({ img: uniImg(u), hue: u.col, x0: b.x + b.w / 2, y0: b.y + b.h / 2, x1: f.x + f.w / 2, y1: f.y + f.h * 0.6, t: 0, s: b.h });
+    sparkle(f.x + f.w / 2, f.y + f.h / 2, 18, '#ffd34d', 170); hearts(f.x + f.w / 2, f.y + 20, 4); floatText(f.x + f.w / 2, f.y, '+' + v + ' pièces', '#c08a10');
+    client.etat = 'joie'; client.et = 0; client.servi = true;
+    // V10 : contente à la 1re licorne, folle de joie (sauts, cœurs) à celle qui finit la manche
+    if (vendues >= objectifDe(manche)) { client.fete = true; hearts(f.x + f.w / 2, f.y + 10, 10); sparkle(f.x + f.w / 2, f.y + f.h * 0.4, 30, '#ff9fd0', 220); mancheGagnee(); }
+  }
+  function mancheGagnee() {
+    const bonus = 10 * manche; coins += bonus;
+    try { api.celebrate && manche % 3 === 0 && api.celebrate('Manche ' + manche + ' réussie !'); } catch (e) { /* rien */ }
+    manche++; vendues = 0; timeLeft = tempsDe(manche); tick = -1; snd.adult();
+    floatText(LW / 2, L.msgY - 60, 'Manche réussie ! +' + bonus, '#c08a10');
+    state = 'ready'; stT = 0;
+  }
+  function toNid(u) {
+    if (u.bebe) { snd.no(); say('Seules les licornes adultes vont au nid d’amour'); return false; }
+    if (u.nid != null) return false;
+    const k = nid[0] ? (nid[1] ? -1 : 1) : 0;
+    if (k < 0) { snd.no(); say('Le nid est déjà occupé'); return false; }
+    unis.splice(unis.indexOf(u), 1); u.nid = k; nid[k] = u; snd.pick(); nidT = 0;
+    const b = uniBox(u); hearts(b.x + b.w / 2, b.y + 10, 3);
+    if (nid[0] && nid[1]) { snd.love(); say('Deux licornes au nid d’amour… un œuf arrive !'); }
+    return true;
+  }
+  function fromNid(u, x, y) {
+    if (u.nid == null) return;
+    if (unis.length >= MAX_UNIS) { snd.no(); say('La maison est pleine'); return; }
+    nid[u.nid] = null; u.nid = null; nidT = 0;
+    if (x != null) { u.u = Math.min(1, Math.max(0, (x - L.enclos.x) / L.enclos.w)); u.v = Math.min(1, Math.max(0, (y - L.enclos.y) / L.enclos.h)); }
+    else { u.u = Math.random() * 0.4; u.v = 0.5; }
+    u.tu = u.u; u.tv = u.v; unis.push(u);
+  }
+  function feed(u) {
+    if (!u.bebe) return;
+    if (bib <= 0) { snd.no(); say('Plus de biberon : achète-en sur le tapis 🍼'); return; }
+    bib--; grow(u, 1);
+  }
+  function dress(u, k) {
+    const a = tray[k]; if (a == null || !u) return false;
+    if (estPot(a)) {   // un pot de couleur : la licorne prend cette couleur (même dessin, recoloré)
+      if (u.arc) { snd.no(); say('Une licorne arc-en-ciel garde toutes ses couleurs 🌈'); return false; }
+      if (couleur(u) === hueDe(a)) { snd.no(); say('Elle est déjà de cette couleur'); return false; }
+      tray.splice(k, 1); u.col = hueDe(a); u.pop = 0.5; snd.dress();
+      const b = uniBox(u); sparkle(b.x + b.w / 2, b.y + b.h * 0.5, 16, COULEURS.find(c => c.h === u.col).c, 150);
+      return true;
+    }
+    if (u.accs.includes(a)) { snd.no(); say('Elle porte déjà ' + ACC[a].le); return false; }
+    if (u.accs.length >= 3) { snd.no(); say('3 accessoires au plus par licorne'); return false; }
+    tray.splice(k, 1); u.accs.push(a); u.pop = 0.4; snd.dress();
+    const b = uniBox(u); sparkle(b.x + b.w / 2, b.y + b.h * 0.3, 12); floatText(b.x + b.w / 2, b.y, '+' + Math.round(ACC[a].prix * 1.5), '#9a4fd0');
+    return true;
+  }
+  function nidOeuf() {   // rareté selon les parents
+    const s = ADULTES[nid[0].adulte].rang + ADULTES[nid[1].adulte].rang;
+    const pl = [0.03, 0.08, 0.18, 0.3, 0.45, 0.6, 0.75][s], pr = [0.3, 0.45, 0.5, 0.5, 0.45, 0.35, 0.25][s], r = Math.random();
+    return r < pl ? 'leg' : r < pl + pr ? 'rare' : 'commun';
+  }
+
+  // ---------- boutons d'action (selon la licorne choisie) ----------
+  const appui = {};
+  function actions() {
+    const u = sel, out = [];
+    if (!u) return out;
+    // chaque bouton : une icône, son mot en entier, parfois un petit détail dessous ; une couleur pastel par action
+    if (u.bebe) out.push({ id: 'feed', ic: '🍼', t: 'Biberon', sub: '× ' + bib, c: ['#ffd3ea', '#ff9fcf'], tc: '#8a2560', on: bib > 0 });
+    else if (u.nid != null) out.push({ id: 'out', ic: '↩️', t: 'Sortir du nid', c: ['#e6dcff', '#bfa8ff'], tc: '#4f2d8f', on: true });
+    else out.push({ id: 'nid', ic: '💞', t: 'Au nid', c: ['#e6dcff', '#bfa8ff'], tc: '#4f2d8f', on: !(nid[0] && nid[1]) });
+    out.push({ id: 'give', ic: '🎁', t: 'Donner', c: ['#d4f7e4', '#8fe0b5'], tc: '#1f6b46', on: kids.some(c => c && c.etat === 'attend') });
+    out.push({ id: 'sell', ic: '💰', t: 'Revendre', sub: '🪙 ' + Math.round(valeur(u) / 2), c: ['#fff1b8', '#ffd25e'], tc: '#7a4a00', on: true });
+    const a = L.act, n = out.length, gap = 14, x0 = a.x + 136, bw = (a.x + a.w - 12 - x0 - gap * (n - 1)) / n;
+    out.forEach((o, i) => { o.x = x0 + i * (bw + gap); o.y = a.y + 28; o.w = bw; o.h = a.h - 36; });
+    return out;
+  }
+  function trayBoxes() {
+    const t = L.tray, n = MAX_TRAY + 1, s = Math.min((t.w - 16) / n, t.h - 26);
+    const out = [];
+    for (let i = 0; i < n; i++) out.push({ x: t.x + 8 + i * (t.w - 16) / n + ((t.w - 16) / n - s) / 2, y: t.y + 20 + (t.h - 26 - s) / 2, w: s, h: s });
+    return out;
+  }
+  const inBox = (p, b, m) => p.x >= b.x - (m || 0) && p.x <= b.x + b.w + (m || 0) && p.y >= b.y - (m || 0) && p.y <= b.y + b.h + (m || 0);
+  function uniAt(p) {
+    const all = unis.concat(nid.filter(Boolean)).map(u => ({ u, b: uniBox(u) })).sort((a, b) => b.b.fy - a.b.fy);
+    for (const o of all) { const b = o.b; if (inBox(p, { x: b.x + b.w * 0.12, y: b.y + b.h * 0.08, w: b.w * 0.76, h: b.h * 0.92 }, 6)) return o.u; }
+    return null;
+  }
+
+  // ---------- entrées ----------
+  function toLogic(e) { const r = canvas.getBoundingClientRect(); return { x: ((e.clientX - r.left) - ox) / sc, y: ((e.clientY - r.top) - oy) / sc }; }
+  function onDown(e) {
+    if (dead) return;
+    curOn = false;   // le doigt ou la souris reprennent la main : le curseur de la manette se cache
+    e.preventDefault();
+    try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ }
+    const p = toLogic(e);
+    if (paused) { setPaused(false); return; }
+    if (state === 'title') { if (LOADED || loadErr) startGame(); return; }
+    if (state === 'end') { if (stT > 1.6) finir(); return; }
+    if (state !== 'play') return;
+    down = { p, u: null, acc: -1, moved: false, it: null };
+    for (let i = belt.length - 1; i >= 0; i--) if (visible(belt[i]) && !belt[i].ret && inBox(p, itemBox(belt[i]), 8)) { down.it = belt[i]; return; }
+    const u = uniAt(p);
+    if (u) { down.u = u; return; }
+    const tb = trayBoxes();
+    for (let i = 1; i < tb.length; i++) if (tray[i - 1] != null && inBox(p, tb[i])) { down.acc = i - 1; return; }
+  }
+  function onMove(e) {
+    if (dead) return;
+    const p = toLogic(e); hover = p;
+    if (!down || state !== 'play') return;
+    if (!down.moved && Math.hypot(p.x - down.p.x, p.y - down.p.y) * sc > 10) {
+      down.moved = true;
+      if (down.u) { drag = { u: down.u, x: p.x, y: p.y }; sel = down.u; snd.pick(); }
+      else if (down.acc >= 0) drag = { acc: down.acc, x: p.x, y: p.y };
+      else if (down.it && belt.includes(down.it)) { drag = { it: down.it, x: p.x, y: p.y }; snd.pick(); }
+    }
+    if (drag) { drag.x = p.x; drag.y = p.y; }
+  }
+  function onUp(e) {
+    if (dead) return;
+    const p = toLogic(e), d = down; down = null;
+    if (state !== 'play' || !d) { drag = null; return; }
+    if (drag) {
+      const dr = drag; drag = null;
+      if (dr.u) {
+        const u = dr.u;
+        const pl = placeAt(p, 14);
+        if (pl >= 0) livrer(u, pl);
+        else if (inBox(p, L.nid, 20)) { if (u.nid == null) toNid(u); }
+        else if (inBox(p, { x: L.enclos.x - 30, y: L.enclos.y - uniH(u), w: L.enclos.w + 60, h: L.enclos.h + uniH(u) + 40 })) {
+          const fy = p.y + uniH(u) * 0.45;
+          if (u.nid != null) fromNid(u, p.x, fy);
+          else { u.u = Math.min(1, Math.max(0, (p.x - L.enclos.x) / L.enclos.w)); u.v = Math.min(1, Math.max(0, (fy - L.enclos.y) / L.enclos.h)); u.tu = u.u; u.tv = u.v; u.wait = 1.5; u.hop = 0.3; }
+        }
+      } else if (dr.it) deposer(dr.it, p);
+      else if (dr.acc != null) {
+        const u = uniAt(p);
+        if (u) dress(u, dr.acc); else say(estPot(tray[dr.acc]) ? 'Pose le pot de couleur sur une licorne' : 'Pose l’accessoire sur une licorne');
+      }
+      return;
+    }
+    tap(p, d);
+  }
+  function tap(p, d) {
+    // tapis
+    for (let i = belt.length - 1; i >= 0; i--) if (visible(belt[i]) && inBox(p, itemBox(belt[i]), 8)) { buy(belt[i]); return; }
+    // V11 : la jauge de la maison : acheter la suivante, sinon dire ce qui manque
+    if (inBox(p, L.jauge, 8)) {
+      if (!acheterMaison()) { const nx = prochaine(); snd.no(); say(nx ? 'Encore ' + (nx[1] - coins) + ' pièces pour ' + nx[0].toLowerCase() : 'Tu as le palace ! ✨'); }
+      return;
+    }
+    // la couleur de la couveuse : une pastille (V10 : grosses) …
+    for (const d2 of palette()) if (inBox(p, d2, 8)) { teindreCouv(d2.hue); sparkle(d2.x + d2.w / 2, d2.y + d2.h / 2, 10, d2.c, 120); return; }
+    // … ou toucher la couveuse elle-même : la couleur suivante (V10, demande de PATOU : le bébé naît de cette couleur)
+    if (inBox(p, couvGeo().c, 10)) {
+      const i = COULEURS.findIndex(k => k.h === couvCol);
+      teindreCouv(COULEURS[(i + 1) % COULEURS.length].h); for (const o of couv) o.wob += 1.2;
+      return;
+    }
+    // boutons d'action
+    for (const a of actions()) if (inBox(p, a)) {
+      if (!a.on && a.id !== 'feed' && a.id !== 'give') { snd.no(); if (a.id === 'nid') say('Le nid est déjà occupé'); return; }
+      appui[a.id] = performance.now();   // le petit rebond du bouton
+      if (a.id === 'feed') feed(sel); else if (a.id === 'give') livrer(sel); else if (a.id === 'sell') sell(sel); else if (a.id === 'nid') toNid(sel); else if (a.id === 'out') fromNid(sel);
+      return;
+    }
+    // accessoires du coffre
+    if (d.acc >= 0) { if (sel) dress(sel, d.acc); else { snd.no(); say('Touche d’abord une licorne, puis l’accessoire'); } return; }
+    if (inBox(p, trayBoxes()[0])) { if (sel && sel.bebe) feed(sel); else say(bib + ' biberon' + (bib > 1 ? 's' : '') + ' : touche un bébé puis 🍼'); return; }
+    if (d.u) { sel = sel === d.u ? null : d.u; if (sel) { sel.hop = 0.35; snd.pick(); } return; }
+    if (placeAt(p, 0) >= 0) { if (sel) livrer(sel, placeAt(p, 0)); else say('Donne à l’enfant la licorne de sa bulle : fais-la glisser jusqu’à la fenêtre'); return; }
+    if (inBox(p, L.nid)) { if (sel && sel.nid == null) toNid(sel); else say('Mets deux licornes adultes dans le nid d’amour'); return; }
+    // V11 : quand la maison brille, la toucher (le mur, le ciel) l'achète
+    if (!sel && maisonPrete() && p.y < (portrait ? L.scene.y + L.scene.wallH : 330)) { acheterMaison(); return; }
+    sel = null;
+  }
+  function onKey(e) {
+    if (dead || root.offsetParent === null) return;
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.type !== 'keydown') return;
+    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { if (state === 'play' || state === 'ready') setPaused(!paused); return; }
+    if ((e.key === 'Enter' || e.key === ' ') && state === 'title') { e.preventDefault(); if (LOADED || loadErr) startGame(); }
+    if ((e.key === 'Enter' || e.key === ' ') && state === 'end' && stT > 1.6) { e.preventDefault(); finir(); }
+    if (paused && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setPaused(false); }
+  }
+  function onVis() { if (document.hidden && (state === 'play' || state === 'ready')) setPaused(true); }
+  function setPaused(p) { if (dead || state === 'end') return; paused = p; pauseBtn.innerHTML = p ? PB_PLAY : PB_PAUSE; last = 0; drag = null; down = null; }
+  function onPauseBtn(e) { e.preventDefault(); e.stopPropagation(); if (state === 'play' || state === 'ready') setPaused(!paused); }
+  canvas.addEventListener('pointerdown', onDown);
+  canvas.addEventListener('pointermove', onMove);
+  canvas.addEventListener('pointerup', onUp);
+  canvas.addEventListener('pointercancel', onUp);
+  window.addEventListener('keydown', onKey);
+  document.addEventListener('visibilitychange', onVis);
+  pauseBtn.addEventListener('pointerdown', onPauseBtn);
+
+  function startGame() {
+    state = 'ready'; stT = 0; snd.go(); manche = 1; vendues = 0; gagne = 0; livrees = 0; bilan = null; timeLeft = tempsDe(1); kids = [null, null]; kidT = [1.6, 99]; niveau = 1; maisonVal = 0; prevNiv = 0; transT = 0; musiqueMaison();
+    const nb = Math.max(4, Math.round(4 * (L.belt.x1 - L.belt.x0) / 975));   // V15 : un tapis plus long = plus d'objets
+    for (let i = 0; i < nb; i++) { spawnItem(); belt[belt.length - 1].x = L.belt.x0 + 120 + i * (L.belt.x1 - L.belt.x0 - 120) / nb; }
+    couvCol = null; couv.push(nouvelOeuf('commun', 0.15));   // un premier œuf déjà au chaud
+  }
+  loadMaisons();
+  musique('licmaison5');   // V13 : la musique du palace dès l'écran d'accueil (celle du jardin prend le relais au départ)
+  if (!LOADED) loadImages().then(() => { if (!dead && state === 'load') state = 'title'; }).catch(e => { loadErr = String(e && e.message || e); if (!dead) state = 'title'; });
+
+  // ---------- la manette (demande de PATOU) : un curseur passe d'une chose à l'autre dans la direction poussée (tapis, couleurs, licornes,
+  // couveuse, nid, fenêtre de l'enfant, coffre, boutons) ; A = toucher là (prendre, poser, acheter, donner), B = annuler ; Start = pause (la borne)
+  let cur = null, curOn = false, curRep = 0, curT = 0;
+  function cibles() {
+    const out = [], add = (k, ref, b) => out.push({ k, ref, x: b.x + b.w / 2, y: b.y + b.h / 2, b });
+    for (const it of belt) if (visible(it)) add('belt', it, itemBox(it));
+    for (const d of palette()) add('pal', d.hue, d);
+    for (const u of unis.concat(nid.filter(Boolean))) { const b = uniBox(u); add('uni', u, { x: b.x + b.w * 0.15, y: b.y + b.h * 0.1, w: b.w * 0.7, h: b.h * 0.9 }); }
+    add('couv', 'couv', L.couv); add('nid', 'nid', L.nid); add('fen', 'fen', L.fen); add('jauge', 'jauge', L.jauge);
+    if (deuxEnfants()) add('fen2', 'fen2', PL()[1].fen);
+    trayBoxes().forEach((b, i) => { if (i === 0 || tray[i - 1] != null) add('tray', i, b); });
+    for (const a of actions()) add('act', a.id, a);
+    return out;
+  }
+  const memeCible = (a, c) => a && c && a.k === c.k && a.ref === c.ref;
+  function manette(dt) {
+    if (!pad || !pad.get) return;
+    const g = pad.get(0); if (!g || !g.on) return;
+    const C = cibles(); if (!C.length) return;
+    if (cur) cur = C.find(c => memeCible(c, cur)) || null;
+    curRep = Math.max(0, curRep - dt);
+    let dx = 0, dy = 0;
+    for (const [btn, x, y] of [['left', -1, 0], ['right', 1, 0], ['up', 0, -1], ['down', 0, 1]]) if (pad.pressed(btn)) { dx = x; dy = y; }
+    if (!dx && !dy && curRep <= 0 && Math.hypot(g.lx, g.ly) > 0.6) { if (Math.abs(g.lx) > Math.abs(g.ly)) dx = Math.sign(g.lx); else dy = Math.sign(g.ly); }
+    const a = pad.pressed('a'), b2 = pad.pressed('b');
+    if (dx || dy || a || b2) { if (!curOn) { curOn = true; cur = cur || C.find(c => c.k === 'belt') || C[0]; if (dx || dy) { dx = dy = 0; } } }
+    if (!curOn) return;
+    if (!cur) cur = C[0];
+    if (dx || dy) {
+      curRep = 0.22; let best = null, bs = 1e9;
+      for (const c of C) {
+        if (memeCible(c, cur)) continue;
+        const vx = c.x - cur.x, vy = c.y - cur.y, av = vx * dx + vy * dy; if (av < 12) continue;
+        const sc2 = av + Math.abs(vx * dy - vy * dx) * 2.2; if (sc2 < bs) { bs = sc2; best = c; }
+      }
+      if (best) { cur = best; curT = 0; snd.pick(); }
+    }
+    if (b2) { if (sel) { sel = null; snd.pick(); } return; }
+    if (a) {
+      const p = { x: cur.x, y: cur.y }, d = { p, u: null, acc: -1, moved: false };
+      if (cur.k === 'uni') d.u = cur.ref;
+      if (cur.k === 'tray' && cur.ref > 0) d.acc = cur.ref - 1;
+      curT = 0; tap(p, d);
+    }
+  }
+  function drawCurseur() {
+    if (!curOn || !cur || state !== 'play') return;
+    const b = cur.b, m = 8, k = 1 + Math.sin(stT * 7) * 0.04, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
+    pill(ctx, b.x - m, b.y - m, b.w + m * 2, b.h + m * 2, 18); ctx.lineWidth = 9; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.stroke();
+    ctx.lineWidth = 5; ctx.strokeStyle = '#ff5fae'; ctx.setLineDash([16, 10]); ctx.lineDashOffset = -stT * 40; ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    // une petite main qui montre la chose choisie
+    ctx.font = '34px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('👆', cx + b.w / 2 - 4, b.y + b.h + 14 + Math.sin(stT * 6) * 4);
+  }
+
+  // ---------- V9 : la vraie fin de partie (bilan, ta plus belle licorne, puis le score part au classement) ----------
+  function finPartie() {
+    state = 'end'; stT = 0; sel = null; drag = null; snd.no(); best = score();
+    musique('licmaison5');   // V13 : la musique du palace sur la carte de fin
+    let belle = null;
+    for (const u of unis.concat(nid.filter(Boolean))) if (!belle || valeur(u) > valeur(belle)) belle = u;
+    bilan = { score: best, manches: manche - 1, livrees, gagne, niv: niveau, maison: MAISONS[niveau - 1][0], belle: belle && { img: uniImg(belle), hue: belle.col, brille: belle.brille || belle.arc, accs: belle.accs.slice(), bebe: belle.bebe, nom: belle.arc ? (belle.bebe ? 'Bébé arc-en-ciel' : 'Licorne arc-en-ciel') : belle.bebe ? 'Bébé licorne' : ADULTES[belle.adulte].nom, val: valeur(belle) } };
+  }
+  function finir() { if (overSent) return; overSent = true; try { api.gameOver(bilan ? bilan.score : score()); } catch (e) { /* rien */ } }
+  function star5(x, y, r) { ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); }
+  function drawFin() {
+    const B = bilan || { score: best, manches: manche - 1, livrees, gagne, belle: null };
+    const t = Math.min(1, stT / 0.45), e = 1 - Math.pow(1 - t, 3), pop = t < 1 ? 0.85 + 0.15 * e + Math.sin(t * Math.PI) * 0.06 : 1;
+    ctx.fillStyle = 'rgba(255,236,248,' + (0.72 * e) + ')'; ctx.fillRect(V.x, V.y, V.w, V.h);
+    const cw = portrait ? 660 : 780, ch = portrait ? 780 : 640, cy = LH / 2;
+    ctx.save(); ctx.globalAlpha = e; ctx.translate(LW / 2, cy); ctx.scale(pop, pop);
+    ctx.shadowColor = 'rgba(150,60,170,0.25)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 10;
+    pill(ctx, -cw / 2, -ch / 2, cw, ch, 44); ctx.fillStyle = '#fffafd'; ctx.fill(); ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    // le bandeau du haut
+    const g = ctx.createLinearGradient(0, -ch / 2, 0, -ch / 2 + 110); g.addColorStop(0, '#ffb3dc'); g.addColorStop(1, '#c89cf2');
+    ctx.save(); pill(ctx, -cw / 2, -ch / 2, cw, ch, 44); ctx.clip(); ctx.fillStyle = g; ctx.fillRect(-cw / 2, -ch / 2, cw, 110); ctx.restore();
+    pill(ctx, -cw / 2, -ch / 2, cw, ch, 44); ctx.lineWidth = 6; ctx.strokeStyle = '#f3b6dc'; ctx.stroke();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 52px ' + RF; ctx.lineWidth = 10; ctx.strokeStyle = 'rgba(140,60,170,0.35)'; ctx.strokeText('Temps écoulé !', 0, -ch / 2 + 56); ctx.fillStyle = '#fff'; ctx.fillText('Temps écoulé !', 0, -ch / 2 + 56);
+    // le score (il monte en comptant)
+    let y = -ch / 2 + 150;
+    ctx.font = 'bold 26px ' + RF; ctx.fillStyle = '#a066c0'; ctx.fillText('Valeur de ta Maison', 0, y);
+    const sv = Math.round(B.score * Math.min(1, Math.max(0, (stT - 0.3) / 1.1)));
+    ctx.font = 'bold 80px ' + RF; ctx.lineWidth = 12; ctx.strokeStyle = '#fff'; ctx.strokeText(sv + ' ⭐', 0, y + 68); ctx.fillStyle = '#b35bd6'; ctx.fillText(sv + ' ⭐', 0, y + 68);
+    if (B.maison) { ctx.font = 'bold 21px ' + RF; ctx.fillStyle = '#c07a00'; ctx.fillText((B.niv >= 9 ? '🏰 ' : '🏡 ') + B.maison + ' · niveau ' + B.niv, 0, y + 122); }   // V11
+    y += 140;
+    // les trois chiffres de la partie
+    const st = [['🏁', B.manches, B.manches > 1 ? 'manches réussies' : 'manche réussie'], ['🦄', B.livrees, B.livrees > 1 ? 'licornes livrées' : 'licorne livrée'], ['🪙', B.gagne, 'pièces gagnées']];
+    const bw = (cw - 60) / 3;
+    st.forEach(([ic, v, l], i) => {
+      const bx = -cw / 2 + 30 + i * bw + 7, bww = bw - 14;
+      pill(ctx, bx, y, bww, 112, 24); ctx.fillStyle = ['#ffe3f2', '#efe4ff', '#fff3cf'][i]; ctx.fill();
+      ctx.font = 'bold 40px ' + RF; ctx.fillStyle = '#7a3fa0'; ctx.fillText(ic + ' ' + v, bx + bww / 2, y + 42, bww - 10);
+      ctx.font = 'bold 19px ' + RF; ctx.fillStyle = '#a066c0'; ctx.fillText(l, bx + bww / 2, y + 86, bww - 12);
+    });
+    y += 136;
+    // ta plus belle licorne
+    const bas = ch / 2 - 64;
+    if (B.belle) {
+      const h = Math.min(portrait ? 230 : 170, bas - y - (portrait ? 120 : 10)), w = h * ratio(B.belle.img);
+      const lx = portrait ? 0 : -150, ly = portrait ? y + 34 : y + 4;
+      if (portrait) { ctx.font = 'bold 24px ' + RF; ctx.fillStyle = '#a066c0'; ctx.fillText('Ta plus belle licorne', 0, y + 14); }
+      ctx.fillStyle = 'rgba(200,150,230,0.25)'; ctx.beginPath(); ctx.ellipse(lx, ly + h - 4, w * 0.42, 12, 0, 0, TAU); ctx.fill();
+      ctx.save(); ctx.translate(lx, ly + h); ctx.rotate(Math.sin(stT * 2.4) * 0.03); ctx.translate(-w / 2, -h);
+      const bb = { w, h }, accs = (B.belle.accs || []).map(a => ({ a, d: ACC[a][B.belle.bebe ? 'k' : 'a'] }));   // avec ses accessoires
+      for (const o of accs) if (o.d.b) accDraw(o, bb);
+      drawImg(ctx, B.belle.img, 0, 0, w, h, B.belle.hue);
+      for (const o of accs) if (!o.d.b) accDraw(o, bb);
+      ctx.restore();
+      if (B.belle.brille) for (let i = 0; i < 4; i++) { const a = stT * 1.4 + i * 1.6; ctx.fillStyle = '#ffd84d'; star5(lx + Math.cos(a) * w * 0.55, ly + h * 0.5 + Math.sin(a) * h * 0.45, 9 + 3 * Math.sin(stT * 6 + i)); }
+      const tx = portrait ? 0 : -40, ta = portrait ? 'center' : 'left';
+      ctx.textAlign = ta;
+      if (!portrait) { ctx.font = 'bold 24px ' + RF; ctx.fillStyle = '#a066c0'; ctx.fillText('Ta plus belle licorne', tx, ly + 36); }
+      ctx.font = 'bold 30px ' + RF; ctx.fillStyle = '#7a3fa0'; ctx.fillText((B.belle.brille ? '✨ ' : '') + B.belle.nom, tx, portrait ? ly + h + 28 : ly + 80, portrait ? cw - 40 : cw / 2 + 60);
+      // V16 : ses accessoires en toutes lettres, entre son nom et sa valeur (une ligne, serrée s'il le faut)
+      const ac = B.belle.accs || [], la = ac.map(x => ACC[x].le), al = la.length ? 'avec ' + (la.length > 1 ? la.slice(0, -1).join(', ') + ' et ' + la[la.length - 1] : la[0]) : '';
+      if (al) { ctx.font = 'bold 18px ' + RF; ctx.fillStyle = '#b0509a'; ctx.fillText(al, tx, portrait ? ly + h + 58 : ly + 112, portrait ? cw - 40 : cw / 2 + 10); }
+      ctx.font = 'bold 22px ' + RF; ctx.fillStyle = '#c08a10'; ctx.fillText('vaut ' + B.belle.val + ' pièces', tx, portrait ? ly + h + (al ? 90 : 62) : ly + (al ? 146 : 118));
+      ctx.textAlign = 'center';
+    } else { ctx.font = 'bold 24px ' + RF; ctx.fillStyle = '#a066c0'; ctx.fillText('Fais naître des licornes pour remplir ta Maison !', 0, y + 50, cw - 60); }
+    // « touche pour continuer »
+    if (stT > 1.6 && !overSent) { ctx.globalAlpha = e * (0.6 + 0.4 * Math.sin(stT * 4)); ctx.font = 'bold 22px ' + RF; ctx.fillStyle = '#b35bd6'; ctx.fillText('Touche pour continuer', 0, ch / 2 - 30); }
+    ctx.restore();
+  }
+
+  // ---------- boucle ----------
+  function update(dt) {
+    stT += dt;
+    for (const p of parts) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.k === 'star') p.vy += 160 * dt; else p.vx *= 0.98; if (p.doux) p.x += Math.sin(p.t * 2.4 + p.r) * 16 * dt; }   // (V17 : les cœurs du câlin se balancent en montant)
+    parts = parts.filter(p => p.t < p.d);
+    for (const t of texts) t.t += dt; texts = texts.filter(t => t.t < 1.3);
+    for (const f of flyers) f.t += dt * 2.2; flyers = flyers.filter(f => f.t < 1);
+    if (msg) { msg.t += dt; if (msg.t > 2.6) msg = null; }
+    if (state === 'ready') {
+      kids.forEach((c, i) => { if (!c) return; c.et += dt; c.ph += dt; if (c.fete && c.et < 2.4 && Math.random() < dt * 5) { const f = PL()[i].fen; hearts(f.x + f.w * (0.3 + Math.random() * 0.4), f.y + f.h * 0.3, 1); } });
+      if (stT > 2.2) { state = 'play'; stT = 0; } return;
+    }
+    if (state === 'end') {
+      if (stT > 0.5 && stT - dt <= 0.5) { sparkle(LW / 2, LH * 0.3, 36, null, 260); hearts(LW / 2, LH * 0.34, 6); snd.adult(); }
+      if (stT > 6 && !overSent) finir();
+      return;
+    }
+    if (state !== 'play') return;
+    timeLeft -= dt;
+    const s = Math.ceil(timeLeft);
+    if (s <= 10 && s !== tick && s > 0) { tick = s; snd.tick(); }
+    if (timeLeft <= 0) { timeLeft = 0; finPartie(); return; }
+    // le client : il arrive, attend (sa patience baisse), se réjouit ou est déçu, puis repart
+    if (transT > 0) transT = Math.max(0, transT - dt / 1.1);
+    if (flash > 0) flash = Math.max(0, flash - dt * 2.2);
+    for (let i = 0; i < 2; i++) {
+      const c = kids[i];
+      if (!c) { if (i === 1 && !deuxEnfants()) continue; kidT[i] -= dt; if (kidT[i] <= 0) nouveauClient(i); continue; }
+      c.et += dt; c.ph += dt;
+      if (c.etat === 'arrive' && c.et > 0.8) { c.etat = 'attend'; c.et = 0; }
+      // V10 : l'enfant attend jusqu'au bout (son temps = celui de la manche, la barre verte de sa tuile)
+      else if (c.etat === 'decu' && c.et > 2.6) { c.etat = 'attend'; c.et = 0; }
+      else if (c.etat === 'joie' && c.et > (c.fete ? 2.4 : 1.5)) { c.etat = 'part'; c.et = 0; }
+      else if (c.etat === 'part' && c.et > 0.8) { kids[i] = null; kidT[i] = i === 0 ? (niveau <= 2 ? 2.2 : 1.2) : niveau >= DEUX_SOUVENT ? 2.5 : 7 + Math.random() * 5; }
+    }
+    // tapis
+    // le tapis, plus doux (demande de PATOU, 3 nov.) : les objets sortent du trou de droite et rentrent dans celui de gauche
+    beltT -= dt; if (!grande) grandeT -= dt; if (beltT <= 0) { spawnItem(); beltT = 3.0 + Math.random() * 1.2; }
+    const spd = portrait ? 30 : 38;   // nettement plus lent (2e demande de PATOU)
+    for (const it of belt) {
+      if (it.ret) { it.ret.t += dt * 3.2; if (it.ret.t >= 1) it.ret = null; }
+      if (!tenu(it) && !it.ret) it.x -= spd * dt;
+      it.bob += dt * 4; if (it.shake > 0) it.shake -= dt;
+    }
+    belt = belt.filter(it => it.x > L.trous.g.x - 30 || tenu(it) || it.ret);
+    // couveuse
+    for (const c of couv) {
+      if (!c.done) { c.p += dt / OEUFS[c.t].eclot; if (c.p >= 1) { c.p = 1; c.done = true; } }
+      c.wob += dt * (c.done ? 14 : 3 + c.p * 8);
+    }
+    for (let i = 0; i < couv.length; i++) {
+      const c = couv[i];
+      if (c.done && unis.length < MAX_UNIS) {
+        couv.splice(i, 1); i--;
+        // la couleur de la couveuse : le bébé la garde en grandissant (V10 : une arc-en-ciel garde toutes ses couleurs ; sans couleur choisie,
+        // les bébés des œufs rares naissent violets et ceux des légendaires dorés)
+        const u = newUni(c.t); u.col = u.arc ? null : c.col != null ? c.col : TEINTE_OEUF[c.t]; u.u = 0.1 + Math.random() * 0.3; u.v = Math.random(); unis.push(u);
+        const x = L.couv.x + L.couv.w / 2, y = L.couv.y + L.couv.h * 0.45;
+        snd.hatch(); sparkle(x, y, 20, null, 180); floatText(x, L.couv.y, 'Un bébé !', '#d0569a');
+        flyers.push({ img: uniImg(u), hue: u.col, x0: x, y0: y, x1: uniPos(u).x, y1: uniPos(u).y - uniH(u) / 2, t: 0, s: uniH(u) });
+        u.pop = 0.9;
+        if (u.arc) arcFete(x, y, 'Un bébé arc-en-ciel !');
+        else if (c.t === 'leg') { try { api.celebrate && api.celebrate('Un bébé légendaire !'); } catch (e) { /* rien */ } }
+      } else if (c.done && unis.length >= MAX_UNIS && Math.random() < dt * 0.4) say('La maison est pleine : vends ou mets des licornes au nid');
+    }
+    while (couv.length < cap() && queue.length) couv.push(nouvelOeuf(queue.shift()));
+    // nid d'amour
+    if (nid[0] && nid[1] && !nidEgg) {
+      nidT += dt;
+      // V17 : les cœurs montent doucement d'entre leurs deux têtes (lents, en se balançant)
+      if (Math.random() < dt * 1.7) coeurDoux(L.nid.x + L.nid.w / 2 + (Math.random() - 0.5) * 24, L.nid.y - (portrait ? 70 : 52));
+      if (nidT >= NID_DUREE) { nidT = 0; nidEgg = nidOeuf(); snd.hatch(); sparkle(L.nid.x + L.nid.w / 2, L.nid.y + L.nid.h / 2, 20, '#ff9fd0'); floatText(L.nid.x + L.nid.w / 2, L.nid.y, OEUFS[nidEgg].nom + ' !', '#d0569a'); }
+    }
+    if (nidEgg) {
+      if (couv.length < cap()) { couv.push(nouvelOeuf(nidEgg)); flyers.push({ img: OEUFS[nidEgg].img, x0: L.nid.x + L.nid.w / 2, y0: L.nid.y + L.nid.h / 2, x1: L.couv.x + L.couv.w / 2, y1: L.couv.y + L.couv.h * 0.4, t: 0, s: 60 }); nidEgg = null; }
+      else if (queue.length < MAX_QUEUE) { queue.push(nidEgg); nidEgg = null; }
+    }
+    // les licornes se promènent ; les bébés boivent un peu de lait tout seuls (très lentement)
+    for (const u of unis.concat(nid.filter(Boolean))) {
+      u.ph += dt; if (u.pop > 0) u.pop = Math.max(0, u.pop - dt); if (u.hop > 0) u.hop = Math.max(0, u.hop - dt);
+      if (u.bebe) { u.laitT += dt; if (u.laitT > 32) { u.laitT = 0; grow(u, 1); } }
+      if (u.nid != null || (drag && drag.u === u)) continue;
+      const dx = u.tu - u.u, dy = u.tv - u.v, d = Math.hypot(dx * L.enclos.w, dy * L.enclos.h);
+      if (d < 4) { u.marche = false; u.repos = (u.repos || 0) + dt; u.wait -= dt; if (u.wait <= 0) { u.tu = Math.random(); u.tv = Math.random(); u.wait = 1 + Math.random() * 3; } }
+      else {
+        const pas = (u.bebe ? 28 : 38) * dt, v = pas / d; u.u += dx * Math.min(1, v); u.v += dy * Math.min(1, v);
+        // un tour de marche (8 images) tous les FOULEE pixels : les sabots ne glissent pas
+        if (!u.marche) { u.marche = true; u.step = 0; } u.step = (u.step || 0) + Math.min(pas, d) / ((u.bebe ? FOULEE_BEBE : FOULEE) / 8); u.repos = 0;
+        if (Math.abs(dx * L.enclos.w) > 6) u.face = dx > 0 ? 1 : -1;
+      }
+    }
+    // manette : A = acheter l'objet le plus à gauche qu'on peut payer (aide simple pour l'alpha)
+    manette(dt);
+  }
+
+  // ---------- dessin ----------
+  // un carrelage d'hexagones pastel (les mêmes couleurs que le sol du décor), mis en cache par mise en page
+  let carC = null;
+  function carrelage(y0, h) {
+    const xa = Math.min(0, V.x), xb = Math.max(LW, V.x + V.w), k = xa + '|' + xb + '|' + Math.round(y0) + '|' + Math.round(h);
+    if (!carC || carC.k !== k) {
+      const r0 = 36, dx = r0 * Math.sqrt(3), dy = r0 * 1.5, cols = ['#cdc2f4', '#bcdcf6', '#c4ecdd', '#ecccf0'], P = cols.map(() => new Path2D());
+      const i0 = Math.floor(xa / dx) - 1;
+      for (let j = -1, y = y0 - dy; y < y0 + h + dy; j++, y += dy) for (let i = i0, x = (j & 1) * dx / 2 + i0 * dx; x < xb + dx; i++, x += dx) {
+        const pp = P[((i * 3 + j * 5) % 4 + 4) % 4]; pp.moveTo(x + r0 * Math.cos(Math.PI / 6), y + r0 * Math.sin(Math.PI / 6));
+        for (let a = 1; a <= 6; a++) pp.lineTo(x + r0 * Math.cos(Math.PI / 6 + a * Math.PI / 3), y + r0 * Math.sin(Math.PI / 6 + a * Math.PI / 3));
+      }
+      carC = { k, P, cols };
+    }
+    ctx.save(); ctx.beginPath(); ctx.rect(xa, y0, xb - xa, h); ctx.clip();
+    ctx.fillStyle = '#f8f2fd'; ctx.fillRect(xa, y0, xb - xa, h);   // (V17 : carreaux plus francs, joints plus blancs)
+    carC.P.forEach((pp, i) => { ctx.fillStyle = carC.cols[i]; ctx.fill(pp); ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3; ctx.stroke(pp); });
+    const om = ctx.createLinearGradient(0, y0, 0, y0 + 40); om.addColorStop(0, 'rgba(150,110,160,0.22)'); om.addColorStop(1, 'rgba(150,110,160,0)'); ctx.fillStyle = om; ctx.fillRect(xa, y0, xb - xa, 40);   // l'ombre au pied du mur
+    ctx.restore();
+  }
+  // V11 : la maison achetée (fondu depuis la précédente), puis le tapis et le comptoir détourés posés dessus, à la même place qu'avant
+  // V14 : une image posée en (x, y, w, h), prolongée jusqu'aux vrais bords de l'écran (jamais étirée) : la bande du bord (au plus 20 % de
+  // la largeur sur les côtés, 9 % de la hauteur en haut et en bas) est répétée en miroir, une fois sur deux retournée : aucune couture
+  function imgEtendu(img, x, y, w, h, voile) {
+    ctx.drawImage(img, x, y, w, h);
+    const iw = img.width, ih = img.height, kx = iw / w, ky = ih / h;
+    const tuile = (sx, sy, sw, sh, dx, dy, dw, dh, fx, fy) => {
+      ctx.save(); ctx.translate(dx + (fx ? dw : 0), dy + (fy ? dh : 0)); ctx.scale(fx ? -1 : 1, fy ? -1 : 1); ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh); ctx.restore();
+    };
+    const eg = x - V.x, ed = V.x + V.w - x - w, eh = y - V.y, eb = V.y + V.h - y - h;
+    if (eg > 0.5) { const b = Math.min(eg, w * 0.2); for (let k = 0; k * b < eg && k < 30; k++) tuile(0, 0, b * kx, ih, x - (k + 1) * b - 0.5, y, b + 1, h, !(k % 2), false); }
+    if (ed > 0.5) { const b = Math.min(ed, w * 0.2); for (let k = 0; k * b < ed && k < 30; k++) tuile(iw - b * kx, 0, b * kx, ih, x + w + k * b - 0.5, y, b + 1, h, !(k % 2), false); }
+    if (eh > 0.5) { const b = Math.min(eh, h * 0.09); for (let k = 0; k * b < eh && k < 30; k++) tuile(0, 0, iw, b * ky, x, y - (k + 1) * b - 0.5, w, b + 1, false, !(k % 2)); }
+    if (eb > 0.5) { const b = Math.min(eb, h * 0.09); for (let k = 0; k * b < eb && k < 30; k++) tuile(0, ih - b * ky, iw, b * ky, x, y + h + k * b - 0.5, w, b + 1, false, !(k % 2)); }
+    if (voile && eb > 0.5) {   // l'accueil : un voile pastel doux sur le sol prolongé (les bonbons coupés du bord ne se voient plus)
+      const g = ctx.createLinearGradient(0, y + h - 30, 0, y + h + eb); g.addColorStop(0, voile + '0)'); g.addColorStop(0.35, voile + '0.55)'); g.addColorStop(1, voile + '0.8)');
+      ctx.fillStyle = g; ctx.fillRect(x, y + h - 30, w, eb + 30);
+    }
+  }
+  // V15 : une image peinte en long, posée avec des bandes du MILIEU répétées (le tapis, le comptoir) : les bouts restent intacts
+  function bande(img, x, y, w, h, A, p) {
+    const iw = img.width, ih = img.height, e = w - iw;
+    if (e < 1) { ctx.drawImage(img, x, y, iw, h); return; }
+    const k = Math.max(1, Math.round(e / p)), sw = e / k;
+    ctx.drawImage(img, 0, 0, A, ih, x, y, A, h);
+    for (let i = 0; i < k; i++) ctx.drawImage(img, A, 0, p, ih, x + A + i * sw - 0.5, y, sw + 1, h);
+    ctx.drawImage(img, A, 0, iw - A, ih, x + A + e, y, iw - A, h);
+  }
+  // V17 : la maison plus lumineuse et plus gaie (cadeau de l'admin) : chaque image est retravaillée UNE fois — ses tons étirés (plus de
+  // voile laiteux : vrais blancs, contraste), couleurs franches, la lumière de la fenêtre ; les contours et le style pastel restent
+  const CLAIRES = new Map();
+  function claire(img, seul) {   // seul = sans la lumière de la fenêtre (le tapis et le comptoir ont des bords transparents)
+    if (CLAIRES.has(img)) return CLAIRES.get(img);
+    let out = img;
+    try { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+      const d = x.getImageData(0, 0, c.width, c.height), p = d.data, hist = new Uint32Array(256);
+      let n = 0; for (let i = 0; i < p.length; i += 4) if (p[i + 3] > 200) { hist[(p[i] * 77 + p[i + 1] * 150 + p[i + 2] * 29) >> 8]++; n++; }   // (seulement les pixels opaques)
+      // les tons réels de l'image (1 % et 99,5 %) : ils deviennent de vrais sombres et de vrais blancs (le voile laiteux s'en va)
+      let a = 0, lo = 0, hi = 255; for (let v = 0; v < 256; v++) { a += hist[v]; if (a < n * 0.01) lo = v; if (a < n * 0.995) hi = v; }
+      lo = Math.min(lo, 200); hi = Math.max(hi, lo + 30);
+      // les tons de l'image (très pâles : de 180 à 250 environ) s'étalent de 135 à 255, avec une douce courbe en S ; les contours restent sombres
+      const lut = new Uint8ClampedArray(256);
+      for (let v = 0; v < 256; v++) { if (v < lo) { lut[v] = Math.round(v * 135 / Math.max(lo, 1)); continue; } let t = Math.min(1, (v - lo) / (hi - lo)); const s3 = t * t * (3 - 2 * t); t = t * 0.65 + s3 * 0.35; lut[v] = Math.round(135 + t * 120); }
+      for (let i = 0; i < p.length; i += 4) { const r = lut[p[i]], g = lut[p[i + 1]], b = lut[p[i + 2]], m = (r * 77 + g * 150 + b * 29) / 256;
+        const k = m > 238 ? 1.1 : 1.55;   // couleurs franches ; les blancs restent propres
+        p[i] = m + (r - m) * k + 3; p[i + 1] = m + (g - m) * k; p[i + 2] = m + (b - m) * k; }
+      x.putImageData(d, 0, 0);
+      if (seul) { CLAIRES.set(img, c); return c; }
+      // la lumière qui entre par la fenêtre (en haut, au milieu) et un peu plus de profondeur sur les côtés du bas
+      x.globalCompositeOperation = 'screen'; let gl = x.createRadialGradient(c.width * 0.52, c.height * 0.22, c.height * 0.05, c.width * 0.52, c.height * 0.3, c.height * 0.75);
+      gl.addColorStop(0, 'rgba(255,246,222,0.34)'); gl.addColorStop(1, 'rgba(255,246,222,0)'); x.fillStyle = gl; x.fillRect(0, 0, c.width, c.height);
+      x.globalCompositeOperation = 'multiply'; gl = x.createRadialGradient(c.width * 0.5, c.height * 0.4, c.height * 0.55, c.width * 0.5, c.height * 0.45, c.height * 1.1);
+      gl.addColorStop(0, 'rgba(255,255,255,1)'); gl.addColorStop(1, 'rgba(240,226,240,1)'); x.fillStyle = gl; x.fillRect(0, 0, c.width, c.height);
+      x.globalCompositeOperation = 'source-over'; out = c; } catch (e) { /* image d'une autre origine : on la garde telle quelle */ }
+    CLAIRES.set(img, out); return out;
+  }
+  function maisonImg(img0, x, y, w, h) {
+    const img = claire(img0);
+    if (!portrait) {   // V15 : la maison couvre toute la largeur (agrandie autour de la ligne du sol, à 70 % de la hauteur), prolongée en haut / bas en 4:3
+      const s = Math.max(LW / img.width, LH / img.height), ya = LH * 0.7;
+      imgEtendu(img, (LW - img.width * s) / 2, ya - ya * s, img.width * s, img.height * s); return;
+    }
+    // portrait : la ligne du sol de la maison (~62 % de sa hauteur) posée au pied du mur de la scène, recadrée au milieu ;
+    // sous la maison, sa dernière bande de sol prolongée jusqu'en bas (les licornes marchent toujours sur le sol)
+    const S = L.scene, hz = S.y + S.wallH, k = Math.max(w / img.width, (hz - y) / (img.height * 0.62)), sw = Math.min(img.width, w / k), sx = (img.width - sw) / 2;
+    const bas = y + img.height * k;
+    ctx.drawImage(img, sx, 0, sw, img.height, x, y, w, img.height * k);
+    const sh = img.height * 0.2, dh = sh * k;   // la bande du bas, répétée en miroir (jamais étirée)
+    for (let yy = bas - 1, n = 0; yy < y + h && n < 12; yy += dh - 1, n++) {
+      ctx.save(); ctx.translate(0, yy + (n % 2 ? 0 : dh)); ctx.scale(1, n % 2 ? 1 : -1);
+      ctx.drawImage(img, sx, img.height - sh, sw, sh, x, 0, w, dh); ctx.restore();
+    }
+  }
+  function drawMaison() {
+    const m = IMG['maison' + niveau]; if (!m) return false;
+    const y0 = portrait ? L.belt.draw.y - 12 : 0, h = portrait ? L.tray.y - 8 - y0 : LH, x0 = portrait ? V.x : 0, w0 = portrait ? V.w : LW;
+    maisonImg(m, x0, y0, w0, h);
+    const pm = transT > 0 && IMG['maison' + prevNiv];
+    if (pm) { ctx.globalAlpha = transT; maisonImg(pm, x0, y0, w0, h); ctx.globalAlpha = 1; }
+    const T = IMG['v11-tapis'] && claire(IMG['v11-tapis'], 1), C = IMG['v11-comptoir'] && claire(IMG['v11-comptoir'], 1);   // (V17 : retravaillés comme la maison)
+    if (!portrait) {
+      const gL = L.gL, d = L.d;
+      ctx.fillStyle = 'rgba(120,70,110,0.14)'; ctx.beginPath(); ctx.ellipse(694 + (d + gL) / 2, 206, 510 + (d - gL) / 2, 12, 0, 0, TAU); ctx.fill();
+      if (T) bande(T, 172 + gL, 84, 1044 + d - gL, 130, 272, 164);   // une bande = l'écart entre deux rivets
+      if (C) bande(C, 190, 410, 546 + L.wc, 206, 150, 152);          // une bande = mauve, crème, vert, crème
+    } else {
+      const b = L.belt.draw, k = b.w / 1037; if (T) ctx.drawImage(T, b.x - 3 * k, b.y - 4 * k, 1044 * k, 130 * k);
+      const c = L.counterDraw, kc = c.w / 536; if (C) ctx.drawImage(C, c.x - 5 * kc, c.y - 6 * kc, 546 * kc, 206 * kc);
+    }
+    return true;
+  }
+  function drawBg() {
+    const f = IMG.fond;
+    if (!portrait) {
+      if (drawMaison()) return;
+      if (f) imgEtendu(f, 0, 0, LW, LH); else { ctx.fillStyle = '#f7d6e2'; ctx.fillRect(V.x, V.y, V.w, V.h); }
+      return;
+    }
+    if (IMG['maison' + niveau]) {
+      const g = ctx.createLinearGradient(0, 0, 0, LH); g.addColorStop(0, '#f8dbe5'); g.addColorStop(1, '#f3cfdc'); ctx.fillStyle = g; ctx.fillRect(V.x, V.y, V.w, V.h);
+      carrelage(L.tray.y - 8, LH - L.tray.y + 8); drawMaison(); return;
+    }
+    const g = ctx.createLinearGradient(0, 0, 0, LH); g.addColorStop(0, '#f8dbe5'); g.addColorStop(1, '#f3cfdc'); ctx.fillStyle = g; ctx.fillRect(V.x, V.y, V.w, V.h);
+    // le carrelage de la boutique, sous la scène et jusqu'en bas (dessiné : il prend n'importe quelle hauteur sans s'étirer)
+    const S = L.scene, fy0 = S.y + S.wallH;
+    carrelage(fy0, LH - fy0);
+    if (!f) return;
+    ctx.drawImage(f, 360, 28, 140, 70, 60, 60, 140, 70); ctx.drawImage(f, 960, 28, 140, 70, 520, 60, 140, 70);   // arcs-en-ciel
+    const b = L.belt.draw; ctx.drawImage(f, 175, 88, 1037, 112, b.x, b.y, b.w, b.w * 112 / 1037);
+    // le mur de la scène (dessiné, comme celui du décor) : rose doux, un petit arc-en-ciel, un nuage, des étoiles, la plinthe
+    const wy = S.y, wh = S.wallH, gw = ctx.createLinearGradient(0, wy, 0, wy + wh); gw.addColorStop(0, '#f9e1ea'); gw.addColorStop(1, '#f4d2e0');
+    ctx.fillStyle = gw; ctx.fillRect(0, wy, LW, wh);
+    ctx.save(); ctx.globalAlpha = 0.7; ctx.lineCap = 'round';
+    ['#ffc2d4', '#ffe0b8', '#fff3b8', '#d4f2c8', '#c8e6ff'].forEach((c, i) => { ctx.strokeStyle = c; ctx.lineWidth = 9; ctx.beginPath(); ctx.arc(LW * 0.74, wy + wh * 0.78, wh * 0.42 - i * 9, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke(); });
+    ctx.restore();
+    nuage(ctx, LW * 0.66, wy + wh * 0.7, 30); nuage(ctx, LW * 0.84, wy + wh * 0.74, 24); nuage(ctx, LW * 0.2, wy + wh * 0.42, 34);
+    ctx.fillStyle = '#fff3b0'; [[0.08, 0.2], [0.36, 0.3], [0.5, 0.16], [0.94, 0.3], [0.3, 0.68]].forEach(([x, y], i) => etoile4(ctx, LW * x, wy + wh * y, 7 + (i % 2) * 3));
+    ctx.fillStyle = '#fff6fa'; ctx.fillRect(0, wy + wh - 16, LW, 16); ctx.fillStyle = '#e8b9cf'; ctx.fillRect(0, wy + wh - 16, LW, 2); ctx.fillRect(0, wy + wh - 2, LW, 2);
+    const c = L.counterDraw; ctx.drawImage(f, 195, 416, 536, 196, c.x, c.y, c.w, c.w * 196 / 536);
+  }
+  function drawHud() {
+    const y = V.y + L.hud.y, h = L.hud.h, fs = Math.round(h * 0.5);
+    ctx.font = 'bold ' + fs + 'px ' + RF; ctx.textBaseline = 'middle';
+    // pièces
+    // V14 : accroché aux VRAIS bords de l'écran (V) ; à droite, la place du bouton pause (46 px + 6 px du bord, à l'échelle de l'écran)
+    const gx = V.x + 14 + (portrait ? 0 : L.hud.g), dx = V.x + V.w - 58 / sc - 8, vw = portrait ? 210 : 250, vx = portrait ? Math.min(396 + V.x + V.w - LW, dx - vw) : dx - vw;
+    pill(ctx, gx, y, portrait ? 196 : 210, h, h / 2); ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill(); ctx.strokeStyle = '#e8b6d8'; ctx.lineWidth = 3; ctx.stroke();
+    drawImg(ctx, 'piece', gx + 4, y + 4, h - 8, h - 8);
+    ctx.fillStyle = '#b07a00'; ctx.textAlign = 'left'; ctx.fillText(String(coins), gx + 4 + h, y + h / 2 + 1);
+    // temps
+    const s = Math.max(0, Math.ceil(timeLeft)), ts = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    const tw = portrait ? 164 : 300, tx = portrait ? (gx + 196 + vx) / 2 - tw / 2 : LW / 2 - 150, chaud = s <= 10 && state === 'play';
+    pill(ctx, tx, y, tw, h, h / 2); ctx.fillStyle = chaud ? 'rgba(255,120,150,0.92)' : 'rgba(255,255,255,0.85)'; ctx.fill(); ctx.stroke();
+    ctx.fillStyle = chaud ? '#fff' : '#8a4fb0'; ctx.textAlign = 'center';
+    const ligne1 = 'Manche ' + manche + ' · ' + vendues + '/' + objectifDe(manche) + ' 🦄';
+    if (portrait) { ctx.font = 'bold ' + Math.round(fs * 0.6) + 'px ' + RF; ctx.fillText(ligne1, tx + tw / 2, y + h * 0.3); ctx.font = 'bold ' + Math.round(fs * 0.75) + 'px ' + RF; ctx.fillText('⏱ ' + ts, tx + tw / 2, y + h * 0.72); ctx.font = 'bold ' + fs + 'px ' + RF; }
+    else { ctx.font = 'bold ' + Math.round(fs * 0.78) + 'px ' + RF; ctx.fillText(ligne1 + '  ·  ⏱ ' + ts, tx + tw / 2, y + h / 2 + 1, tw - 16); ctx.font = 'bold ' + fs + 'px ' + RF; }
+    // valeur
+    pill(ctx, vx, y, vw, h, h / 2); ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#8a4fb0'; ctx.textAlign = 'left'; ctx.font = 'bold ' + Math.round(fs * 0.55) + 'px ' + RF; ctx.fillText('VALEUR', vx + 16, y + h / 2 + 1);
+    ctx.font = 'bold ' + fs + 'px ' + RF; ctx.textAlign = 'right'; ctx.fillText('⭐ ' + score(), vx + vw - 14, y + h / 2 + 1);
+  }
+  // un trou sombre dans le mur, au bout du tapis : la voûte (arrondie en haut), le noir du fond, le bord crème comme la porte du mur
+  function voute(t) { const r0 = t.w / 2, top = t.bas - t.h; ctx.beginPath(); ctx.moveTo(t.x - r0, t.bas); ctx.lineTo(t.x - r0, top + r0); ctx.arc(t.x, top + r0, r0, Math.PI, 0); ctx.lineTo(t.x + r0, t.bas); ctx.closePath(); }
+  // V10 (demande de PATOU) : plus de trous noirs : deux ARCHES MAGIQUES, un portail de lumière pastel qui tourne doucement
+  function trouFond(t) {
+    const cx = t.x, cy = t.bas - t.h * 0.45;
+    voute(t); const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, t.h * 0.8);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#ffd9f1'); g.addColorStop(0.7, '#d7c2ff'); g.addColorStop(1, '#a9d8ff'); ctx.fillStyle = g; ctx.fill();
+    ctx.save(); voute(t); ctx.clip(); ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {   // les volutes du portail
+      const a0 = stT * (0.9 + i * 0.25) + i * 2.1; ctx.strokeStyle = ['rgba(255,140,200,0.55)', 'rgba(170,140,255,0.5)', 'rgba(120,200,255,0.5)'][i]; ctx.lineWidth = 5 - i;
+      ctx.beginPath(); for (let k = 0; k <= 24; k++) { const a = a0 + k * 0.32, r = 4 + k * t.w * 0.022; const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r * 0.9; if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); } ctx.stroke();
+    }
+    for (let i = 0; i < 6; i++) { const k = (stT * 0.5 + i / 6) % 1, a = i * 1.9 + t.x; ctx.globalAlpha = Math.sin(k * Math.PI); ctx.fillStyle = '#fffbe0'; star(ctx, cx + Math.cos(a) * t.w * 0.3, cy + Math.sin(a) * t.h * 0.3 - k * 10, 2.5 + k * 3, stT * 2 + i); }
+    ctx.restore();
+  }
+  function trouDevant(t, versDroite) {
+    // la lumière qui avale les objets (V10 : une brume rose et blanche, plus de noir)
+    ctx.save(); voute(t); ctx.clip();
+    const x0 = versDroite ? t.x - t.w / 2 : t.x + t.w / 2, g = ctx.createLinearGradient(x0, 0, t.x, 0);
+    g.addColorStop(0, 'rgba(255,236,250,0)'); g.addColorStop(0.5, 'rgba(255,236,250,0.85)'); g.addColorStop(0.85, 'rgba(255,250,255,1)');
+    ctx.fillStyle = g; ctx.fillRect(t.x - t.w / 2, t.bas - t.h, t.w, t.h); ctx.restore();
+    // un petit arc-en-ciel sur la voûte, et des étoiles qui brillent au sommet
+    ctx.save(); ctx.lineCap = 'round'; ctx.globalAlpha = 0.9;
+    const r0 = t.w / 2, top = t.bas - t.h + r0;
+    ARC_COLS.forEach((c, i) => { ctx.strokeStyle = c; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.arc(t.x, top, r0 + t.w * 0.1 + i * 2.6, Math.PI * 1.02, Math.PI * 1.98); ctx.stroke(); });
+    ctx.restore();
+    // le bord de la voûte
+    voute(t); ctx.lineJoin = 'round'; ctx.lineWidth = t.w * 0.13; ctx.strokeStyle = '#fbe9f1'; ctx.stroke();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = '#d99bbd'; ctx.stroke();
+    ctx.save(); ctx.globalAlpha = 0.55; ctx.lineWidth = t.w * 0.05; ctx.strokeStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(t.x, t.bas - t.h + t.w / 2, t.w / 2 - t.w * 0.03, Math.PI * 1.15, Math.PI * 1.45); ctx.stroke(); ctx.restore();
+    const sp = 0.5 + 0.5 * Math.sin(stT * 3 + t.x); ctx.fillStyle = '#ffe36b'; star(ctx, t.x, t.bas - t.h - t.w * 0.22, 6 + sp * 3, stT);
+    ctx.fillStyle = '#ffc6ec'; star(ctx, t.x - t.w * 0.42, t.bas - t.h + t.w * 0.1, 3 + (1 - sp) * 2, -stT); star(ctx, t.x + t.w * 0.42, t.bas - t.h + t.w * 0.1, 3 + sp * 2, stT);
+  }
+  function drawBelt() {
+    const T = L.trous;
+    trouFond(T.g); trouFond(T.d);
+    // les objets n'existent qu'entre le milieu des deux trous (ils y entrent et en sortent)
+    ctx.save(); ctx.beginPath();
+    const rg = T.g.w / 2, rd = T.d.w / 2, yg = T.g.bas - T.g.h + rg, yd = T.d.bas - T.d.h + rd, bas = L.belt.y + 60;
+    ctx.moveTo(T.g.x, bas); ctx.lineTo(T.g.x, yg - rg); ctx.arc(T.g.x, yg, rg, -Math.PI / 2, 0); ctx.lineTo(T.g.x + rg, 0);
+    ctx.lineTo(T.d.x - rd, 0); ctx.lineTo(T.d.x - rd, yd); ctx.arc(T.d.x, yd, rd, Math.PI, Math.PI * 1.5); ctx.lineTo(T.d.x, bas); ctx.closePath(); ctx.clip();
+    for (const it of belt) {
+      if (tenu(it) || it.ret) continue;   // V10 : dessinés par-dessus tout (drawPorte)
+      const b = itemBox(it), sh = it.shake > 0 ? Math.sin(it.shake * 60) * 4 : 0;
+      const ok = coins >= it.prix;
+      ctx.save(); if (!ok) ctx.globalAlpha = 0.6;
+      if (it.k === 'gcouv') {   // la grande couveuse : un halo doré et « ×4 »
+        const gl = ctx.createRadialGradient(it.x, b.y + b.h / 2, 4, it.x, b.y + b.h / 2, b.w * 0.75); gl.addColorStop(0, 'rgba(255,224,110,0.75)'); gl.addColorStop(1, 'rgba(255,224,110,0)');
+        ctx.fillStyle = gl; ctx.fillRect(b.x - b.w * 0.3, b.y - b.h * 0.3, b.w * 1.6, b.h * 1.6);
+      }
+      drawObjet(ctx, it.img, b.x + sh, b.y, b.w, b.h);
+      if (it.k === 'gcouv') { ctx.font = 'bold 20px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 5; ctx.strokeStyle = '#fff'; ctx.strokeText('×4', b.x + b.w - 8, b.y + 10); ctx.fillStyle = '#c0408a'; ctx.fillText('×4', b.x + b.w - 8, b.y + 10); }
+      ctx.restore();
+      // étiquette de prix
+      const pw = it.k === 'gcouv' ? 74 : 64, ph = 26, px = it.x - pw / 2, py = L.belt.y + 4;
+      ctx.globalAlpha = Math.max(0, Math.min(1, (T.d.x - T.d.w / 2 - it.x + 10) / 40, (it.x - T.g.x - T.g.w / 2 + 10) / 40));   // l'étiquette s'efface au bord des trous
+      pill(ctx, px, py, pw, ph, 13); ctx.fillStyle = ok ? '#fff6c8' : '#f1e3ea'; ctx.fill(); ctx.strokeStyle = ok ? '#e2b33c' : '#d7b5c7'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = 'bold 17px ' + RF; ctx.fillStyle = ok ? '#9a6a00' : '#a08a96'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('🪙' + it.prix, it.x, py + ph / 2 + 1); ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+    trouDevant(T.g, false); trouDevant(T.d, true);
+  }
+  // V10 : l'objet tenu au doigt (un peu plus gros, avec son prix) et ceux qui reviennent au tapis
+  function drawPorte() {
+    for (const it of belt) {
+      const b = itemBox(it); let x, y, k = 1;
+      if (tenu(it)) { x = drag.x; y = drag.y; k = 1.18; }
+      else if (it.ret) { const e = 1 - Math.pow(1 - it.ret.t, 3); x = it.ret.x + (it.x - it.ret.x) * e; y = it.ret.y + (b.y + b.h / 2 - it.ret.y) * e; k = 1.18 - 0.18 * e; }
+      else continue;
+      const w = b.w * k, h = b.h * k, sh = it.shake > 0 ? Math.sin(it.shake * 60) * 5 : 0;
+      ctx.fillStyle = 'rgba(90,50,110,0.18)'; ctx.beginPath(); ctx.ellipse(x, y + h * 0.55, w * 0.38, h * 0.08, 0, 0, TAU); ctx.fill();
+      drawObjet(ctx, it.img, x - w / 2 + sh, y - h / 2, w, h);
+      if (tenu(it)) {
+        const ok = coins >= it.prix, pw = 64, ph = 26, px = x - pw / 2, py = y + h / 2 + 6;
+        pill(ctx, px, py, pw, ph, 13); ctx.fillStyle = ok ? '#fff6c8' : '#ffe0e6'; ctx.fill(); ctx.strokeStyle = ok ? '#e2b33c' : '#ff8aa8'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.font = 'bold 17px ' + RF; ctx.fillStyle = ok ? '#9a6a00' : '#c04060'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🪙' + it.prix, x, py + ph / 2 + 1);
+      }
+    }
+  }
+  // la couveuse : jamais vide à l'intérieur (un coussin de paille), les œufs posés dessus ; la grande couveuse en prend 4
+  function drawCouv() {
+    const G = couvGeo(), c0 = G.c0, c = G.c;
+    if (grande) { const gl = ctx.createRadialGradient(c.x + c.w / 2, c.y + c.h * 0.5, 6, c.x + c.w / 2, c.y + c.h * 0.5, c.w * 0.7); gl.addColorStop(0, 'rgba(255,224,110,0.35)'); gl.addColorStop(1, 'rgba(255,224,110,0)'); ctx.fillStyle = gl; ctx.fillRect(c.x - 30, c.y - 30, c.w + 60, c.h + 60); }
+    // V10 : un œuf glissé du tapis : la couveuse s'allume pour le recevoir (rose si les pièces manquent)
+    const porte = drag && drag.it && (drag.it.k === 'egg' || drag.it.k === 'gcouv') ? drag.it : null;
+    if (porte) {
+      const ok = coins >= porte.prix, dedans = inBox(drag, zoneCouv()), r = c.w * (dedans ? 0.78 : 0.66) * (1 + Math.sin(stT * 8) * 0.04);
+      const gl = ctx.createRadialGradient(c.x + c.w / 2, c.y + c.h * 0.5, 6, c.x + c.w / 2, c.y + c.h * 0.5, r);
+      gl.addColorStop(0, ok ? 'rgba(255,240,150,0.85)' : 'rgba(255,150,170,0.6)'); gl.addColorStop(1, ok ? 'rgba(255,240,150,0)' : 'rgba(255,150,170,0)');
+      ctx.fillStyle = gl; ctx.fillRect(c.x - r, c.y - r, c.w + r * 2, c.h + r * 2);
+    }
+    drawImg(ctx, 'couveuse', c.x, c.y, c.w, c.h, couvCol);
+    // le coussin de paille
+    const nx = G.nx, ny = G.ny, nrx = G.nrx, nry = G.nry;
+    ctx.fillStyle = 'rgba(120,70,40,0.25)'; ctx.beginPath(); ctx.ellipse(nx, ny + nry * 0.5, nrx * 1.05, nry * 1.1, 0, 0, TAU); ctx.fill();
+    const gp = ctx.createLinearGradient(0, ny - nry, 0, ny + nry); gp.addColorStop(0, '#f6dd8a'); gp.addColorStop(1, '#d7a94a');
+    ctx.fillStyle = gp; ctx.beginPath(); ctx.ellipse(nx, ny, nrx, nry, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(160,110,40,0.75)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    for (let i = 0; i < 14; i++) { const a = i / 14 * TAU, x1 = nx + Math.cos(a) * nrx * 0.95, y1 = ny + Math.sin(a) * nry * 0.9; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + Math.cos(a + 1.2) * nrx * 0.28, y1 + Math.sin(a + 1.2) * nry * 0.5 - 2); ctx.stroke(); }
+    ctx.lineCap = 'butt';
+    // les œufs, posés sur la paille
+    const n = G.n, eh = G.eh;
+    couv.forEach((o, i) => {
+      const E = eggBox(i, G), ew = E.ew, cx = E.cx, cy = E.cy;
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.sin(o.wob) * (o.done ? 0.2 : 0.06));
+      drawImg(ctx, OEUFS[o.t].img, -ew / 2, -eh, ew, eh, o.col); ctx.restore();
+      // jauge
+      const jw = n > 3 ? 26 : n > 2 ? 34 : 52; ctx.fillStyle = 'rgba(255,255,255,0.8)'; pill(ctx, cx - jw / 2, c.y + c.h - 6, jw, 9, 4); ctx.fill();
+      ctx.fillStyle = '#ff8cc6'; pill(ctx, cx - jw / 2, c.y + c.h - 6, jw * o.p, 9, 4); ctx.fill();
+    });
+    // un reflet sur la cloche, par-dessus les œufs (ils sont dedans)
+    ctx.save(); ctx.globalAlpha = 0.35; ctx.strokeStyle = '#fff'; ctx.lineWidth = c.w * 0.035; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(c.x + c.w * 0.5, c.y + c.h * 0.5, c.w * 0.33, Math.PI * 1.12, Math.PI * 1.36); ctx.stroke(); ctx.restore();
+    queue.forEach((t, i) => drawImg(ctx, OEUFS[t].img, c0.x + c0.w - 6 + i * 26 - 0, c0.y + c0.h - 36 - i * 4, 24, 32));
+    // le choix de la couleur
+    const P = palette();
+    if (P.length) {
+      const a = P[0], z = P[P.length - 1], pul = 1 + Math.sin(stT * 5) * 0.06;
+      // (V17 : le cadre entoure toutes les rangées)
+      pill(ctx, a.x - 10, a.y - 24, z.x + z.w - a.x + 20, z.y + z.h - a.y + 32, 18); ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill(); ctx.strokeStyle = '#efb3d6'; ctx.lineWidth = 2; ctx.stroke();
+      const fs = portrait ? 18 : 15; ctx.font = 'bold ' + fs + 'px ' + RF; ctx.fillStyle = '#9a4fb8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(couvCol == null ? 'Choisis la couleur des bébés' : 'Les bébés naîtront de cette couleur', (a.x + z.x + z.w) / 2, a.y - 11, z.x + z.w - a.x + 10);
+      for (const d of P) {
+        const on = couvCol === d.hue, r = d.w / 2 * (on ? 1.08 : pul);
+        ctx.beginPath(); ctx.arc(d.x + d.w / 2, d.y + d.h / 2, r, 0, TAU); ctx.fillStyle = d.c; ctx.fill(); ctx.lineWidth = on ? 5 : 3; ctx.strokeStyle = on ? '#9a4fb8' : '#fff'; ctx.stroke();
+        if (on) { ctx.fillStyle = '#fff'; ctx.font = 'bold ' + Math.round(d.w * 0.6) + 'px ' + RF; ctx.fillText('✓', d.x + d.w / 2, d.y + d.h / 2 + 1); ctx.font = 'bold ' + fs + 'px ' + RF; }
+      }
+    }
+  }
+  function label(s, x, y) {
+    ctx.font = 'bold 18px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const w = ctx.measureText(s).width + 20; pill(ctx, x - w / 2, y - 13, w, 26, 13); ctx.fillStyle = 'rgba(255,255,255,0.78)'; ctx.fill();
+    ctx.fillStyle = '#9a4fb8'; ctx.fillText(s, x, y + 1);
+  }
+  function drawNid() {
+    const n = L.nid, ck = calinK();
+    // V17 : une douce lueur rose derrière les deux licornes qui se font un câlin
+    if (ck) { const cx = n.x + n.w / 2, cy = n.y + n.h * 0.2, r = n.w * (0.62 + 0.04 * Math.sin(stT * 1.3)), g = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
+      g.addColorStop(0, 'rgba(255,190,225,' + (0.5 * ck) + ')'); g.addColorStop(1, 'rgba(255,190,225,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.fill(); }
+    drawImg(ctx, 'nid', n.x, n.y, n.w, n.h);
+    if (nid[0] && nid[1] && !nidEgg) {
+      const p = nidT / NID_DUREE; ctx.fillStyle = 'rgba(255,255,255,0.8)'; pill(ctx, n.x + n.w / 2 - 40, n.y + n.h - 2, 80, 10, 5); ctx.fill();
+      ctx.fillStyle = '#ff6fae'; pill(ctx, n.x + n.w / 2 - 40, n.y + n.h - 2, 80 * p, 10, 5); ctx.fill();
+    }
+    if (nidEgg) drawImg(ctx, OEUFS[nidEgg].img, n.x + n.w / 2 - 18, n.y + n.h * 0.3, 36, 46);
+  }
+  // la fenêtre des clients (à droite) : un enfant y arrive, attend, se réjouit ou est déçu, puis repart
+  function drawFenetre(i) {
+    const P = PL()[i], f = P.fen, K = P.carte, hot = drag && drag.u && placeAt(drag, 14) === i;
+    // V10 : SA tuile (la demande et l'enfant ensemble, demande de PATOU)
+    ctx.save();
+    ctx.fillStyle = 'rgba(90,50,110,0.16)'; pill(ctx, K.x + 6, K.y + 8, K.w, K.h, 28); ctx.fill();
+    pill(ctx, K.x, K.y, K.w, K.h, 28); ctx.fillStyle = '#fff4f8'; ctx.fill();
+    const ix = f.x + 12, iy = f.y + 12, iw = f.w - 24, ih = f.h - 36;
+    const g = ctx.createLinearGradient(0, iy, 0, iy + ih); g.addColorStop(0, '#bfe6ff'); g.addColorStop(1, '#e8f6ff');
+    pill(ctx, ix, iy, iw, ih, 18); ctx.fillStyle = g; ctx.fill();
+    // dehors : un peu d'herbe et un nuage
+    ctx.save(); pill(ctx, ix, iy, iw, ih, 18); ctx.clip();
+    ctx.fillStyle = '#bfe8a8'; ctx.fillRect(ix, iy + ih * 0.78, iw, ih * 0.22);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(ix + iw * 0.22, iy + ih * 0.2, 12, 0, TAU); ctx.arc(ix + iw * 0.34, iy + ih * 0.17, 15, 0, TAU); ctx.arc(ix + iw * 0.46, iy + ih * 0.21, 11, 0, TAU); ctx.fill();
+    // l'enfant (on le voit jusqu'à la taille, derrière le rebord)
+    const c = kids[i];
+    if (c) {
+      const pose = c.etat === 'joie' || (c.etat === 'part' && c.servi) ? 'j' : c.etat === 'decu' || (c.etat === 'part' && !c.servi) ? 'd' : 'a';
+      const nm = 'enfant-' + c.k + '-' + pose, hh = ih * 1.32, ww = hh * (IMG[nm] ? ratio(nm) : 0.6);
+      let dx = 0, dy = 0, sy = 1;
+      if (c.etat === 'arrive') { const k = 1 - Math.min(1, c.et / 0.8); dx = k * k * iw * 0.9; dy = Math.abs(Math.sin(c.et * 9)) * -5; }
+      else if (c.etat === 'part') { const k = Math.min(1, c.et / 0.8); dx = k * k * iw * 0.9; dy = Math.abs(Math.sin(c.et * 9)) * -5; }
+      else if (c.etat === 'attend') { sy = 1 + Math.sin(c.ph * 2.4) * 0.012; dy = Math.sin(c.ph * 2.4) * 1.2; }
+      else if (c.etat === 'joie') dy = -Math.abs(Math.sin(c.et * (c.fete ? 9 : 7))) * (c.fete ? 26 : 12);
+      else if (c.etat === 'decu') dx = Math.sin(c.et * 30) * 3 * Math.max(0, 1 - c.et);
+      const fx = ix + iw / 2 + dx, fy = iy + ih + hh * 0.42 + dy;
+      ctx.translate(fx, fy); ctx.scale(1, sy);
+      if (IMG[nm]) ctx.drawImage(IMG[nm], -ww / 2, -hh, ww, hh);
+      else { ctx.font = Math.round(hh * 0.5) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(pose === 'j' ? '😄' : pose === 'd' ? '😢' : '🙂', 0, -hh * 0.3); }
+    }
+    ctx.restore();
+    // le rebord et le contour
+    pill(ctx, ix - 6, iy + ih - 4, iw + 12, 22, 10); const gr = ctx.createLinearGradient(0, iy + ih - 4, 0, iy + ih + 18); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#f1c9dc'); ctx.fillStyle = gr; ctx.fill();
+    ctx.strokeStyle = '#d99bbd'; ctx.lineWidth = 2.5; ctx.stroke();
+    // V10 : sur le rebord, la barre verte du temps de la manche (vide = fin de partie ; le chrono du haut suit)
+    if (state === 'play' || state === 'ready') {
+      const k = Math.max(0, Math.min(1, timeLeft / tempsDe(manche))), bx = ix + 4, by = iy + ih + 1, bw = iw - 8, bh = 14;
+      ctx.fillStyle = 'rgba(230,200,220,0.95)'; pill(ctx, bx, by, bw, bh, 7); ctx.fill();
+      ctx.fillStyle = k > 0.5 ? '#6fd07e' : k > 0.25 ? '#ffc04a' : '#ff6f8f'; if (k < 0.15 && Math.sin(stT * 12) > 0) ctx.fillStyle = '#ff4f7a';
+      if (k > 0) { pill(ctx, bx, by, Math.max(bh, bw * k), bh, 7); ctx.fill(); }
+      ctx.font = 'bold 13px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#7a3a6a';
+      ctx.fillText('⏱ ' + Math.ceil(timeLeft), bx + bw / 2, by + bh / 2 + 1);
+    }
+    pill(ctx, K.x, K.y, K.w, K.h, 28); ctx.lineWidth = hot ? 6 : 3; ctx.strokeStyle = hot ? '#ffd34d' : '#e6a9c9'; ctx.stroke();
+    ctx.restore();
+  }
+  // la demande de l'enfant, sur SA tuile (V10) : la licorne qu'il veut, en grand (âge, couleur, accessoire, scintillante) et « 1 / 2 »
+  function drawBulle(i) {
+    const c = kids[i], P = PL()[i], B = P.bulle;
+    // « 1 / 2 » : les licornes de la manche, en cœurs (toujours visibles sur la grande tuile)
+    if (i === 0 && (state === 'play' || state === 'ready')) {
+      // V16 : les cœurs et « 1 / 2 » sur UNE ligne (la place gagnée agrandit la licorne demandée)
+      const n = objectifDe(manche), fait = state === 'ready' ? n : vendues, t = fait + ' / ' + n, y = B.y + B.h - 17;
+      ctx.font = 'bold 15px ' + RF; const tw = ctx.measureText(t).width + 8, k = Math.min(1, (B.w - 12) / ((n - 1) * 24 + 22 + tw)), r = 11 * k, gap = 24 * k;
+      const x0 = B.x + B.w / 2 - ((n - 1) * gap + 2 * r + tw) / 2 + r;
+      for (let i = 0; i < n; i++) { ctx.fillStyle = i < fait ? '#ff6fae' : 'rgba(230,190,215,0.9)'; heart(ctx, x0 + i * gap, y - r * 0.4, r * 1.6); }
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#8a4fb0';
+      ctx.fillText(t, x0 + (n - 1) * gap + r + 8, y + 1);
+    }
+    if (c && (c.etat === 'attend' || c.etat === 'decu')) {
+      const w = c.want, pop = c.etat === 'attend' && c.et < 0.3 && !c.refus ? 0.7 + c.et : 1, cx = B.x + B.w / 2;
+      ctx.save(); ctx.translate(cx, B.y + B.h * 0.4); ctx.scale(pop, pop); ctx.translate(-cx, -(B.y + B.h * 0.4));
+      // V16 : la licorne voulue, EN GRAND, avec l'accessoire qui bat doucement ; dessous, 1 ou 2 lignes (« Grande verte » / « avec la cape étoilée »)
+      const fs = portrait ? 17 : 15, lh = fs + 4, nl = w.acc ? 2 : 1, bas = B.y + B.h - (i === 0 && (state === 'play' || state === 'ready') ? 32 : 8), ty = bas - nl * lh + lh / 2;
+      const nm = w.adulte ? 'adulte-blanche' : 'bebe-rose', h = Math.min(B.h * (w.adulte ? 0.66 : 0.6), ty - lh / 2 - 6 - (B.y + 14)), lw = Math.min(B.w * 0.94, h * ratio(nm)), hh = lw / ratio(nm), lx = cx - lw / 2, ly = ty - lh / 2 - 6 - hh;
+      ctx.save(); ctx.translate(lx, ly);
+      if (w.brille) { ctx.shadowColor = 'hsl(' + Math.round((stT * 140) % 360) + ',100%,72%)'; ctx.shadowBlur = 18; }
+      const d = w.acc ? ACC[w.acc][w.adulte ? 'a' : 'k'] : null, kb = 1.08 + Math.sin(stT * 5) * 0.06;
+      if (d && d.b) accDraw({ a: w.acc, d }, { w: lw, h: hh }, kb);
+      drawImg(ctx, nm, 0, 0, lw, hh, w.col); ctx.shadowBlur = 0;
+      if (d && !d.b) accDraw({ a: w.acc, d }, { w: lw, h: hh }, kb);
+      ctx.restore();
+      if (w.brille) for (let i = 0; i < 4; i++) { const k = (stT * 1.6 + i / 4) % 1, a = i * 1.6; ctx.fillStyle = ['#fff7b0', '#ffc6ec', '#c9b6ff', '#b5f1ff'][i]; star(ctx, cx + Math.cos(a) * lw * 0.55, ly + hh * 0.5 + Math.sin(a) * hh * 0.5, 2 + Math.sin(k * Math.PI) * 6, stT * 3 + i); }
+      const coul = COULEURS.find(k => k.h === w.col);
+      ctx.font = 'bold ' + fs + 'px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#8a4fb0';
+      ctx.fillText((w.adulte ? 'Grande ' + (FEM[coul.n] || coul.n.toLowerCase()) : 'Bébé ' + coul.n.toLowerCase()) + (w.brille ? ' ✨' : ''), cx, ty, B.w - 8);
+      if (w.acc) { ctx.fillStyle = '#d0408a'; ctx.fillText('avec ' + ACC[w.acc].le, cx, ty + lh, B.w - 8); }
+      ctx.restore();
+    }
+    if (c && c.etat === 'decu' && c.refus) drawRefus(c, P);
+  }
+  // V10 : la bulle de refus, une vraie bulle de BD qui sort de l'enfant (à droite de sa tuile ; à gauche en portrait)
+  function drawRefus(c, P) {
+    const R = P.refus, f = P.fen, pop = Math.min(1, 0.6 + c.et * 3), fade = Math.min(1, (2.6 - c.et) / 0.3);
+    if (fade <= 0) return;
+    ctx.save(); ctx.globalAlpha = fade;
+    const cx = R.x + R.w / 2, cy = R.y + R.h / 2; ctx.translate(cx, cy); ctx.scale(pop, pop); ctx.translate(-cx, -cy);
+    ctx.fillStyle = 'rgba(90,50,110,0.16)'; pill(ctx, R.x + 4, R.y + 6, R.w, R.h, 22); ctx.fill();
+    ctx.fillStyle = '#ffffff'; pill(ctx, R.x, R.y, R.w, R.h, 22); ctx.fill();
+    // la pointe vers l'enfant
+    const ty = f.y + f.h * 0.36; ctx.beginPath();
+    if (R.cote === 'h') { ctx.moveTo(R.x + R.w * 0.6 - 14, R.y + 2); ctx.lineTo(f.x + f.w * 0.5, f.y + f.h - 24); ctx.lineTo(R.x + R.w * 0.6 + 14, R.y + 2); }
+    else if (R.cote === 'd') { ctx.moveTo(R.x + 2, ty - 16); ctx.lineTo(f.x + f.w - 30, ty + 6); ctx.lineTo(R.x + 2, ty + 12); }
+    else { ctx.moveTo(R.x + R.w - 2, ty - 16); ctx.lineTo(f.x + 34, ty + 6); ctx.lineTo(R.x + R.w - 2, ty + 12); }
+    ctx.fill(); ctx.strokeStyle = '#ff8aa8'; ctx.lineWidth = 3; pill(ctx, R.x, R.y, R.w, R.h, 22); ctx.stroke();
+    // le texte, en gros, coupé en lignes
+    const fs = R.w < 120 ? 17 : 21; ctx.font = 'bold ' + fs + 'px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const mots = ('Pas celle-là… ' + c.refus).split(' '), lignes = []; let l = '';
+    for (const m of mots) { const t = l ? l + ' ' + m : m; if (ctx.measureText(t).width > R.w - 16 && l) { lignes.push(l); l = m; } else l = t; }
+    if (l) lignes.push(l);
+    const lh = fs * 1.18, y0 = cy - (lignes.length - 1) * lh / 2;
+    lignes.forEach((t, i) => { ctx.fillStyle = i === 0 ? '#d04070' : '#7a3fa0'; ctx.fillText(t, cx, y0 + i * lh, R.w - 10); });
+    ctx.restore();
+  }
+  function drawUni(u) {
+    const b = uniBox(u), nm = uniImg(u), dragging = drag && drag.u === u;
+    const hop = u.hop > 0 ? Math.sin(u.hop / 0.35 * Math.PI) * 18 : 0;   // le petit saut quand on la pose (la marche, elle, est dans les images)
+    const pop = u.pop > 0 ? 1 + Math.sin(u.pop * 12) * 0.06 * u.pop : 1;
+    // ombre
+    ctx.fillStyle = 'rgba(90,50,110,0.18)'; ctx.beginPath(); ctx.ellipse(b.fx, b.fy - 2, b.w * 0.34, b.h * 0.06, 0, 0, TAU); ctx.fill();
+    if (sel === u) { ctx.fillStyle = 'rgba(255,240,140,0.55)'; ctx.beginPath(); ctx.ellipse(b.fx, b.fy - 2, b.w * 0.46, b.h * 0.1, 0, 0, TAU); ctx.fill(); }
+    if (u.arc) arcAura(b, hop, u.id);
+    // V17 : au nid, pendant le câlin, elles se regardent, penchent la tête l'une vers l'autre et se frottent doucement le museau
+    const ck = u.nid != null ? calinK() : 0, cf = u.nid != null && ck > 0 ? (u.nid ? -1 : 1) : u.face;
+    ctx.save(); ctx.translate(b.fx, b.fy - hop - (ck ? 2 * ck * (1 + Math.sin(stT * 1.3 + u.nid)) : 0));
+    if (ck) ctx.rotate(cf * ck * (0.06 + 0.035 * Math.sin(stT * 1.9 + (u.nid ? 1.4 : 0))));
+    ctx.scale(cf * pop, pop); ctx.translate(-b.w / 2, -b.h);
+    if (u.arc) { ctx.shadowColor = 'hsl(' + Math.round((stT * 160 + u.id * 40) % 360) + ',100%,70%)'; ctx.shadowBlur = 30; }
+    else if (u.brille) { ctx.shadowColor = 'hsl(' + Math.round((stT * 140 + u.id * 40) % 360) + ',100%,72%)'; ctx.shadowBlur = 24; }   // reflet arc-en-ciel qui tourne
+    const accs = u.accs.map(a => ({ a, d: ACC[a][u.bebe ? 'k' : 'a'] }));
+    for (const o of accs) if (o.d.b) accDraw(o, b);
+    drawImg(ctx, uniPose(u), 0, 0, b.w, b.h, u.col); ctx.shadowBlur = 0;
+    for (const o of accs) if (!o.d.b) accDraw(o, b);
+    ctx.restore();
+    if (u.bebe) {   // le lait bu (3 = adulte)
+      for (let i = 0; i < 3; i++) { ctx.fillStyle = i < u.lait ? '#ff8cc6' : 'rgba(255,255,255,0.75)'; ctx.beginPath(); ctx.arc(b.fx - 16 + i * 16, b.y - 6 - hop, 5.5, 0, TAU); ctx.fill(); }
+    }
+    if (u.brille) {   // des étincelles qui s'allument tour à tour autour d'elle
+      for (let i = 0; i < 5; i++) { const k = (stT * 1.6 + i / 5 + u.id * 0.13) % 1, a = i * 1.7 + u.id, rr = Math.sin(k * Math.PI);
+        ctx.fillStyle = ['#fff7b0', '#ffc6ec', '#c9b6ff', '#b5f1ff', '#ffe08a'][i]; star(ctx, b.fx + Math.cos(a) * b.w * 0.45, b.y + b.h * 0.5 + Math.sin(a) * b.h * 0.42 - hop, 3 + rr * 6, stT * 3 + i); }
+    }
+    if (u.arc) arcEclats(b, hop, u.id);
+    if (sel === u) { ctx.fillStyle = '#fff3a0'; star(ctx, b.fx, b.y - 22 - hop + Math.sin(stT * 5) * 3, 10, stT * 2); }
+  }
+  // V10 : la licorne arc-en-ciel : un halo de toutes les couleurs qui tourne derrière elle, un petit arc-en-ciel au-dessus et des étoiles de couleur
+  function arcAura(b, hop, id) {
+    const cx = b.fx, cy = b.y + b.h * 0.55 - hop, r = Math.max(b.w, b.h) * 0.62 * (1 + Math.sin(stT * 3 + id) * 0.04);
+    ctx.save(); ctx.globalAlpha = 0.5;
+    for (let i = 0; i < 6; i++) {
+      const a = stT * 1.4 + i * TAU / 6 + id, g = ctx.createRadialGradient(cx + Math.cos(a) * r * 0.35, cy + Math.sin(a) * r * 0.25, 2, cx + Math.cos(a) * r * 0.35, cy + Math.sin(a) * r * 0.25, r * 0.75);
+      g.addColorStop(0, ARC_COLS[i]); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(cx + Math.cos(a) * r * 0.35, cy + Math.sin(a) * r * 0.25, r * 0.75, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 0.85; ctx.lineCap = 'round';
+    const ar = b.w * 0.34, ay = b.y - hop + b.h * 0.08;
+    ARC_COLS.forEach((c, i) => { ctx.strokeStyle = c; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.arc(cx, ay, ar - i * 3.2, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); });
+    ctx.restore();
+  }
+  function arcEclats(b, hop, id) {
+    for (let i = 0; i < 8; i++) {
+      const k = (stT * 1.3 + i / 8 + id * 0.11) % 1, a = i * 0.785 + stT * 0.6 + id, rr = Math.sin(k * Math.PI);
+      ctx.fillStyle = ARC_COLS[i % 6];
+      star(ctx, b.fx + Math.cos(a) * b.w * 0.55, b.y + b.h * 0.5 + Math.sin(a) * b.h * 0.5 - hop - k * 12, 3 + rr * 7, stT * 3 + i);
+    }
+  }
+  // V16 : l'accessoire bordé de blanc (et d'un fin liseré violet) pour se détacher sur la licorne et le fond pastel ; k = grossi (demande)
+  function accDraw(o, b, k) {
+    const d = o.d, h = b.h * d.s * (k || 1), w = h * ratio(o.a), t = accTour(o.a);
+    ctx.save(); ctx.translate(b.w * d.ax, b.h * d.ay); if (d.rot) ctx.rotate(d.rot);
+    if (t) { const e = t.p * h / IMG[o.a].height; ctx.drawImage(t.c, -w / 2 - e, -h / 2 - e, w + 2 * e, h + 2 * e); }
+    else drawImg(ctx, o.a, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+  function drawTray() {
+    const t = L.tray;
+    pill(ctx, t.x, t.y, t.w, t.h, 22); ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.fill(); ctx.strokeStyle = '#e6b8dc'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.font = 'bold 16px ' + RF; ctx.fillStyle = '#9a4fb8'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('Biberons, couleurs et accessoires', t.x + 18, t.y + 13);
+    const tb = trayBoxes();
+    tb.forEach((b, i) => {
+      pill(ctx, b.x, b.y, b.w, b.h, 12); ctx.fillStyle = i ? 'rgba(244,226,250,0.9)' : 'rgba(255,236,246,0.95)'; ctx.fill();
+      if (i === 0) {
+        drawImg(ctx, 'biberon', b.x + b.w * 0.25, b.y + 4, b.w * 0.5 * ratio('biberon') * 2, b.h - 8);
+        ctx.font = 'bold 20px ' + RF; ctx.textAlign = 'right'; ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText('×' + bib, b.x + b.w - 2, b.y + b.h - 11); ctx.fillStyle = '#c0408a'; ctx.fillText('×' + bib, b.x + b.w - 2, b.y + b.h - 11);
+      } else if (tray[i - 1] != null && !(drag && drag.acc === i - 1)) {
+        const a = tray[i - 1], r = ratio(a), s = b.w - 10; const w = r >= 1 ? s : s * r, h = r >= 1 ? s / r : s;
+        drawObjet(ctx, a, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
+      }
+    });
+  }
+  function drawAct() {
+    const a = L.act;
+    pill(ctx, a.x, a.y, a.w, a.h, 22); ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.fill(); ctx.strokeStyle = '#e6b8dc'; ctx.lineWidth = 3; ctx.stroke();
+    const u = sel;
+    if (!u) {
+      ctx.font = 'bold 20px ' + RF; ctx.fillStyle = '#9a6ab8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('Touche une licorne pour t’en occuper', a.x + a.w / 2, a.y + a.h / 2 - 12);
+      ctx.font = '16px ' + RF; ctx.fillText('ou fais-la glisser vers le nid ou la fenêtre', a.x + a.w / 2, a.y + a.h / 2 + 16);
+      return;
+    }
+    const nm = uniImg(u), ih = 96, iw = ih * ratio(nm), ks = Math.min(1, 124 / iw), accs = u.accs.map(x => ({ a: x, d: ACC[x][u.bebe ? 'k' : 'a'] }));
+    ctx.save(); ctx.translate(a.x + 70, a.y + a.h / 2 + ih / 2 - 2); ctx.scale(ks, ks); ctx.translate(-iw / 2, -ih);   // V16 : avec ses accessoires
+    for (const o of accs) if (o.d.b) accDraw(o, { w: iw, h: ih });
+    drawImg(ctx, nm, 0, 0, iw, ih, u.col);
+    for (const o of accs) if (!o.d.b) accDraw(o, { w: iw, h: ih });
+    ctx.restore();
+    // V16 : pour quel enfant ? « ✓ Parfaite pour Tom », ou ce qui lui manque encore (« Pour Tom : il manque la cape étoilée »)
+    let note = null;
+    for (const j of [0, 1]) { const c = kids[j]; if (!c || (c.etat !== 'attend' && c.etat !== 'decu')) continue; const nom = c.k[0].toUpperCase() + c.k.slice(1);
+      if (convient(u, c.want)) { note = { t: '✓ Parfaite pour ' + nom, c: '#2f9a4a' }; break; }
+      if (!note && !u.bebe === c.want.adulte && couleur(u) === c.want.col && c.want.acc && !u.accs.includes(c.want.acc)) note = { t: 'Pour ' + nom + ' : il manque ' + ACC[c.want.acc].le, c: '#d0408a' }; }
+    ctx.font = 'bold 15px ' + RF; ctx.fillStyle = '#8a4fb0'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    if (note) { ctx.fillStyle = note.c; ctx.fillText(note.t, a.x + 138, a.y + 15, a.w - 150); } else ctx.fillText((u.bebe ? 'Bébé · ' + ['', 'rare', 'légendaire'][['commun', 'rare', 'leg'].indexOf(u.ligne)] : ADULTES[u.adulte].nom).replace(/ · $/, '') + (u.accs.length ? ' · ' + u.accs.length + ' accessoire' + (u.accs.length > 1 ? 's' : '') : ''), a.x + 138, a.y + 15);
+    for (const b of actions()) drawBouton(b);
+  }
+  // un bouton mignon : arrondi pastel, ombre douce, reflet, icône au-dessus et mot entier dessous (plus petit ou sur deux lignes s'il le faut)
+  function drawBouton(b) {
+    const t = appui[b.id] ? (performance.now() - appui[b.id]) / 1000 : 9, k = t < 0.35 ? 1 - Math.sin(t / 0.35 * Math.PI) * 0.09 : 1;
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, r = Math.min(22, b.h * 0.32);
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); ctx.globalAlpha = b.on ? 1 : 0.5;
+    ctx.fillStyle = 'rgba(150,80,140,0.22)'; pill(ctx, b.x, b.y + 4, b.w, b.h, r); ctx.fill();
+    const g = ctx.createLinearGradient(0, b.y, 0, b.y + b.h); g.addColorStop(0, b.c[0]); g.addColorStop(1, b.c[1]);
+    pill(ctx, b.x, b.y, b.w, b.h, r); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'; pill(ctx, b.x + 8, b.y + 5, b.w - 16, b.h * 0.26, r * 0.6); ctx.fill();
+    // l'icône
+    const big = portrait ? 1.15 : 1, icS = Math.round(Math.min(26 * big, b.h * 0.32));
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = icS + 'px system-ui, sans-serif';
+    ctx.fillText(b.ic, cx, b.y + b.h * (b.sub ? 0.26 : 0.32));
+    // le mot : jamais coupé (on réduit, puis on passe à la ligne)
+    const maxW = b.w - 14; let fs = Math.round(18 * big), lignes = [b.t];
+    ctx.font = 'bold ' + fs + 'px ' + RF;
+    while (ctx.measureText(b.t).width > maxW && fs > 13) { fs--; ctx.font = 'bold ' + fs + 'px ' + RF; }
+    if (ctx.measureText(b.t).width > maxW && b.t.includes(' ')) { const m = b.t.split(' '); lignes = [m.slice(0, Math.ceil(m.length / 2)).join(' '), m.slice(Math.ceil(m.length / 2)).join(' ')]; }
+    while (lignes.some(l => ctx.measureText(l).width > maxW) && fs > 9) { fs--; ctx.font = 'bold ' + fs + 'px ' + RF; }
+    ctx.fillStyle = b.tc; const ly = b.y + b.h * (b.sub ? 0.58 : 0.7) - (lignes.length - 1) * fs * 0.55;
+    lignes.forEach((l, i) => ctx.fillText(l, cx, ly + i * fs * 1.1));
+    if (b.sub) { ctx.font = 'bold ' + Math.max(11, Math.round(fs * 0.82)) + 'px ' + RF; ctx.globalAlpha *= 0.85; ctx.fillText(b.sub, cx, b.y + b.h * 0.84); }
+    ctx.restore();
+  }
+  function drawFx() {
+    for (const f of flyers) {
+      const e = 1 - Math.pow(1 - f.t, 3), x = f.x0 + (f.x1 - f.x0) * e, y = f.y0 + (f.y1 - f.y0) * e - Math.sin(f.t * Math.PI) * 80, s = f.s * (1 - f.t * 0.4);
+      ctx.globalAlpha = 1 - f.t * 0.3; drawImg(ctx, f.img, x - s * ratio(f.img) / 2, y - s / 2, s * ratio(f.img), s, f.hue); ctx.globalAlpha = 1;
+    }
+    for (const p of parts) {
+      const a = 1 - p.t / p.d; ctx.globalAlpha = Math.max(0, a); ctx.fillStyle = p.c;
+      if (p.k === 'heart') heart(ctx, p.x, p.y, p.r); else star(ctx, p.x, p.y, p.r * (0.5 + a * 0.5), p.rot + p.t * 4);
+    }
+    ctx.globalAlpha = 1;
+    for (const t of texts) {
+      ctx.globalAlpha = Math.min(1, 2 * (1.3 - t.t)); ctx.font = 'bold 26px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const hw = ctx.measureText(t.s).width / 2 + 8, x = Math.max(hw, Math.min(LW - hw, t.x));   // V10 : jamais coupé au bord de l'écran
+      ctx.lineWidth = 5; ctx.strokeStyle = '#fff'; ctx.strokeText(t.s, x, t.y - t.t * 50); ctx.fillStyle = t.c; ctx.fillText(t.s, x, t.y - t.t * 50);
+    }
+    ctx.globalAlpha = 1;
+    if (msg) {
+      ctx.globalAlpha = Math.min(1, (2.6 - msg.t) * 3); ctx.font = 'bold 21px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const w = Math.min(LW - 40, ctx.measureText(msg.s).width + 40), x = LW / 2, y = L.msgY;
+      pill(ctx, x - w / 2, y - 22, w, 44, 22); ctx.fillStyle = 'rgba(122,63,160,0.9)'; ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(msg.s, x, y + 1, LW - 60);
+      ctx.globalAlpha = 1;
+    }
+  }
+  function drawTitle() {
+    const ti = IMG.titre;
+    if (ti && !portrait) { const s = Math.max(Math.min(LW, 1344) / ti.width, LH / ti.height); imgEtendu(ti, (LW - ti.width * s) / 2, V.y < -0.5 ? V.y : (LH - ti.height * s) / 2, ti.width * s, ti.height * s, 'rgba(255,232,244,'); }   // V14 : prolongé jusqu'aux bords (écran plus haut : calé en haut, le sol prolongé en bas)
+    else if (ti) { const s = Math.max(V.w / ti.width, LH / ti.height); ctx.drawImage(ti, V.x + (V.w - ti.width * s) / 2, 0, ti.width * s, ti.height * s); }
+    else { const g = ctx.createLinearGradient(0, 0, 0, LH); g.addColorStop(0, '#ffe3ef'); g.addColorStop(1, '#d9ccff'); ctx.fillStyle = g; ctx.fillRect(V.x, V.y, V.w, V.h); }
+    if (portrait && IMG.logo) { const lw = LW * 0.9, lh = lw / ratio('logo'); ctx.fillStyle = 'rgba(255,255,255,0.86)'; pill(ctx, 20, 70, LW - 40, lh + 30, 30); ctx.fill(); ctx.drawImage(IMG.logo, (LW - lw) / 2, 85, lw, lh); }
+    // la carte « comment jouer »
+    const cw = portrait ? 640 : 560, chh = portrait ? 330 : 270, cx = (LW - cw) / 2, cy = portrait ? LH - chh - 210 : LH - chh - 158;
+    pill(ctx, cx, cy, cw, chh, 30); ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill(); ctx.strokeStyle = '#f0b6dc'; ctx.lineWidth = 4; ctx.stroke();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#7a3fa0';
+    const lines = ['🥚 Glisse un œuf dans la couveuse, touche-la pour sa couleur', '👧 Donne aux enfants la licorne de leur bulle', '🏡 Achète ta maison : du jardin au palace !', '🍼 Biberon = elle grandit · 🌈 l’arc-en-ciel plaît à tous', '⏱ Chaque manche : une de plus, un peu plus vite !'];
+    const fs = portrait ? 25 : 21; ctx.font = 'bold ' + fs + 'px ' + RF;
+    lines.forEach((l, i) => ctx.fillText(l, cx + 26, cy + 34 + i * (chh - 100) / 4.4, cw - 40));
+    ctx.textAlign = 'center'; ctx.font = (portrait ? 20 : 17) + 'px ' + RF; ctx.fillStyle = '#a066c0';
+    ctx.fillText('Combien de manches tiendras-tu ?', LW / 2, cy + chh - 34, cw - 30);
+    // bouton jouer
+    const bw = portrait ? 340 : 300, bh = portrait ? 92 : 78, bx = (LW - bw) / 2, by = cy + chh + (portrait ? 28 : 14), k = 1 + Math.sin(stT * 4) * 0.03;
+    ctx.save(); ctx.translate(LW / 2, by + bh / 2); ctx.scale(k, k);
+    pill(ctx, -bw / 2, -bh / 2, bw, bh, bh / 2); const g = ctx.createLinearGradient(0, -bh / 2, 0, bh / 2); g.addColorStop(0, '#ff9fd2'); g.addColorStop(1, '#c46ee8'); ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = 'bold ' + Math.round(bh * 0.42) + 'px ' + RF;
+    ctx.fillText(state === 'load' ? 'Chargement…' : '▶ Jouer', 0, 2); ctx.restore();
+    if (loadErr) { ctx.fillStyle = '#c03060'; ctx.font = 'bold 16px ' + RF; ctx.fillText('Les images n’ont pas pu se charger : le jeu marche quand même.', LW / 2, LH - 48, LW - 30); }
+  }
+  function draw() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#f3cfe0'; ctx.fillRect(0, 0, W, H);
+    ctx.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * ox, dpr * oy);
+    if (state === 'load' || state === 'title') { drawTitle(); if (paused) drawPause(); return; }
+    drawBg();
+    drawMaisonBrille(); drawJauge();
+    drawBelt(); drawCouv(); drawNid(); drawFenetre(0); if (deuxEnfants() || kids[1]) drawFenetre(1);
+    const list = unis.slice().sort((a, b) => uniPos(a).y - uniPos(b).y);
+    for (const u of nid) if (u && !(drag && drag.u === u)) drawUni(u);
+    for (const u of list) if (!(drag && drag.u === u)) drawUni(u);
+    label('Couveuse', L.couv.x + L.couv.w / 2, L.couv.y + L.couv.h + 26); label('Nid d’amour', L.nid.x + L.nid.w / 2, L.nid.y + L.nid.h + 28);
+    drawTray(); drawAct(); drawBulle(0); if (deuxEnfants() || kids[1]) drawBulle(1);
+    if (drag && drag.u) drawUni(drag.u);
+    drawPorte();
+    if (drag && drag.acc != null && tray[drag.acc] != null) { const a = tray[drag.acc], s = 70; drawObjet(ctx, a, drag.x - s * ratio(a) / 2, drag.y - s / 2, s * ratio(a), s); }
+    drawCurseur(); drawFx(); drawHud();
+    if (state === 'ready') {
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(V.x, V.y, V.w, V.h);
+      big('Manche ' + manche, LH / 2 - 30);
+      big('Livre ' + objectifDe(manche) + ' licornes en ' + Math.floor(tempsDe(manche) / 60) + ':' + String(tempsDe(manche) % 60).padStart(2, '0'), LH / 2 + 46, 0.42);
+    }
+    if (state === 'end') { drawFin(); drawFx(); }
+    if (paused) drawPause();
+  }
+  function big(s, y, k) {
+    const fs = Math.round((portrait ? 76 : 84) * (k || 1)); ctx.font = 'bold ' + fs + 'px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 12; ctx.strokeStyle = '#fff'; ctx.strokeText(s, LW / 2, y); ctx.fillStyle = '#b35bd6'; ctx.fillText(s, LW / 2, y);
+  }
+  function drawPause() { ctx.fillStyle = 'rgba(90,40,110,0.45)'; ctx.fillRect(V.x, V.y, V.w, V.h); big('PAUSE', LH / 2 - 30); big('Touche pour reprendre', LH / 2 + 40, 0.4); }
+
+  function frame(now) {
+    if (dead) return;
+    raf = requestAnimationFrame(frame);
+    const dt = last ? Math.min(0.05, (now - last) / 1000) : 0; last = now;
+    try {
+      if (!paused) update(dt * FAST); else if (state === 'title' || state === 'load') stT += dt;
+      if (state === 'title' && pad && pad.pressed && pad.pressed('a') && (LOADED || loadErr)) startGame();
+      if (state === 'end' && stT > 1.6 && pad && pad.pressed && pad.pressed('a')) finir();
+      draw();
+    } catch (e) { /* une image ratée ne doit pas arrêter le jeu */ }
+  }
+  raf = requestAnimationFrame(frame);
+
+  return {
+    destroy() {
+      dead = true; cancelAnimationFrame(raf); ro.disconnect();
+      canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onUp);
+      window.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis);
+      pauseBtn.removeEventListener('pointerdown', onPauseBtn);
+      root.innerHTML = '';
+    },
+    currentScore() { return state === 'play' || state === 'end' ? score() : 0; },
+    currentLevel() { return manche; },
+    pause() { if (state === 'play' || state === 'ready') setPaused(true); },
+    resume() { setPaused(false); },
+    // essais (harnais) : avancer le temps, état
+    _test: {
+      spawn(ligne, adulte, accs, arc) { const u = newUni(ligne || 'commun'); if (arc != null) { u.arc = !!arc; u.brille = !arc && u.ligne === 'leg'; u.adulte = arc ? 'arc' : u.adulte === 'arc' ? 'blanche' : u.adulte; } if (adulte) { u.bebe = false; u.adulte = adulte; } if (accs) u.accs = accs; u.tu = u.u; u.tv = u.v; unis.push(u); return u.id; },
+      uni: id => { const u = unis.find(v => v.id === id); if (!u) return null; const b = uniBox(u); return { x: ox + b.fx * sc, y: oy + b.fy * sc, h: b.h * sc, pose: uniPose(u), face: u.face }; },
+      go(id, tu, tv) { const u = unis.find(v => v.id === id); if (u) { u.tu = tu; u.tv = tv; u.wait = 99; } },
+      manche: () => ({ manche, vendues, objectif: objectifDe(manche), temps: Math.round(timeLeft) }), client: (i) => { const c = kids[i || 0]; return c && { k: c.k, etat: c.etat, want: c.want, pat: Math.round(c.pat) }; },
+      niveau: () => niveau, setNiveau(n) { niveau = n; if (n >= DEUX_ENFANTS) kidT[1] = 0.5; }, acheter: () => acheterMaison(), jauge: () => ({ x: ox + (L.jauge.x + L.jauge.w / 2) * sc, y: oy + (L.jauge.y + L.jauge.h / 2) * sc }),
+      fen2: () => ({ x: ox + (PL()[1].fen.x + PL()[1].fen.w / 2) * sc, y: oy + (PL()[1].fen.y + PL()[1].fen.h / 2) * sc }),
+      prepare(id, w) { const u = unis.find(v => v.id === id); if (u) { u.bebe = !w.adulte; u.col = w.col; if (w.acc) u.accs = [w.acc]; u.brille = !!w.brille; } },
+      fen: () => ({ x: ox + (L.fen.x + L.fen.w / 2) * sc, y: oy + (L.fen.y + L.fen.h / 2) * sc }), ids: () => unis.map(u => u.id), uniEcran(id) { const u = unis.find(v => v.id === id); if (!u) return null; const b = uniBox(u); return { x: ox + b.fx * sc, y: oy + (b.y + b.h * 0.55) * sc }; },
+      state: () => state, coins: () => coins, n: () => unis.length, score, skip(s) { timeLeft = Math.max(0.1, timeLeft - s); }, give(c) { coins += c; }, fast(k) { FAST = k; },
+      css: (x, y) => ({ x: ox + x * sc, y: oy + y * sc }),
+      oeufs: () => { const G = couvGeo(); return couv.map((o, i) => { const E = eggBox(i, G); return { t: o.t, col: o.col, x: ox + E.cx * sc, y: oy + (E.y + E.h / 2) * sc }; }); }, pal: () => palette().map(d => ({ hue: d.hue, x: ox + (d.x + d.w / 2) * sc, y: oy + (d.y + d.h / 2) * sc })), pondre(t) { couv.push(nouvelOeuf(t || 'commun')); }, couvCol: () => couvCol, couvBox: () => { const c = couvGeo().c; return { x: ox + (c.x + c.w / 2) * sc, y: oy + (c.y + c.h * 0.4) * sc }; },
+      items: () => belt.map(it => { const b = itemBox(it); return Object.assign({ k: it.k, t: it.t }, { x: ox + (b.x + b.w / 2) * sc, y: oy + (b.y + b.h / 2) * sc }); }),
+      unis: () => unis.concat(nid.filter(Boolean)).map(u => { const b = uniBox(u); return { bebe: u.bebe, nid: u.nid, x: ox + b.fx * sc, y: oy + (b.y + b.h * 0.55) * sc }; }),
+      acts: () => actions().map(a => ({ id: a.id, x: ox + (a.x + a.w / 2) * sc, y: oy + (a.y + a.h / 2) * sc })),
+      tray: () => trayBoxes().map(b => ({ x: ox + (b.x + b.w / 2) * sc, y: oy + (b.y + b.h / 2) * sc })),
+      curseur: () => cur && { k: cur.k, ref: typeof cur.ref === 'object' ? (cur.ref.id || cur.ref.k) : cur.ref, x: ox + cur.x * sc, y: oy + cur.y * sc },
+      couv: () => couv.map(o => ({ t: o.t, p: +o.p.toFixed(2), col: o.col })), grande: () => grande, grandeOn() { grande = true; }, viens(k) { if (k === 'gcouv') grandeT = 0; },
+      palette: () => palette().map(d => ({ hue: d.hue, x: ox + (d.x + d.w / 2) * sc, y: oy + (d.y + d.h / 2) * sc })),
+      bebes: () => unis.filter(u => u.bebe).map(u => u.col),
+      zone: k => ({ x: ox + (L[k].x + L[k].w / 2) * sc, y: oy + (L[k].y + L[k].h / 2) * sc })
+    }
+  };
+}
+
+window.JDW_GAMES = window.JDW_GAMES || {};
+window.JDW_GAMES.licornes = {
+  id: 'licornes',
+  title: 'La Maison des Licornes',
+  tagline: 'Fais éclore, grandir et briller la plus belle écurie de licornes !',
+  accent: '#e48ad0',
+  scoreLabel: 'pièces',
+  orientation: 'les2',   // vérifié en portrait (mise en page à part) et en paysage ; la fiche demande « paysage » (la borne affiche « Tourne ton téléphone »)
+  fps: false,   // V16 : jamais le compteur « écran … i/s » de la borne par-dessus le jeu
+  preview,
+  mount,
+  pad: { help: [['ls/dpad', 'Choisir'], ['a', 'Prendre · poser · acheter'], ['b', 'Annuler'], ['start', 'Pause']], intro: false }
+};
+})();

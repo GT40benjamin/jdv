@@ -6,6 +6,28 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## 🏰 Remparts ! : la Crypte oubliée cache quatre mondes (borne 2.0.69)
+[remparts] 💀 La Crypte oubliée (après les Forges ardentes) s’ouvre maintenant sur une carte : quatre mondes cachés, 5 niveaux chacun, à jouer dans l’ordre.
+[remparts] 🎃 Le Cimetière des lanternes : nuit bleue, tombes, mausolées et citrouilles allumées ; les squelettes armés se relèvent une fois… et des tombes s’ouvrent au milieu du chemin.
+[remparts] 🕯️ Les Catacombes royales : sous terre, à la lueur des torches ; une tour posée sur un autel doré tire 50 % plus vite, et les couloirs se croisent.
+[remparts] 🌊 Le Village englouti : une île de sable dans une mer turquoise, des maisons noyées et des nénuphars ; sur les courants, poissons et crapauds nagent plus vite.
+[remparts] ☁️ Le Royaume des nuages : une île rose qui flotte dans le ciel, avec ses moulins ; lapins, poulets, pigeons… et les volants arrivent en nuées.
+[remparts] 👑 Le 5e niveau de chaque monde a son gardien (Roi des tombes, Roi des catacombes, Roi des abysses, Dragon des nuages) et des pièges : c’est très difficile, mais on peut gagner !
+[remparts] ⚠️ Chaque gardien a son attaque, et on la voit venir : un cercle grandit au sol. Le Roi des tombes réveille des squelettes devant lui, le Roi des catacombes assomme les tours proches, le Roi des abysses lance un raz-de-marée qui pousse les monstres, le Dragon crache du feu sur une tour.
+[remparts] 🎵 Chaque monde caché a sa propre musique.
+[remparts] 🗺️ Sur la tuile de Remparts !, une petite carte montre tes mondes gagnés et les portes de la Crypte déjà ouvertes, avec les niveaux gagnés derrière chacune.
+[remparts] 👻 Tu avais joué l’ancienne Crypte (sa carte unique) ? Ton record reste dans 🏆 Records (« L’ancienne Crypte »), il compte toujours dans ton total, et la première porte de la nouvelle Crypte t’est ouverte.
+[remparts] 🏆 Chaque niveau a ses records de la salle et son record 🌍 mondial ; le tableau des copains a une colonne 💀 pour toute la Crypte.
+[pegase] ## 🐈 Pégase 0.9.9.46 : le village s'anime en sons (borne 2.0.67)
+[pegase] 👣 Les habitants qui passent près de toi font leurs pas sur le sol où ils marchent : herbe, sable, gravier, pierre, bois.
+[pegase] 🐈 Les chats miaulent doucement quand tu approches et ronronnent si tu restes tout près d'eux.
+[pegase] 🦗 La grande sauterelle verte et la cigale chantent depuis leur buisson.
+[pegase] 🪑 S'asseoir sur un banc et se relever fait un doux froissement de vêtements.
+[pegase] 🖱️ Un petit clic feutré sur les boutons des écrans qui étaient muets : sac, barre d'objets, bar, téléphone…
+[pegase] 🍸 Désiré montre ses deux mains, de face comme de trois quarts : plus de main cachée derrière le tablier.
+[pegase] 🙂 Au bar, sur PC, le visage de Désiré est enfin éclairé : on voit ses yeux et son sourire.
+[pegase] 💡 Sur téléphone, les personnages dans l'hôtel, les boutiques et les maisons ont une lumière chaude : on voit enfin leurs visages.
+[pegase] 🌊 Plus d'herbe qui pousse au fond de la mer ; les algues, elles, restent.
 [pegase] ## 🔊 Pégase 0.9.9.45 : le monde se met à sonner (borne 2.0.53)
 [pegase] 👣 Dehors, tes pas sonnent enfin selon le sol : herbe, terre, sable, gravier, pavés, pontons et ponts en bois.
 [pegase] 🚲 À vélo, on entend les pneus rouler, plus fort quand tu vas vite, et le cliquet de la roue libre quand tu ne pédales pas.
@@ -36,6 +58,14 @@
 [borne] 🎮 Un jeu resté ouvert en pause ne passe plus par-dessus le jeu que tu choisis : chaque tuile ouvre toujours son jeu à elle.
 [borne] ## 📱 Les jeux en plein écran sur téléphone (borne 2.0.38)
 [borne] 📱 Téléphone à l’horizontale : plus de bande sur le côté pendant la partie, le jeu prend toute la largeur. Quitter et le son sont deux petits ronds transparents, dans un coin que le jeu laisse libre.
+[noisette] ## 🐿️ Noisette et ses amis : une carte plus propre (borne 2.0.65)
+[noisette] 🐿️ Sur la carte de la tuile, le titre « Noisette et ses amis » tient en entier en haut, et Noisette attend à côté du départ sans cacher le texte.
+[noisette] ## 🗺️ Noisette et ses amis : 20 niveaux en 4 chapitres (borne 2.0.64)
+[noisette] 🗺️ La carte de la tuile suit la version que tu joues : avec la nouvelle version, 4 chapitres de 5 niveaux, et un ami à retrouver au bout de chaque chapitre (Pompon, Piquant, Hulotte et Roussette).
+[atelier] ## 🏷️ Des noms clairs pour les éléments de ton jeu (borne 2.0.70)
+[atelier] 🏷️ Dans l’onglet Éléments, les éléments qui portaient encore leur consigne de dessin reçoivent un nom court et clair. Un élément que tu as retiré reste retiré, même renommé.
+[atelier] ## ← Un bouton Retour en haut de chaque fenêtre (borne 2.0.63)
+[atelier] ← Chaque fenêtre de l’Atelier (Mes demandes, la fiche d’un élément…) a en haut « ← Retour » et « ✕ », toujours visibles. Le geste retour du téléphone, la touche Échap ou un toucher à côté la ferment aussi. Les titres de tes demandes s’affichent proprement, sans les #.
 [atelier] ## 🔍 {G} teste ton jeu avant de te le livrer (borne 2.0.62)
 [atelier] 🔍 Avant chaque livraison, {g} teste ton jeu en profondeur : ton ticket le montre avec sa loupe. Et la barre « Jouer · Mes demandes · Éléments » ne cache plus le haut de la page sur téléphone.
 [atelier] ## 🧩 Les éléments de ton jeu arrivent au fur et à mesure (borne 2.0.61)
@@ -152,6 +182,13 @@
 [atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : {g} monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
 [atelier] 🎁 À ta première visite, {g} t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
 
+[abracadabra] ## 🐕 Abracadabra : le lévrier et la statue de renard reviennent (borne 2.0.68)
+[abracadabra] 🐕 Le lévrier, le chien de chasse, la truie et la statue de renard apparaissent de nouveau quand on les dit.
+[abracadabra] ## 🌿 Abracadabra : plus personne ne s'envole, et la nature plus belle (borne 2.0.66)
+[abracadabra] 🦖 Quand le T-rex surgit, les villageois s'enfuient en courant… sans plus jamais grimper en l'air sur les toits.
+[abracadabra] 🐢 Mission 6 : la tortue accoste au bord de la plage, tout le monde descend les pieds dans le sable.
+[abracadabra] 🐑 Mission 12 : le chien de berger trotte pour de vrai, et les moutons rentrent par la barrière au lieu de traverser l'enclos.
+[abracadabra] 🌱 De vrais brins d'herbe qui ondulent au vent, des galets et des coquillages sur le sable, le ciel qui se reflète dans la rivière, et des bêtes qui marchent sans glisser.
 [abracadabra] ## 🦕 Abracadabra : des dinosaures tout en rondeurs (borne 2.0.55)
 [abracadabra] 🦕 Les dinosaures, le renard, l'alpaga et l'âne ne sont plus « carrés » : leurs formes sont lissées et arrondies, ils bougent toujours aussi bien.
 [abracadabra] 😱 Quand le T-rex attaque, plus personne ne bavarde : on n'entend que des cris.

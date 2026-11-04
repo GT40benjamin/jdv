@@ -4785,3 +4785,13 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 @media (prefers-reduced-motion:reduce){.atl-loupe{animation:none}}
 .atl-travb.tests{border-color:rgba(126,247,255,.6);background:rgba(58,123,255,.14)}
 .atl-travb > div > b{-webkit-line-clamp:3}
+/* 2.0.63 : la barre « ← Retour  ✕ » en haut de chaque fenêtre de l'Atelier, toujours visible */
+.atl-winbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-4px -4px 10px;padding:8px 6px calc(8px + env(safe-area-inset-top, 0px) * 0);background:rgba(14,12,30,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);border-radius:12px 12px 0 0}
+.atl-zoom > .atl-winbar{position:fixed;top:max(8px, env(safe-area-inset-top));left:8px;right:8px;margin:0;border-radius:12px}
+.atl-winbar .atl-winx{width:40px;height:40px;font-size:18px}
+/* 2.0.63 : le bandeau « Nouveau : ton cri de perte » ne couvre plus l'Atelier (ni la barre ← Retour de ses fenêtres) */
+body.atl-on .lose-tip{display:none}
+/* 2.0.65 : carte de Noisette — le titre de chaque carte rapetisse pour tenir entre ◀ et la cible (mapTitreFit ; « … » en dernier recours) ; Noisette posé à gauche du départ, plus sur le texte */
+.gmap-ttl h2{overflow:hidden;text-overflow:ellipsis}
+.gmap[data-theme=noisette] .gmap-ttl h2{color:#fff3d6;text-shadow:0 3px 0 rgba(30,20,6,.85),0 0 16px rgba(232,138,58,.55)}
+.gmap[data-theme=noisette] .gs-art{position:absolute;left:-130px;top:-52px;pointer-events:none;filter:drop-shadow(0 4px 5px rgba(0,0,0,.45))}

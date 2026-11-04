@@ -32,7 +32,10 @@ const LOOPS = {
   'remparts-1': 'Locations/Medieval Market LOOP.wav', 'remparts-x1': 'Combat/Skeletons LOOP.wav',
   'rempartsdunes-1': 'Locations/The Bazaar LOOP.wav', 'rempartsneige-1': 'Seasonal/Christmas/Hidden Gifts/Hidden Gifts LOOP.wav',
   'rempartsvolcan-1': 'Combat/Barren Combat LOOP.wav', 'rempartshante-1': 'Seasonal/Halloween/Haunted LOOP.wav',
-  'rempartsboss-1': 'Combat/Boss Battle 1 Loop.wav'
+  'rempartsboss-1': 'Combat/Boss Battle 1 Loop.wav',
+  // la Crypte oubliée (4 nov. 2026) : une musique par monde caché
+  'rempartscimetiere-1': 'Seasonal/Halloween/Halloween LOOP.wav', 'rempartscatacombes-1': 'Dungeons/Dangerous Dungeon LOOP.wav',
+  'rempartsenglouti-1': 'Locations/Remote Island - Main Loop.wav', 'rempartsnuages-1': 'Platform/Soaring LOOP NO SOLO.wav'
 };
 // volume visé (efficace) par morceau, s'il doit sonner plus fort que 0,12 : l'accueil (ElevenLabs) est vers -14 à -17 dBFS ;
 // au-delà de la crête, un limiteur doux (pas de saturation dure). Les autres morceaux ne changent pas.

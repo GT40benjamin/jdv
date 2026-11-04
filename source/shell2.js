@@ -8,9 +8,9 @@ const ORDER = ['noisette', 'lune', 'licornes', 'remparts', 'abracadabra', 'flech
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  remparts: { kind: 'maj', at: '2026-11-03 19:51' },   // Remparts ! (borne 2.0.27 : progression par salle — mondes ouverts, étoiles, défi ; 2.0.25 : records de la salle aussitôt sur les boutons ; 2.0.24) : records PAR SALLE (« Toi dans la salle », tableau, 👑) et 🌍 Mondial à part ; à la sortie : (tower defense magique 3D) : SORTI POUR TOUS (« Oui, public », Benjamin) ; heure = celle de la sortie ; en essai derrière la porte labo jusqu'à la 1.63.104
+  remparts: { kind: 'maj', at: '2026-11-04 03:27' },   // Remparts ! (borne 2.0.69 : la Crypte oubliée = 4 mondes cachés × 5 niveaux ; borne 2.0.27 : progression par salle — mondes ouverts, étoiles, défi ; 2.0.25 : records de la salle aussitôt sur les boutons ; 2.0.24) : records PAR SALLE (« Toi dans la salle », tableau, 👑) et 🌍 Mondial à part ; à la sortie : (tower defense magique 3D) : SORTI POUR TOUS (« Oui, public », Benjamin) ; heure = celle de la sortie ; en essai derrière la porte labo jusqu'à la 1.63.104
   licornes: { kind: 'new', at: '2026-11-02 17:30' },   // La Maison des Licornes (1er jeu né à l'Atelier, projet de PATOU, version alpha, en essai derrière la porte labo : …/jouer/?labo=licornes)
-  abracadabra: { kind: 'maj', at: '2026-11-03 22:20' },   // Abracadabra (borne 2.0.55 : dinosaures lissés, cris seulement pendant l'attaque ; 2.0.52 : dinosaures en couleurs ; 2.0.48 : dinosaures, T-rex qui croque tout le monde, renard, alpaga, âne ; 2.0.43 : cheval à corne et pégase ; 2.0.42 : buffle et varan éclaircis ; 2.0.41 : vraies tailles, éléphant gris ; 2.0.40 : les oiseaux s'animent ; 2.0.39 : éléphant, tigre, zèbre… lapin qui broute, la fillette accourt ; 2.0.37 : les animaux bougent de nouveau) ; SORTI POUR TOUS en 1.63 (heure = celle de la sortie) ; en essai derrière la porte labo de la 1.55 à la 1.62.80
+  abracadabra: { kind: 'maj', at: '2026-11-04 03:15' },   // Abracadabra (borne 2.0.68 : lévrier, chien de chasse, truie, statue de renard de retour ; 2.0.66 : plus d'envol, bergerie, herbe au vent, galets, reflets ; 2.0.55 : dinosaures lissés, cris seulement pendant l'attaque ; 2.0.52 : dinosaures en couleurs ; 2.0.48 : dinosaures, T-rex qui croque tout le monde, renard, alpaga, âne ; 2.0.43 : cheval à corne et pégase ; 2.0.42 : buffle et varan éclaircis ; 2.0.41 : vraies tailles, éléphant gris ; 2.0.40 : les oiseaux s'animent ; 2.0.39 : éléphant, tigre, zèbre… lapin qui broute, la fillette accourt ; 2.0.37 : les animaux bougent de nouveau) ; SORTI POUR TOUS en 1.63 (heure = celle de la sortie) ; en essai derrière la porte labo de la 1.55 à la 1.62.80
   sensinterdit: { kind: 'maj', at: '2026-11-03 19:36' },   // Sens Interdit (borne 2.0.49) : le partage du score dans le chat envoie enfin le message ; (borne 1.63.21) : plus d'écran vide sur les petits téléphones (mode léger) ; 1.63.14 : plus de nuage à 1200 km/h, un seul trait (le 1er de la salle) ; 1.63.6 : moins d'attente au lancement ; 1.63.4 : un chargement sans trou ; 1.63.3 : les premières images de la course ; 1.63.1 : un départ sans à-coup ; 1.62.84 : la brume des roues plus légère ; 1.62.83 : Néon City plus lisible sur téléphone ; 1.62.82 : retouches après le tour des mondes ; 1.62.81 : les phares comme au cinéma ; 1.62.79 : les lampadaires dans la route mouillée ; 1.62.78 : des cendres dans l'air du Volcan ; 1.62.77 : la neige se pose sur ta voiture ; 1.62.75 : la planète se reflète dans la route ; 1.62.73 : la lave éclaire ta voiture ; 1.62.71 : le soleil scintille sur la mer ; 1.62.70 : Néon City, la route mouillée ; 1.62.69 : la musique étouffée dans les tunnels ; 1.62.67 : les roues soulèvent le décor ; 1.62.64 : le tunnel en fête ; 1.62.63 : les phares éclairent la route ; 1.62.62 : tour de contrôle des 5 mondes ; 1.62.61 : le bec des dauphins ; 1.62.60 : étoiles filantes et comète ; 1.62.59 : bombes de lave ; 1.62.57 : appels de phares et klaxons ; 1.62.56 : dauphins plus souvent ; 1.62.55 : la fête du record ; 1.62.54 : Néon City aux noms des copains ; 1.62.53 : le mur du son ; 1.62.52 : de vrais dauphins ; 1.62.51 : le moment du dépassement ; 1.62.49 : dauphins et gerbes de lave ; 1.62.48 : choisis la couleur de ta voiture ; 1.62.46 : de vrais oiseaux ; 1.62.44 : mouettes et vols d'oiseaux ; 1.62.41 : combos de frôlés ; 1.62.40 : neige au Col, pluie sur Néon City ; 1.62.37 : classement lisible sur ordinateur ; 1.62.34 : trait des copains, lueur du volcan ; 1.62.31 : lampadaires, villa, voiture au Volcan ; 1.62.30 : de vrais chalets au Col ; 1.62.29 : musique de l'espace aux Étoiles, même volume partout ; 1.62.27 : écho des tunnels, glissière, moteur, vibrations ; 1.62.24 : traits de vitesse, capot, phare, aide des touches ; 1.62.20 : panache en colonne puis champignon ; 1.62.18 : voiles du Col plus fins et plus hauts ; 1.62.15 : route usée, anneaux qui s'éteignent, phares doux ; 1.62.13 : panache de cendre, voiture sans halo au Volcan ; 1.62.12 : liseré plus discret, phares sans bords nets, traînées sous les portiques ; 1.62.10 : ciel du Col, feux d'artifice, voiture bordée de lumière la nuit, titre du monde ; 1.62.9 : la Route des Étoiles plus belle (cristaux, espace sous la route) ; 1.62.8 : le Volcan plus beau (volcan, coulées, croûtes, fissures, arches) ; 1.62.7 : Néon City plus belle (façades, toits, reflets sur la route) ; 1.62.6 : le Col des Neiges plus beau (montagnes, sapins, rochers, lac, prés) ; 1.62.5 : la Corniche en vraie garrigue (sol, massifs, buissons, cyprès, palmiers verts) ; 1.62.3 : la Corniche plus belle (villas, muret, bougainvilliers, cyprès) ; 1.62.2 : de belles nuits, sans taches de lumière ; 1.62.1 : un pick-up enfin complet (vitres, feux, hayon, calandre chromée) ; 1.55.10 : les voitures bien posées sur la route ; 1.55.5 : les traits des copains arrivent en direct pendant la partie ; 1.55.4 : plus jamais collé à la glissière, le dernier appui gagne ; SORTI POUR TOUS (1.51.11) ; 1.52.3 : bannière du monde sous la puce en portrait ; 1.52.1 : deux classements ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
@@ -32,7 +32,7 @@ const TILE_NEWS = {
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
-  pegase: { kind: 'maj', at: '2026-11-03 20:14' }   // Pégase 0.9.9.45 : le monde se met à sonner (borne 2.0.53)
+  pegase: { kind: 'maj', at: '2026-11-04 03:11' }   // Pégase 0.9.9.46 : le village s'anime en sons (borne 2.0.67)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
@@ -2025,7 +2025,8 @@ function recTag(tag) {
   const g = gameById(base) || null;
   if (!lv) return { g, base, lv: '', where: g ? g.title : '', val: v => fmt(v) + unit(g), word: 'ton record', ic: '🏆' };
   const msT = v => { const c = Math.round(v / 10), m = Math.floor(c / 6000), sec = Math.floor(c / 100) % 60; return m + ':' + String(sec).padStart(2, '0') + '.' + String(c % 100).padStart(2, '0'); };
-  if (base === 'remparts') { const lvR = lv.replace(/-r\d+$/, ''), W = { prairie: 'La Forêt enchantée', dunes: 'Le Jardin maudit', neige: 'Les Grottes de glace', volcan: 'Les Forges ardentes', hante: 'La Crypte oubliée' }, inf = /^inf-/.test(lvR); return { g, base, lv: lvR, where: (g ? g.title : 'Remparts !') + ' · ' + (inf ? (W[lvR.slice(4)] || lvR.slice(4)) + ' sans fin' : W[lvR] || (/^defi-\d{8}$/.test(lvR) ? 'défi du ' + lvR.slice(11, 13) + '/' + lvR.slice(9, 11) : lvR)), val: v => fmt(Math.max(0, 100000 - v) * (inf ? 10 : 1)) + ' points', word: 'ton record', ic: '🏰' }; }   // Ajout 22 : coups = 100 000 − score ; « inf-<monde> » (Sans fin) rangé en points ÷ 10
+  if (base === 'remparts') { const lvR = lv.replace(/-r\d+$/, ''), W = { prairie: 'La Forêt enchantée', dunes: 'Le Jardin maudit', neige: 'Les Grottes de glace', volcan: 'Les Forges ardentes', hante: 'La Crypte oubliée' }, inf = /^inf-/.test(lvR), CR = ['Cimetière des lanternes', 'Catacombes royales', 'Village englouti', 'Royaume des nuages'];   // Crypte oubliée (4 nov.) : c<monde>n<niveau>
+    for (let a = 1; a <= 4; a++) for (let n = 1; n <= 5; n++) W['c' + a + 'n' + n] = 'Crypte · ' + CR[a - 1] + ' · niveau ' + n; return { g, base, lv: lvR, where: (g ? g.title : 'Remparts !') + ' · ' + (inf ? (W[lvR.slice(4)] || lvR.slice(4)) + ' sans fin' : W[lvR] || (/^defi-\d{8}$/.test(lvR) ? 'défi du ' + lvR.slice(11, 13) + '/' + lvR.slice(9, 11) : lvR)), val: v => fmt(Math.max(0, 100000 - v) * (inf ? 10 : 1)) + ' points', word: 'ton record', ic: '🏰' }; }   // Ajout 22 : coups = 100 000 − score ; « inf-<monde> » (Sans fin) rangé en points ÷ 10
   if (base === 'chrono') return { g, base, lv, where: (g ? g.title : 'Turbo Chrono') + ' · ' + ((CHRONO_TRACKS.find(x => x[0] === lv) || [])[1] || lv), val: msT, word: 'ton temps', ic: '⏱️' };
   const m = lv.match(/^(\d+)-(\d+)$/), label = base === 'coffres' && m ? 'Monde ' + m[1] + ' · ' + (+m[2] === 20 ? 'grand coffre' : 'coffre ' + m[2]) : 'niveau ' + lv;   // 20 coffres par monde (4 nov. 2026)
   if (base !== 'coffres') return { g, base, lv, where: (g ? g.title + ' · ' : '') + label, val: v => fmt(v), word: 'ton record', ic: '🏆' };   // jeu à niveaux pas encore connu ici : sans unité
@@ -4041,7 +4042,7 @@ function loseTip() {
   if (!n || isGuest() || loseMissing || profile.lose || profile.loseDirty || !ONLINE || netOff()) return;
   const seen = store.get('jdw.losetip', {}) || {}; if (seen[n]) return;
   const busy = document.fullscreenElement || ['jdw-play', 'jdw-duo', 'jdw-net', 'jdw-watch', 'jdw-welcome', 'jdw-acct', 'jdw-profiles', 'jdw-photo', 'jdw-cri',
-    'jdw-settings', 'jdw-coopgo', 'jdw-end', 'jdw-chat', 'jdw-map', 'jdw-board'].some(id => $(id) && !$(id).hidden);
+    'jdw-settings', 'jdw-coopgo', 'jdw-end', 'jdw-chat', 'jdw-map', 'jdw-board'].some(id => $(id) && !$(id).hidden) || (typeof ATL !== 'undefined' && ATL && ATL.open);   // 2.0.63 : jamais par-dessus l'Atelier
   if (busy) { if (++LOSE.tries < 40) LOSE.tipT = setTimeout(loseTip, 15000); return; }
   seen[n] = 1; store.set('jdw.losetip', seen);
   const el = document.createElement('div'); el.id = 'jdw-losetip'; el.className = 'fs-tip lose-tip'; el.setAttribute('role', 'status');
@@ -11738,20 +11739,25 @@ const MAP_DEFS = {
     start: { title: 'Départ', sub: 'La clé dorée attend son coffre' },
     cap: { title: 'Le dernier coffre', sub: 'Le trésor du Maître ébéniste' }
   },
-  // Noisette et ses amis (games/noisette.js, labo de l'Atelier) : 4 niveaux, un ami retrouvé au bout de chacun, puis le grand chêne
-  // (currentLevel = 5 quand les 4 amis sont retrouvés). Carte dessinée ici : la forêt du bas vers la cime, une noisette par niveau.
+  // Noisette et ses amis (games/noisette.js, labo de l'Atelier) : 4 étapes, un ami retrouvé au bout de chacune, puis le grand chêne
+  // (currentLevel = 5 quand les 4 amis sont retrouvés). Carte dessinée ici : la forêt du bas vers la cime, une noisette par étape.
+  // 2.0.64 : la carte suit la version que CE joueur lance (atlVoulue) : V6 et suivantes = 4 chapitres de 5 niveaux (grande carte du monde
+  // dans le jeu) ; V5 et avant (ou fichier de la V6 introuvable → module embarqué) = 4 niveaux. Jamais fausse, avant comme après la publication.
   noisette: {
-    theme: 'noisette', word: 'Niveau', tierGap: 130, tierAt: 0.5, step: 200, nodeSize: 56, bgDpr: 1.5,
+    v6() { try { const v = atlVoulue('noisette'); return v >= 6 && ATL_MODS_OK.get('noisette@' + v) !== null; } catch (e) { return false; } },
+    get word() { return MAP_DEFS.noisette.v6() ? 'Chapitre' : 'Niveau'; },
+    theme: 'noisette', tierGap: 130, tierAt: 0.5, step: 200, nodeSize: 56, bgDpr: 1.5,
     N: [['La forêt du matin', 'Pompon le lapin', '#7fd35a', '🌳'], ['Le sous-bois aux champignons', 'Piquant le hérisson', '#5fb06a', '🍄'],
       ['La rivière et ses rondins', 'Hulotte la chouette', '#5fc4ff', '🌊'], ['Le grand chêne', 'Roussette la renarde', '#e8a03a', '🌰']],
     count: () => 5,
     level(lv) {
       if (lv > 4) return { lv, tier: 0, win: true, kicker: 'Grande victoire', name: 'Les 4 amis retrouvés', lines: ['Tous ensemble au grand chêne'], acc: '#ffd34d' };
       const D = this.N[lv - 1];
-      return { lv, tier: 0, kicker: 'Niveau ' + lv, name: D[0], lines: ['Au bout : ' + D[1]], acc: D[2], emoji: D[3] };
+      const c = MAP_DEFS.noisette.v6();
+      return { lv, tier: 0, kicker: (c ? 'Chapitre ' : 'Niveau ') + lv, name: D[0], lines: [(c ? '5 niveaux · au bout : ' : 'Au bout : ') + D[1]], acc: D[2], emoji: D[3] };
     },
-    short(lv) { const i = this.level(lv); return i.win ? 'Les 4 amis retrouvés' : 'Niveau ' + lv + ' · ' + i.name; },
-    tier() { return { kicker: 'Noisette et ses amis', title: 'La forêt', sub: '4 niveaux pour retrouver Pompon, Piquant, Hulotte et Roussette', acc: '#e88a3a', acc2: '#7fd35a' }; },
+    short(lv) { const i = this.level(lv); return i.win ? 'Les 4 amis retrouvés' : i.kicker + ' · ' + i.name; },
+    tier() { return { kicker: 'Noisette et ses amis', title: 'La forêt', sub: (MAP_DEFS.noisette.v6() ? '20 niveaux en 4 chapitres' : '4 niveaux') + ' pour retrouver Pompon, Piquant, Hulotte et Roussette', acc: '#e88a3a', acc2: '#7fd35a' }; },
     stops(L) { return [[L.H, '#3f6b2c'], [L.H * 0.55, '#2c5a3a'], [L.H * 0.2, '#3f7c8a'], [0, '#2e5f86']]; },
     paint(x, L, W, y0, h) {
       // des sapins et des feuillus de chaque côté du chemin, toujours aux mêmes places
@@ -13384,7 +13390,7 @@ function openMap(gid, opener) {
   box.style.setProperty('--ox', r ? Math.round(r.left + r.width / 2) + 'px' : '50%');
   box.style.setProperty('--oy', r ? Math.round(r.top + r.height / 2) + 'px' : '90%');
   box.classList.remove('closing'); box.classList.add('opening'); box.hidden = false;
-  mapBuild(true);
+  mapBuild(true); mapTitreFit();
   setTimeout(() => box.classList.remove('opening'), 1600);
   setTimeout(() => $('jdw-map-close').focus({ preventScroll: true }), 60);
   Audio.ensure(); Audio.tone(392, 0.09, 'triangle', 0.035, 523); setTimeout(() => Audio.tone(659, 0.16, 'triangle', 0.03), 90);
@@ -13394,6 +13400,13 @@ function openMap(gid, opener) {
     if (membersFor !== room.id) loadPlayers();
   }
 }
+// 2.0.65 (Équipe tests : « NOISETTE ET SES » coupé) : le titre rapetisse jusqu'à tenir entre ◀ et la cible (16 px au plus petit, puis « … »)
+function mapTitreFit() {
+  const h = $('jdw-map-title'); if (!h) return; h.style.fontSize = '';
+  const fit = () => { let f = parseFloat(getComputedStyle(h).fontSize) || 0; while (f > 16 && h.scrollWidth > h.clientWidth + 1) { f -= 1; h.style.fontSize = f + 'px'; } };
+  fit(); requestAnimationFrame(fit);
+}
+addEventListener('resize', () => { if (MAP.open) mapTitreFit(); });   // téléphone tourné
 function closeMap() {
   if (!MAP.open) return;
   MAP.open = false;
@@ -14265,6 +14278,38 @@ addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); 
 /* ================= Appli Android : retour + mise à jour ================= */
 // retour d'Android : un B de la manette vient peut-être de faire la même chose (manette.js) → une seule fois
 window.JDW_BACK = () => (PADJ && PADJ.nativeBack()) ? true : jdwBack();
+// 2.0.63 (Benjamin : « Mes demandes n'a AUCUN bouton pour revenir, Fermer est tout en bas ») : chaque fenêtre de l'Atelier a en haut une
+// barre « ← Retour  ✕ » qui reste collée ; le retour d'Android, le bouton retour du navigateur et Échap la ferment (au lieu de quitter la page) ;
+// toucher en dehors la ferme aussi, sauf pendant qu'on écrit. La fermeture passe par le bouton « Fermer » / « Annuler » de la fenêtre.
+let ATL_FEN_RETOUR = false;
+function atlFenOuverte() { const R = typeof ATL !== 'undefined' && ATL && ATL.root; if (!R) return null; return R.querySelector('.atl-mod:not([hidden])') || R.querySelector('.atl-zoom:not([hidden])'); }
+const atlFenEcrit = w => !!w && [...w.querySelectorAll('input[type="text"], input:not([type]), textarea')].some(e => document.activeElement === e || String(e.value || '').trim());
+function atlFenFermer(w, parHistoire) {
+  w = w || atlFenOuverte(); if (!w) return false;
+  const bs = [...w.querySelectorAll('button')].filter(x => /^(Fermer|Annuler)$/i.test(x.textContent.trim()) && !x.closest('.atl-winbar') && x.closest('.atl-zoom, .atl-mod') === w);
+  if (bs.length) bs[bs.length - 1].click();
+  if (!w.hidden) { w.hidden = true; w.textContent = ''; w.classList.remove('suivi'); }
+  if (!parHistoire && history.state && history.state.atlFen && !atlFenOuverte()) { ATL_FEN_RETOUR = true; try { history.back(); } catch (e) { ATL_FEN_RETOUR = false; } }
+  else if (parHistoire && atlFenOuverte()) { try { history.pushState({ atlFen: 1 }, ''); } catch (e) {} }
+  return true;
+}
+function atlFenBarre(w) {
+  if (!w || w.hidden || !w.firstElementChild || w.querySelector(':scope .atl-winbar')) return;
+  const h = w.firstElementChild.tagName !== 'IMG' ? w.firstElementChild : w;
+  const bar = atlEl('div', 'atl-winbar'), bk = atlEl('button', 'btn btn-ghost btn-sm atl-winb', '← Retour'), x = atlEl('button', 'icon-btn atl-winx', '✕'); bk.type = x.type = 'button';
+  x.setAttribute('aria-label', 'Fermer'); bk.addEventListener('click', e => { e.stopPropagation(); atlFenFermer(w); }); x.addEventListener('click', e => { e.stopPropagation(); atlFenFermer(w); });
+  bar.append(bk, x); h.prepend(bar);
+  if (!(history.state && history.state.atlFen)) { try { history.pushState({ atlFen: 1 }, ''); } catch (e) {} }
+}
+function atlFenSuivre() {
+  const R = ATL && ATL.root; if (!R || R.dataset.fen) return; R.dataset.fen = '1';
+  for (const w of R.querySelectorAll('.atl-zoom, .atl-mod')) {
+    new MutationObserver(() => { try { atlFenBarre(w); } catch (e) {} }).observe(w, { attributes: true, attributeFilter: ['hidden'], childList: true });
+    w.addEventListener('click', e => { if (e.target === w && !atlFenEcrit(w)) { e.stopImmediatePropagation(); atlFenFermer(w); } }, true);   // en dehors de la carte
+  }
+}
+addEventListener('popstate', () => { if (ATL_FEN_RETOUR) { ATL_FEN_RETOUR = false; return; } try { if (atlFenOuverte()) atlFenFermer(null, true); } catch (e) {} });
+document.addEventListener('keydown', e => { if (e.key !== 'Escape' || (typeof ATL_MIC !== 'undefined' && ATL_MIC)) return; try { if (atlFenOuverte()) { e.preventDefault(); e.stopPropagation(); atlFenFermer(); } } catch (x) {} }, true);
 function jdwBack() {
   if (PRIV.back && PRIV.back()) return true;   // espace privé (fenêtre ouverte par-dessus tout)
   if (QA.open) { quitAskClose(false); return true; }   // « Quitter la partie ? » : retour = Continuer
@@ -14289,6 +14334,7 @@ function jdwBack() {
   for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members', 'jdw-welcome']) {
     if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else if (id !== 'jdw-welcome') closeSheet(id); else return true; return true; }
   }
+  if (ATL && ATL.open && atlFenOuverte()) { atlFenFermer(); return true; }   // 2.0.63 : une fenêtre de l'Atelier d'abord
   if (ATL && ATL.open) { if (ATL.rec) atlMicStop(); else if (ATL.letter) atlLetterClose(); else atlClose(); return true; }   // l'Atelier des jeux (sa lettre d'abord)
   if (!$('jdw-play').hidden) { quitAsk(); return true; }   // partie en cours (coop comprise) : pause + « Quitter la partie ? » ; sinon direct
   if (PAGE !== 'pegase' && MODE !== 'classique' && !$('jdw-lib').hidden) { setMode('classique', true); return true; }   // les autres modes sont des pages : retour à la page normale
@@ -14487,7 +14533,7 @@ const atlDate = t => { const d = new Date(t || Date.now()); return isNaN(d) ? ''
 const atlNum = f => 'N° ' + String((f && f.id) || '000000').replace(/-/g, '').slice(0, 6).toUpperCase();
 // 2.0.62 (Benjamin : « Voici deux façons de faire ta carte » puis « : » tout seul en dessous) : à l'affichage, l'espace avant : ; ! ? »
 // (et après «) devient une espace insécable fine — dans tous les textes de l'Atelier (bulles, tickets, réponses)
-const atlTypo = t => String(t).replace(/[ \u00a0]+([:;!?»])/g, '\u202f$1').replace(/«[ \u00a0]+/g, '«\u202f');
+const atlTypo = t => String(t).replace(/^[ \t]*#{1,6}[ \t]+/gm, '').replace(/\*\*([^*\n]+)\*\*/g, '$1').replace(/^[ \t]*[-*][ \t]+/gm, '• ').replace(/[ \u00a0]+([:;!?»])/g, '\u202f$1').replace(/«[ \u00a0]+/g, '«\u202f');
 const atlEl = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = typeof txt === 'string' ? atlTypo(txt) : txt; return e; };
 
 // ---------- les jeux nés à l'Atelier : macaron « MON JEU » (ou « Jeu de NOM ») + « Modifier mon jeu » pour l'auteur ----------
@@ -14674,7 +14720,8 @@ function atlBuild() {
   q('.atl-musb').addEventListener('click', () => { const on = store.get('jdw.atl.mus', true) === false; store.set('jdw.atl.mus', on); musMaj(); if (ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else musicOut(0.6); } });
   musMaj();
   q('.atl-demb').addEventListener('click', () => { if (ATL.adminVoir && ATL.cur === ATL.adminVoir.id) atlAdminDemandes(); else if (ATL.cur && ATL.root.querySelector('.atl-wiz .atl-ptab[data-k="demandes"]')) atlProjTab('demandes'); else atlMesDemandes(); });   // 21 h 50 : toucher son solde → « Recharger mes crédits »
-  q('.atl-zoom').addEventListener('click', () => { const z = q('.atl-zoom'); z.hidden = true; z.textContent = ''; });
+  q('.atl-zoom').addEventListener('click', e => { const z = q('.atl-zoom'); if (atlFenEcrit(z) || (e.target !== z && e.target.closest('.atl-suivi, .atl-mcard, .atl-winbar'))) return; z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
+  try { atlFenSuivre(); } catch (e) {}   // 2.0.63
   q('.atl-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) atlImage(f); });
   return R;
 }
@@ -15504,7 +15551,8 @@ function atlJouerVrai(f, pret) {
   ATL.jeu = f.id; window.JDW_ATL_JEU = true;   // repère pour le jeu : la touche P est l'arrêt sur image du guide (pas sa pause)
   // les éléments retirés par l'équipe (assets[].actif = false) : le jeu ne les montre plus (window.JDW_ATL_OFF, message atl-off) ;
   // une musique retirée : la borne ne lance pas la musique du jeu
-  const off = (Array.isArray(f.assets) ? f.assets : []).filter(a => a && a.actif === false).map(a => String(a.nom || ''));
+  // 2.0.70 : un élément renommé par l'admin (at_assets_renommer, SQL v92) garde son ancien nom dans nom_origine — les deux noms partent au jeu
+  const off = (Array.isArray(f.assets) ? f.assets : []).filter(a => a && a.actif === false).flatMap(a => [String(a.nom || ''), String(a.nom_origine || '')].filter(Boolean));
   window.JDW_ATL_OFF = off; window.JDW_ATL_MUS_OFF = (Array.isArray(f.assets) ? f.assets : []).some(a => a && a.actif === false && (a.sorte === 'musique' || a.cat === 'musique')) ? g.id : '';
   try { window.postMessage({ type: 'atl-off', noms: off }, location.origin); } catch (e) {}
   atlClose();
@@ -16680,8 +16728,8 @@ function atlTravBulle(x, qui) {
   const l0 = Array.isArray(x && x.etapes) ? x.etapes.filter(e => e && (e.texte || e.etape)) : [], l = l0.filter(e => e.etape !== 'elements'), e = l[l.length - 1] || l0[l0.length - 1]; if (!e) return null;
   const ea = l0.filter(z => z.etape === 'elements' && String(z.at || '') >= String(e.at || '')).pop();   // 2.0.61 : « J'ai ajouté 3 éléments : … »
   const tx = String(e.texte || e.etape || ''), m = tx.match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i), d0 = new Date(e.at);
-  const test = e.etape === 'tests', B = atlEl('div', 'atl-dthink atl-travb' + (test ? ' tests' : '')), col = atlEl('div'); B.dataset.id = x.id || ''; B.dataset.k = tx + '|' + (e.at || '');
-  col.append(atlEl('b', '', test ? '🔍 ' + gNM() + ' teste ' + (qui ? 'le jeu de ' + qui : 'ton jeu') + ' en profondeur' : '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : 'sur ta demande')), atlEl('p', 'atl-travt', test ? (tx.replace(/^\s*🔍?\s*je teste ton jeu en profondeur\s*[….]*\s*/i, '').replace(/^./, c => c.toUpperCase()) || 'Chaque niveau, chaque bouton, chaque son.') : tx));   // 2.0.62 : l'étape « tests » (sans redire le titre)
+  const test = /^tests?$/.test(String(e.etape || '')), B = atlEl('div', 'atl-dthink atl-travb' + (test ? ' tests' : '')), col = atlEl('div'); B.dataset.id = x.id || ''; B.dataset.k = tx + '|' + (e.at || '');
+  col.append(atlEl('b', '', test ? '🔍 ' + gNM() + ' teste ' + (qui ? 'le jeu de ' + qui : 'ton jeu') + ' en profondeur' : '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : 'sur ta demande')), atlEl('p', 'atl-travt', test ? (tx.replace(/\s*🔍\s*/g, ' ').replace(/\s*je teste ton jeu en profondeur\s*[….]*\s*/i, ' ').replace(/\s+/g, ' ').trim().replace(/^./, c => c.toUpperCase()) || 'Chaque niveau, chaque bouton, chaque son.') : tx));   // 2.0.62 : l'étape « tests » (sans redire le titre)
   if (m && +m[2] > 0) { const n = Math.min(+m[1], +m[2]), bar = atlEl('div', 'atl-travbar'), i = atlEl('i'); i.style.width = Math.round(n / +m[2] * 100) + '%'; bar.appendChild(i); col.append(bar, atlEl('small', 'atl-travn', 'Étape ' + n + ' / ' + m[2])); }
   if (ea && ea !== e) col.appendChild(atlEl('p', 'atl-travel', '🧩 ' + String(ea.texte || '') + ' (onglet Éléments)'));
   col.append(atlEl('small', '', (isNaN(d0) ? '' : 'à ' + d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' · ') + (qui ? 'en direct' : 'Je te préviens dès que c’est prêt 🔔')), atlEl('span', 'atl-dpts', '•••'));
@@ -16725,7 +16773,7 @@ function atlTravailMaj() {
     tx.append(atlEl('b', '', mondial ? '🌍 Je regarde ton jeu pour le mettre partout…' : '🛠️ Je travaille sur « ' + ((f && f.titre) || 'ton jeu') + ' »…'), ul, b, atlEl('small', '', 'Je te préviens dès que c’est prêt 🔔'));
     tb.append(sc, tx); p.prepend(tb);
   }
-  const der = l.map(x => x.etapes.filter(e => e && e.etape !== 'elements').pop() || x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = atlTypo(der.etape === 'tests' ? '🔍 ' + String(der.texte || 'Je teste ton jeu en profondeur…').replace(/^\s*🔍\s*/, '') : '⏱️ En ce moment : ' + String(der.texte || der.etape || ''));
+  const der = l.map(x => x.etapes.filter(e => e && e.etape !== 'elements').pop() || x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = atlTypo(/^tests?$/.test(String(der.etape || '')) ? '🔍 ' + String(der.texte || 'Je teste ton jeu en profondeur…').replace(/\s*🔍\s*/g, ' ').replace(/\s+/g, ' ').trim() : '⏱️ En ce moment : ' + String(der.texte || der.etape || ''));
 
   if (b.textContent !== txt) { b.textContent = txt; b.title = txt; }
   // 2.0.60 : comme la bulle du ticket — la barre « Étape x / y » et l'heure de la dernière étape, sous « En ce moment »
