@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## 🏰 Remparts ! : toucher un monde déplie ses niveaux (borne 2.0.85)
+[remparts] 🗺️ Sur l'écran des mondes, toucher un monde ne lance plus la partie : il se déplie sur place et montre son niveau classique, puis ses 4 régions de 5 niveaux avec leurs cadenas, leurs étoiles et leur gardien. Tu touches le niveau que tu veux jouer.
+[remparts] ▸ Un seul monde ouvert à la fois, et celui où tu en es s'ouvre tout seul quand tu arrives. Un monde encore fermé se déplie aussi, en grisé, pour voir ce qui t'attend. La Crypte oubliée se déplie pareil.
+[remparts] 📣 Les grandes annonces (« TOURS ÉBLOUIES ! »…) passent au-dessus de tout, sur un fond sombre : plus rien ne se met devant les lettres.
 [borne] ## 🏷️ Les versions des tuiles repartent de V1 (borne 2.0.84)
 [borne] 🏷️ Sous chaque tuile, « by … · V1 » : chaque jeu du studio repart de la V1 aujourd'hui, puis le numéro monte d'un cran à chaque nouvelle mise à jour du jeu.
 [borne] ## 🏷️ Chaque tuile dit qui a fait le jeu, et sa version (borne 2.0.83)
