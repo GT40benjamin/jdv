@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 💬 Tout ton projet dans une seule conversation (borne 2.0.94)
+[borne] 💬 « Discuter du jeu » raconte maintenant tout ton projet, dans l’ordre : tes demandes, les réponses et les questions, les propositions avec leur prix, chaque étape du travail en direct (« Étape 2/4 ») et chaque livraison.
+[borne] 🎉 À chaque nouvelle version, un message « Ta V… est sortie ! » te dit ce qu’elle apporte, avec un gros bouton « ▶️ Essayer » qui lance le jeu tout de suite. Le même bandeau t’attend en haut de la page du projet tant que tu ne l’as pas essayée.
+[borne] 🎫 « Mes demandes » devient ton suivi : une ligne par demande, avec son état et sa barre d’avancement ; touche une ligne pour la déplier. Une proposition se choisit au même endroit dans la conversation ou dans le suivi : les deux se mettent à jour ensemble.
+[borne] ＋ Une idée pour un autre jeu ? Le bouton « Nouveau projet » est juste sous la conversation.
 [borne] ## 💬 Discute de ton jeu, gratuitement (borne 2.0.93)
 [borne] 💬 Sur la page de chaque projet, nouveau bouton « Discuter · gratuit » : un fil de discussion rien que pour ce jeu, en tête de « 🎫 Mes demandes ». Pose tes questions, raconte tes idées, demande des conseils (« comment rendre mon boss plus dur ? », « des idées de nouveaux mondes ? ») : discuter ne coûte jamais de crédits.
 [borne] 💡 Si une idée demande du travail, la réponse arrive avec une proposition et son prix, ou des questions à choix, directement dans le fil : rien n’est payé ni lancé sans ton clic.
