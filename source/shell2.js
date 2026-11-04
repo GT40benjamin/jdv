@@ -15049,7 +15049,7 @@ function atlBubble(m, wel) {
   if (wel) { for (const p of atlWelcome()) bub.appendChild(atlEl('p', '', p)); }
   else {
     if (m.texte) bub.appendChild(atlEl('p', '', m.texte));
-    if (Array.isArray(m.images) && m.images.length && !m.planche) bub.appendChild(atlImgs(m));
+    if (Array.isArray(m.images) && m.images.length && !m.planche) { if (m.images.every(it => it && it.apercu)) { bub.appendChild(atlEl('p', 'atl-apercu', '👀 Aperçu de ton jeu')); li.classList.add('atl-mapercu'); } bub.appendChild(atlImgs(m)); }   // 2.0.104 : un aperçu (SQL v114), jamais un élément du jeu
     if (m.image) { const a = atlEl('a', 'atl-bimg'); a.href = atlImgUrl(m.image); a.target = '_blank'; a.rel = 'noopener'; const im = atlEl('img'); im.alt = 'Image jointe'; im.loading = 'lazy'; im.src = atlImgUrl(m.image); im.onerror = () => { a.replaceWith(atlEl('em', 'atl-miss', '🖼️ image pas arrivée')); }; a.appendChild(im); bub.appendChild(a); }
   }
   col.appendChild(bub);
@@ -15506,6 +15506,7 @@ function atlDiscFil(f) {
     }
     et.forEach((e, i) => {   // les étapes du travail : la dernière, en direct (barre « Étape x / y »)
       const vive = i === et.length - 1 && x.etat === 'en_cours';
+      if (Array.isArray(e.images) && e.images.length) { const ta = iso(T(e.at) + 1); add(ta, 'da' + x.id + i, true, () => atlBubble({ atelier: true, texte: String(e.texte || e.etape || '') + ' ✅', images: e.images, at: ta })); }   // 2.0.104 : « 👀 Aperçu de ton jeu » d'une étape testée
       add(e.at, 'de' + x.id + i + (vive ? 'n' : ''), true, vive ? () => atlTravBulle(x) : () => { const d0 = new Date(e.at), l = atlEl('div', 'atl-fet'); l.append(atlEl('span', '', '🛠️ ' + String(e.texte || e.etape || '')), atlEl('small', '', isNaN(d0) ? '' : d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))); return l; });
     });
     if (x.etat === 'faite') add(x.etat_at, 'df' + x.id + sd, true, () => { const bl = atlBubble({ atelier: true, texte: x.reponse ? String(x.reponse) : 'C’est fait ! 🎉', at: x.etat_at }); if (x.version_livree) bl.querySelector('.atl-mc').insertBefore(atlEl('p', 'atl-livre', '✅ Livré dans la V' + x.version_livree), bl.querySelector('.atl-t')); return bl; });
@@ -18170,7 +18171,7 @@ function atlImgs(m) {
   for (const it of m.images.slice(0, 8)) {
     const u = atlIaUrl(it && it.f); if (!u) continue;
     const b = atlEl('button', 'atl-ib' + (pl && d.msg === m.id && d.n === it.n ? ' on' : '')); b.type = 'button';
-    const im = atlEl('img'); im.alt = pl ? 'Design n° ' + it.n : 'Création de l’Atelier'; im.loading = 'lazy'; im.src = u; im.onerror = () => b.classList.add('miss');
+    const im = atlEl('img'); im.alt = pl ? 'Design n° ' + it.n : it.apercu ? 'Aperçu de ton jeu' : 'Création de l’Atelier'; im.loading = 'lazy'; im.src = u; im.onerror = () => b.classList.add('miss');
     im.addEventListener('load', () => { const lg = ATL.root && ATL.root.querySelector('.atl-log'); if (lg && lg.scrollHeight - lg.scrollTop - lg.clientHeight < 600) lg.scrollTop = lg.scrollHeight; });   // la planche arrive en entier à l'écran
     b.appendChild(im);
     if (pl || it.t) { if (pl) b.appendChild(atlEl('span', 'atl-inum', String(it.n))); if (it.t) b.appendChild(atlEl('span', 'atl-icap', String(it.t))); }

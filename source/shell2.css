@@ -4964,3 +4964,8 @@ canvas.atl-demimg{display:block;width:100%;aspect-ratio:16/10;border-radius:14px
 .atl-mremp .atl-b{opacity:.55;filter:grayscale(.6)}
 .atl-dremp{opacity:.7}
 .atl-dremp .atl-dembu{filter:grayscale(.6)}
+
+/* 2.0.104 : « 👀 Aperçu de ton jeu » dans le fil (une étape testée) ; clic = plein écran (atlZoom) */
+.atl-apercu{margin:0 0 6px!important;font:800 13px var(--body);color:#9fe3b0;letter-spacing:.02em}
+.atl-mapercu .atl-b{border-color:rgba(47,191,113,.45);background:linear-gradient(180deg,rgba(47,191,113,.12),rgba(255,255,255,.03))}
+.atl-mapercu .atl-imgs{margin-top:6px}
