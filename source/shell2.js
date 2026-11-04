@@ -14614,7 +14614,7 @@ const atlTousMsgs = () => (atlFiche() && Array.isArray(ATL.data.messages) ? ATL.
 const atlMsgs = () => atlTousMsgs().filter(m => !m.discussion);   // 2.0.93 : la discussion gratuite (m.discussion) a son propre fil (atlDiscMsgs)
 const atlProjets = () => (ATL.data && Array.isArray(ATL.data.projets) ? ATL.data.projets : []);
 const atlSeenKey = id => ATL.name + '|' + id;
-const atlProjNew = pj => !!(pj && pj.reponse_at) && String(pj.reponse_at) > String(ATL.seen[atlSeenKey(pj.id)] || '');
+const atlProjNew = pj => !!(pj && pj.reponse_at) && String(pj.reponse_at) > String(ATL.seen[atlSeenKey(pj.id)] || '') && String(pj.reponse_at) > String(pj.lu_at || '');   // 2.0.105 : la lecture est aussi gardée par le serveur (at_fil_lu, SQL v115)
 const ATL_ETATS = { brouillon: '📝 Brouillon', en_discussion: '💬 En discussion', complete: '🎉 Fiche complète', design: '🎨 Choix du design', design_choisi: '📮 Lettre à envoyer',
   envoyee: '🛠️ Conception en cours', acceptee: '✅ Accepté', alpha: '🎮 Jouable (essai)', publie_salle: '🌟 Publié dans tes salles', publie_monde: '🌍 Publié pour tous' };
 const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : ''; };
@@ -14637,10 +14637,16 @@ function atlVersion(p, att, court) {
   if (et === 'en_discussion') return '🧱 Montage du projet';
   return '📝 Brouillon';
 }
-const atlLastReply = () => atlMsgs().reduce((m, x) => (x.atelier && String(x.at) > m ? String(x.at) : m), '');
+const atlLastReply = () => atlTousMsgs().reduce((m, x) => (x.atelier && String(x.at) > m ? String(x.at) : m), '');
 const atlUnread = () => { const l = atlLastReply(); return !!l && !!ATL.cur && l > String(ATL.seen[atlSeenKey(ATL.cur)] || ''); };
 const atlWaiting = () => { const ms = atlMsgs(); return !!ms.length && !ms[ms.length - 1].atelier && ['en_discussion', 'brouillon', 'complete'].includes(atlEtat()); };
-function atlMarkSeen() { const l = atlLastReply(); if (l && ATL.name && ATL.cur) { ATL.seen[atlSeenKey(ATL.cur)] = l; store.set('jdw.atl.seen', ATL.seen); } }
+function atlMarkSeen() {
+  const l = atlLastReply(); if (l && ATL.name && ATL.cur) { ATL.seen[atlSeenKey(ATL.cur)] = l; store.set('jdw.atl.seen', ATL.seen); }
+  // 2.0.105 (l'admin : « j'ai toujours Nouvelle réponse alors que j'ai déjà vu la réponse ») : la discussion comptait dans reponse_at mais pas dans « vu » ;
+  // le projet ouvert est maintenant marqué lu côté SERVEUR (at_fil_lu : la fiche et ses tickets), une fois par nouvelle réponse
+  try { const pj = ATL.cur && !atlAdminIci() ? atlProjets().find(x => x.id === ATL.cur) : null, k = pj ? pj.id + '|' + pj.reponse_at : '';
+    if (pj && pj.reponse_at && String(pj.reponse_at) > String(pj.lu_at || '') && ATL.luEnvoye !== k) { ATL.luEnvoye = k; pj.lu_at = pj.reponse_at; rpc('at_fil_lu', { p_name: profile.name, p_fiche: pj.id }, { quiet: true }).catch(() => { ATL.luEnvoye = ''; }); } } catch (e) {}
+}
 // 2.0.29 (Benjamin : « des encarts spéciaux pour répondre oui ou non, et une notification dédiée ») : les QUESTIONS de la mascotte (at_demandes.questions)
 // 2.0.54 (bug ed2fea3d de SAMBA : 3 réponses enregistrées, jamais envoyées, le bouton avait disparu au rafraîchissement) : « tout répondu,
 // pas encore parti » (réponses plus récentes que la dernière réponse de la mascotte) compte comme une attente du joueur — le serveur envoie
