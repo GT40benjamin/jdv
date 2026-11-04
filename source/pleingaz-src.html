@@ -27,8 +27,13 @@ canvas{display:block;width:100%;height:100%}
 .coins{grid-area:c;white-space:nowrap;display:flex;align-items:center;gap:6px;color:var(--gold);font-size:18px;font-variant-numeric:tabular-nums;text-shadow:0 2px 0 var(--night)}
 .coin{width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 3px var(--gold-dk)}
 .lives{grid-area:l;display:flex;gap:2px;font-family:var(--body);font-size:20px;line-height:1;color:var(--jacket);text-shadow:0 2px 0 var(--night)}
-.lives span{transition:opacity .2s,transform .2s}
-.lives span.off{opacity:.2}
+.lives{font-size:27px;gap:4px;filter:drop-shadow(0 0 6px rgba(255,77,109,.45))}
+.lives span{display:inline-block;transition:opacity .25s,transform .25s}
+.lives span.off{opacity:.22;transform:scale(.82);filter:grayscale(1)}
+.lives span.lost{animation:pgHeartLost .6s ease-out}
+.lives span.gain{animation:pgHeartGain .55s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pgHeartLost{0%{transform:scale(1.6);opacity:1;filter:none}40%{transform:scale(1.25) translateY(-4px) rotate(-12deg);opacity:1}100%{transform:scale(.82) translateY(0);opacity:.22}}
+@keyframes pgHeartGain{0%{transform:scale(.3)}100%{transform:scale(1)}}
 .lvl{grid-area:lvl;min-width:0;max-width:280px;width:100%;justify-self:center;display:grid;gap:4px}
 .lvl-row{display:flex;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.06em;color:var(--ink);text-shadow:0 2px 0 var(--night)}
 .lvl-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -80,7 +85,7 @@ button:focus-visible{outline:3px solid var(--volt);outline-offset:2px}
   <div class="hud" id="hud" hidden>
     <div class="meter"><span id="dist">0</span><small>m</small></div>
     <div class="coins"><i class="coin"></i><span id="coinc">0</span></div>
-    <div class="lives" id="lives" aria-label="1 vie"><span>♥</span></div>
+    <div class="lives" id="lives" aria-label="3 vies"><span>♥</span><span>♥</span><span>♥</span></div>
     <div class="lvl" id="lvl">
       <div class="lvl-row"><span id="lvlName">Niveau 1</span><span id="lvlEnd">Boss</span></div>
       <div class="bar"><i id="lvlFill"></i></div>
@@ -183,7 +188,7 @@ function label(text, x, y, size, color) {
 /* ---------- Écran ---------- */
 let W = 640, scale = 1, dpr = 1, offY = 0;
 const P = { x: 140, y: FLOOR - 15, vy: 0, ang: 0, spin: 0, run: 0, alive: true, onGround: true, shield: false, inv: 0, thrust: false, lives: 3 };
-const MAX_LIVES = 1;
+const MAX_LIVES = 3;   // borne 2.0.110 (EMPEREUR) : 3 cœurs au lieu d'une seule vie ; un choc = un cœur, le boss battu en rend un
 function resize() {
   const r = stage.getBoundingClientRect();
   dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -292,8 +297,9 @@ let level = 1, phase = 'run', phaseT = 0, levelStart = 0, levelEnd = lvlLen(1), 
 let hyperT = 0, hyperNoteT = 0, hyperStep = 0, hyperStack = 0, starSeen = false, starAt = 0, trail = [], floaters = [];
 let skipDist = 0;              // départ à un niveau avancé (compétition) : distance des niveaux sautés, comptée pour débloquer les obstacles
 const HYPER_NOTES = [523, 659, 784, 1047, 1319, 1047, 784, 659];
-let best = 0;
-try { best = +localStorage.getItem('pleingaz.best') || 0; } catch (e) {}
+let best = 0, hurtT = 0;
+// 2.0.110 : nouveau record de l'appareil avec les 3 cœurs (l'ancien, à 1 vie, reste dans pleingaz.best)
+try { best = +localStorage.getItem('pleingaz.best3') || 0; } catch (e) {}
 const meters = () => Math.floor(dist / 30);
 const score = () => meters() + bonusM;          // classement : mètres parcourus + primes de boss (en mètres)
 const lvlProg = () => clamp((dist - levelStart) / (levelEnd - levelStart), 0, 1);
@@ -312,7 +318,7 @@ function reset() {
   vents = []; saws = []; drones = []; seen = {}; bonusM = 0; slowT = 0; darkT = 0; salvo = null; rainT = 0; T = ZONES[0]; skipDist = 0;
   level = 1; phase = 'run'; phaseT = 0; levelStart = 0; levelEnd = lvlLen(1); boss = null; fireT = 0;
   introT = 0; hyperT = 0; hyperStep = 0; hyperStack = 0; starSeen = false; starAt = rand(0.35, 0.75) * lvlLen(1); trail = []; floaters = [];
-  Object.assign(P, { y: FLOOR - 15, vy: 0, ang: 0, spin: 0, alive: true, onGround: true, shield: false, inv: 0, thrust: false, lives: MAX_LIVES });
+  Object.assign(P, { y: FLOOR - 15, vy: 0, ang: 0, spin: 0, alive: true, onGround: true, shield: false, inv: 0, thrust: false, lives: MAX_LIVES }); hurtT = 0;
   lastShownDist = -1; lastShownCoins = -1; lastLvlName = ''; lastPct = -1; lastLives = -1;
   planEvent();
   if (typeof pgBossReset === 'function') pgBossReset();   // têtes des copains (bibliothèque)
@@ -766,7 +772,7 @@ function hit(kind, obj) {
     return;
   }
   if (P.lives > 1) {
-    P.lives--; P.inv = 3; shake = 10;
+    P.lives--; P.inv = 1.6; shake = 10; hurtT = 0.35;
     emit(P.x, P.y, 26, { spread: 230, life: [.3, .7], size: [2, 5], color: COL.jacket, add: true, drag: 3 });
     emit(P.x, P.y, 8, { spread: 80, vy: -40, life: [.5, .9], size: [5, 9], color: COL.steel2, grow: 8, drag: 2 });
     noise(0.3, 0.25, 1200); tone(240, 0.3, 'square', 0.08, 80);
@@ -820,6 +826,7 @@ function update(dt) {
   if (slowT > 0) { slowT -= dt / 0.6; if (slowT <= 0) { slowT = 0; tone(520, 0.3, 'triangle', 0.06, 980); } }
   if (darkT > 0) darkT = Math.max(0, darkT - dt);
   if (shake > 0) shake = Math.max(0, shake - 30 * dt);
+  if (hurtT > 0) hurtT = Math.max(0, hurtT - dt);
   if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').hidden = true; }
   if (introT > 0) introT = Math.max(0, introT - dt);
 
@@ -1829,6 +1836,8 @@ function render() {
   missiles.forEach(m => m.phase === 'warn' && drawMissile(m));
   drawSlowFx();
   drawHyperOverlay();
+  // 2.0.110 : un cœur perdu = bref voile rouge sur les bords de l'écran
+  if (hurtT > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); const a = Math.min(1, hurtT / 0.35), g = ctx.createRadialGradient(C.width / 2, C.height / 2, Math.min(C.width, C.height) * 0.3, C.width / 2, C.height / 2, Math.max(C.width, C.height) * 0.75); g.addColorStop(0, 'rgba(255,40,70,0)'); g.addColorStop(1, 'rgba(255,40,70,' + (0.5 * a).toFixed(3) + ')'); ctx.fillStyle = g; ctx.fillRect(0, 0, C.width, C.height); ctx.setTransform(k, 0, 0, k, sx * k, (offY + sy) * k); }
   if (typeof pgDrawBossSad === 'function') pgDrawBossSad();
   drawIntro();
 }
@@ -1839,8 +1848,12 @@ let lastShownDist = -1, lastShownCoins = -1, lastLvlName = '', lastPct = -1, las
 function syncHud() {
   const m = score();
   if (P.lives !== lastLives) {
-    lastLives = P.lives;
-    [...$('lives').children].forEach((h, i) => h.classList.toggle('off', i >= P.lives));
+    const was = lastLives; lastLives = P.lives;
+    [...$('lives').children].forEach((h, i) => {
+      h.classList.toggle('off', i >= P.lives);
+      if (was >= 0 && i >= P.lives && i < was) { h.classList.remove('lost'); void h.offsetWidth; h.classList.add('lost'); }
+      if (was >= 0 && i < P.lives && i >= was) { h.classList.remove('gain', 'lost'); void h.offsetWidth; h.classList.add('gain'); }
+    });
     $('lives').setAttribute('aria-label', P.lives + (P.lives > 1 ? ' vies' : ' vie'));
   }
   if (m !== lastShownDist) { lastShownDist = m; $('dist').textContent = m; }
@@ -1881,7 +1894,7 @@ function start() {
 function showOver() {
   overShown = true;
   const m = score(), isBest = m > best;
-  if (isBest) { best = m; try { localStorage.setItem('pleingaz.best', String(best)); } catch (e) {} }
+  if (isBest) { best = m; try { localStorage.setItem('pleingaz.best3', String(best)); } catch (e) {} }
   $('cause').textContent = cause === 'boss' ? 'Abattu par ' + lastBossName : (causes[cause] || 'Crash');
   $('overTitle').textContent = m + ' m';
   $('sDist').textContent = m; $('sLvl').textContent = level; $('sCoins').textContent = coins; $('sBest').textContent = best;

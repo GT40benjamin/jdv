@@ -26,7 +26,8 @@ const TILE_NEWS = {
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
-  chrono: { kind: 'maj', at: '2026-11-04 21:55' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 2.0.107 (photo du champion sur la tuile, les 8 circuits comptent) ; 2.0.82 (lave qui engloutit, rambardes pleines, flèches, cascades)
+  chrono: { kind: 'maj', at: '2026-11-05 00:41' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 2.0.110 (mini-carte, pseudo du fantôme discret, option Fantôme n°1 avec / sans) ; 2.0.107 (photo du champion sur la tuile, les 8 circuits comptent) ; 2.0.82 (lave qui engloutit, rambardes pleines, flèches, cascades)
+  pleingaz: { kind: 'maj', at: '2026-11-05 00:41' },   // Plein Gaz (borne 2.0.110, retour d'un joueur) : 3 cœurs au lieu d'une seule vie, nouveau tableau ; l'ancien (1 vie) gardé à part sous « pleingaz-1vie »
   neon: { kind: 'maj', at: '2026-10-30 00:37' },   // Néon Rush (borne 1.52.3) : les textes des portes ne se posent plus sur le nom du monde ; 1.51.12 : couloirs en vol plus hauts
   flechettes: { kind: 'maj', at: '2026-11-02 08:15' },   // Tête de Cible : le DÉGUISEMENT (onglet 🎭 Déguiser, 140 accessoires et maquillages) ; heure = à remettre à celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
@@ -1936,6 +1937,11 @@ function playCriSrc(src, el) {
 /* ================= Scores ================= */
 let remote = {};                                   // jeu -> [{name, score, at}]
 let local = store.get('jdw.scores2', {}); if (!local || typeof local !== 'object') local = {};
+// 2.0.110 (EMPEREUR) : Plein Gaz passe à 3 cœurs, nouveau tableau. Les records d'avant (1 vie) sont gardés à part, sous l'id
+// « pleingaz-1vie » (sur le serveur : scores déplacés le jour de la sortie ; ici : une fois sur l'appareil).
+const PG_OLD = 'pleingaz-1vie';
+const PG3_DONE = store.get('jdw.pg3', false);
+if (local.pleingaz && !PG3_DONE) { local[PG_OLD] = (local[PG_OLD] || []).concat(local.pleingaz); delete local.pleingaz; store.set('jdw.scores2', local); }
 // meilleurs scores par joueur de l'appareil : NOM -> { jeu: score }
 let bests = store.get('jdw.bests2', null);
 if (!bests || typeof bests !== 'object') {
@@ -1944,6 +1950,8 @@ if (!bests || typeof bests !== 'object') {
   if (old && typeof old === 'object' && profile.name) bests[cleanName(profile.name)] = old;
   store.set('jdw.bests2', bests);
 }
+// 2.0.110 : les records 1 vie de Plein Gaz de chaque joueur de l'appareil vont aussi à part (sinon ils bloquent « nouveau record » hors ligne)
+if (!PG3_DONE) { for (const k in bests) if (bests[k] && bests[k].pleingaz) { bests[k][PG_OLD] = bests[k].pleingaz; delete bests[k].pleingaz; } store.set('jdw.bests2', bests); store.set('jdw.pg3', true); }
 const bestOf = (name, game) => ((bests[cleanName(name)] || {})[game]) || 0;
 function bestPerName(rows) {
   const m = new Map();
@@ -3562,7 +3570,7 @@ function renderBoardTab() {
     const g = gameById(boardTab);
     $('jdw-board-hint').textContent = g ? (offDev ? 'Hors ligne · records de cet appareil · ' : netOff() && !W ? 'Hors ligne · dernier classement connu · ' : W ? 'Top 10 mondial · ' : 'Top 10 de la salle · ') + g.tagline : '';
     const rows = top(boardTab, boardScope);
-    if (!rows.length) return emptyRow(ol);
+    if (!rows.length) { emptyRow(ol); pgOldRows(ol, g, me, W); return; }
     // (2 nov., Benjamin : « le classement Abracadabra, c'est aussi le niveau : à côté du score, la mission atteinte ») jeux à carte de missions
     // (g.boardLevel) : « Mission 5 » devant le score, tiré de la progression de la salle (la carte) ; le classement mondial ne la connaît pas
     const lvOf = g && g.boardLevel && MAP_DEFS[g.id] && !W ? (() => { if (room && ONLINE && PROG.room !== room.id && !PROG.loading && !PROG.missing) progLoad().then(() => { if (!$('jdw-board').hidden && boardTab === g.id) renderBoardTab(); }).catch(() => {}); const P2 = mapPeople(g.id); return (nm) => { const sp = mapSpotOf(MAP_DEFS[g.id], P2.get(nm) || 0); return sp && sp.lv ? (sp.win ? '🏆 12/12' : '🗺️ Mission ' + sp.lv) : ''; }; })() : null;
@@ -3572,7 +3580,15 @@ function renderBoardTab() {
       if (lv) { const w = document.createElement('span'); w.className = 's'; w.style.cssText = 'display:inline-flex;gap:10px;align-items:baseline'; const m = document.createElement('small'); m.style.cssText = 'font:600 12px var(--font-body,system-ui);opacity:.8;white-space:nowrap'; m.textContent = lv; w.append(m, s); ol.appendChild(rowEl(r.name, w, r.name === me, W)); }
       else ol.appendChild(rowEl(r.name, s, r.name === me, W));
     }
+    pgOldRows(ol, g, me, W);
   }
+}
+// 2.0.110 : sous le classement de Plein Gaz (3 cœurs), les 3 meilleurs de l'ancien tableau (1 vie), en plus discret
+function pgOldRows(ol, g, me, W) {
+  if (!g || g.id !== 'pleingaz') return;
+  const old = top(PG_OLD, boardScope).slice(0, 3); if (!old.length) return;
+  const h = document.createElement('li'); h.className = 'empty pg-old-h'; h.textContent = '🕰️ Ancien tableau · 1 seule vie (avant les 3 cœurs)'; ol.appendChild(h);
+  old.forEach((r, i) => { const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g); const li = rowEl(r.name, s, r.name === me, W); li.classList.add('pg-old'); li.dataset.rk = ['🥇', '🥈', '🥉'][i]; ol.appendChild(li); });
 }
 function emptyRow(ol) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = "Personne n'a encore de score ici. La place est libre !"; ol.appendChild(li); }
 $('jdw-open-board').addEventListener('click', () => { if (isGuest()) boardScope = 'world'; loadScores(); loadWorld(); if (/^coop:/.test(boardTab)) { coopLoadScores(true); coopLoadWorld(); } renderBoardTab(); openSheet('jdw-board', 'jdw-board-close'); });   // invité : le classement mondial (public)

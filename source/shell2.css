@@ -253,6 +253,10 @@ a.icon-btn{color:inherit;text-decoration:none}   /* la maison (retour au site du
 .board .s{font-family:var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
 .board li.me{background:var(--steel);box-shadow:inset 3px 0 0 var(--gold)}
 .board li.empty{grid-template-columns:1fr;color:var(--muted)} .board li.empty::before{content:none}
+/* 2.0.110 : Plein Gaz, ancien tableau (1 vie) sous le nouveau */
+.board li.pg-old-h{margin-top:10px;font-size:12px;letter-spacing:.04em;text-align:center;border-top:1px dashed var(--line);padding-top:10px}
+.board li.pg-old{opacity:.62;transform:scale(.96)}
+.board li.pg-old::before{content:attr(data-rk)}
 .medals{display:inline-flex;gap:6px;font-family:var(--display);font-size:13px}
 .medal{display:inline-flex;align-items:center;gap:3px}
 .medal i{width:11px;height:11px;border-radius:50%}
