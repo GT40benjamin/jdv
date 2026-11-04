@@ -16768,7 +16768,7 @@ function atlCreerElem(cat, lab, k, libre, f, fi) {
 // alterner : il respire et cligne au repos, fait coucou à l'accueil, bricole au travail (crayon, étincelles, engrenages, petits dessins
 // qui s'envolent) avec un texte qui change, saute de joie à la réponse. Que des transformations : fluide sur téléphone, rien de lourd.
 const ATL_PK = n => ROOT + 'accueil/guide-' + n + '.webp';
-// 2.0.85 (le chef : « des animations beaucoup plus riches, vivantes ») : 22 poses dessinées dans le même style (accueil/guide-p-*.webp) et
+// 2.0.86 (le chef : « des animations beaucoup plus riches, vivantes ») : 22 poses dessinées dans le même style (accueil/guide-p-*.webp) et
 // un petit metteur en scène. Il change de pose toutes les 4 à 10 s selon ce qu'il fait — conception : dessine, écrit ; construction :
 // clavier, engrenages ; test : manette, loupe ; attente : lit ses notes, réfléchit ; livraison : cadeau, danse — et suit la phrase de la
 // scène (« Je teste… » → manette). Il respire, cligne (pose « repos »), regarde la souris ou le doigt, salue quand on revient, rit quand

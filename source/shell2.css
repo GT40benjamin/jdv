@@ -4100,7 +4100,7 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 /* joie : bras en l'air, il saute */
 .atl-pk-joie .atl-pkc{animation:atlPkHop .55s ease-in-out infinite alternate}
 @keyframes atlPkHop{0%{transform:translateY(0) scale(1.03,.97)}100%{transform:translateY(-12px) scale(.98,1.03)}}
-/* 2.0.85 : le metteur en scène — une couche par pose en fondu enchaîné ; les poses dessinées (480 px, pieds à 97 %) recalées sur les
+/* 2.0.86 : le metteur en scène — une couche par pose en fondu enchaîné ; les poses dessinées (480 px, pieds à 97 %) recalées sur les
    anciennes (320 px) ; il respire, se penche vers la souris ou le doigt (--gx/--gy/--gr), chaque pose a son petit mouvement */
 .atl-pkg{position:absolute;inset:0;transform-origin:50% 95%;transform:translate(var(--gx,0px),var(--gy,0px)) rotate(var(--gr,0deg));transition:transform .6s ease-out}
 .atl-pkv .atl-pkc{animation:atlPkSouffle 3.6s ease-in-out infinite}
