@@ -11917,20 +11917,34 @@ const MAP_DEFS = {
   // dans le jeu) ; V5 et avant (ou fichier de la V6 introuvable → module embarqué) = 4 niveaux. Jamais fausse, avant comme après la publication.
   noisette: {
     v6() { try { const v = atlVoulue('noisette'); return v >= 6 && ATL_MODS_OK.get('noisette@' + v) !== null; } catch (e) { return false; } },
-    get word() { return MAP_DEFS.noisette.v6() ? 'Chapitre' : 'Niveau'; },
+    // 2.0.78 : la V7 (« aventure féerique », ticket 2bc3cbb4) = 6 mondes de 5 niveaux, currentLevel 1 à 6 puis 7 à la fin ; comme v6(), suit la version
+    // VRAIMENT lancée : un joueur de la V6 garde sa carte à 4 chapitres. Progression compatible : chapitre n de la V6 = monde n de la V7.
+    v7() { try { const v = atlVoulue('noisette'); return v >= 7 && ATL_MODS_OK.get('noisette@' + v) !== null; } catch (e) { return false; } },
+    get word() { return MAP_DEFS.noisette.v7() ? 'Monde' : MAP_DEFS.noisette.v6() ? 'Chapitre' : 'Niveau'; },
     encours: true,   // 2.0.80 (chef) : currentLevel = le chapitre / monde où est Noisette, pas encore fini : pas de ✓ dessus
+    N7: [['La forêt enchantée', 'Pompon le lapin', '#7fd35a', '🌳', 'le double saut'],
+      ['Le sous-bois des champignons géants', 'Piquant le hérisson', '#5fb06a', '🍄', 'le lance-noisette'],
+      ['La rivière aux cascades', 'Hulotte la chouette', '#5fc4ff', '🌊', 'le planteur magique'],
+      ['Le grand chêne d’automne', 'Roussette la renarde', '#e8a03a', '🍂', 'le pouvoir du vent'],
+      ['Le royaume des nuages', null, '#a9c8ff', '☁️', 'le grappin végétal'],
+      ['La nuit aux cristaux', null, '#8a7ad8', '🌙', 'la lumière']],
     theme: 'noisette', tierGap: 130, tierAt: 0.5, step: 200, nodeSize: 56, bgDpr: 1.5,
     N: [['La forêt du matin', 'Pompon le lapin', '#7fd35a', '🌳'], ['Le sous-bois aux champignons', 'Piquant le hérisson', '#5fb06a', '🍄'],
       ['La rivière et ses rondins', 'Hulotte la chouette', '#5fc4ff', '🌊'], ['Le grand chêne', 'Roussette la renarde', '#e8a03a', '🌰']],
-    count: () => 5,
+    count: () => (MAP_DEFS.noisette.v7() ? 7 : 5),
     level(lv) {
+      if (MAP_DEFS.noisette.v7()) {
+        if (lv > 6) return { lv, tier: 0, win: true, kicker: 'Grande victoire', name: 'La lumière est revenue', lines: ['Les 4 amis et la forêt rallumée'], acc: '#ffd34d' };
+        const D7 = MAP_DEFS.noisette.N7[lv - 1];
+        return { lv, tier: 0, kicker: 'Monde ' + lv, name: D7[0], lines: ['5 niveaux · ' + (D7[1] ? 'au bout : ' + D7[1] : 'pouvoir : ' + D7[4])], acc: D7[2], emoji: D7[3] };
+      }
       if (lv > 4) return { lv, tier: 0, win: true, kicker: 'Grande victoire', name: 'Les 4 amis retrouvés', lines: ['Tous ensemble au grand chêne'], acc: '#ffd34d' };
       const D = this.N[lv - 1];
       const c = MAP_DEFS.noisette.v6();
       return { lv, tier: 0, kicker: (c ? 'Chapitre ' : 'Niveau ') + lv, name: D[0], lines: [(c ? '5 niveaux · au bout : ' : 'Au bout : ') + D[1]], acc: D[2], emoji: D[3] };
     },
-    short(lv) { const i = this.level(lv); return i.win ? 'Les 4 amis retrouvés' : i.kicker + ' · ' + i.name; },
-    tier() { return { kicker: 'Noisette et ses amis', title: 'La forêt', sub: (MAP_DEFS.noisette.v6() ? '20 niveaux en 4 chapitres' : '4 niveaux') + ' pour retrouver Pompon, Piquant, Hulotte et Roussette', acc: '#e88a3a', acc2: '#7fd35a' }; },
+    short(lv) { const i = MAP_DEFS.noisette.level(lv); return i.win ? i.name : i.kicker + ' · ' + i.name; },
+    tier() { const v7 = MAP_DEFS.noisette.v7(); return { kicker: 'Noisette et ses amis', title: v7 ? 'L’aventure féerique' : 'La forêt', sub: v7 ? '30 niveaux en 6 mondes : retrouve tes 4 amis et rends la lumière à la forêt' : (MAP_DEFS.noisette.v6() ? '20 niveaux en 4 chapitres' : '4 niveaux') + ' pour retrouver Pompon, Piquant, Hulotte et Roussette', acc: '#e88a3a', acc2: '#7fd35a' }; },
     stops(L) { return [[L.H, '#3f6b2c'], [L.H * 0.55, '#2c5a3a'], [L.H * 0.2, '#3f7c8a'], [0, '#2e5f86']]; },
     paint(x, L, W, y0, h) {
       // des sapins et des feuillus de chaque côté du chemin, toujours aux mêmes places
@@ -11965,7 +11979,7 @@ const MAP_DEFS = {
     },
     warm() { const G = window.JDW_GAMES && window.JDW_GAMES.noisette; if (G && G.heros) { try { G.heros(null, 0); } catch (e) { /* rien */ } } },   // ses images se chargent au calme, avant l'ouverture
     start: { title: 'Départ', sub: 'Noisette s’est perdu dans la forêt' },
-    cap: { title: 'Le grand chêne', sub: 'Tous les amis réunis' }
+    get cap() { return MAP_DEFS.noisette.v7() ? { title: 'La lumière revenue', sub: 'Les 4 amis et la forêt rallumée' } : { title: 'Le grand chêne', sub: 'Tous les amis réunis' }; }
   }
 };
 // 2.0.72 : la carte de « L'Explorateur de l'espace » (jeu 'lune', V9 : 12 chapitres de l'histoire + la fin, 5 régions du bord vers le Cœur).
