@@ -387,7 +387,7 @@ function mount(root, api) {
         msgY: 300, d, wc, gL
       };
     } else {
-      // portrait (2 h 10, Benjamin : « il faut absolument le détecter ») : de haut en bas, le tapis, la scène (mur à sa taille naturelle +
+      // portrait (2 h 10, l'admin : « il faut absolument le détecter ») : de haut en bas, le tapis, la scène (mur à sa taille naturelle +
       // sol carrelé qui prend toute la hauteur en plus), puis la rangée couveuse · nid (sur le comptoir) · fenêtre du client, l'inventaire
       // et les boutons collés en bas : rien d'étiré, rien qui se chevauche, pas de vide
       LW = 720; LH = Math.max(1150, 720 * H / W); sc = Math.min(W / LW, H / LH); LH = Math.max(1150, H / sc);
@@ -902,7 +902,7 @@ function mount(root, api) {
     kids[i] = { k, want, etat: 'arrive', et: 0, pat: patMax, patMax, ph: Math.random() * 6, place: i };
   }
   // la couleur d'une licorne : celle qu'on lui a donnée (œuf ou pot), sinon sa couleur de naissance quand elle en a une franche
-  // (bug signalé par Benjamin : un bébé rose de naissance était refusé pour « bébé rose » tant qu'on ne repassait pas le pot)
+  // (bug signalé par l'admin : un bébé rose de naissance était refusé pour « bébé rose » tant qu'on ne repassait pas le pot)
   const couleur = u => u.col != null ? u.col : uniImg(u) === 'bebe-rose' ? 330 : uniImg(u) === 'adulte-doree' ? 50 : null;
   // V10 : une licorne arc-en-ciel va avec TOUTES les demandes (âge, couleur, accessoire, scintillante)
   const convient = (u, w) => u.arc || !u.bebe === w.adulte && couleur(u) === w.col && (!w.acc || u.accs.includes(w.acc)) && (!w.brille || u.brille);
