@@ -15174,7 +15174,7 @@ function atlWizErr(t) { const e = ATL.root && ATL.root.querySelector('.atl-werr'
 function atlWizWhy(e) {
   const m = String((e && e.message) || '');
   if (/design en cours/.test(m)) return 'Ton premier design est en préparation : encore un petit moment !';
-  if (/projet lance/.test(m)) return 'La conception est lancée : ton projet ne se modifie plus.';
+  if (/projet lance/.test(m)) return 'La conception est lancée : je construis ta V1. Tu pourras l’essayer, puis me demander des changements dans « Discuter du jeu ».';
   if (/plafond global/.test(m)) return 'La création fait une petite pause : réessaie un peu plus tard.';
   if (/fiche vide/.test(m)) return 'Raconte d’abord ton jeu ' + gA() + '.';
   return atlWhy(e);
@@ -15213,8 +15213,8 @@ function atlDevisNom(x) { const n = atlEl('span', 'atl-dvn', String(x.ligne || '
 function atlDevisEncart(f, fi, lecture) {
   const d = atlDevis(f), box = atlEl('section', 'atl-devis'); if (!d) return box;
   const fige = lecture || d.scelle || ATL_AFTER.has(String(f.etat || ''));
-  box.appendChild(atlEl('h4', '', fige ? '🧩 Ce que contient ton jeu' : '🧩 Ton jeu, élément par élément'));
-  if (!fige) box.appendChild(atlEl('p', 'atl-aide', 'Retire ce que tu ne veux pas : le coût baisse tout de suite. (↩ pour le remettre)'));
+  box.appendChild(atlEl('h4', '', fige ? '🧩 Ce que contient ton jeu' : '🧩 Ce que je construis dans ta V1'));
+  if (!fige) box.appendChild(atlEl('p', 'atl-aide', 'Rien à préparer : tu lances, tu essaies ta V1, et tu changes ce que tu veux après.'));
   const tb = atlEl('div', 'atl-dvl');
   for (const x of d.l) {
     const r = atlEl('div', 'atl-dvr' + (x.retire ? ' off' : '') + (x.lie_a ? ' lie' : ''));
@@ -15247,7 +15247,7 @@ async function atlDevisBascule(f, fi, x, b) {
       if (k) { const l = atlListeDe(fi[k]), nom = String(y.ligne || '').trim(); if (ret) atlEtape(k, l.filter(v => !atlMemeChose(v, nom))); else if (nom && !l.some(v => atlMemeChose(v, nom))) atlEtape(k, l.concat([nom])); }
     }
     atlRenderWiz();
-  } catch (e) { b.disabled = false; atlWizErr(/scelle/.test(String(e && e.message)) ? 'La conception est lancée : ton jeu ne se modifie plus ici.' : /obligatoire/.test(String(e && e.message)) ? 'Cette ligne est indispensable à ton jeu.' : atlWhy(e)); }
+  } catch (e) { b.disabled = false; atlWizErr(/scelle/.test(String(e && e.message)) ? 'La conception est lancée : je construis ta V1. Tu pourras l’essayer, puis me demander des changements dans « Discuter du jeu ».' : /obligatoire/.test(String(e && e.message)) ? 'Cette ligne est indispensable à ton jeu.' : atlWhy(e)); }
 }
 async function atlLancer(btn) {
   const f = atlFiche(); if (!f || ATL.sending) return;
@@ -15295,7 +15295,7 @@ function atlRenderWiz() {
   if (dv0) {   // l'encart du jeu élément par élément, en grand, puis 🚀 juste dessous
     box.appendChild(atlDevisEncart(f, fi, false));
     const go0 = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (dv0.total > 0 ? ' · ' + dv0.total + ' 💎' : '')); go0.type = 'button'; go0.addEventListener('click', () => atlLancer(go0));
-    box.append(go0, atlEl('p', 'atl-gonote', 'Une fois lancée, la conception ne se modifie plus. Les crédits utilisés ne sont pas remboursés.'), atlEl('p', 'atl-werr atl-werr0'));
+    box.append(atlEl('p', 'atl-goavant', '✨ Rien n’est à préparer avant : les éléments, les dessins et les retouches viennent APRÈS, sur ta V1 que tu essaies.'), go0, atlEl('p', 'atl-gonote', 'Je construis ta V1 : tu pourras l’essayer tout de suite, puis me demander des changements et ajouter tes éléments quand tu veux. Les crédits utilisés ne sont pas remboursés.'), atlEl('p', 'atl-gobug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'), atlEl('p', 'atl-werr atl-werr0'));
     box.lastChild.hidden = true;
   }
   const [k, ic, lab, aide] = ATL_STEPS[st], page = atlEl('section', 'atl-page' + (dv0 ? ' petit' : ''));
@@ -15328,7 +15328,7 @@ function atlRenderWiz() {
     const dv = null;
     const cc = dv ? dv.total : cr ? cr.conception | 0 : 0, go = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (cc > 0 ? ' · ' + cc + ' 💎' : '')); go.type = 'button';
     go.addEventListener('click', () => atlLancer(go));
-    box.append(go, atlEl('p', 'atl-gonote', 'Une fois lancée, la conception ne se modifie plus. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous. Les crédits utilisés ne sont pas remboursés.'));
+    box.append(atlEl('p', 'atl-goavant', '✨ Rien n’est à préparer avant : les éléments, les dessins et les retouches viennent APRÈS, sur ta V1 que tu essaies.'), go, atlEl('p', 'atl-gonote', 'Je construis ta V1 : tu pourras l’essayer tout de suite, puis me demander des changements et ajouter tes éléments quand tu veux. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous. Les crédits utilisés ne sont pas remboursés.'), atlEl('p', 'atl-gobug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'));
   }
   const w = atlEl('button', 'atl-wchat', '✏️ Retravailler mon idée ou ajouter du style (' + (cr ? cr.message | 0 : 2) + ' 💎 le message)'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); });
   box.append(w);   // 2.0.16 (Benjamin) : plus de mention « créé avec l’aide de l’IA »
@@ -15505,6 +15505,7 @@ function atlDiscBulleV(f, vh, der) {
   bb.textContent = ''; bb.classList.add('atl-vsort'); bb.appendChild(atlEl('p', 'atl-vst', '🎉 Ta V' + v + ' est sortie !'));
   if (vh.note) bb.appendChild(atlEl('p', '', String(vh.note)));
   const ds = Array.isArray(vh.demandes) ? vh.demandes.filter(Boolean) : []; if (ds.length) { const ul = atlEl('ul', 'atl-propdet'); for (const d of ds.slice(0, 8)) ul.appendChild(atlEl('li', '', String(d))); bb.appendChild(ul); }
+  bb.appendChild(atlEl('p', 'atl-vbug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'));
   if (der && !atlAdminIci()) { const go = atlEl('button', 'btn btn-play atl-essai', '▶️ Essayer ma V' + v); go.type = 'button'; go.addEventListener('click', () => atlJouerVrai(f)); col.insertBefore(go, tm); }
   return b;
 }
@@ -15627,7 +15628,7 @@ function atlVSortie(W, f) {
   const jouable = !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(String(f.etat || '')), v = (f.version | 0) || 1;
   const vh = (Array.isArray(f.versions) ? f.versions : []).find(x => x && (x.v | 0) === v);
   let e = atlEssaye(f);
-  if (e == null) { e = vh && Date.now() - (Date.parse(vh.at) || 0) < 864e5 && v > 1 ? v - 1 : v; atlEssaye(f, e); }   // premier passage : seulement une version sortie depuis moins d'un jour
+  if (e == null) { e = v === 1 || (vh && Date.now() - (Date.parse(vh.at) || 0) < 864e5) ? v - 1 : v; atlEssaye(f, e); }   // premier passage : la V1 (2.0.110 : « Essayer » dès sa sortie), ou une version sortie depuis moins d'un jour
   let bn = box.querySelector('.atl-vsortie');
   if (!jouable || atlAdminIci() || (e | 0) >= v) { if (bn) bn.remove(); return; }
   if (bn && bn.dataset.v === String(v)) return;

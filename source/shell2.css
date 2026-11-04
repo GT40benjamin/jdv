@@ -3773,6 +3773,9 @@ body.atl-on #jdw-modes{visibility:hidden}
 @keyframes atlGlow{from{box-shadow:0 0 0 0 rgba(255,211,77,.7)}to{box-shadow:0 0 0 8px rgba(255,211,77,0)}}
 @keyframes atlPulse{to{transform:scale(1.03)}}
 .atl-gonote,.atl-ia{margin:0;text-align:center;color:var(--muted);font:13px/1.45 var(--body)}
+.atl-goavant{margin:4px 0 0;padding:10px 14px;border-radius:14px;background:rgba(255,211,77,.1);border:1px solid rgba(255,211,77,.35);color:#ffe9a8;text-align:center;font:700 14px/1.45 var(--body)}
+.atl-gobug{margin:0;text-align:center;color:var(--ink);opacity:.85;font:13px/1.45 var(--body)}
+.atl-vbug{margin:6px 0 0;font-size:13px;opacity:.85}
 .atl-wchat{justify-self:center;border:0;background:none;color:#c9b6ff;font:600 14px var(--body);text-decoration:underline;cursor:pointer}
 .atl-fin{display:grid;justify-items:center;gap:12px;text-align:center;padding:28px 16px;border-radius:18px;border:1px solid var(--line);background:var(--card)}
 .atl-fin h2{margin:0;font:700 26px var(--display,var(--body))}
