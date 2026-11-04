@@ -4791,3 +4791,7 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-winbar .atl-winx{width:40px;height:40px;font-size:18px}
 /* 2.0.63 : le bandeau « Nouveau : ton cri de perte » ne couvre plus l'Atelier (ni la barre ← Retour de ses fenêtres) */
 body.atl-on .lose-tip{display:none}
+/* 2.0.65 : carte de Noisette — le titre de chaque carte rapetisse pour tenir entre ◀ et la cible (mapTitreFit ; « … » en dernier recours) ; Noisette posé à gauche du départ, plus sur le texte */
+.gmap-ttl h2{overflow:hidden;text-overflow:ellipsis}
+.gmap[data-theme=noisette] .gmap-ttl h2{color:#fff3d6;text-shadow:0 3px 0 rgba(30,20,6,.85),0 0 16px rgba(232,138,58,.55)}
+.gmap[data-theme=noisette] .gs-art{position:absolute;left:-130px;top:-52px;pointer-events:none;filter:drop-shadow(0 4px 5px rgba(0,0,0,.45))}

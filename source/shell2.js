@@ -13378,7 +13378,7 @@ function openMap(gid, opener) {
   box.style.setProperty('--ox', r ? Math.round(r.left + r.width / 2) + 'px' : '50%');
   box.style.setProperty('--oy', r ? Math.round(r.top + r.height / 2) + 'px' : '90%');
   box.classList.remove('closing'); box.classList.add('opening'); box.hidden = false;
-  mapBuild(true);
+  mapBuild(true); mapTitreFit();
   setTimeout(() => box.classList.remove('opening'), 1600);
   setTimeout(() => $('jdw-map-close').focus({ preventScroll: true }), 60);
   Audio.ensure(); Audio.tone(392, 0.09, 'triangle', 0.035, 523); setTimeout(() => Audio.tone(659, 0.16, 'triangle', 0.03), 90);
@@ -13388,6 +13388,13 @@ function openMap(gid, opener) {
     if (membersFor !== room.id) loadPlayers();
   }
 }
+// 2.0.65 (Équipe tests : « NOISETTE ET SES » coupé) : le titre rapetisse jusqu'à tenir entre ◀ et la cible (16 px au plus petit, puis « … »)
+function mapTitreFit() {
+  const h = $('jdw-map-title'); if (!h) return; h.style.fontSize = '';
+  const fit = () => { let f = parseFloat(getComputedStyle(h).fontSize) || 0; while (f > 16 && h.scrollWidth > h.clientWidth + 1) { f -= 1; h.style.fontSize = f + 'px'; } };
+  fit(); requestAnimationFrame(fit);
+}
+addEventListener('resize', () => { if (MAP.open) mapTitreFit(); });   // téléphone tourné
 function closeMap() {
   if (!MAP.open) return;
   MAP.open = false;

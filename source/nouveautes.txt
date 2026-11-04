@@ -36,6 +36,8 @@
 [borne] 🎮 Un jeu resté ouvert en pause ne passe plus par-dessus le jeu que tu choisis : chaque tuile ouvre toujours son jeu à elle.
 [borne] ## 📱 Les jeux en plein écran sur téléphone (borne 2.0.38)
 [borne] 📱 Téléphone à l’horizontale : plus de bande sur le côté pendant la partie, le jeu prend toute la largeur. Quitter et le son sont deux petits ronds transparents, dans un coin que le jeu laisse libre.
+[noisette] ## 🐿️ Noisette et ses amis : une carte plus propre (borne 2.0.65)
+[noisette] 🐿️ Sur la carte de la tuile, le titre « Noisette et ses amis » tient en entier en haut, et Noisette attend à côté du départ sans cacher le texte.
 [noisette] ## 🗺️ Noisette et ses amis : 20 niveaux en 4 chapitres (borne 2.0.64)
 [noisette] 🗺️ La carte de la tuile suit la version que tu joues : avec la nouvelle version, 4 chapitres de 5 niveaux, et un ami à retrouver au bout de chaque chapitre (Pompon, Piquant, Hulotte et Roussette).
 [atelier] ## ← Un bouton Retour en haut de chaque fenêtre (borne 2.0.63)
