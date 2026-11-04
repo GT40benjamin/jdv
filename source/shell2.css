@@ -4515,6 +4515,37 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-discrow textarea{width:100%;box-sizing:border-box;min-height:56px;padding-right:56px}
 .atl-discgo{flex:0 0 auto}
 .atl-ptab.atl-pdot::after,.atl-discbtn.atl-pdot::after{content:'';display:inline-block;width:9px;height:9px;margin-left:6px;border-radius:50%;background:#ff5a5a;vertical-align:middle;box-shadow:0 0 0 2px rgba(255,90,90,.25)}
+/* 2.0.94 : le fil raconte tout le projet ; « Mes demandes » = le suivi (une ligne par demande) ; « 🎉 Ta Vn est sortie ! » */
+.atl-discsous{display:block;margin:-2px 0 4px;color:var(--muted);font:13px/1.35 var(--body)}
+.atl-discrg{margin:0;color:var(--muted);font:13px/1.4 var(--body)}
+.atl-discnp{border:0;background:none;padding:0;color:#ffd34d;font:800 13px var(--body);cursor:pointer;text-decoration:underline}
+.atl-fdem .atl-b{background:linear-gradient(180deg,#5b47d6,#4433b0)}
+.atl-fet{display:flex;justify-content:center;align-items:baseline;gap:8px;margin:10px auto 0;max-width:min(92%,560px);padding:6px 12px;border-radius:999px;background:rgba(255,159,67,.12);border:1px solid rgba(255,159,67,.35);color:#ffd9b0;font:600 13px/1.35 var(--body);text-align:center}
+.atl-fet small{flex:0 0 auto;color:var(--muted);font-weight:400}
+.atl-disclog .atl-travb{margin:10px 0 0;max-width:min(92%,620px)}
+.atl-vsort{background:linear-gradient(180deg,rgba(47,191,113,.22),rgba(255,211,77,.10))!important;border-color:rgba(47,191,113,.5)!important}
+.atl-vst{font:400 19px/1.2 var(--display)!important;color:#ffe9a8}
+.atl-essai{margin-top:8px;align-self:flex-start;font-size:17px;padding:12px 22px}
+.atl-mbouton{margin-top:8px;align-self:flex-start}
+.atl-vsortie{display:flex;align-items:center;gap:12px;margin:12px 0 4px;padding:10px 14px;border-radius:16px;background:linear-gradient(90deg,rgba(47,191,113,.22),rgba(255,211,77,.12));border:1px solid rgba(47,191,113,.55);animation:atlFade .3s ease-out}
+.atl-vsortie > div{display:grid;gap:2px;min-width:0;flex:1 1 auto}
+.atl-vsortie b{font:400 18px/1.2 var(--display);color:#ffe9a8}
+.atl-vsortie small{color:var(--ink);opacity:.85;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.atl-vsortie .atl-essai{margin:0;flex:0 0 auto}
+.atl-dligne{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);font:600 14px var(--body);text-align:left;cursor:pointer}
+.atl-dligne:hover{background:rgba(255,255,255,.08)}
+.atl-dligne.ouv{border-color:rgba(255,211,77,.45);background:rgba(255,211,77,.06)}
+.atl-dligne.neuf{box-shadow:0 0 0 2px #ffd34d inset}
+.atl-dligne .atl-demb2{flex:0 0 auto}
+.atl-dltx{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.atl-dlav{flex:0 0 auto;display:flex;align-items:center;gap:8px;color:var(--muted);font:700 12px var(--body)}
+.atl-dlav .atl-travbar{width:90px;margin:0}
+.atl-travbar.indet > i{width:40%;animation:atlIndet 1.4s ease-in-out infinite}
+@keyframes atlIndet{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+.atl-dlfl{flex:0 0 auto;color:var(--muted);transition:transform .2s}
+.atl-dligne.ouv .atl-dlfl{transform:rotate(180deg)}
+.atl-dsous{margin-top:-4px}
+@media (max-width:600px){.atl-dligne{flex-wrap:wrap;gap:6px 8px}.atl-dltx{flex-basis:100%;order:3;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.atl-dlav{margin-left:auto}.atl-vsortie{flex-wrap:wrap}.atl-vsortie .atl-essai{width:100%}}
 @media (max-width:600px){.atl-dischd{font-size:15px;padding:10px;gap:8px}.atl-discrow{flex-direction:column;align-items:stretch}.atl-discrow textarea{min-height:92px}.atl-discgo{width:100%}}
 
 /* 2.0.11 : les offres modifiables sur la carte (admin) */
