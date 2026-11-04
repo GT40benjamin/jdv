@@ -7,7 +7,7 @@
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
 [borne] ## 🔁 Une seule offre à choisir à la fois (borne 2.0.98)
-[borne] 🔁 Dès que tu écris un nouveau message (ou que tu réponds autrement), les offres et les questions plus anciennes de la conversation se ferment : elles deviennent grises, sans bouton, avec « Offre remplacée : Pooky te prépare la nouvelle ».
+[borne] 🔁 Dès que tu écris un nouveau message (ou que tu réponds autrement), les offres et les questions plus anciennes de la conversation se ferment : elles deviennent grises, sans bouton, avec « Offre remplacée : {g} te prépare la nouvelle ».
 [borne] 💬 Seule la dernière offre reste à choisir, dans la conversation comme dans « Mes demandes » : impossible de choisir par erreur une ancienne version.
 [borne] ## 💬 Tes messages partent, même avec un nom de jeu connu (borne 2.0.97)
 [borne] 💬 Dans « Discuter du jeu », tu peux parler d’un jeu qui existe (« un jeu comme… ») : ton message part, et la réponse t’explique comment en faire un jeu original, avec tes propres noms.
