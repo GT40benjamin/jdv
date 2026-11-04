@@ -4100,6 +4100,37 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 /* joie : bras en l'air, il saute */
 .atl-pk-joie .atl-pkc{animation:atlPkHop .55s ease-in-out infinite alternate}
 @keyframes atlPkHop{0%{transform:translateY(0) scale(1.03,.97)}100%{transform:translateY(-12px) scale(.98,1.03)}}
+/* 2.0.85 : le metteur en scène — une couche par pose en fondu enchaîné ; les poses dessinées (480 px, pieds à 97 %) recalées sur les
+   anciennes (320 px) ; il respire, se penche vers la souris ou le doigt (--gx/--gy/--gr), chaque pose a son petit mouvement */
+.atl-pkg{position:absolute;inset:0;transform-origin:50% 95%;transform:translate(var(--gx,0px),var(--gy,0px)) rotate(var(--gr,0deg));transition:transform .6s ease-out}
+.atl-pkv .atl-pkc{animation:atlPkSouffle 3.6s ease-in-out infinite}
+@keyframes atlPkSouffle{0%,100%{transform:scale(1,1)}50%{transform:scale(.988,1.022)}}
+.atl-pkly{position:absolute;inset:0;opacity:0;transition:opacity .22s ease}
+.atl-pkly.on{opacity:1}
+.atl-pkly.np{inset:auto;left:-4.3%;top:-13.8%;width:108.6%;height:108.6%}
+.atl-pkly.np .atl-pkl{transform-origin:50% 97%;animation:atlPkArrive .38s cubic-bezier(.3,1.6,.5,1)}
+@keyframes atlPkArrive{from{transform:scale(1.06,.9)}to{transform:none}}
+.atl-pkv[data-p=saut] .atl-pkc{animation:atlPkHop .5s ease-in-out infinite alternate}
+.atl-pkv[data-p=danse] .atl-pkc{animation:atlPkDanse 1s ease-in-out infinite}
+@keyframes atlPkDanse{0%,100%{transform:rotate(-5deg)}25%{transform:translateY(-6px)}50%{transform:rotate(5deg)}75%{transform:translateY(-6px)}}
+.atl-pkv[data-p=rit] .atl-pkc{animation:atlPkRit .16s ease-in-out infinite alternate}
+@keyframes atlPkRit{from{transform:rotate(-2.5deg) scale(1.01,.99)}to{transform:rotate(2.5deg) scale(.99,1.01)}}
+.atl-pkv[data-p=surpris] .atl-pkc{animation:atlPkSursaut .5s ease-out}
+@keyframes atlPkSursaut{0%{transform:scale(1.04,.94)}35%{transform:translateY(-14px) scale(.96,1.05)}100%{transform:none}}
+.atl-pkv[data-p=eternue] .atl-pkc{animation:atlPkAtchoum 1.9s ease-in-out}
+@keyframes atlPkAtchoum{0%,55%{transform:none}62%{transform:rotate(-3deg) scale(1.02,.98)}70%{transform:translateX(4px) rotate(3deg)}100%{transform:none}}
+.atl-pkv[data-p=sieste] .atl-pkc{animation-duration:5.5s}
+.atl-pkv[data-p=tampon] .atl-pkc{animation:atlPkTampon 1.2s ease-in-out infinite}
+@keyframes atlPkTampon{0%,60%,100%{transform:none}70%{transform:translateY(3px) scale(1.02,.97)}}
+.atl-pkv[data-p=clavier] .atl-pkc,.atl-pkv[data-p=manette] .atl-pkc{animation:atlPkTape .22s ease-in-out infinite alternate}
+@keyframes atlPkTape{from{transform:none}to{transform:translateY(-1.5px) scale(1.006,.995)}}
+.atl-pkv[data-p=bricole] .atl-pkc{animation:atlPkBob .46s ease-in-out infinite alternate}
+.atl-pkd.p1,.atl-pkd.p2,.atl-pkd.p3{opacity:0;top:38%;right:18%;animation:atlPkFly 2.6s ease-out infinite}
+.atl-pkd.p2{left:16%;right:auto;top:30%;animation-name:atlPkFlyG;animation-delay:.85s}
+.atl-pkd.p3{left:46%;right:auto;top:2%;animation:atlPkSpark 1.8s ease-in-out 1.7s infinite}
+.atl-pkd.spin{opacity:.9;font-size:24px;animation:atlPkSpin 3s linear infinite}
+@keyframes atlPkFlyG{0%{transform:translate(0,0) scale(.5) rotate(0);opacity:0}15%{opacity:1}100%{transform:translate(-44px,-70px) scale(1.05) rotate(-20deg);opacity:0}}
+@media (max-width:600px),(pointer:coarse){.atl-pkd.p3{display:none}}
 /* la scène au travail */
 .atl-pkscene{display:grid;justify-items:center;gap:6px;margin:10px auto 2px;max-width:420px;text-align:center}
 .atl-pkscene .atl-pk{width:170px;height:170px}

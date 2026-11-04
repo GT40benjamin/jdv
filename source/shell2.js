@@ -14888,7 +14888,7 @@ function atlRenderProjets() {
       w.append(atlGuideAv('atl-wav'), atlEl('b', '', 'Je n’arrive pas à charger tes projets'), atlEl('p', '', compte ? 'Ton compte doit se reconnecter.' : 'La connexion a un souci : on réessaie ?'));
       const re = atlEl('button', 'btn btn-play', '↻ Réessayer'); re.type = 'button'; re.addEventListener('click', () => { ATL.err = 0; atlRender(); atlLoad(true); }); w.appendChild(re);
       if (compte) { const rc = atlEl('button', 'btn btn-ghost', '🔑 Reconnecte-toi'); rc.type = 'button'; rc.addEventListener('click', () => { try { atlClose(); openAcct(); } catch (e) { location.reload(); } }); w.appendChild(rc); }
-    } else w.append(atlGuideScene(['Je prépare ton Atelier…', 'Je range tes projets…', 'J’arrive !']), atlEl('b', '', 'Je prépare ton Atelier…'));
+    } else w.append(atlGuideScene(['Je prépare ton Atelier…', 'Je range tes projets…', 'J’arrive !'], 'construction'), atlEl('b', '', 'Je prépare ton Atelier…'));
     box.appendChild(w); R.querySelector('.atl-hs').textContent = '';
     for (const q of ['.atl-cred', '.atl-suivib', '.atl-sendh']) { const e = R.querySelector(q); if (e) e.hidden = true; }
     return;
@@ -15060,7 +15060,7 @@ function atlRenderChat() {
     // 2.0.22 (Benjamin : « cette première idée est très importante, ça doit être une belle discussion ») : le guide ne part plus
     // « au travail » tout seul : il lit, réfléchit (bulle et points), puis pose ses questions ici ; le joueur lui répond (gratuit pendant le montage)
     const nbJ = atlMsgs().filter(m => !m.atelier).length, prem = nbJ <= 1;
-    log.appendChild(atlGuideScene(prem ? ['Je lis ton idée…', 'J’imagine ton jeu…', 'Je prépare mes questions…'] : ['Je lis ta réponse…', 'Je réfléchis…', 'J’écris ma réponse…']));
+    log.appendChild(atlGuideScene(prem ? ['Je lis ton idée…', 'J’imagine ton jeu…', 'Je prépare mes questions…'] : ['Je lis ta réponse…', 'Je réfléchis…', 'J’écris ma réponse…'], 'conception'));
     log.appendChild(atlBubble({ atelier: true, texte: prem ? 'Super idée ! 💭 Je la lis tranquillement et je te pose mes questions juste ici, pour que ton jeu soit exactement comme tu l’imagines. Tu pourras me répondre en dessous, c’est gratuit.' : '💭 Je lis ta réponse et je reviens tout de suite…', at: (lp && lp.at) || new Date().toISOString() }));
   }
   if (atBottom || ATL.stick) { log.scrollTop = log.scrollHeight; ATL.stick = false; }
@@ -15470,7 +15470,7 @@ function atlRenderProjet(W, f) {
     const p = pane('jeu'), fr = atlEl('div', 'atl-gframe atl-gtuile');
     const pj0 = atlProjets().find(x => x.id === f.id), prepa = pj0 && Array.isArray(pj0.prepa) ? pj0.prepa : [], vN = ((f.version | 0) || 1);
     if (prepa.length) {   // 3 nov. 1 h 20 (Benjamin : « il doit être là, en train de travailler dessus ») : le guide au travail sur la prochaine version
-      const tb = atlEl('div', 'atl-travail'), sc = atlGuideScene(['J’ajoute ce que tu as choisi…', 'Je dessine et je construis…', 'Je teste tout…']), tx = atlEl('div');
+      const tb = atlEl('div', 'atl-travail'), sc = atlGuideScene(['J’ajoute ce que tu as choisi…', 'Je dessine et je construis…', 'Je teste tout…'], 'construction'), tx = atlEl('div');
       tx.append(atlEl('b', '', '🛠️ Je prépare ta V' + (vN + 1) + ' de « ' + (f.titre || 'ton jeu') + ' »…'));
       // 2.0.24 (Benjamin : « la seule chose qui bouge, c'est la mascotte, et point ») : un cadre de taille FIXE — 3 lignes de liste au plus (« + n autres »),
       // la ligne « En ce moment » toujours là (vide au départ) ; les textes changent sur place, coupés par « … », sans rien pousser
@@ -15523,7 +15523,7 @@ function atlRenderProjet(W, f) {
   } else {
     const p = pane('etat'), c = atlEl('div', 'atl-fin' + (et === 'refusee' ? '' : ' run'));
     if (et === 'refusee') c.append(atlEl('h2', '', 'Ce projet n’a pas été retenu'), atlEl('p', '', 'Tu peux en commencer un autre depuis « Mes projets ».'));
-    else { c.appendChild(atlGuideScene(['Je crée tes personnages…', 'J’assemble le décor…', 'Je programme les règles du jeu…', 'J’ajoute les sons et la musique…', 'Je teste ta V1…'])); c.append(atlEl('h2', '', '🛠️ C’est parti, je me mets au travail sur ta V1 !'), atlEl('p', '', 'Ta V1 de « ' + (f.titre || 'Mon jeu sans nom') + ' » est en construction. Va jouer en attendant : la cloche 🔔 te prévient dès qu’elle est prête à tester.')); }
+    else { c.appendChild(atlGuideScene(['Je crée tes personnages…', 'J’assemble le décor…', 'Je programme les règles du jeu…', 'J’ajoute les sons et la musique…', 'Je teste ta V1…'], 'construction')); c.append(atlEl('h2', '', '🛠️ C’est parti, je me mets au travail sur ta V1 !'), atlEl('p', '', 'Ta V1 de « ' + (f.titre || 'Mon jeu sans nom') + ' » est en construction. Va jouer en attendant : la cloche 🔔 te prévient dès qu’elle est prête à tester.')); }
     p.appendChild(c);
   }
   // 🧩 Éléments (21 h 15, Benjamin) : tous les éléments du jeu, rangés, avec leur menu ⋯
@@ -16545,7 +16545,7 @@ function atlTuileApercu(f, g) {
   tm.append(atlEl('div', 'tile-name', f.titre || (g && g.title) || 'Mon jeu'), atlEl('small', 'tile-by', 'by ' + atlCreateurDe(f) + ' · V' + (((f.version_publiee | 0) || (f.version | 0)) || 1)));
   po.append(ti, tm); wrap.appendChild(po); return wrap;
 }
-function atlJaqUrl(f) { return atlVignetteUrl(f, 'vignette_animee') || atlVignetteUrl(f, 'vignette'); }
+function atlJaqUrl(f) { return atlVignetteUrl(f, 'vignette_animee') || atlVignetteUrl(f, 'vignette') || (f && atlIaUrl(f.jaq)) || ''; }   // jaq : la liste « Mes projets » (SQL v103, sans assets)
 function atlJaquette(f, g, cls) {
   const u = atlJaqUrl(f), dz = (f && f.design && atlIaUrl(f.design.f)) || (f && atlIaUrl(f.vignette));
   if (u || !(g && typeof g.preview === 'function')) { if (!u && !dz) { const e = atlEl('span', cls || '', '🎮'); return e; } const im = atlEl('img', cls || ''); im.alt = ''; im.src = u || dz; return im; }
@@ -16768,28 +16768,141 @@ function atlCreerElem(cat, lab, k, libre, f, fi) {
 // alterner : il respire et cligne au repos, fait coucou à l'accueil, bricole au travail (crayon, étincelles, engrenages, petits dessins
 // qui s'envolent) avec un texte qui change, saute de joie à la réponse. Que des transformations : fluide sur téléphone, rien de lourd.
 const ATL_PK = n => ROOT + 'accueil/guide-' + n + '.webp';
-function atlGuideAnim(mode) {
-  const w = atlEl('span', 'atl-pk atl-pk-' + mode); w.setAttribute('aria-hidden', 'true');
-  const corps = atlEl('span', 'atl-pkc'); w.appendChild(corps);
-  const lay = (n, cls, host) => { const i = atlEl('img', 'atl-pkl ' + cls); i.alt = ''; i.decoding = 'async'; i.src = ATL_PK(n); i.onerror = () => i.remove(); (host || corps).appendChild(i); return i; };
-  if (mode === 'travail') {
-    lay('travail1', 't1'); lay('travail2', 't2'); lay('travail3', 't3');
-    for (const [cls, t] of [['g1', '⚙️'], ['g2', '⚙️'], ['s1', '✨'], ['s2', '✨'], ['f1', '✏️'], ['f2', '🎨'], ['f3', '🧩'], ['f4', '⭐']]) w.appendChild(atlEl('span', 'atl-pkd ' + cls, t));
-  } else if (mode === 'joie') {
-    lay('joie', 'j');
-    for (const c of ['s1', 's2', 's3']) w.appendChild(atlEl('span', 'atl-pkd ' + c, '✨'));
-  } else {
-    const rep0 = atlEl('span', 'atl-pkrep'); corps.appendChild(rep0);
-    lay('respire1', 'r1', rep0); lay('respire2', 'r2', rep0); lay('respire3', 'r3', rep0); lay('yeuxfermes', 'yf', rep0);
-    if (mode === 'accueil') lay('coucou', 'cc');
+// 2.0.85 (le chef : « des animations beaucoup plus riches, vivantes ») : 22 poses dessinées dans le même style (accueil/guide-p-*.webp) et
+// un petit metteur en scène. Il change de pose toutes les 4 à 10 s selon ce qu'il fait — conception : dessine, écrit ; construction :
+// clavier, engrenages ; test : manette, loupe ; attente : lit ses notes, réfléchit ; livraison : cadeau, danse — et suit la phrase de la
+// scène (« Je teste… » → manette). Il respire, cligne (pose « repos »), regarde la souris ou le doigt, salue quand on revient, rit quand
+// on le touche (chatouille), sursaute s'il faisait la sieste. Une seule minuterie et un seul écouteur pour tous ; fondus et
+// transformations seulement (léger sur téléphone) ; jamais de son.
+const ATL_PKCTX = {
+  conception: ['dessine', 'ecrit', 'lit', 'gratte', 'postit', 'idee', 'repos', 'eternue:.3'],
+  construction: ['clavier', 'puzzle', 'bricole', 'dessine', 'tampon', 'ecrit', 'repos'],
+  test: ['manette', 'loupe', 'tampon', 'clavier', 'repos'],
+  attente: ['lit', 'gratte', 'postit', 'chocolat', 'etire', 'sieste', 'idee', 'repos', 'eternue:.3'],
+  livraison: ['cadeau', 'emballe', 'danse', 'saut', 'tampon', 'rit'],
+  accueil: ['repos', 'chocolat', 'etire', 'idee', 'lit', 'repos', 'danse:.4', 'eternue:.2']
+};
+const ATL_PKOBJ = {
+  dessine: ['🎨', '✏️', '⭐'], ecrit: ['📝', '✏️', '✨'], lit: ['📜', '💭', '✨'], gratte: ['❔', '💭', '❔'], idee: ['💡', '✨', '⭐'],
+  postit: ['📝', '📌', '✨'], clavier: ['⚙️', '🔧', '✨'], puzzle: ['🧩', '⚙️', '✨'], bricole: ['⚙️', '✨', '🔩'], tampon: ['✅', '⭐', '✨'],
+  chocolat: ['☕', '💭', '✨'], etire: ['💤', '✨', '✨'], sieste: ['💤', '💤', '💤'], surpris: ['❗', '✨', '❕'], manette: ['🎮', '⭐', '✨'],
+  loupe: ['🔍', '⭐', '✨'], emballe: ['🎀', '✨', '🎁'], cadeau: ['🎁', '🎉', '✨'], danse: ['🎵', '🎉', '✨'], saut: ['⭐', '🎉', '✨'],
+  eternue: ['💨', '✨', '💨'], rit: ['😆', '💛', '✨'], coucou: ['👋', '✨', '💬'], repos: ['✨']
+};
+const ATL_PKDUR = { coucou: 2600, surpris: 1500, rit: 2200, eternue: 1900, saut: 3200, sieste: 7000, idee: 3500 };
+const ATL_PKSUITE = { sieste: ['surpris', 1500, 1], gratte: ['idee', 3500, .6], emballe: ['cadeau', 4000, .8] };
+const ATL_PKMOT = [[/\blis\b|lire|relis/i, ['lit']], [/écri/i, ['ecrit', 'postit']], [/question/i, ['gratte', 'postit', 'ecrit']], [/répon/i, ['ecrit', 'postit']],
+  [/dessin|personnage|crée/i, ['dessine', 'bricole']], [/imagin|idée/i, ['idee', 'dessine']], [/réfléchi/i, ['gratte', 'idee']],
+  [/\bsons?\b|musique/i, ['clavier', 'danse']], [/assembl|décor|range/i, ['puzzle', 'bricole']], [/programm|construi|ajoute/i, ['clavier', 'puzzle']],
+  [/vérifie/i, ['loupe', 'tampon', 'manette']], [/teste/i, ['manette', 'loupe']], [/record|regarde/i, ['loupe', 'tampon']], [/prépare/i, ['postit', 'tampon', 'puzzle']], [/arrive/i, ['coucou']]];
+function atlPkImg(n, cls) { const i = atlEl('img', cls); i.alt = ''; i.decoding = 'async'; i.src = ATL_PK(n); return i; }
+function atlPkPose(w, p, dur) {
+  const s = w._pk; if (!s) return;
+  s.prec = s.cur; s.cur = p; s.t0 = Date.now(); s.fin = s.t0 + (dur || ATL_PKDUR[p] || (4000 + Math.random() * 6000) * s.lent);
+  w.dataset.p = p;
+  const c = w.querySelector('.atl-pkc'), L = atlEl('span', 'atl-pkly' + (p === 'repos' || p === 'bricole' ? '' : ' np'));
+  if (p === 'repos') for (const [n, k] of [['respire1', 'r1'], ['respire2', 'r2'], ['respire3', 'r3'], ['yeuxfermes', 'yf']]) L.appendChild(atlPkImg(n, 'atl-pkl ' + k));
+  else if (p === 'bricole') for (const k of ['1', '2', '3']) L.appendChild(atlPkImg('travail' + k, 'atl-pkl t' + k));
+  else L.appendChild(atlPkImg('p-' + p, 'atl-pkl'));
+  s.lay = L; c.appendChild(L);
+  const imgs = [...L.querySelectorAll('img')];
+  Promise.all(imgs.map(i => i.decode ? i.decode().catch(() => {}) : 0)).then(() => requestAnimationFrame(() => {
+    if (s.lay !== L || !imgs.every(i => i.naturalWidth)) { L.remove(); return; }   // déjà une autre pose, ou image absente : on garde l'ancienne
+    for (const o of [...c.children]) if (o !== L) { o.classList.remove('on'); setTimeout(() => o.remove(), 300); }
+    L.classList.add('on');
+  }));
+  const ob = ATL_PKOBJ[p] || ['✨'];
+  w.querySelectorAll('.atl-pkd').forEach((d, i) => { d.textContent = ob[i] || ''; d.classList.toggle('spin', ob[i] === '⚙️'); });
+}
+function atlPkTexte(w) { const t = w.parentNode && w.parentNode.querySelector('.atl-pktxt'); return t ? t.textContent : ''; }
+function atlPkMot(x) {
+  for (const [re, l] of ATL_PKMOT) if (re.test(x)) return l;
+  return null;
+}
+function atlPkTire(w, mot) {
+  const s = w._pk, pool = mot || ATL_PKCTX[s.ctx] || ATL_PKCTX.accueil;
+  const c = pool.map(x => x.split(':')).filter(([p]) => p !== s.cur && p !== s.prec);
+  if (!c.length) return mot ? atlPkTire(w) : pool[0].split(':')[0];   // la phrase ne propose que la pose en cours : on varie avec le contexte
+  let r = Math.random() * c.reduce((a, [, k]) => a + (k ? +k : 1), 0);
+  for (const [p, k] of c) { r -= k ? +k : 1; if (r <= 0) return p; }
+  return c[0][0];
+}
+function atlPkSuivante(w, forceMot) {
+  const s = w._pk;
+  const su = ATL_PKSUITE[s.cur]; if (!forceMot && su && Math.random() < su[2]) return atlPkPose(w, su[0], su[1]);
+  const mot = atlPkMot(atlPkTexte(w));
+  atlPkPose(w, atlPkTire(w, mot && (forceMot || Math.random() < .7) ? mot : null));
+}
+// un geste tout de suite (coucou, rire, sursaut), puis il reprend ce qu'il faisait
+function atlPkGeste(w, p, d) { const s = w._pk; if (!s || s.cur === p) return; atlPkPose(w, p, d); }
+function atlPkVisibles() { return [...document.querySelectorAll('.atl-pk[data-ctx]')].filter(w => w._pk && w.offsetParent); }
+function atlPkTick() {
+  const all = document.querySelectorAll('.atl-pk[data-ctx]');
+  if (!all.length) { clearInterval(ATL.pkD); ATL.pkD = 0; return; }
+  if (document.hidden) return;
+  const now = Date.now();
+  if (ATL.pkMv && now - ATL.pkMv > 4500 && !ATL.pkCentre) { ATL.pkCentre = true; for (const w of all) for (const k of ['--gx', '--gy', '--gr']) w.style.removeProperty(k); }
+  for (const w of all) {
+    const s = w._pk; if (!s || !w.offsetParent) continue;
+    const x = atlPkTexte(w);
+    if (x !== s.txt) {   // la phrase a changé : s'il ne fait pas déjà le bon geste, il s'y met (pas avant 2,5 s dans la pose)
+      s.txt = x; const m = atlPkMot(x);
+      if (m && !m.includes(s.cur) && now - s.t0 > 2500 && !ATL_PKDUR[s.cur]) { atlPkSuivante(w, true); continue; }
+    }
+    if (now >= s.fin) atlPkSuivante(w);
   }
+}
+function atlPkRegard() {
+  ATL.pkRaf = 0;
+  const ws = atlPkVisibles(), rs = ws.map(w => w.getBoundingClientRect());
+  ws.forEach((w, i) => {
+    const r = rs[i]; if (r.bottom < 0 || r.top > innerHeight) return;
+    const dx = Math.max(-1, Math.min(1, (ATL.pkX - (r.left + r.width / 2)) / 420)), dy = Math.max(-1, Math.min(1, (ATL.pkY - (r.top + r.height * .35)) / 420));
+    w.style.setProperty('--gx', (dx * 5).toFixed(1) + 'px'); w.style.setProperty('--gy', (dy * 2.5).toFixed(1) + 'px'); w.style.setProperty('--gr', (dx * 5).toFixed(1) + 'deg');
+  });
+}
+function atlPkInit() {
+  if (!ATL.pkD) ATL.pkD = setInterval(atlPkTick, 300);
+  if (ATL.pkEcoute) return; ATL.pkEcoute = true;
+  ATL.pkMv = Date.now(); ATL.pkSalut = 0;
+  const vise = e => { ATL.pkX = e.clientX; ATL.pkY = e.clientY; ATL.pkCentre = false; if (!ATL.pkRaf) ATL.pkRaf = requestAnimationFrame(atlPkRegard); };
+  document.addEventListener('pointermove', e => {
+    const now = Date.now(), revient = now - ATL.pkMv > 9000; ATL.pkMv = now; vise(e);
+    if (revient && now - ATL.pkSalut > 25000) {   // on revient après un moment : il lève les yeux et salue (ou sursaute s'il dormait)
+      ATL.pkSalut = now;
+      for (const w of atlPkVisibles()) atlPkGeste(w, w._pk.cur === 'sieste' ? 'surpris' : 'coucou');
+    }
+  }, { passive: true });
+  document.addEventListener('pointerover', e => {
+    const w = e.pointerType === 'mouse' && e.target.closest && e.target.closest('.atl-pk[data-ctx]'); if (!w || !w._pk) return;
+    const now = Date.now(); if (now - w._pk.cc < 15000) return; w._pk.cc = now;
+    atlPkGeste(w, w._pk.cur === 'sieste' ? 'surpris' : 'coucou');
+  }, { passive: true });
+  document.addEventListener('pointerdown', e => {
+    ATL.pkMv = Date.now(); vise(e);
+    const w = e.target.closest && e.target.closest('.atl-pk[data-ctx]'); if (!w || !w._pk) return;
+    const now = Date.now(); if (now - w._pk.rit < 1200) return; w._pk.rit = now; w._pk.cc = now;
+    atlPkGeste(w, w._pk.cur === 'sieste' ? 'surpris' : 'rit');   // chatouille
+  }, { passive: true });
+}
+function atlGuideAnim(mode, ctx, texte) {
+  const w = atlEl('span', 'atl-pk atl-pkv'); w.setAttribute('aria-hidden', 'true');
+  const g = atlEl('span', 'atl-pkg'); g.appendChild(atlEl('span', 'atl-pkc')); w.appendChild(g);
+  for (const k of ['p1', 'p2', 'p3']) w.appendChild(atlEl('span', 'atl-pkd ' + k));
+  ctx = ctx || (mode === 'joie' ? 'livraison' : mode === 'accueil' ? 'accueil' : 'construction');
+  w.dataset.ctx = ctx;
+  w._pk = { ctx, cur: '', prec: '', fin: 0, t0: 0, txt: null, lent: matchMedia('(prefers-reduced-motion:reduce)').matches ? 1.6 : 1, cc: 0, rit: 0 };
+  if (mode === 'accueil') atlPkPose(w, 'coucou', 2800);
+  else if (mode === 'joie') atlPkPose(w, 'saut');
+  else atlPkPose(w, atlPkTire(w, atlPkMot(texte || '')));
+  atlPkInit();
   return w;
 }
-// la scène « au travail » (attente du montage, construction de la V1) : le guide qui bricole + une phrase qui change toute seule
-function atlGuideScene(lignes) {
+// la scène « au travail » : le guide (contexte : conception, construction, test, attente) + une phrase qui change toute seule
+function atlGuideScene(lignes, ctx) {
   const sc = atlEl('div', 'atl-pkscene'), tx = atlEl('p', 'atl-pktxt', lignes[0]);
   tx.dataset.l = JSON.stringify(lignes); tx.dataset.i = '0';
-  sc.append(atlGuideAnim('travail'), tx);
+  sc.append(atlGuideAnim('travail', ctx || 'construction', lignes[0]), tx);
   if (!ATL.pkT) ATL.pkT = setInterval(() => {   // une seule minuterie pour toutes les scènes affichées
     const all = ATL.root ? ATL.root.querySelectorAll('.atl-pktxt') : [];
     if (!all.length || !ATL.open) return;
@@ -16956,7 +17069,7 @@ function atlTravailMaj() {
     if (b) b.remove();
     const f = atlFiche(), mondial = l.some(x => /^🌍 Je demande la mise en ligne mondiale/.test(String(x.texte || '')));
     const tb = atlEl('div', 'atl-travail'), tx = atlEl('div'), ul = atlEl('ul'); tb.dataset.auto = '1';
-    const sc = atlGuideScene(mondial ? ['Je vérifie que tout est beau…', 'Je teste ton jeu…', 'Je regarde les records…'] : ['Je réfléchis à ta demande…', 'Je prépare la suite…', 'Je te réponds bientôt…']);
+    const sc = atlGuideScene(mondial ? ['Je vérifie que tout est beau…', 'Je teste ton jeu…', 'Je regarde les records…'] : ['Je réfléchis à ta demande…', 'Je prépare la suite…', 'Je te réponds bientôt…'], mondial ? 'test' : 'attente');
     for (const x of l.slice(0, 3)) ul.appendChild(atlVoirPlus('li', '', atlDemLigne(x)));
     b = atlEl('p', 'atl-tlive', '\u00a0');
     tx.append(atlEl('b', '', mondial ? '🌍 Je regarde ton jeu pour le mettre partout…' : '🛠️ Je travaille sur « ' + ((f && f.titre) || 'ton jeu') + ' »…'), ul, b, atlEl('small', '', 'Je te préviens dès que c’est prêt 🔔'));
