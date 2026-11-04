@@ -4255,6 +4255,8 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-adminb{position:sticky;top:0;z-index:9;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;background:#5a1d1d;color:#fff;border-bottom:2px solid #ff8a65;box-shadow:0 6px 12px -6px rgba(0,0,0,.6)}
 .atl-adminb b{margin-right:auto;font:800 14px var(--body)}
 .atl-adminb .btn{color:#fff;border-color:rgba(255,255,255,.4)}
+.atl-adminb.pt{gap:6px;padding:6px 10px}.atl-adminb.pt > b{flex:1 1 auto;font-size:13px;order:-2!important}.atl-adminb.pt .btn{padding:5px 9px;font-size:12px;min-height:0}.atl-adminb.pt > .btn:last-child{order:-1!important;margin-left:auto}.atl-adminb.pt::after{content:'';order:-1;flex-basis:100%;height:0}
+@media (max-width:600px){.atl-bar:has(> .atl-adminb){flex-wrap:wrap!important;row-gap:6px}.atl-bar > .atl-adminb.pt{flex:1 0 100%;margin:-10px -10px 0;border-radius:0}.atl-bar:has(> .atl-adminb) > .atl-demb,.atl-bar:has(> .atl-adminb) > .atl-cred{display:none}}   /* 2.0.108 : mode admin au téléphone : bandeau en haut, l'en-tête du projet dessous */
 
 /* 23 h 30 : le devis */
 .atl-devis{margin:12px 0;padding:12px 14px;border-radius:14px;border:2px solid #ffd34d;background:rgba(255,211,77,.06)}
@@ -4518,6 +4520,7 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 /* 2.0.94 : le fil raconte tout le projet ; « Mes demandes » = le suivi (une ligne par demande) ; « 🎉 Ta Vn est sortie ! » */
 .atl-discsous{display:block;margin:-2px 0 4px;color:var(--muted);font:13px/1.35 var(--body)}
 .atl-discrg{margin:0;color:var(--muted);font:13px/1.4 var(--body)}
+.atl-discadm{color:#ffd166;font-weight:600}
 .atl-discnp{border:0;background:none;padding:0;color:#ffd34d;font:800 13px var(--body);cursor:pointer;text-decoration:underline}
 .atl-fdem .atl-b{background:linear-gradient(180deg,#5b47d6,#4433b0)}
 .atl-fet{display:flex;justify-content:center;align-items:baseline;gap:8px;margin:10px auto 0;max-width:min(92%,560px);padding:6px 12px;border-radius:999px;background:rgba(255,159,67,.12);border:1px solid rgba(255,159,67,.35);color:#ffd9b0;font:600 13px/1.35 var(--body);text-align:center}

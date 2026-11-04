@@ -15533,10 +15533,11 @@ function atlDiscBloc(f) {
   hd.append(atlGuideAv(), atlEl('b', '', atlDiscTitre()), atlEl('span', 'atl-discgr', 'Gratuit'), atlEl('i', 'atl-discdot'), atlEl('span', 'atl-discfl', '▾'));
   hd.addEventListener('click', () => atlDiscOuvrir(ATL.discFerme === f.id, true));
   const corps = atlEl('div', 'atl-discc'); corps.appendChild(atlEl('div', 'atl-pmsgs atl-disclog'));
-  if (!atlAdminIci()) {
+  {   // 2.0.108 : en mode admin aussi (même case, même « Envoyer » ; le message part comme celui de la mascotte)
+    const adm = atlAdminIci(), aide = adm ? '🛡️ Tu réponds comme ' + gNM() + ' : le joueur verra un message de ' + gNM() : ATL_DISC_AIDE;
     const ta = atlEl('textarea', 'atl-dnin atl-discin'); ta.rows = 2;
-    ta.placeholder = 'Pose ta question ou raconte ton idée (ex. « où en est mon jeu ? », « comment rendre mon boss plus dur ? », « tu as des idées de nouveaux mondes ? »)';
-    const go = atlEl('button', 'btn btn-play atl-discgo', '📨 Envoyer'), msg = atlEl('small', 'atl-dnmsg', ATL_DISC_AIDE + '.'); go.type = 'button';
+    ta.placeholder = adm ? 'Ta réponse au joueur…' : 'Pose ta question ou raconte ton idée (ex. « où en est mon jeu ? », « comment rendre mon boss plus dur ? », « tu as des idées de nouveaux mondes ? »)';
+    const go = atlEl('button', 'btn btn-play atl-discgo', '📨 Envoyer'), msg = atlEl('small', 'atl-dnmsg' + (adm ? ' atl-discadm' : ''), aide + '.'); go.type = 'button';
     // 2.0.100 (l'admin : « pouvoir encore lui parler même quand il réfléchit ») : la case et « Envoyer » ne sont JAMAIS bloqués ; chaque message
     // s'affiche tout de suite et part dans une file (dans l'ordre, un après l'autre) ; un refus remet son texte dans la case
     const W0 = () => ATL.root.querySelector('.atl-wiz'), enBas = () => { const lg = b.querySelector('.atl-disclog'); if (lg) lg.scrollTop = lg.scrollHeight; };   // son propre message : toujours en bas du fil
@@ -15545,7 +15546,7 @@ function atlDiscBloc(f) {
       const t = ta.value.trim(); if (!t) { ta.focus(); return; }
       if (!(ATL.discPend || []).some(x => !x.envoye)) ATL.discErr = false;
       ta.value = ''; msg.textContent = 'J’envoie…';
-      const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id };
+      const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id, atelier: adm };
       ATL.discPend = (ATL.discPend || []).concat([pm]); atlDiscMaj(W0(), f, true); enBas();
       ATL.discFile = (ATL.discFile || Promise.resolve()).then(async () => {
         let ok = false;
@@ -15554,7 +15555,7 @@ function atlDiscBloc(f) {
         if (ok) pm.envoye = true; else ATL.discPend = (ATL.discPend || []).filter(x => x !== pm);
         if (!(ATL.discPend || []).some(x => !x.envoye)) {   // la file est vide : on relit tout (les messages arrivés, les offres remplacées)
           try { ATL.demAt = 0; await atlDemCharger(true); await atlLoad(true); } catch (e) {}
-          ATL.discPend = (ATL.discPend || []).filter(x => !x.envoye); if (!ATL.discErr) msg.textContent = ATL_DISC_AIDE + '.';   // un refus reste affiché
+          ATL.discPend = (ATL.discPend || []).filter(x => !x.envoye); if (!ATL.discErr) msg.textContent = aide + '.';   // un refus reste affiché
         }
         atlDiscMaj(W0(), f, true); enBas();
       });
@@ -15564,8 +15565,8 @@ function atlDiscBloc(f) {
     const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
     const rg = atlEl('p', 'atl-discrg'), np = atlEl('button', 'atl-discnp', '＋ Nouveau projet'); np.type = 'button'; np.addEventListener('click', atlNouveau);
     rg.append(document.createTextNode('Ici, on parle seulement de « ' + (f.titre || 'ton jeu') + ' ». Une idée pour un autre jeu ? '), np);
-    row.append(tw, go); corps.append(row, msg, rg);
-  } else corps.appendChild(atlEl('small', 'atl-dnmsg', '👀 Lecture seule : le fil du joueur avec ' + gNM() + '.'));
+    row.append(tw, go); corps.append(row, msg); if (!adm) corps.appendChild(rg);
+  }
   b.append(hd, corps); return b;
 }
 function atlDiscOuvrir(on = true, ici) {
@@ -17736,6 +17737,7 @@ rpc = (rpc0 => async function (fn, a, o) {
   if (fn === 'at_lire') return rpc0('at_admin_lire', { p_name: a.p_name, p_fiche: m.id }, o);
   const agir = (action, args) => rpc0('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: action, p_args: args || {} }, o);
   if (fn === 'at_dire') return agir('dire', { texte: a.p_texte });
+  if (fn === 'at_discuter') return agir('discussion', { texte: a.p_texte });   // 2.0.108 : l'admin répond dans « Discuter du jeu » (le joueur voit la mascotte)
   if (fn === 'at_fiche_etape') return a.p_cle === 'titre' ? agir('renommer', { titre: a.p_valeur }) : agir('fiche', { cle: a.p_cle, valeur: a.p_valeur });
   if (fn === 'at_fiche_joueur') return agir('fiche', { cle: a.p_cle, valeur: a.p_texte });
   if (fn === 'at_lancer') return agir('lancer');
@@ -17777,12 +17779,14 @@ function atlAdminBandeau() {
   { const cp = R.querySelector('.atl-cred'), cr = atlCred(); if (cp && cr) cp.textContent = atlCredTxt(cr.solde); }   // le solde du joueur, à chaque rendu
   const sig = (av ? av.joueur + av.solde : '') + (ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet.length : 0);
   if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
-  b.appendChild(atlEl('b', '', '🛡️ Mode admin : projet de ' + (av ? dispName(av.joueur) + ' · ' + (av.solde | 0) + ' 💎' : '…')));
-  const bt = (t, fn) => { const x = atlEl('button', 'btn btn-ghost btn-sm', t); x.type = 'button'; x.addEventListener('click', fn); b.appendChild(x); };
-  bt('📋 Demandes du projet', atlAdminDemandes);
-  bt('📣 Annoncer un changement au joueur', () => atlAnnoncer(m));   // 2.0.14 (Benjamin) : remplace « ⬆ Version suivante »
-  bt('🎁 Donner des crédits', async () => { const v = Math.round(+prompt('Combien de crédits offrir au joueur ?', '50')); if (!(v > 0)) return; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'credits', p_args: { montant: v } }, { quiet: true }); atlToast('🎁 ' + v + ' crédits offerts'); atlLoad(true); } catch (e) { atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } });
-  bt('✕ Quitter', () => { ATL.adminVoir = null; atlListe(); });
+  const pt = atlPetit();   // 2.0.108 : téléphone = un bandeau court (titres courts, une ou deux lignes), la page reste visible
+  b.classList.toggle('pt', pt);
+  b.appendChild(atlEl('b', '', (pt ? '🛡️ Admin · ' : '🛡️ Mode admin : projet de ') + (av ? dispName(av.joueur) + ' · ' + (av.solde | 0) + ' 💎' : '…')));
+  const bt = (t, fn, c) => { const x = atlEl('button', 'btn btn-ghost btn-sm', pt && c ? c : t); x.type = 'button'; x.title = t.replace(/^\S+\s/, ''); x.addEventListener('click', fn); b.appendChild(x); };
+  bt('📋 Demandes du projet', atlAdminDemandes, '📋 Demandes');
+  bt('📣 Annoncer un changement au joueur', () => atlAnnoncer(m), '📣 Annoncer');   // 2.0.14 (Benjamin) : remplace « ⬆ Version suivante »
+  bt('🎁 Donner des crédits', async () => { const v = Math.round(+prompt('Combien de crédits offrir au joueur ?', '50')); if (!(v > 0)) return; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'credits', p_args: { montant: v } }, { quiet: true }); atlToast('🎁 ' + v + ' crédits offerts'); atlLoad(true); } catch (e) { atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } }, '🎁 Crédits');
+  bt('✕ Quitter', () => { ATL.adminVoir = null; atlListe(); }, '✕');
 }
 // 2.0.11 (Benjamin) : l'admin modifie les offres SUR LES CARTES (« ✏️ Modifier » : libellé, crédits, détails, conseillé ; « ✕ » ; « ➕ Option »),
 // puis « Renvoyer au joueur » (at_admin_proposer). 2.0.12 (Benjamin : « si je veux faire une remise ») : pas de blocage ; le prix calculé
