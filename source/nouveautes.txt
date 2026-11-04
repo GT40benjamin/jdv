@@ -6,6 +6,13 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[coffres] ## 🗝️ Coffres à Secrets : 20 coffres par monde, et les fous furieux (borne 2.0.71)
+[coffres] 🗝️ Chaque monde a maintenant 20 coffres au lieu de 8 : 72 nouveaux coffres, chacun avec sa propre idée (fente en haut, en bas ou à gauche, clé à tourner, tiges à trois, six goupilles…), de plus en plus difficiles.
+[coffres] 🔥 Du coffre 15 au coffre 20 de chaque monde, ce sont les « fous furieux » : des couvercles plus grands et jusqu'à 91 coups au minimum. Un truc de malade ! Pour 2 étoiles, pas plus d'un quart de coups en trop.
+[coffres] ♛ Le grand coffre est maintenant le 20e de chaque monde. Tes coffres déjà ouverts, tes records et ta partie gardée sont toujours là.
+[coffres] 🗺️ La carte de la tuile montre les 120 coffres, et chacun y garde sa place.
+[coffres] 👆 Un plateau tournant tout couvert de pièces se tourne en touchant une pièce posée dessus.
+[coffres] 📱 Sur un petit téléphone, le nom du monde tient en entier en haut, et le panneau du coffre ouvert tient dans l'écran couché.
 [remparts] ## 🏰 Remparts ! : la Crypte oubliée cache quatre mondes (borne 2.0.69)
 [remparts] 💀 La Crypte oubliée (après les Forges ardentes) s’ouvre maintenant sur une carte : quatre mondes cachés, 5 niveaux chacun, à jouer dans l’ordre.
 [remparts] 🎃 Le Cimetière des lanternes : nuit bleue, tombes, mausolées et citrouilles allumées ; les squelettes armés se relèvent une fois… et des tombes s’ouvrent au milieu du chemin.
