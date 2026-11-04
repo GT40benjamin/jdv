@@ -26,7 +26,7 @@ const TILE_NEWS = {
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
-  chrono: { kind: 'maj', at: '2026-11-04 12:17' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 2.0.82 (lave qui engloutit, rambardes pleines, flèches, cascades)
+  chrono: { kind: 'maj', at: '2026-11-04 21:55' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 2.0.107 (photo du champion sur la tuile, les 8 circuits comptent) ; 2.0.82 (lave qui engloutit, rambardes pleines, flèches, cascades)
   neon: { kind: 'maj', at: '2026-10-30 00:37' },   // Néon Rush (borne 1.52.3) : les textes des portes ne se posent plus sur le nom du monde ; 1.51.12 : couloirs en vol plus hauts
   flechettes: { kind: 'maj', at: '2026-11-02 08:15' },   // Tête de Cible : le DÉGUISEMENT (onglet 🎭 Déguiser, 140 accessoires et maquillages) ; heure = à remettre à celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
@@ -1230,7 +1230,10 @@ function ciblesApi() {
 // 1.46.3 : plus de points du tout (le jeu rend 0) ; la tuile montre le roi des médailles d'or (chronoKing).
 // [id, nom, temps de la médaille d'OR (ms), temps de l'AUTEUR (ms)] : mêmes seuils que le jeu (auteur × 1,07 arrondi au dixième au-dessus ;
 // à refaire si tools/auteur.mjs de l'atelier change les temps de l'auteur)
-const CHRONO_TRACKS = [['stade', 'Le Stade', 25400, 23678], ['huit', 'Le Grand Huit', 29900, 27856], ['folie', 'La Folie', 27600, 25704], ['orbite', 'L’Orbite', 32000, 29902]];
+// 2.0.107 : les 4 circuits de la 2.0.73 (Volcan, Plage, Forêt, Nuages) comptent aussi pour le roi de la tuile, le classement et « Tes positions »
+// (avant : seulement les 4 premiers, le roi affichait 4 médailles d'or au lieu de 7)
+const CHRONO_TRACKS = [['stade', 'Le Stade', 25400, 23678], ['huit', 'Le Grand Huit', 29900, 27856], ['folie', 'La Folie', 27600, 25704], ['orbite', 'L’Orbite', 32000, 29902],
+  ['volcan', 'Le Volcan', 43500, 40568], ['plage', 'La Plage', 40800, 38038], ['foret', 'La Forêt', 38500, 35980], ['nuages', 'Les Nuages', 43000, 40182]];
 // 1.46.3 (PATOU : « celui qui a le plus de médailles d'or est le roi sur la tuile ») : plus de points pour Turbo Chrono ; la tuile montre le
 // joueur qui a le plus de médailles d'or (l'auteur compte comme de l'or), puis le plus de médailles de l'auteur, puis le plus petit total
 // des temps. Salle si on en a une, sinon le monde.
@@ -3294,7 +3297,9 @@ function refreshChamps(force) {
   const show = ONLINE && !!room && remoteLoaded;
   for (const t of tiles) {
     const king = t.g.id === 'chrono' ? (show ? chronoKingNow() : null) : undefined;
-    const lead = king !== undefined ? (king ? { name: king.name, score: king.golds } : null) : show ? top(t.g.id === 'sensinterdit' ? 'sensinterdit-km' : t.g.id)[0] : null, ch = t.champ; if (!ch) continue;
+    // 2.0.107 (l'admin : « une lettre B au lieu de ma photo sur la tuile Turbo Chrono ») : king.name est le nom AFFICHÉ (surnom de la salle) ;
+    // la photo se cherche par la clé du compte (comme le classement : avatarInto(x.key)) → king.key
+    const lead = king !== undefined ? (king ? { name: king.key, score: king.golds } : null) : show ? top(t.g.id === 'sensinterdit' ? 'sensinterdit-km' : t.g.id)[0] : null, ch = t.champ; if (!ch) continue;
     const lp = lead ? players.get(lead.name) || {} : {};
     const key = lead ? lead.name + ':' + lead.score + ':' + (lp.photo || '').length + ':' + (lp.topFrac || '') : '';
     if (ch.dataset.k === key && !force) continue;
@@ -3329,7 +3334,7 @@ function refreshOnline() {
     if (live && / joue$/.test(span.textContent)) { const v = document.createElement('em'); v.className = 'tile-verb'; v.textContent = ' joue'; span.textContent = span.textContent.slice(0, -5); span.appendChild(v); }   // « joue » s'efface sur téléphone à côté de 👁 + carte
     else if (t.g.noScore) span.textContent = 'À installer · PC et Android';   // Pégase (hub, pas de score) : pas de « Pas encore de record »
     else if (t.g.id === 'sensinterdit') { const v = top('sensinterdit-vitesse')[0]; span.textContent = v ? '👑 ' + dispName(v.name) + ' · ' + SI_BOARDS[1].val(v.score) : 'Pas encore de record'; }
-    else if (t.g.id === 'chrono') { const k = chronoKingNow(); span.textContent = k ? '👑 ' + dispName(k.name) + ' · ' + k.golds + (k.golds > 1 ? ' médailles d’or' : ' médaille d’or') : 'Pas encore de médaille d’or'; }
+    else if (t.g.id === 'chrono') { const k = chronoKingNow(); span.textContent = k ? '👑 ' + dispName(k.key) + ' · ' + k.golds + (k.golds > 1 ? ' médailles d’or' : ' médaille d’or') : 'Pas encore de médaille d’or'; }
     else { const b = top(t.g.id)[0]; span.textContent = b ? 'Record ' + fmt(b.score) + unit(t.g) + ' · ' + dispName(b.name) : 'Pas encore de record'; }
     if (t.watch) { t.watch.hidden = !ps.length; t.watch.setAttribute('aria-label', ps.length === 1 ? 'Regarder ' + ps[0].name + ' jouer à ' + t.g.title : 'Voir qui joue à ' + t.g.title); t.el.parentNode.classList.toggle('can-watch', !!ps.length); }
   }
