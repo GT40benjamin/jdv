@@ -4571,6 +4571,9 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-ptile .atl-pch{background:#ffd34d;color:#1b1430}
 .atl-ptile .atl-pre{background:#7a4cff;color:#fff}
 .atl-ptile .atl-patt.bas{top:38px}
+.atl-ptile .atl-pnew.bas{top:38px;left:8px;right:auto}   /* 2.0.91 : « Nouvelle réponse » sous « 🛠️ en cours » */
+.atl-pprepa .ct{display:none}   /* 2.0.91 : « V7 en cours » sur téléphone (la roue ⚙️ coupait « en préparation ») */
+@media (max-width:600px){.atl-pprepa .lg{display:none}.atl-pprepa .ct{display:inline}}
 .atl-ptile.choix{border-color:#ffd34d;box-shadow:0 0 0 2px rgba(255,211,77,.55),0 0 18px rgba(255,211,77,.35)}
 .atl-ptile.rep{border-color:#9b7bff;box-shadow:0 0 0 2px rgba(155,123,255,.55)}
 .atl-ptile .atl-pch,.atl-ptile .atl-pre{font-size:13px;padding:5px 11px}

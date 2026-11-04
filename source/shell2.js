@@ -14927,23 +14927,21 @@ function atlRenderProjets() {
   const g = atlEl('div', 'atl-pgrid');
   for (const pj of ps) {
     const b = atlEl('button', 'atl-ptile' + (atlProjNew(pj) ? ' new' : '')); b.type = 'button';
-    const v = atlEl('span', 'atl-pv'), u = atlIaUrl(pj.vignette);
-    // 2.0.83 : un projet jouable montre sa jaquette (la tuile), pas l'affiche du design
-    const gpj = pj.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')) ? (window.JDW_GAMES || {})[pj.jeu] : null;
-    if (gpj && typeof gpj.preview === 'function') v.appendChild(atlJaquette(pj, gpj)); else if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; v.appendChild(im); } else v.textContent = '🎮';
+    const v = atlEl('span', 'atl-pv'); atlPvJaq(v, pj);
     // 19 h 38 (Benjamin) : idée envoyée, réponse pas encore arrivée → « ⏳ En attente de l'Atelier » (badge et couleur), pas « Brouillon »
     const att = !!pj.joueur_at && (!pj.reponse_at || String(pj.joueur_at) > String(pj.reponse_at)) && ['brouillon', 'en_discussion', 'complete'].includes(String(pj.etat || ''));
     if (att) b.classList.add('att');
     b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', 'atl-pver' + (/^.\S* V\d/u.test(atlVersion(pj, att)) ? ' v' : '') + atlPastCls(pj), atlVersion(pj, att, true)));
     if (atlVersionPlus(pj)) b.appendChild(atlEl('small', 'atl-pver2', atlVersionPlus(pj)));
-    if (Array.isArray(pj.prepa) && pj.prepa.length) b.appendChild(atlEl('span', 'atl-pprepa', '🛠️ V' + (((pj.version | 0) || 1) + 1) + ' en préparation'));
+    if (Array.isArray(pj.prepa) && pj.prepa.length) { const vN = 'V' + (((pj.version | 0) || 1) + 1), e = atlEl('span', 'atl-pprepa'); e.append(atlEl('span', 'lg', '🛠️ ' + vN + ' en préparation'), atlEl('span', 'ct', '🛠️ ' + vN + ' en cours')); b.appendChild(e); }   // 2.0.91 : texte court sur téléphone (la roue ⚙️ le coupait)
+    else if ((pj.n_en_cours | 0) > 0) b.appendChild(atlEl('span', 'atl-pprepa', '🛠️ en cours'));   // 2.0.91 (l'admin : « "en cours" en admin, et chez moi non !! ») : le joueur le voit en premier (SQL v105)
     if (att) b.appendChild(atlEl('span', 'atl-patt', '⏳ En attente'));
     // 2.0.16 (Benjamin : « ici j'ai la demande, mais pas sur la tuile ! ») : une offre à choisir, ou une réponse pas lue, se voit sur la tuile
     const tk = ((ATL.dem || {}).demandes || []).filter(x => x && x.fiche === pj.id), ch = tk.filter(atlPropOuverte), rp = tk.filter(x => x.nouveau && x.reponse && !atlPropOuverte(x) && !atlQAttente(x)), qq = tk.filter(atlQAttente);
     const vise = (qq[0] || ch[0] || rp[0] || {}).id || '', nqq = qq.reduce((t, x) => t + atlQNb(x), 0) + ((pj.q_msg | 0) || 0);
     if (nqq) b.appendChild(atlEl('span', 'atl-patt atl-pch atl-pq' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '❓ ' + nqq + (nqq > 1 ? ' questions' : ' question')));
     else if (ch.length || rp.length) b.appendChild(atlEl('span', 'atl-patt ' + (ch.length ? 'atl-pch' : 'atl-pre') + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), ch.length ? '💬 À choisir' + (ch.length > 1 ? ' (' + ch.length + ')' : '') : '✨ ' + rp.length + ' réponse' + (rp.length > 1 ? 's' : '')));
-    else if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew', '✉️ Nouvelle réponse'));
+    else if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '✉️ Nouvelle réponse'));   // 2.0.91 : sous « 🛠️ en cours », plus par-dessus
     if (nqq || ch.length) b.classList.add('choix'); else if (rp.length) b.classList.add('rep');   // le contour de la tuile aussi
     b.addEventListener('click', () => { ATL.demVise = vise; atlOuvrir(pj.id); });
     // 20 h 50 (Benjamin) : la ROUE ⚙️ de chaque tuile (Renommer / Supprimer) ; à côté de la tuile, pour ne pas ouvrir le projet
@@ -16572,6 +16570,14 @@ function atlTuileApercu(f, g) {
   tm.append(atlEl('div', 'tile-name', f.titre || (g && g.title) || 'Mon jeu'), atlEl('small', 'tile-by', 'by ' + atlCreateurDe(f) + ' · V' + (((f.version_publiee | 0) || (f.version | 0)) || 1)));
   po.append(ti, tm); wrap.appendChild(po); return wrap;
 }
+// 2.0.83 / 2.0.91 : l'image d'un projet dans « Mes projets » et « Tous les projets (admin) » : un projet jouable montre sa jaquette
+// (vignette_animee, vignette, sinon l'aperçu de la version jouée), jamais l'affiche du design ; avant la V1, l'affiche choisie
+function atlPvJaq(v, pj) {
+  const jouable = !!pj.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || ''));
+  const g = jouable ? (window.JDW_GAMES || {})[pj.jeu] : null, u = atlIaUrl(pj.vignette);
+  if (jouable && (atlJaqUrl(pj) || (g && typeof g.preview === 'function'))) v.appendChild(atlJaquette(pj, g));
+  else if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; v.appendChild(im); } else v.textContent = '🎮';
+}
 function atlJaqUrl(f) { return atlVignetteUrl(f, 'vignette_animee') || atlVignetteUrl(f, 'vignette') || (f && atlIaUrl(f.jaq)) || ''; }   // jaq : la liste « Mes projets » (SQL v103, sans assets)
 function atlJaquette(f, g, cls) {
   const u = atlJaqUrl(f), dz = (f && f.design && atlIaUrl(f.design.f)) || (f && atlIaUrl(f.vignette));
@@ -17474,7 +17480,7 @@ async function atlTousProjets(box) {
     g.textContent = '';
     for (const x of l.filter(x => (!fj.value || x.joueur === fj.value) && (!fe.value || famille(x) === fe.value))) {
       const b = atlEl('button', 'atl-ptile' + (x.monde_demande_at ? ' choix' : '')); b.type = 'button';
-      const v = atlEl('span', 'atl-pv'), u = atlIaUrl(x.vignette); if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; v.appendChild(im); } else v.textContent = '🎮';
+      const v = atlEl('span', 'atl-pv'); atlPvJaq(v, x);   // 2.0.91 : la même jaquette que « Mes projets » (SQL v105 : jaq), plus l'affiche du design
       const d0 = new Date(x.maj_at);
       const attx = !!x.joueur_at && (!x.reponse_at || String(x.joueur_at) > String(x.reponse_at)) && ['brouillon', 'en_discussion', 'complete'].includes(String(x.etat || ''));
       if (atlVersionPlus(x)) setTimeout(() => { try { b.insertBefore(atlEl('small', 'atl-pver2', atlVersionPlus(x)), b.querySelector('.atl-pver').nextSibling); } catch (e) {} }, 0);
