@@ -4816,3 +4816,8 @@ body.atl-on .lose-tip{display:none}
 .atl-oub.on{border-color:#ffd34d;background:rgba(255,211,77,.16);color:#ffe9a8;box-shadow:0 0 0 2px rgba(255,211,77,.25)}
 .atl-ouplus{display:grid;gap:6px}
 .atl-ousel{width:100%;padding:10px;border-radius:12px;border:1px solid var(--line);background:#0f1622;color:var(--ink);font:600 14px var(--body)}
+/* 2.0.77 : plusieurs offres sur téléphone — « 4 choix ↓ » et l'indice sous la 1re carte (jamais sur un grand écran, où elles sont côte à côte) */
+.atl-ofnb,.atl-ofsuite{display:none}
+@media (max-width:640px){.atl-ofnb{display:block;margin:0 0 8px;text-align:center;color:#ffe9a8;font:800 13px var(--body);letter-spacing:.04em}.atl-ofsuite{display:block;margin:-4px 0 0;text-align:center;color:var(--muted);font:700 12.5px var(--body);animation:atlOfSuite 1.6s ease-in-out infinite}}
+@keyframes atlOfSuite{0%,100%{transform:translateY(0);opacity:.75}50%{transform:translateY(3px);opacity:1}}
+@media (prefers-reduced-motion:reduce){.atl-ofsuite{animation:none}}

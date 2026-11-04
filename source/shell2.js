@@ -75,6 +75,9 @@ const atlTitre = g => { try { const x = g && ATL_NES.has(g.id) && ATL_JEUX.get(g
 // 2 nov. 17 h 30, Benjamin : un jeu NÉ À L'ATELIER n'a PAS de tuile sur la borne (ni en mode test, ni « ⭐ MON JEU ») tant qu'il n'est pas
 // publié : en alpha il se trouve et se joue UNIQUEMENT dans l'Atelier (page du projet, onglet 🎮 Jouer). Il arrive sur la borne avec
 // « Publier dans ma salle » (salle du joueur) ou la mise en ligne mondiale acceptée — at_jeux le dit (etat publie_salle / publie_monde).
+// 2.0.77 (Benjamin : Trôn-e est un jeu à plusieurs les uns contre les autres) : ces jeux de l'Atelier ont leur tuile dans l'onglet DÉFI
+// (#jdw-duo-grid), pas dans la grille classique ; ils se lancent pareil (module de l'Atelier, api.live)
+const ATL_DEFI = new Set(['trone']);
 const ATL_NES = new Set(['licornes', 'lune', 'noisette', 'trone']);   // 2.0.74 : Trôn-e (REMS, fiche 9af84595) : assets/jeux/trone/vN.js, secours source/games/trone.js (live: true)
 // 2.0.20 (Benjamin : « ici au moins c'est clair ») : le sens choisi sur la page du projet (at_fiches.orientation), par id du jeu
 const ATL_ORIENT = new Map();
@@ -3190,7 +3193,7 @@ const tiles = [];
 function buildLibrary() {
   const grid = $('jdw-grid');
   atlTile(grid);   // « CRÉE TON JEU » : tout en haut, toute la largeur (porte labo)
-  for (const g of GAMES) gameTile(grid, g);
+  for (const g of GAMES) gameTile(ATL_DEFI.has(g.id) ? ($('jdw-duo-grid') || grid) : grid, g);
   if ('IntersectionObserver' in window) {
     tilesIO = new IntersectionObserver(es => es.forEach(e => { const t = tiles.find(x => x.el === e.target); if (t) t.visible = e.isIntersecting; }), { root: $('jdw-lib') });
     tiles.forEach(t => tilesIO.observe(t.el));
@@ -14647,8 +14650,9 @@ async function atlJeuxLoad() {
     let t = tiles.find(t2 => t2.g.id === x.jeu);
     if (!t) {
       const g = (window.JDW_GAMES || {})[x.jeu]; if (!g || g.id !== x.jeu || GAMES.includes(g) || !atlEnGrille(x.jeu)) continue;   // alpha : seulement dans l'Atelier
-      GAMES.push(g); const w = gameTile(grid, g); const first = grid.querySelector('.tile-wrap:not(.atl-wrap)');
-      if (w && first && first !== w) grid.insertBefore(w, first);   // en tête des jeux, juste après « Crée ton jeu »
+      const gr = ATL_DEFI.has(x.jeu) ? ($('jdw-duo-grid') || grid) : grid;   // 2.0.77 : Trôn-e dans l'onglet Défi
+      GAMES.push(g); const w = gameTile(gr, g); const first = gr.querySelector('.tile-wrap:not(.atl-wrap)');
+      if (w && first && first !== w) gr.insertBefore(w, first);   // en tête des jeux, juste après « Crée ton jeu »
       t = tiles.find(t2 => t2.g.id === x.jeu);
     }
     if (t) atlMineMark(t.el.parentNode, t.el, x.jeu);
@@ -15449,7 +15453,7 @@ function atlRenderProjet(W, f) {
     // 2.0.32 (Benjamin) : « exactement ce que voient les autres joueurs » — la ligne du record de la salle et « by <nom du créateur> »
     { const on = atlEl('div', 'tile-online'), sp = atlEl('span'); on.append(atlEl('i'), sp); let tb = null; try { tb = g ? top(g.id)[0] : null; } catch (e) { tb = null; }
       sp.textContent = tb ? 'Record ' + fmt(tb.score) + unit(g) + ' · ' + dispName(tb.name) : 'Pas encore de record'; tm.appendChild(on);
-      tm.appendChild(atlEl('small', 'tile-by', 'by ' + (String(f.createur || '').trim() || dispName(profile.name || '')))); }
+      tm.appendChild(atlEl('small', 'tile-by', 'by ' + atlCreateurDe(f))); }
     wrap.classList.add('atl-game'); wrap.appendChild(atlEl('small', 'atl-gtlab', '👀 Comme les autres la voient'));
     let rec = 0; try { rec = g ? +knownBest(profile.name, g.id) || 0 : 0; } catch (e) { rec = 0; }
     po.addEventListener('click', () => atlJouerVrai(f)); wrap.appendChild(po); fr.appendChild(wrap);
@@ -15536,17 +15540,20 @@ function atlOrientChoix(f, g) {
   }
   w.append(row, msg); maj(); return w;
 }
+// 2.0.77 (URGENT : un projet vu en admin affichait « by » + le nom de l'ADMIN) : à défaut de createur, le compte qui POSSÈDE le projet (fiche.name,
+// serveur v97 : createur jamais vide) ; jamais le nom de celui qui regarde, sauf s'il est lui-même l'auteur (hors vue admin)
+function atlCreateurDe(f) { const c = String((f && f.createur) || '').trim(); if (c) return c; const n = String((f && f.name) || '').trim(); if (n) return dispName(n); return atlAdminIci() ? '' : dispName(profile.name || ''); }
 // 2.0.30 (Benjamin : « il faut que ça s'actualise sur toutes les bornes instantanément après le OK ») : at_createur, puis le direct (jdw-all)
 function atlCreateurChamp(f) {
   const w = atlEl('div', 'atl-orch atl-crea'), row = atlEl('div', 'atl-crear'), inp = atlEl('input', 'atl-creain'), ok = atlEl('button', 'btn btn-play btn-sm', 'OK'), msg = atlEl('small', 'atl-ormsg', 'C’est ce nom qui s’affiche sous ton jeu.');
   w.appendChild(atlEl('b', 'atl-orq', '🏷️ Nom du créateur'));
-  inp.maxLength = 20; inp.value = String(f.createur || '') || dispName(profile.name || ''); inp.placeholder = 'Ton nom de créateur'; ok.type = 'button';
+  inp.maxLength = 20; inp.value = atlCreateurDe(f); inp.placeholder = 'Ton nom de créateur'; ok.type = 'button';
   const envoyer = async () => {
     const t = inp.value.replace(/\s+/g, ' ').trim(); if (t && (t.length < 2 || t.length > 20)) { msg.textContent = 'Entre 2 et 20 lettres.'; return; }
     ok.disabled = true;
     try {
       const r = await rpc('at_createur', { p_name: profile.name, p_fiche: f.id, p_nom: t }, { quiet: true });
-      f.createur = r && r.createur ? r.createur : null; inp.value = f.createur || dispName(profile.name || '');
+      f.createur = r && r.createur ? r.createur : null; inp.value = atlCreateurDe(f);
       const x = f.jeu && ATL_JEUX.get(f.jeu); if (x) { x.createur = f.createur || ''; const tt = tiles.find(q => q.g.id === f.jeu); if (tt) atlMineMark(tt.el.parentNode, tt.el, f.jeu); }
       for (const e of document.querySelectorAll('#jdw-atelier .atl-gtw .tile-by')) e.textContent = 'by ' + inp.value;   // l'aperçu, tout de suite
       try { poke('atljeux', 'jdw-all'); } catch (e) {}
@@ -16970,6 +16977,13 @@ function atlPropBoutons(x, comme) {
     else b.addEventListener('click', () => atlOffreValider(x, o, solde, box));
     k.appendChild(b); grille.appendChild(k);
   }
+  // 2.0.77 (ticket de SAMBA : « elle ne voit pas toutes les options ») : sur téléphone, « 4 choix ↓ » en haut et un indice sous la 1re carte
+  const nOf = grille.children.length;
+  if (nOf > 1) {
+    box.appendChild(atlEl('p', 'atl-ofnb', nOf + ' choix ↓'));
+    const suite = atlEl('p', 'atl-ofsuite', '↓ ' + (nOf - 1) + (nOf > 2 ? ' autres choix' : ' autre choix') + ' plus bas');
+    if (grille.children[1]) grille.insertBefore(suite, grille.children[1]);
+  }
   box.appendChild(grille);
   if (x.etat !== 'plus_tard') {
     const pt = atlEl('button', 'atl-oflater', '⏸️ Plus tard (rien n’est utilisé)'); pt.type = 'button'; if (comme) pt.disabled = true;
@@ -18237,7 +18251,7 @@ function atlMicDebut(field, btn) {
       if (ATL_MIC !== m) return;
       let r; try { r = new ATL_SR(); } catch (e) { atlMicFin(); return; }
       m.r = r; r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true;
-      r.onresult = ev => { let fin = '', mid = ''; for (let k = 0; k < ev.results.length; k++) { const x = ev.results[k]; if (x.isFinal) fin += x[0].transcript; else mid += x[0].transcript; } m.sess = fin.replace(/\s+/g, ' ').trim(); m.last = Date.now(); montre(mid.replace(/\s+/g, ' ').trim()); };
+      r.onresult = ev => { let fin = '', mid = ''; for (let k = 0; k < ev.results.length; k++) { const x = ev.results[k]; if (x.isFinal) fin += ' ' + x[0].transcript; else mid += ' ' + x[0].transcript; }   /* 2.0.77 : sur Android, chaque morceau arrive SANS espace devant (« regardelàlanavette… ») : on les sépare toujours */ m.sess = fin.replace(/\s+/g, ' ').trim(); m.last = Date.now(); montre(mid.replace(/\s+/g, ' ').trim()); };
       r.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { atlMicFin(); atlToast('🎤 Autorise le micro pour dicter (ou écris au clavier).'); } };
       r.onend = () => { if (ATL_MIC !== m || m.r !== r) return; if (m.sess) { m.garde = (m.garde + ' ' + m.sess).trim(); m.sess = ''; } montre(''); setTimeout(lance, 120); };   // relance en silence
       try { r.start(); } catch (e) { setTimeout(() => { if (ATL_MIC === m) { try { r.start(); } catch (x) { atlMicFin(); } } }, 300); }
