@@ -10,6 +10,8 @@
 [remparts] 🗺️ Sur l'écran des mondes, toucher un monde ne lance plus la partie : il se déplie sur place et montre son niveau classique, puis ses 4 régions de 5 niveaux avec leurs cadenas, leurs étoiles et leur gardien. Tu touches le niveau que tu veux jouer.
 [remparts] ▸ Un seul monde ouvert à la fois, et celui où tu en es s'ouvre tout seul quand tu arrives. Un monde encore fermé se déplie aussi, en grisé, pour voir ce qui t'attend. La Crypte oubliée se déplie pareil.
 [remparts] 📣 Les grandes annonces (« TOURS ÉBLOUIES ! »…) passent au-dessus de tout, sur un fond sombre : plus rien ne se met devant les lettres.
+[borne] ## ✨ Les jeux de l’Atelier disent quand ils changent (borne 2.0.87)
+[borne] ✨ Quand un jeu né à l’Atelier sort une nouvelle version, sa tuile porte « Mis à jour » jusqu’à ce que tu l’ouvres, comme les jeux du studio, et la cloche te dit ce qui a changé (par exemple La Maison des Licornes V18).
 [borne] ## 🐣 Ton compagnon de l’Atelier est vivant (borne 2.0.86)
 [borne] 🎨 Ton compagnon de l’Atelier a 22 nouvelles poses : il dessine et écrit quand il imagine ton jeu, tape au clavier et trie ses pièces de puzzle quand il le construit, prend sa manette et sa loupe pour le tester, lit ses notes et boit un chocolat chaud quand il attend ta réponse, emballe ton cadeau et danse quand ta version est prête.
 [borne] 👀 Il respire, cligne des yeux et te regarde : il suit ta souris ou ton doigt, te fait coucou quand tu reviens, rit quand tu le touches… et sursaute si tu le réveilles pendant sa sieste.
