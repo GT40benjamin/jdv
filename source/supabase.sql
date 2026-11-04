@@ -2478,7 +2478,8 @@ alter table public.chrono_tracks enable row level security;
 revoke all on public.chrono_tracks from anon, authenticated;
 -- un circuit = ses tours, ses temps de passage (points de passage + ligne, par tour) et le temps sous lequel personne ne peut descendre
 insert into public.chrono_tracks (id, laps, splits, min_ms) values
-  ('stade', 1, 3, 17000), ('huit', 1, 4, 20000), ('folie', 1, 4, 17000), ('orbite', 1, 4, 20000)   -- 1.44 : un seul tour (A → B)
+  ('stade', 1, 3, 17000), ('huit', 1, 4, 20000), ('folie', 1, 4, 17000), ('orbite', 1, 4, 20000),   -- 1.44 : un seul tour (A → B)
+  ('volcan', 1, 4, 31000), ('plage', 1, 4, 29000), ('foret', 1, 4, 28000), ('nuages', 1, 4, 33000)   -- 2.0.73 : quatre nouveaux circuits (Le Volcan, La Plage, La Forêt, Les Nuages)
 on conflict (id) do update set laps = excluded.laps, splits = excluded.splits, min_ms = excluded.min_ms;
 alter table public.chrono_tracks add column if not exists ver int not null default 2;
 update public.chrono_tracks set ver = 1 where ver <> 1;   -- 1.46.2 (PATOU) : les temps d'avant le départ derrière la ligne comptent de nouveau ; les vieilles pages (octet 0) restent refusées

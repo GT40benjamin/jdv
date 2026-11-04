@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[chrono] ## 🏁 Turbo Chrono : 4 nouveaux circuits dans 4 mondes (borne 2.0.73)
+[chrono] 🌋 Le Volcan : la route file entre des rivières de lave qui rougeoient, saute par-dessus une coulée brûlante, passe sous une cascade qui tombe sur la piste et fait un looping au pied d'une falaise où l'eau tombe dans la lave en nuages de vapeur ; au loin, le volcan fume et crache du feu.
+[chrono] 🏖️ La Plage : sable chaud, palmiers qui bougent au vent, un lagon turquoise au milieu du circuit, un grand saut au-dessus du chenal, des bosses dans les dunes, un phare, des voiliers et des mouettes.
+[chrono] 🌲 La Forêt : de grands sapins et des arbres géants au-dessus de la route, des rayons de soleil dans la brume, un ruisseau à sauter et un arbre-tunnel géant à traverser à fond.
+[chrono] ☁️ Les Nuages : une piste dans le ciel au-dessus d'une mer de nuages, des îles flottantes et leurs cascades, des arcs-en-ciel, des montgolfières, une spirale autour d'une île-tour et un looping… attention à ne pas tomber !
+[chrono] 👻 Comme sur les autres circuits : le fantôme du meilleur de ta salle ou du monde, et ton temps enregistré en ligne tout de suite dans les classements 🏠 SALLE et 🌍 MONDE.
 [lune] ## 🗺️ L'Explorateur de l'espace : la carte de la galaxie (borne 2.0.72)
 [lune] 🗺️ La tuile de L'Explorateur de l'espace a sa carte : les 12 chapitres de l'histoire, du crash sur la lune jusqu'à la Couronne des Étoiles, à travers les 5 régions de la galaxie, du bord jusqu'au Cœur.
 [lune] 👾 Les 3 grands boss (le Droïde ancien, le Vaisseau-mère des Ombres et le Gardien de la Couronne) ont leur médaillon sur la carte, et chacun y voit où en sont les copains.
