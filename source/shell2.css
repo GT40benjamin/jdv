@@ -4368,8 +4368,8 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-pgrid{gap:16px}
 .atl-ptile{padding:0;grid-template-rows:auto 1fr;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.28);transition:transform .18s ease,box-shadow .18s ease,border-color .18s;height:100%}
 .atl-ptile:hover,.atl-ptile:focus-visible{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.4)}
-.atl-ptile .atl-pv{position:relative;aspect-ratio:16/10}
-.atl-ptile .atl-pv::after{content:'';position:absolute;inset:auto 0 0 0;height:45%;background:linear-gradient(transparent,rgba(8,6,20,.75));pointer-events:none}
+.atl-ptile .atl-pv{position:relative;aspect-ratio:4/3}   /* 2.0.88 : 4:3, exactement la tuile de la borne (avant 16/10 coupait le bas) */
+.atl-ptile .atl-pv::after{content:none}   /* 2.0.88 : plus de voile sombre sur le bas de l'image : la tuile telle qu'elle est partout */
 .atl-ptile > b{padding:10px 12px 0;font:800 15.5px var(--body)}
 .atl-ptile > small{padding:0 12px 12px;align-self:end}
 .atl-ptile .atl-pver.v{justify-self:start;margin:0 12px 12px;padding:3px 10px}
