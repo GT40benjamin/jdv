@@ -11727,20 +11727,25 @@ const MAP_DEFS = {
     start: { title: 'Départ', sub: 'La clé dorée attend son coffre' },
     cap: { title: 'Le dernier coffre', sub: 'Le trésor du Maître ébéniste' }
   },
-  // Noisette et ses amis (games/noisette.js, labo de l'Atelier) : 4 niveaux, un ami retrouvé au bout de chacun, puis le grand chêne
-  // (currentLevel = 5 quand les 4 amis sont retrouvés). Carte dessinée ici : la forêt du bas vers la cime, une noisette par niveau.
+  // Noisette et ses amis (games/noisette.js, labo de l'Atelier) : 4 étapes, un ami retrouvé au bout de chacune, puis le grand chêne
+  // (currentLevel = 5 quand les 4 amis sont retrouvés). Carte dessinée ici : la forêt du bas vers la cime, une noisette par étape.
+  // 2.0.64 : la carte suit la version que CE joueur lance (atlVoulue) : V6 et suivantes = 4 chapitres de 5 niveaux (grande carte du monde
+  // dans le jeu) ; V5 et avant (ou fichier de la V6 introuvable → module embarqué) = 4 niveaux. Jamais fausse, avant comme après la publication.
   noisette: {
-    theme: 'noisette', word: 'Niveau', tierGap: 130, tierAt: 0.5, step: 200, nodeSize: 56, bgDpr: 1.5,
+    v6() { try { const v = atlVoulue('noisette'); return v >= 6 && ATL_MODS_OK.get('noisette@' + v) !== null; } catch (e) { return false; } },
+    get word() { return MAP_DEFS.noisette.v6() ? 'Chapitre' : 'Niveau'; },
+    theme: 'noisette', tierGap: 130, tierAt: 0.5, step: 200, nodeSize: 56, bgDpr: 1.5,
     N: [['La forêt du matin', 'Pompon le lapin', '#7fd35a', '🌳'], ['Le sous-bois aux champignons', 'Piquant le hérisson', '#5fb06a', '🍄'],
       ['La rivière et ses rondins', 'Hulotte la chouette', '#5fc4ff', '🌊'], ['Le grand chêne', 'Roussette la renarde', '#e8a03a', '🌰']],
     count: () => 5,
     level(lv) {
       if (lv > 4) return { lv, tier: 0, win: true, kicker: 'Grande victoire', name: 'Les 4 amis retrouvés', lines: ['Tous ensemble au grand chêne'], acc: '#ffd34d' };
       const D = this.N[lv - 1];
-      return { lv, tier: 0, kicker: 'Niveau ' + lv, name: D[0], lines: ['Au bout : ' + D[1]], acc: D[2], emoji: D[3] };
+      const c = MAP_DEFS.noisette.v6();
+      return { lv, tier: 0, kicker: (c ? 'Chapitre ' : 'Niveau ') + lv, name: D[0], lines: [(c ? '5 niveaux · au bout : ' : 'Au bout : ') + D[1]], acc: D[2], emoji: D[3] };
     },
-    short(lv) { const i = this.level(lv); return i.win ? 'Les 4 amis retrouvés' : 'Niveau ' + lv + ' · ' + i.name; },
-    tier() { return { kicker: 'Noisette et ses amis', title: 'La forêt', sub: '4 niveaux pour retrouver Pompon, Piquant, Hulotte et Roussette', acc: '#e88a3a', acc2: '#7fd35a' }; },
+    short(lv) { const i = this.level(lv); return i.win ? 'Les 4 amis retrouvés' : i.kicker + ' · ' + i.name; },
+    tier() { return { kicker: 'Noisette et ses amis', title: 'La forêt', sub: (MAP_DEFS.noisette.v6() ? '20 niveaux en 4 chapitres' : '4 niveaux') + ' pour retrouver Pompon, Piquant, Hulotte et Roussette', acc: '#e88a3a', acc2: '#7fd35a' }; },
     stops(L) { return [[L.H, '#3f6b2c'], [L.H * 0.55, '#2c5a3a'], [L.H * 0.2, '#3f7c8a'], [0, '#2e5f86']]; },
     paint(x, L, W, y0, h) {
       // des sapins et des feuillus de chaque côté du chemin, toujours aux mêmes places
