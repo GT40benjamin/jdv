@@ -62,6 +62,8 @@
 [noisette] 🐿️ Sur la carte de la tuile, le titre « Noisette et ses amis » tient en entier en haut, et Noisette attend à côté du départ sans cacher le texte.
 [noisette] ## 🗺️ Noisette et ses amis : 20 niveaux en 4 chapitres (borne 2.0.64)
 [noisette] 🗺️ La carte de la tuile suit la version que tu joues : avec la nouvelle version, 4 chapitres de 5 niveaux, et un ami à retrouver au bout de chaque chapitre (Pompon, Piquant, Hulotte et Roussette).
+[atelier] ## 🏷️ Des noms clairs pour les éléments de ton jeu (borne 2.0.70)
+[atelier] 🏷️ Dans l’onglet Éléments, les éléments qui portaient encore leur consigne de dessin reçoivent un nom court et clair. Un élément que tu as retiré reste retiré, même renommé.
 [atelier] ## ← Un bouton Retour en haut de chaque fenêtre (borne 2.0.63)
 [atelier] ← Chaque fenêtre de l’Atelier (Mes demandes, la fiche d’un élément…) a en haut « ← Retour » et « ✕ », toujours visibles. Le geste retour du téléphone, la touche Échap ou un toucher à côté la ferment aussi. Les titres de tes demandes s’affichent proprement, sans les #.
 [atelier] ## 🔍 {G} teste ton jeu avant de te le livrer (borne 2.0.62)

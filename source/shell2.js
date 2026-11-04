@@ -15540,7 +15540,8 @@ function atlJouerVrai(f, pret) {
   ATL.jeu = f.id; window.JDW_ATL_JEU = true;   // repère pour le jeu : la touche P est l'arrêt sur image du guide (pas sa pause)
   // les éléments retirés par l'équipe (assets[].actif = false) : le jeu ne les montre plus (window.JDW_ATL_OFF, message atl-off) ;
   // une musique retirée : la borne ne lance pas la musique du jeu
-  const off = (Array.isArray(f.assets) ? f.assets : []).filter(a => a && a.actif === false).map(a => String(a.nom || ''));
+  // 2.0.70 : un élément renommé par l'admin (at_assets_renommer, SQL v92) garde son ancien nom dans nom_origine — les deux noms partent au jeu
+  const off = (Array.isArray(f.assets) ? f.assets : []).filter(a => a && a.actif === false).flatMap(a => [String(a.nom || ''), String(a.nom_origine || '')].filter(Boolean));
   window.JDW_ATL_OFF = off; window.JDW_ATL_MUS_OFF = (Array.isArray(f.assets) ? f.assets : []).some(a => a && a.actif === false && (a.sorte === 'musique' || a.cat === 'musique')) ? g.id : '';
   try { window.postMessage({ type: 'atl-off', noms: off }, location.origin); } catch (e) {}
   atlClose();
