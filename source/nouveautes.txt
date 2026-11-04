@@ -6,6 +6,14 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[chrono] ## 🏁 Turbo Chrono : une mini-carte du circuit, et le fantôme ne cache plus la route (borne 2.0.110)
+[chrono] 🗺️ Une mini-carte du circuit, à gauche de l'écran : tout le tracé vu de dessus, ta voiture en flèche blanche, les 220 mètres qui arrivent en bleu pour voir venir les virages, et le fantôme à battre en point de sa couleur. Sur téléphone elle reste petite et ne cache jamais la route.
+[chrono] 👻 Le pseudo du fantôme n°1 est plus petit et semi-transparent, et il s'efface tout seul quand le fantôme roule juste devant toi.
+[chrono] ⚙️ Nouvelle option « Fantôme n°1 : avec / sans », au menu des circuits et dans la pause. Sans, plus de voiture fantôme sur la route : le temps à battre, les écarts aux passages et son point sur la mini-carte restent. Ton choix est gardé d'une partie à l'autre.
+[pleingaz] ## ❤️ Plein Gaz : 3 cœurs au lieu d'une seule vie (borne 2.0.110)
+[pleingaz] ❤️ Tu as maintenant 3 cœurs : un choc fait perdre un cœur au lieu de finir la partie. Ton jet clignote, l'écran rougit un instant et tu es invincible pendant un peu plus d'une seconde pour te remettre en route.
+[pleingaz] 💗 Les cœurs sont affichés en haut de l'écran, à côté des pièces. Battre un boss te rend un cœur perdu.
+[pleingaz] 🏆 Avec 3 cœurs on va beaucoup plus loin : le classement de Plein Gaz repart à zéro. Les anciens records, faits avec une seule vie, sont gardés à part sous le nouveau classement, dans « Ancien tableau ».
 [chrono] ## 🏁 Turbo Chrono : ta vraie tête sur la tuile, et les 8 circuits comptent (borne 2.0.107)
 [chrono] 👑 Le rond du champion sur la tuile Turbo Chrono montre enfin sa photo, comme sur les autres tuiles et dans le classement (avant, un joueur qui a un surnom dans la salle n'avait qu'une lettre).
 [chrono] 🥇 Les médailles d'or du Volcan, de la Plage, de la Forêt et des Nuages comptent maintenant pour le titre de champion (avant, seulement les 4 premiers circuits).
