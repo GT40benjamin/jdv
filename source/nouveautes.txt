@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## 📢 Tes mises à jour partent toutes seules sur la borne (borne 2.0.76)
+[atelier] ✅ En haut d'un jeu déjà publié (dans ta salle ou pour tout le monde), la case « Publier automatiquement mes mises à jour » est cochée : chaque nouvelle version arrive sur la borne dès qu'elle est prête, au même endroit qu'avant.
+[atelier] ☐ Tu préfères choisir toi-même ? Décoche-la : le bouton « 📢 Publier la V… » revient. La toute première publication de ton jeu reste toujours ton choix.
+[atelier] 🎵 Quand tu demandes une musique ou un son, dis aussi où il joue : menu, tout le jeu, un niveau précis, combat de boss, victoire, game over ou autre. {G} le place au bon endroit.
 [abracadabra] ## 🎮 Abracadabra : le sort marche à la manette (borne 2.0.75)
 [abracadabra] 🎮 Avec une manette branchée, le bouton A (ou RB) lance le sort et le bâton écoute vraiment : il ne se referme plus aussitôt. Un 2e appui l'arrête, comme avant.
 [lune] ## 🗺️ L'Explorateur de l'espace : une carte plus belle et plus claire (borne 2.0.74)

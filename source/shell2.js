@@ -15349,9 +15349,21 @@ function atlProjMsgs(W, f) {
 // une version sortie pendant qu'on joue : « 🆕 Nouvelle version Vn · touche pour recharger » (le jeu en cours n'est pas coupé)
 function atlPubV(pv, f) {
   const et = String(f.etat || ''), v = (f.version | 0) || 1, vp = f.version_publiee | 0, publie = /^publie_/.test(et);
-  const occ = atlTravaille(f), sig = [et, v, vp, atlAdminIci() ? 1 : 0, occ].join('|'); if (pv.dataset.sig === sig) return; pv.dataset.sig = sig; pv.textContent = '';
+  const auto = f.auto_publier !== false, occ = atlTravaille(f), sig = [et, v, vp, atlAdminIci() ? 1 : 0, occ, auto ? 1 : 0].join('|'); if (pv.dataset.sig === sig) return; pv.dataset.sig = sig; pv.textContent = '';
   const phrase = 'Une fois publié, chaque modification reste dans l’Atelier : reviens ici pour la publier à tout le monde.';
   if (!publie) { pv.appendChild(atlEl('p', 'atl-pubvie', phrase)); return; }
+  // 2.0.76 (Benjamin : « publication automatique ») : un jeu déjà publié (salle ou monde) — case cochée par défaut, l'auteur ou l'admin la décoche ;
+  // cochée, chaque nouvelle version part toute seule sur la borne, au même endroit (serveur : at_version_suivante, at_fiches.auto_publier)
+  if (vp > 0) {
+    const lb = atlEl('label', 'atl-autopub'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = auto;
+    lb.append(cb, atlEl('span', '', 'Publier automatiquement mes mises à jour'));
+    cb.addEventListener('change', async () => {
+      const on = cb.checked; cb.disabled = true;
+      try { await rpc('at_auto_publier', { p_name: profile.name, p_fiche: f.id, p_on: on }, { quiet: true }); f.auto_publier = on; atlToast(on ? '✅ Tes prochaines versions partiront toutes seules sur la borne.' : 'D’accord : tu publieras toi-même chaque nouvelle version.'); pv.dataset.sig = ''; atlPubV(pv, f); }
+      catch (e) { cb.checked = !on; cb.disabled = false; atlToast('Pas possible pour l’instant : réessaie dans un moment.'); }
+    });
+    pv.appendChild(lb);
+  }
   if (v > vp) {
     pv.appendChild(atlEl('p', 'atl-pubvie', '🎮 Sur la borne : V' + (vp || 1) + ' · ici, tu essaies la V' + v + '.'));
     if (!atlAdminIci()) {
@@ -15364,7 +15376,7 @@ function atlPubV(pv, f) {
       });
       pv.appendChild(b);
     }
-  } else pv.appendChild(atlEl('p', 'atl-pubvie', '🎮 Sur la borne : V' + v + '. ' + phrase));
+  } else pv.appendChild(atlEl('p', 'atl-pubvie', '🎮 Sur la borne : V' + v + '. ' + (vp > 0 && auto ? 'Tes prochaines versions y partiront toutes seules.' : phrase)));
 }
 function atlVerMaj(W, f) {
   { const pv = W.querySelector('.atl-pubv'); if (pv) atlPubV(pv, f); }
@@ -16615,6 +16627,28 @@ function atlDemandeElem(it, f, cat) {
   c.appendChild(hd);
   if (it && it.url && !it.son) { const im = atlEl('img', 'atl-demimg'); im.alt = it.nom; im.src = it.url; c.appendChild(im); }
   let ni = null; if (creer) { ni = atlEl('input', 'atl-chin2'); ni.type = 'text'; ni.maxLength = 80; ni.placeholder = 'Son nom (ex. : ' + ({ son: 'le bruit du saut', musique: 'la musique du menu', interface: 'le bouton Jouer' }[cat] || 'un dragon bleu') + ')'; c.appendChild(atlAvecMic(ni)); }
+  // 2.0.76 (Benjamin) : une musique ou un son créé dit OÙ il joue dans le jeu (choix obligatoire), pour que l'équipe le branche au bon endroit
+  // (serveur : at_demande_element(…, p_ou) → at_demandes.ou + « 📍 Où dans le jeu : … » dans le texte)
+  let ouVal = () => '';
+  if (creer && (cat === 'musique' || cat === 'son')) {
+    const OU = [['menu', 'Menu / écran titre'], ['tout', 'Pendant tout le jeu'], ['niveau', 'Un niveau ou un monde précis'], ['boss', 'Combat de boss'], ['victoire', 'Victoire / fin'], ['perdu', 'Game over'], ['autre', 'Autre']];
+    const w = atlEl('div', 'atl-ouw'), ch = atlEl('div', 'atl-ouch'); w.appendChild(atlEl('b', 'atl-out', 'Où dans ton jeu ?'));
+    let sel = '';
+    // les niveaux / mondes / chapitres du jeu quand la borne les connaît (carte d'avancement), sinon « lequel ? »
+    let niv = []; try { const def = MAP_DEFS[f.jeu]; if (def && def.count && def.level) { const n = Math.min(60, def.count(0) | 0); for (let lv = 1; lv <= n; lv++) { const i = def.level(lv); if (i && !i.win && i.name) niv.push((i.kicker ? i.kicker + ' · ' : '') + i.name); } } } catch (e) { niv = []; }
+    const plus = atlEl('div', 'atl-ouplus'); plus.hidden = true;
+    const lst = atlEl('select', 'atl-ousel'), li = atlEl('input', 'atl-chin2'); li.type = 'text'; li.maxLength = 120;
+    if (niv.length) { lst.appendChild(atlEl('option', '', 'Choisis…')).value = ''; for (const t of niv) { const o = atlEl('option', '', t); o.value = t; lst.appendChild(o); } }
+    const maj = () => { plus.textContent = ''; plus.hidden = !(sel === 'niveau' || sel === 'autre');
+      if (sel === 'niveau') { if (niv.length) plus.appendChild(lst); li.placeholder = niv.length ? 'ou écris-le (ex. : le monde de glace)' : 'Lequel ? (ex. : le niveau 3, le monde de glace)'; plus.appendChild(li); }
+      else if (sel === 'autre') { li.placeholder = cat === 'musique' ? 'Où ? (ex. : dans la boutique, pendant la cinématique)' : 'Quand ? (ex. : quand on ouvre un coffre)'; plus.appendChild(li); } };
+    for (const [k, lab] of OU) { const b = atlEl('button', 'atl-oub', lab); b.type = 'button'; b.dataset.k = k; b.addEventListener('click', () => { sel = k; er.hidden = true; for (const x of ch.children) x.classList.toggle('on', x === b); maj(); (sel === 'niveau' && niv.length ? lst : li).focus(); }); ch.appendChild(b); }
+    w.append(ch, plus); c.appendChild(w);
+    ouVal = () => { if (!sel) return ''; const lab = OU.find(x => x[0] === sel)[1], x = li.value.replace(/\s+/g, ' ').trim(), l = lst.value;
+      if (sel === 'niveau') { const q = l || x; return q ? 'Un niveau ou un monde précis : ' + q + (l && x ? ' (' + x + ')' : '') : ''; }
+      if (sel === 'autre') return x ? 'Autre : ' + x : '';
+      return lab; };
+  }
   const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.placeholder = creer ? (cat === 'musique' ? 'Ex. : douce et mystérieuse, au piano, pendant l’exploration…' : cat === 'son' ? 'Ex. : un petit « boing » joyeux quand on saute…' : 'Décris-le : couleurs, ambiance, à quoi il sert…') : 'Ce que tu veux changer…'; c.appendChild(atlAvecMic(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (cout ? ' · ' + cout + ' 💎' : '')); no.type = 'button'; go.type = 'button';
@@ -16622,10 +16656,11 @@ function atlDemandeElem(it, f, cat) {
   go.addEventListener('click', async () => {
     atlMicFin();
     const t = ta.value.trim(), nom = creer ? ni.value.trim() : it.nom; if (t.length < 2) { ta.focus(); return; } if (!nom) { ni.focus(); return; }
+    const ou = ouVal(); if (creer && (cat === 'musique' || cat === 'son') && !ou) { er.hidden = false; er.textContent = 'Dis-moi où ' + (cat === 'musique' ? 'elle joue' : 'il joue') + ' dans ton jeu (et lequel, ou où, si tu choisis « un niveau précis » ou « autre »).'; const w = c.querySelector('.atl-ouw'); if (w) w.scrollIntoView({ block: 'nearest' }); return; }
     if (cr && (cr.solde | 0) < cout) { er.hidden = false; er.textContent = 'Il te manque des crédits pour cette demande.'; atlCreditsBtn(er); return; }
     go.disabled = true; er.hidden = true;
     try {
-      const r = await rpc('at_demande_element', { p_name: profile.name, p_fiche: f.id, p_nom: nom, p_path: it && it.path ? it.path : null, p_texte: t, p_cat: creer ? cat : it.cat }, { quiet: true });
+      const r = await rpc('at_demande_element', { p_name: profile.name, p_fiche: f.id, p_nom: nom, p_path: it && it.path ? it.path : null, p_texte: t, p_cat: creer ? cat : it.cat, p_ou: ou || null }, { quiet: true });
       if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
       M.hidden = true; M.textContent = ''; atlToast('✉️ Demande envoyée ' + gA() + ' !'); atlLoad(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
