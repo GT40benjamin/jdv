@@ -4496,6 +4496,27 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-dembu{font-size:16px}.atl-dembu p{font-size:16px;line-height:1.45;margin:4px 0 0}
 .atl-livre{margin:6px 0 0;font-weight:800;color:#9fe3b0}
 
+/* 2.0.93 : « 💬 Discussion avec … » en tête de « 🎫 Mes demandes » — gratuite, un fil par projet */
+.atl-disc{margin:0 0 14px;border-radius:16px;border:1px solid rgba(255,211,77,.35);background:linear-gradient(180deg,rgba(122,76,255,.18),rgba(255,79,154,.06))}
+.atl-disc.neuf{box-shadow:0 0 0 2px #ffd34d inset,0 0 18px rgba(255,211,77,.18)}
+.atl-dischd{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:0;background:none;color:var(--ink);font:700 16px var(--body);cursor:pointer;text-align:left}
+.atl-dischd b{color:#ffe9a8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.atl-discgr{flex:0 0 auto;padding:2px 9px;border-radius:999px;background:rgba(47,191,113,.18);border:1px solid rgba(47,191,113,.45);color:#9fe3b0;font:800 12px var(--body)}
+.atl-discdot{display:none;flex:0 0 10px;width:10px;height:10px;border-radius:50%;background:#ff5a5a;box-shadow:0 0 0 3px rgba(255,90,90,.25)}
+.atl-disc.neuf .atl-discdot{display:inline-block}
+.atl-discfl{margin-left:auto;color:var(--muted);transition:transform .2s}
+.atl-disc.on .atl-discfl{transform:rotate(180deg)}
+.atl-discc{display:grid;gap:8px;padding:0 12px 12px}
+.atl-discc[hidden]{display:none}
+.atl-disclog{max-height:min(60vh,560px)}
+.atl-disclog .atl-waitc{margin:6px 0 0;max-width:none}
+.atl-discrow{display:flex;gap:8px;align-items:flex-end}
+.atl-discrow .atl-artw{flex:1 1 auto;min-width:0}
+.atl-discrow textarea{width:100%;box-sizing:border-box;min-height:56px;padding-right:56px}
+.atl-discgo{flex:0 0 auto}
+.atl-ptab.atl-pdot::after,.atl-discbtn.atl-pdot::after{content:'';display:inline-block;width:9px;height:9px;margin-left:6px;border-radius:50%;background:#ff5a5a;vertical-align:middle;box-shadow:0 0 0 2px rgba(255,90,90,.25)}
+@media (max-width:600px){.atl-dischd{font-size:15px;padding:10px;gap:8px}.atl-discrow{flex-direction:column;align-items:stretch}.atl-discrow textarea{min-height:92px}.atl-discgo{width:100%}}
+
 /* 2.0.11 : les offres modifiables sur la carte (admin) */
 .atl-ofadm .atl-tousf,.atl-ofadm .atl-arin{width:100%;box-sizing:border-box}
 .atl-ofmin{color:#9fe3b0;font-weight:700}
