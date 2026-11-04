@@ -1,10 +1,11 @@
 (() => {
 'use strict';
-// Sens Interdit — course de 10 km à CONTRESENS en 3D, au milieu de la circulation, sur 5 routes (la Corniche, le Col des Neiges,
-// Néon City, le Volcan, la Route des Étoiles). Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur
+// Sens Interdit — course SANS FIN à CONTRESENS en 3D, au milieu de la circulation, sur 10 mondes (la Corniche, le Col des Neiges,
+// Néon City, le Volcan, la Route des Étoiles, puis depuis le 4 nov. la Lune, l'Océan, la Forêt des Champignons, le Pays des Bonbons et la
+// Cité d'Or). Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur
 // (assets/sensinterdit.moteur.bin : three.js r180 + le jeu, gzippé, licence MIT) et les voitures (assets/sensinterdit.voitures.bin :
 // modèles et textures de l'Asset Store, EMBALLÉS avec la clé intégrée au site, jamais en clair). Score = km parcourus × vitesse max (km/h) × 10.
-// 5 routes de plus en plus incroyables, accidents en vraie physique (la voiture se casse en morceaux), carambolages.
+// 10 mondes de plus en plus incroyables (et de plus en plus de circulation après l'Espace), accidents en vraie physique (la voiture se casse en morceaux), carambolages.
 // Une seule variable globale en plus : window.JDW_SI. Atelier : ~/jdv-tools/duotest/sensinterdit (sources, outils, essais ; REPRISE.md).
 const ROOT = () => window.JDW_ROOT || '';
 const STORE = { engine: null, pack: null };
