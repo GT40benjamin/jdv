@@ -11795,6 +11795,57 @@ const MAP_DEFS = {
     cap: { title: 'Le grand chêne', sub: 'Tous les amis réunis' }
   }
 };
+// 2.0.72 : la carte de « L'Explorateur de l'espace » (jeu 'lune', V9 : 12 chapitres de l'histoire + la fin, 5 régions du bord vers le Cœur).
+// Comme Noisette, elle suit la version VRAIMENT lancée (atlVoulue) : MAP_DEFS.lune n'existe qu'à partir de la V9 avec son fichier ; V7/V8 (autre
+// sens des niveaux, max 9) = pas de carte, comme avant. Au premier passage en V9, l'appareil oublie une fois ses traces « lune » de la V8
+// (meilleur niveau, file d'envoi, progboot), sinon progBoot renverrait l'ancien 7 ou 9 au serveur (remis à zéro à la livraison).
+const MAP_LUNE = {
+  title: 'L’Explorateur de l’espace',
+  theme: 'space', word: 'Chapitre', tierGap: 170, tierAt: 0.58,
+  count: () => 13,
+  // les chapitres et les régions sont recopiés ici (la carte s'ouvre aussi quand le jeu n'est pas encore chargé)
+  CH: [['Le crash', 'Répare la navette de secours', 0], ['La station', 'Vends tes minerais à une station', 0], ['La tablette', 'Trouve la première archive des Anciens', 0],
+    ['Moteur Mk2', 'Quitte les Périphéries', 0], ['Le cristal-mémoire', 'Archive des Secteurs extérieurs', 1], ['Moteur Mk3', 'Va plus loin vers le centre', 1],
+    ['La carte des Anciens', 'Archive des Régions intermédiaires', 2], ['Moteur Mk4', 'Les Régions profondes t’attendent', 2],
+    ['Le masque', 'Archive gardée par le Droïde ancien', 3, 'Droïde ancien'], ['Moteur Mk5', 'Le moteur le plus puissant', 3],
+    ['Le Cœur', 'Détruis le Vaisseau-mère des Ombres', 4, 'Vaisseau-mère des Ombres'], ['La Couronne', 'Bats le Gardien et trouve la Couronne', 4, 'Gardien de la Couronne']],
+  REG: [['Les Périphéries', '#7fb6ff'], ['Les Secteurs extérieurs', '#7fe0c0'], ['Les Régions intermédiaires', '#ffd27f'], ['Les Régions profondes', '#ff9a6a'], ['Le Centre galactique', '#ff6ad5']],
+  level(lv) {
+    const ch = MAP_LUNE.CH[lv - 1], reg = ch ? ch[2] : 4, R = MAP_LUNE.REG[reg];
+    const PLA = [10, 6, 29, 15, 25], hue = [210, 160, 40, 18, 310][reg];
+    if (!ch) return { lv, tier: 4, kicker: 'Fin', name: 'Explorateur légendaire', lines: ['La galaxie entière s’illumine'], acc: '#ffd34d', bg: '#2c2108', bg0: '#0c0802', hue: 46, sat: 90, planet: 25, deco: [16, 18] };
+    return { lv, tier: reg, kicker: 'Chapitre ' + lv, name: ch[0], lines: [ch[1]], acc: R[1],
+      bg: hueShift('#06243a', hue - 196), bg0: hueShift('#020812', hue - 196), hue, sat: 80, planet: PLA[reg], deco: [11 + reg * 2, 13 + reg * 2] };
+  },
+  short(lv) { const ch = MAP_LUNE.CH[lv - 1]; return ch ? 'Chapitre ' + lv + ' · ' + ch[0] : 'Explorateur légendaire'; },
+  boss(lv) {
+    const ch = MAP_LUNE.CH[lv - 1]; if (!ch || !ch[3]) return null;
+    return { lv, bk: 'lune-' + (lv === 9 ? 'droide' : lv === 11 ? 'mere' : 'gardien'), name: ch[3], final: lv === 12, kicker: lv === 12 ? 'Le dernier gardien' : 'Boss du chapitre ' + lv };
+  },
+  tier(t) {
+    const R = MAP_LUNE.REG[t] || MAP_LUNE.REG[4];
+    return { kicker: 'Région ' + (t + 1), title: R[0], acc: R[1], acc2: '#ff3fb4', sub: t === 4 ? 'Le Cœur de la galaxie' : 'Toujours plus près du Cœur' };
+  },
+  start: { title: 'Départ', sub: 'Ta navette s’écrase sur une lune inconnue' },
+  cap: { title: 'La Couronne des Étoiles', sub: 'Chaque étoile garde le souvenir d’un explorateur' }
+};
+let LUNE_V9_VU = false;
+function luneV9Purge() {
+  if (LUNE_V9_VU) return;
+  try {
+    if (!store.get('jdw.lune9', 0)) {
+      const all = store.get('jdw.bestlv', {}) || {}; for (const k of Object.keys(all)) if (/\|lune$/.test(k)) delete all[k]; store.set('jdw.bestlv', all);
+      const bo = store.get('jdw.progboot', {}) || {}; for (const k of Object.keys(bo)) if (/\|lune(\||$)/.test(k)) delete bo[k]; store.set('jdw.progboot', bo);
+      progQ = progQ.filter(x => x && x.game !== 'lune'); store.set('jdw.progq', progQ);
+      store.set('jdw.lune9', 1);
+    }
+    LUNE_V9_VU = true;
+  } catch (e) { /* encore trop tôt au démarrage : on réessaiera */ }
+}
+Object.defineProperty(MAP_DEFS, 'lune', { enumerable: true, configurable: true, get() {
+  try { const v = atlVoulue('lune'); if (v >= 9 && ATL_MODS_OK.get('lune@' + v) !== null) { luneV9Purge(); return MAP_LUNE; } } catch (e) {}
+  return undefined;
+} });
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Magic Force : la carte du donjon, dessinée par la bibliothèque (MAP_DEFS.magic ; le jeu 3D n'a pas de dessin 2D à prêter). Vue de
@@ -13255,6 +13306,7 @@ function progTick() {
   if (!current || !current.inst || current.over || current.coop || !current.inst.currentLevel || $('jdw-play').hidden) return;
   let lv = 0; try { lv = Math.floor(+(current.game.spots && current.inst.mapSpot ? current.inst.mapSpot() : current.inst.currentLevel()) || 0); } catch (e) { return; }
   const me = cleanName(profile.name), gid = current.game.id;
+  if (gid === 'lune') void MAP_DEFS.lune;   // 2.0.72 : en V9, les meilleurs niveaux de la V8 (autre sens) sont oubliés avant de comparer
   if (!me || !(lv >= 1) || lv > 9999 || lv <= lvBest(me, gid)) return;
   lvSetBest(me, gid, lv);
   progPush(me, gid, lv);
@@ -13316,6 +13368,7 @@ function progBoot() {
   const me = cleanName(profile.name); if (!me || !room || knownNotMember(me) || membersFor !== room.id) return;
   const boot = store.get('jdw.progboot', {}) || {};
   for (const gid of Object.keys(MAP_DEFS)) {
+    if (!MAP_DEFS[gid]) continue;   // 2.0.72 : lune avant la V9 = pas de carte (et en V9, la lecture oublie d'abord les traces de la V8)
     const k = room.id + '|' + me + '|' + gid, loc = lvBest(me, gid), row = PROG.rows.find(r => r.name === me && r.game === gid), srv = row ? row.level : 0;
     if (!boot[k]) { boot[k] = 1; if (loc > srv) { progPush(me, gid, loc); continue; } }
     // position « estimée » (ancien score) alors que cet appareil a vu ce joueur l'atteindre en jouant : confirmée une fois au serveur
@@ -13382,7 +13435,7 @@ function openMap(gid, opener) {
   MAP.open = true; MAP.gid = gid; MAP.def = def; MAP.opener = opener || null; MAP.heads = new Map(); MAP.auto = true;
   const box = $('jdw-map');
   box.dataset.theme = def.theme; box.style.setProperty('--acc', g.accent);
-  $('jdw-map-title').textContent = g.title;
+  $('jdw-map-title').textContent = def.title || g.title;   // 2.0.72 : une carte peut porter son titre (L'Explorateur : la V9 n'est peut-être pas encore chargée)
   $('jdw-map-kicker').textContent = mapOld ? 'Hors ligne · dernière carte connue' : room && ONLINE ? 'Carte d’avancement · ' + room.name : 'Carte d’avancement';
   $('jdw-map-play').setAttribute('aria-label', 'Jouer à ' + g.title);
   // ouverture : la carte se déplie depuis le bouton de la tuile
@@ -13950,6 +14003,8 @@ const BOSS_ICON = {
     mapEye(x, 0, 0, 8, '#ff3344');
   }
 };
+// 2.0.72 : les 3 médaillons des boss de L'Explorateur de l'espace (dessinés par le jeu : window.JDW_GAMES.lune.carte.icone)
+for (const k of ['droide', 'mere', 'gardien']) BOSS_ICON['lune-' + k] = x => { const G = window.JDW_GAMES && window.JDW_GAMES.lune; if (G && G.carte && G.carte.icone) G.carte.icone(k, x); };
 // médaillon du boss : cadre menaçant (couronne de pointes / octogone danger) + dessin du boss ; or + couronne pour le boss de fin de cycle
 function mapBossCanvas(def, bi, size) {
   const c = document.createElement('canvas'), dpr = Math.min(3, (window.devicePixelRatio || 1) * (MAP.z || 1)), P = size + 34;

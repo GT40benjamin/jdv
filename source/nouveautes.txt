@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[lune] ## 🗺️ L'Explorateur de l'espace : la carte de la galaxie (borne 2.0.72)
+[lune] 🗺️ La tuile de L'Explorateur de l'espace a sa carte : les 12 chapitres de l'histoire, du crash sur la lune jusqu'à la Couronne des Étoiles, à travers les 5 régions de la galaxie, du bord jusqu'au Cœur.
+[lune] 👾 Les 3 grands boss (le Droïde ancien, le Vaisseau-mère des Ombres et le Gardien de la Couronne) ont leur médaillon sur la carte, et chacun y voit où en sont les copains.
+[lune] 🎵 Quatre musiques : la lune, le voyage dans l'espace, les stations de commerce et les combats de boss.
 [coffres] ## 🗝️ Coffres à Secrets : 20 coffres par monde, et les fous furieux (borne 2.0.71)
 [coffres] 🗝️ Chaque monde a maintenant 20 coffres au lieu de 8 : 72 nouveaux coffres, chacun avec sa propre idée (fente en haut, en bas ou à gauche, clé à tourner, tiges à trois, six goupilles…), de plus en plus difficiles.
 [coffres] 🔥 Du coffre 15 au coffre 20 de chaque monde, ce sont les « fous furieux » : des couvercles plus grands et jusqu'à 91 coups au minimum. Un truc de malade ! Pour 2 étoiles, pas plus d'un quart de coups en trop.
