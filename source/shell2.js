@@ -159,7 +159,7 @@ const store = {
 // les notifications ») : les états « vu » suivent le COMPTE — gardés au serveur (compte_vus), envoyés en direct aux autres appareils du compte,
 // relus à l'ouverture. Un invité garde tout sur son appareil. Restent locaux : jdw.localnotifs (notifications fabriquées par cet appareil) et
 // jdw.notesbase (version de la borne au tout premier lancement de cet appareil).
-const VUS_CLES = new Set(['jdw.notesv', 'jdw.updseen', 'jdw.tileseen', 'jdw.noteseen', 'jdw.notifseen', 'jdw.notiftoast', 'jdw.gamenotifseen', 'jdw.coopnotifseen', 'jdw.chatseen', 'jdw.seengames', 'jdw.atl.seen', 'jdw.atl.vvu', 'jdw.atl.vu', 'jdw.atl.elvu']);
+const VUS_CLES = new Set(['jdw.notesv', 'jdw.updseen', 'jdw.tileseen', 'jdw.noteseen', 'jdw.notifseen', 'jdw.notiftoast', 'jdw.gamenotifseen', 'jdw.coopnotifseen', 'jdw.chatseen', 'jdw.seengames', 'jdw.atl.seen', 'jdw.atl.vvu', 'jdw.atl.vu', 'jdw.atl.elvu', 'jdw.atlmajvu', 'jdw.atlmajcl']);
 const VUS = { file: new Set(), t: 0, applique: false };
 const vusVer = x => typeof x === 'string' && /^\d+(\.\d+)*$/.test(x);
 function vusFusion(a, b) {   // la même fusion que le serveur (pegase_int.vus_fusion) : un « vu » ne redevient jamais « pas vu »
@@ -227,7 +227,23 @@ function noteNews(id) {
   const s2 = (noteSeen[seenKey()] || {})[id]; return s2 && vcmp(v, s2) <= 0 ? '' : 'maj';
 }
 // l'étiquette de ce jeu / duel pour le joueur actuel : 'new', 'maj' ou ''
-function tileNews(id) { const k = tileNewsT(id); return k === 'new' ? k : (noteNews(id) || k); }
+function tileNews(id) { const k = tileNewsT(id); return k === 'new' ? k : (noteNews(id) || k || atlMajNews(id)); }
+// 2.0.87 (l'admin : « Licornes est en ligne, mais il faut marquer MIS À JOUR ! ») : un jeu de l'Atelier qui passe à une nouvelle version
+// PUBLIÉE (date posée par le serveur à chaque publication, automatique ou « 📢 Publier la Vx » : at_jeux.publie_at, SQL v104) porte
+// « ✨ Mis à jour » comme les jeux du studio (NEWS_DAYS jours, jusqu'à ce que le joueur l'ouvre) ; sa note arrive dans la cloche (atlMajNotifs)
+function atlMajNews(id) {
+  const x = ATL_JEUX.get(id); if (!x || !(x.version_publiee > 0) || !x.publie_at) return '';
+  const t = Date.parse(x.publie_at) || 0, base = Date.parse(String(TILE_BASE || '').replace(' ', 'T')) || 0;
+  if (!t || t <= base || !(Date.now() - t < NEWS_DAYS * 86400e3)) return '';
+  return ((((store.get('jdw.atlmajvu', {}) || {})[seenKey()] || {})[id]) | 0) >= x.version_publiee ? '' : 'maj';
+}
+const ATL_EMO = { licornes: '🦄', lune: '🚀', noisette: '🐿️', trone: '👑' };
+const atlMajNote = t => String(t || '').replace(/^\s*(V\d+\s*)?(\(?cadeau[^:)]*\)?)?\s*:\s*/i, '').trim();
+function atlMajNotifs() {
+  const me = seenKey(), cl = (store.get('jdw.atlmajcl', {}) || {})[me] || {}, out = [];
+  try { for (const x of ATL_JEUX.values()) if (atlMajNews(x.jeu) && ((cl[x.jeu] | 0) < x.version_publiee) && gameById(x.jeu)) out.push({ kind: 'atelier-maj', game: x.jeu, v: x.version_publiee, titre: x.titre, note: atlMajNote(x.publie_note) }); } catch (e) {}
+  return out;
+}
 function tileNewsT(id) {
   const x = TILE_NEWS[id]; if (!x || x.at <= TILE_BASE) return '';
   if (!(Date.now() - Date.parse(x.at.replace(' ', 'T')) < NEWS_DAYS * 86400e3)) return '';
@@ -243,6 +259,7 @@ function markGameSeen(id) {
   const me = seenKey(), x = TILE_NEWS[id];
   if (x && tileNewsT(id)) { (tileSeen[me] = tileSeen[me] || {})[id] = x.at; store.set('jdw.tileseen', tileSeen); }
   const v = noteLatest(id); if (v) { (noteSeen[me] = noteSeen[me] || {})[id] = v; store.set('jdw.noteseen', noteSeen); }
+  if (atlMajNews(id)) { const a = store.get('jdw.atlmajvu', {}) || {}; (a[me] = a[me] || {})[id] = ATL_JEUX.get(id).version_publiee; store.set('jdw.atlmajvu', a); }
   refreshNewBadges(); refreshBell();
 }
 function refreshNewBadges() {
@@ -2094,9 +2111,9 @@ function gameNotifs() {
 }
 // la page de Pégase (28 oct. 2026) : ni les records ni la coop de la borne d'arcade (ils restent « nouveaux » pour la borne)
 function bellArcade() { return PAGE !== 'pegase'; }
-function unseenCount() { const s = notifSeen[notifKey()] || 0; return atlNotifs().length + (bellArcade() ? notifs.filter(n => n.id > s).length + coopFreshN() : 0) + gameNotifs().length + updateNotifs().length; }
+function unseenCount() { const s = notifSeen[notifKey()] || 0; return atlNotifs().length + atlMajNotifs().length + (bellArcade() ? notifs.filter(n => n.id > s).length + coopFreshN() : 0) + gameNotifs().length + updateNotifs().length; }
 function refreshBell() {
-  $('jdw-bell').hidden = !profile.name || (!notifsOk && !gameNotifs().length && !updateNotifs().length && !coopNotifCount() && !NOTES.length && !atlNotifs().length);
+  $('jdw-bell').hidden = !profile.name || (!notifsOk && !gameNotifs().length && !updateNotifs().length && !coopNotifCount() && !NOTES.length && !atlNotifs().length && !atlMajNotifs().length);
   const n = unseenCount(), b = $('jdw-bell-n');
   b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n);
   $('jdw-bell').setAttribute('aria-label', n ? n + ' nouvelle' + (n > 1 ? 's' : '') + ' notification' + (n > 1 ? 's' : '') : 'Notifications');
@@ -2118,6 +2135,15 @@ function notifRow(n, isNew) {
     const sm = document.createElement('small'); sm.textContent = 'Touche pour valider ou refuser';
     tx.append(b, sm); li.append(ic, tx); li.classList.add('click', 'nt-v');
     li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); setTimeout(() => { try { atlMesDemandes(); } catch (e) {} }, 300); });
+    return li;
+  }
+  if (n.kind === 'atelier-maj') {   // 2.0.87 : nouvelle version publiée d'un jeu de l'Atelier (pour tout le monde)
+    const g = gameById(n.game);
+    const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = ATL_EMO[n.game] || '🎮'; if (g) ic.style.background = g.accent;
+    const b = document.createElement('b'); b.textContent = (ATL_EMO[n.game] || '✨') + ' ' + (n.titre || (g && g.title) || 'Un jeu de l’Atelier') + ' : V' + n.v + ' !';
+    const sm = document.createElement('small'); sm.textContent = (n.note ? (n.note.length > 140 ? n.note.slice(0, 139) + '…' : n.note) + ' · ' : '') + 'touche pour y jouer';
+    tx.append(b, sm); li.append(ic, tx); li.classList.add('click');
+    li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (g) { markGameSeen(n.game); openGame(g); } });
     return li;
   }
   if (n.kind === 'atelier-e') {   // 2.0.61 : des éléments ajoutés pendant la conception (une ligne groupée par projet)
@@ -2264,7 +2290,7 @@ function openNotifs(showOld) {
   const ol = $('jdw-notifs-list'); ol.textContent = '';
   const key = notifKey(), seen = notifSeen[key] || 0, me = cleanName(profile.name);
   const arc = bellArcade();
-  const fresh = [...atlNotifs(), ...updateNotifs(), ...gameNotifs(), ...(arc ? [...coopNotifsList(true), ...notifs.filter(n => n.id > seen)] : [])];
+  const am = atlMajNotifs(), fresh = [...atlNotifs(), ...am, ...updateNotifs(), ...gameNotifs(), ...(arc ? [...coopNotifsList(true), ...notifs.filter(n => n.id > seen)] : [])];
   const old = [{ kind: 'installed', all: true, v: CUR_V }].concat(arc ? coopNotifsList(false) : [], arc ? notifs.filter(n => n.id <= seen) : []);
   // ce qui est vu disparaît : la prochaine fois, seulement les nouveautés (l'historique reste consultable)
   for (const n of fresh) ol.appendChild(notifRow(n, true));
@@ -2279,6 +2305,7 @@ function openNotifs(showOld) {
   for (const u of updateNotifs()) if (u.kind !== 'installed') UPD.seen[u.kind] = u.v;
   if (vcmp(CUR_V, notesV) > 0) { notesV = CUR_V; store.set('jdw.notesv', notesV); }   // vues : la prochaine fois, seulement les suivantes
   store.set('jdw.updseen', UPD.seen);
+  if (am.length) { const c = store.get('jdw.atlmajcl', {}) || {}, k = seenKey(); c[k] = c[k] || {}; for (const n of am) c[k][n.game] = n.v; store.set('jdw.atlmajcl', c); }
   const gn = gameNotifs(); if (gn.length && me) { gameNotifSeen[me] = [...(gameNotifSeen[me] || []), ...gn.map(n => n.game)]; store.set('jdw.gamenotifseen', gameNotifSeen); }
   refreshBell();
   if ($('jdw-notifs').hidden) openSheet('jdw-notifs', 'jdw-notifs-close');
@@ -14679,7 +14706,7 @@ async function atlJeuxLoad() {
   const invite = isGuest() || !profile.name, me = invite ? '' : cleanName(profile.name);
   let l; try { l = invite ? await rpc('at_jeux_monde', {}, { quiet404: true, quiet: true }) : await rpc('at_jeux', { p_name: profile.name, p_salle: room && room.id ? room.id : null }, { quiet404: true, quiet: true }); } catch (e) { return; }   // 2.0.30 : les jeux des membres de CETTE salle
   if ((invite ? '' : cleanName(profile.name)) !== me || !Array.isArray(l)) return;
-  l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), vignette: /^i\/[0-9a-f-]{36}\.(png|jpg|webp)$/.test(String(x.vignette || '')) ? String(x.vignette) : '', titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien, version_publiee: x.version_publiee | 0, version: x.version | 0, createur: String(x.createur || '').slice(0, 20), fiche: /^[0-9a-f-]{36}$/.test(String(x.fiche || '')) ? String(x.fiche) : '', orientation: /^(portrait|paysage|les2)$/.test(String(x.orientation || '')) ? String(x.orientation) : '' }));
+  l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), vignette: /^i\/[0-9a-f-]{36}\.(png|jpg|webp)$/.test(String(x.vignette || '')) ? String(x.vignette) : '', titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien, version_publiee: x.version_publiee | 0, publie_at: /^\d{4}-\d\d-\d\dT[\d:.]+(Z|[+-]\d\d:?\d\d)?$/.test(String(x.publie_at || '')) ? String(x.publie_at) : '', publie_note: String(x.publie_note || '').slice(0, 300), version: x.version | 0, createur: String(x.createur || '').slice(0, 20), fiche: /^[0-9a-f-]{36}$/.test(String(x.fiche || '')) ? String(x.fiche) : '', orientation: /^(portrait|paysage|les2)$/.test(String(x.orientation || '')) ? String(x.orientation) : '' }));
   const all = store.get('jdw.atl.jeux', {}) || {}, was = JSON.stringify(all[me] || []);
   all[me] = l; store.set('jdw.atl.jeux', all);
   if (was === JSON.stringify(l)) return;
