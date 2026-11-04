@@ -2027,7 +2027,7 @@ function recTag(tag) {
   const msT = v => { const c = Math.round(v / 10), m = Math.floor(c / 6000), sec = Math.floor(c / 100) % 60; return m + ':' + String(sec).padStart(2, '0') + '.' + String(c % 100).padStart(2, '0'); };
   if (base === 'remparts') { const lvR = lv.replace(/-r\d+$/, ''), W = { prairie: 'La Forêt enchantée', dunes: 'Le Jardin maudit', neige: 'Les Grottes de glace', volcan: 'Les Forges ardentes', hante: 'La Crypte oubliée' }, inf = /^inf-/.test(lvR); return { g, base, lv: lvR, where: (g ? g.title : 'Remparts !') + ' · ' + (inf ? (W[lvR.slice(4)] || lvR.slice(4)) + ' sans fin' : W[lvR] || (/^defi-\d{8}$/.test(lvR) ? 'défi du ' + lvR.slice(11, 13) + '/' + lvR.slice(9, 11) : lvR)), val: v => fmt(Math.max(0, 100000 - v) * (inf ? 10 : 1)) + ' points', word: 'ton record', ic: '🏰' }; }   // Ajout 22 : coups = 100 000 − score ; « inf-<monde> » (Sans fin) rangé en points ÷ 10
   if (base === 'chrono') return { g, base, lv, where: (g ? g.title : 'Turbo Chrono') + ' · ' + ((CHRONO_TRACKS.find(x => x[0] === lv) || [])[1] || lv), val: msT, word: 'ton temps', ic: '⏱️' };
-  const m = lv.match(/^(\d+)-(\d+)$/), label = base === 'coffres' && m ? 'Monde ' + m[1] + ' · ' + (+m[2] === 8 ? 'grand coffre' : 'coffre ' + m[2]) : 'niveau ' + lv;
+  const m = lv.match(/^(\d+)-(\d+)$/), label = base === 'coffres' && m ? 'Monde ' + m[1] + ' · ' + (+m[2] === 20 ? 'grand coffre' : 'coffre ' + m[2]) : 'niveau ' + lv;   // 20 coffres par monde (4 nov. 2026)
   if (base !== 'coffres') return { g, base, lv, where: (g ? g.title + ' · ' : '') + label, val: v => fmt(v), word: 'ton record', ic: '🏆' };   // jeu à niveaux pas encore connu ici : sans unité
   return { g, base, lv, where: (g ? g.title : 'Coffres à Secrets') + ' · ' + label, val: v => fmt(v) + ' coup' + (v > 1 ? 's' : ''), word: 'ton record', ic: '🗝️' };
 }
@@ -2391,7 +2391,7 @@ function recLabel(tag) {   // « Coffre 4 (monde 3) », « La Forêt enchantée 
   const sb = siBoard(base); if (sb) return sb.ic + ' ' + sb.short;
   if (!lv) return 'Score total';
   const m = lv.match(/^(\d+)-(\d+)$/);
-  if (base === 'coffres' && m) return (+m[2] === 8 ? 'Grand coffre' : 'Coffre ' + m[2]) + ' (monde ' + m[1] + ')';
+  if (base === 'coffres' && m) return (+m[2] === 20 ? 'Grand coffre' : 'Coffre ' + m[2]) + ' (monde ' + m[1] + ')';
   const rt = recTag(t), w = rt.where || '', gt = rt.g ? rt.g.title + ' · ' : '';
   return gt && w.startsWith(gt) ? w.slice(gt.length) : w || lv;
 }
@@ -11669,20 +11669,31 @@ const MAP_DEFS = {
     start: { title: 'Départ', sub: 'Le cube prend son élan' },
     cap: { title: 'Tout en haut…', sub: 'Personne ne va plus loin que le Démon' }
   },
-  // Coffres à Secrets (games/coffres.js) : 6 mondes de 8 coffres (le 8e = le grand coffre). Carte dessinée ici : l'établi en planches teintées
-  // par monde, un petit coffre par niveau (le grand coffre : doré, couronné), la clé dorée au départ.
+  // Coffres à Secrets (games/coffres.js) : 6 mondes de 20 coffres (4 nov. 2026 ; le 20e = le grand coffre, du 15e au 20e : les « fous
+  // furieux », braise sur la carte). Carte dessinée ici : l'établi en planches teintées par monde, un petit coffre par niveau (le grand
+  // coffre : doré, couronné), la clé dorée au départ. Avancement gardé = mapSpot du jeu (1000 + n° du coffre) ; les valeurs gardées avant
+  // (1..48, 8 coffres par monde) sont reconverties par spot().
   coffres: {
-    theme: 'coffres', word: 'Coffre', tierGap: 130, tierAt: 0.55, step: 132, nodeSize: 54, bgDpr: 1.5,
-    count: () => 48,
+    theme: 'coffres', word: 'Coffre', tierGap: 130, tierAt: 0.55, step: 118, nodeSize: 54, bgDpr: 1.5,
+    PER: 20,
+    n() { return 6 * this.PER; },
+    count() { return this.n(); },
+    spot(v) {
+      v = Math.floor(+v || 0); if (v < 1) return null;
+      const lv = Math.min(this.n(), v >= 1000 ? v - 1000 : Math.floor((v - 1) / 8) * this.PER + (v - 1) % 8 + 1);
+      if (lv < 1) return null;
+      const w = Math.floor((lv - 1) / this.PER), n = (lv - 1) % this.PER;
+      return { lv, f: 0, dead: false, label: 'Monde ' + (w + 1) + ' · ' + (n === this.PER - 1 ? 'grand coffre' : 'coffre ' + (n + 1)), long: 'en est au ' + (n === this.PER - 1 ? 'grand coffre' : 'coffre ' + (n + 1)) + ' du monde ' + (w + 1) + ' (' + this.W[w][0] + ')' };
+    },
     W: [['L\'Atelier', '#e0aa48', '#5a3418', '#2a170b', 'Glissières de noyer et de merisier'], ['Les Dés', '#9fd0ff', '#4a2a18', '#20120a', 'Des dés de buis qui vont partout'],
       ['Les Plateaux', '#a8ffcf', '#3a2412', '#180e06', 'Des plateaux tournants qui font pivoter les pièces'], ['Les Tiges', '#e0b0ff', '#4a3018', '#22140a', 'Des pièces liées par une tige de laiton'],
       ['Les Poussoirs', '#ffe08a', '#2e2420', '#120d0a', 'Poussoirs et goupilles : ouvre le passage'], ['Le Coffre du Maître', '#fff0b0', '#4a1e10', '#1c0a05', 'Tous les mécanismes à la fois']],
     level(lv) {
-      const w = Math.floor((lv - 1) / 8) % 6, n = (lv - 1) % 8, D = this.W[w];
-      return { lv, tier: w, w, n, boss: n === 7, kicker: D[0], name: n === 7 ? 'Le grand coffre' : 'Coffre ' + (n + 1),
-        lines: n === 0 ? ['✦ ' + D[4]] : [], acc: D[1], bg: D[2], bg0: D[3] };
+      const P = this.PER, w = Math.floor((lv - 1) / P) % 6, n = (lv - 1) % P, D = this.W[w], mad = n >= P - 6, boss = n === P - 1;
+      return { lv, tier: w, w, n, boss, mad, kicker: D[0] + (mad ? ' · 🔥 fou furieux' : ''), name: boss ? 'Le grand coffre' : 'Coffre ' + (n + 1),
+        lines: n === 0 ? ['✦ ' + D[4]] : n === P - 6 ? ['🔥 Les fous furieux commencent : un truc de malade'] : [], acc: mad && !boss ? '#ff8a4a' : D[1], bg: D[2], bg0: D[3] };
     },
-    short(lv) { const w = Math.floor((lv - 1) / 8) % 6, n = (lv - 1) % 8; return this.W[w][0] + ' · ' + (n === 7 ? 'grand coffre' : 'coffre ' + (n + 1)); },
+    short(lv) { const P = this.PER, w = Math.floor((lv - 1) / P) % 6, n = (lv - 1) % P; return this.W[w][0] + ' · ' + (n === P - 1 ? 'grand coffre' : 'coffre ' + (n + 1)); },
     tier(t) { const D = this.W[t % 6]; return { kicker: 'Monde ' + (t % 6 + 1), title: D[0], acc: D[1], sub: D[4] }; },
     paint(x, L, W, y0, h) {
       // planches de l'établi : veinage, joints sombres, clous de laiton
@@ -11704,7 +11715,7 @@ const MAP_DEFS = {
       const rr = (a, b, ww, hh, r) => { x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + ww, b, a + ww, b + hh, r); x.arcTo(a + ww, b + hh, a, b + hh, r); x.arcTo(a, b + hh, a, b, r); x.arcTo(a, b, a + ww, b, r); x.closePath(); };
       x.fillStyle = 'rgba(0,0,0,.45)'; rr(cx - w / 2 + 2, cy - h / 2 + 5, w, h, 6); x.fill();
       const body = x.createLinearGradient(0, cy - h / 2, 0, cy + h / 2);
-      if (big) { body.addColorStop(0, '#ffe9a0'); body.addColorStop(0.5, '#d9a23a'); body.addColorStop(1, '#8a5412'); } else { body.addColorStop(0, '#a0683a'); body.addColorStop(1, '#4a2810'); }
+      if (big) { body.addColorStop(0, '#ffe9a0'); body.addColorStop(0.5, '#d9a23a'); body.addColorStop(1, '#8a5412'); } else if (info.mad) { body.addColorStop(0, '#b0502a'); body.addColorStop(1, '#4a160a'); } else { body.addColorStop(0, '#a0683a'); body.addColorStop(1, '#4a2810'); }
       x.fillStyle = body; rr(cx - w / 2, cy - h / 2, w, h, 6); x.fill();
       x.fillStyle = big ? 'rgba(90,50,8,.35)' : 'rgba(255,220,170,.12)'; rr(cx - w / 2, cy - h / 2, w, h * 0.38, 6); x.fill();
       x.fillStyle = big ? '#fff3c0' : acc; x.fillRect(cx - w / 2, cy - h / 2 + h * 0.38 - 1.5, w, 3);

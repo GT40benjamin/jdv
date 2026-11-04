@@ -1,14 +1,14 @@
 (() => {
 'use strict';
 // Coffres à Secrets — casse-tête de coffres en bois en 3D : on fait glisser les pièces du couvercle pour sortir la clé dorée par la
-// fente. 6 mondes (glissières, dés, plateaux tournants, tiges de laiton, poussoirs, le Coffre du Maître) × 8 coffres.
+// fente. 6 mondes (glissières, dés, plateaux tournants, tiges de laiton, poussoirs, le Coffre du Maître) × 20 coffres (les 6 derniers de chaque monde : les « fous furieux »).
 // La position de chaque coffre est gardée (pièces, coups, annuler / refaire, chrono, caméra) sur l'appareil et, avec un compte, sur le
 // serveur (api.save). Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur
 // (assets/coffres.moteur.bin : three.js r180 + le jeu, gzippé, licence MIT). Une seule variable globale en plus : window.JDW_CF.
 // Atelier : ~/jdv-tools/duotest/coffres (sources, générateur des niveaux, essais ; fiche REPRISE.md).
 const ROOT = () => window.JDW_ROOT || '';
 let ENGINE = null;
-const WANT = 'cf-df846b76';   // version du moteur de CE module (posée par tools/build.js)
+const WANT = 'cf-f12c04d2';   // version du moteur de CE module (posée par tools/build.js)
 async function fetchBytes(url, onProg, guess, signal, opt) {
   const r = await fetch(url, Object.assign({ signal }, opt || {}));
   if (!r.ok) throw new Error('moteur ' + r.status);
@@ -164,6 +164,7 @@ function mount(root, api) {
     destroy() { dead = true; if (ac) ac.abort(); if (inst) inst.destroy(); root.innerHTML = ''; },
     currentScore: () => (inst && inst.currentScore ? inst.currentScore() : 0),
     currentLevel: () => (inst && inst.currentLevel ? inst.currentLevel() : 1),
+    mapSpot: () => (inst && inst.mapSpot ? inst.mapSpot() : 0),
     pause() { if (inst && inst.pause) inst.pause(); },
     resume() { if (inst && inst.resume) inst.resume(); },
     // regarder un copain (regarder.js) : la 3D ne se redessine que quand une pièce bouge ; une image tout de suite pour le spectateur
@@ -192,6 +193,7 @@ window.JDW_GAMES.coffres = {
   scoreLabel: 'points',
   saves: true,                        // la partie est gardée à tout moment (api.save) : Quitter n'arrête rien, sans question
   fps: false,                         // pas de compteur d'images de la borne par-dessus le titre
+  spots: true,                        // la carte garde mapSpot (1000 + coffre) : 20 coffres par monde, les anciens avancements (1..48) restent justes
   pad: { help: [['ls/dpad', 'Choisir une pièce'], ['a', 'Prendre / poser'], ['ls/dpad', 'Glisser (pièce prise)'], ['x', 'Plateau dans l\'autre sens'], ['lb', 'Annuler'], ['rb', 'Refaire']] },
   preview, mount
 };
