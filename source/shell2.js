@@ -3194,7 +3194,9 @@ window.JDW_ASSETS.load = function (id) {
 // « [id] ## … » des notes de la cloche (nouveautes.txt, obligatoires à chaque publication qui touche le jeu : publier.sh) → la version monte
 // toute seule à chaque mise à jour annoncée. Jeux de l'Atelier : leur créateur (jamais l'admin) et la version jouée (publiée, sinon la dernière).
 const STUDIO_BY = 'Elixir Game Studio', STUDIO_BY_COURT = 'Elixir';
-const TILE_VER = (() => { const n = {}; for (const raw of window.JDW_NOTES || []) { const m = String(raw).trim().match(/^\[([a-z0-9-]+)\]\s*##/); if (m) n[m[1]] = (n[m[1]] || 0) + 1; } return n; })();
+// 2.0.84 (l'admin : « V1 ») : on part de V1 le 4 nov. 2026 (borne 2.0.83) ; seules les notes publiées APRÈS comptent (+1 chacune)
+const TILE_VER_DEPART = '2.0.83';
+const TILE_VER = (() => { const n = {}; for (const raw of window.JDW_NOTES || []) { const m = String(raw).trim().match(/^\[([a-z0-9-]+)\]\s*##.*\(borne (\d+(?:\.\d+)*)\)/); if (m && vcmp(m[2], TILE_VER_DEPART) > 0) n[m[1]] = (n[m[1]] || 0) + 1; } return n; })();
 function tileVersion(id) {
   try { const x = ATL_NES.has(id) && ATL_JEUX.get(id); if (x) return (x.version_publiee | 0) || (x.version | 0) || 1; } catch (e) {}
   return 1 + (TILE_VER[id] || 0);
