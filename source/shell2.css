@@ -4821,3 +4821,4 @@ body.atl-on .lose-tip{display:none}
 @media (max-width:640px){.atl-ofnb{display:block;margin:0 0 8px;text-align:center;color:#ffe9a8;font:800 13px var(--body);letter-spacing:.04em}.atl-ofsuite{display:block;margin:-4px 0 0;text-align:center;color:var(--muted);font:700 12.5px var(--body);animation:atlOfSuite 1.6s ease-in-out infinite}}
 @keyframes atlOfSuite{0%,100%{transform:translateY(0);opacity:.75}50%{transform:translateY(3px);opacity:1}}
 @media (prefers-reduced-motion:reduce){.atl-ofsuite{animation:none}}
+.gmap-node.mine.cur .gn-lab small::after{content:none}   /* 2.0.80 : l'étape en cours (Noisette, L'Explorateur) : « TOI » sans ✓ */

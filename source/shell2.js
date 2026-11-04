@@ -11751,6 +11751,7 @@ const MAP_DEFS = {
   noisette: {
     v6() { try { const v = atlVoulue('noisette'); return v >= 6 && ATL_MODS_OK.get('noisette@' + v) !== null; } catch (e) { return false; } },
     get word() { return MAP_DEFS.noisette.v6() ? 'Chapitre' : 'Niveau'; },
+    encours: true,   // 2.0.80 (chef) : currentLevel = le chapitre / monde où est Noisette, pas encore fini : pas de ✓ dessus
     theme: 'noisette', tierGap: 130, tierAt: 0.5, step: 200, nodeSize: 56, bgDpr: 1.5,
     N: [['La forêt du matin', 'Pompon le lapin', '#7fd35a', '🌳'], ['Le sous-bois aux champignons', 'Piquant le hérisson', '#5fb06a', '🍄'],
       ['La rivière et ses rondins', 'Hulotte la chouette', '#5fc4ff', '🌊'], ['Le grand chêne', 'Roussette la renarde', '#e8a03a', '🌰']],
@@ -11806,6 +11807,7 @@ const MAP_DEFS = {
 // (meilleur niveau, file d'envoi, progboot), sinon progBoot renverrait l'ancien 7 ou 9 au serveur (remis à zéro à la livraison).
 const MAP_LUNE = {
   title: 'L’Explorateur de l’espace',
+  encours: true,   // 2.0.80 : niveau = chapitres réussis + 1 → le chapitre en cours n'a pas de ✓
   num: lv => lv,   // le numéro du chapitre sur le nœud (le thème « space » compterait de 1 à 8 par secteur, comme Galaxy Wars)
   theme: 'space', word: 'Chapitre', tierGap: 170, tierAt: 0.58,
   count: () => 13,
@@ -14199,6 +14201,7 @@ function mapUpdate(animate) {
   for (const [nm, lv] of people) { if (!here.has(lv)) here.set(lv, []); here.get(lv).push(nm); }
   L.nodes.forEach((nd, i) => {
     const el = nd.el; el.classList.toggle('mine', nd.lv <= mine); el.classList.toggle('reached', nd.lv <= max); el.classList.toggle('far', nd.lv > max);
+    el.classList.toggle('cur', !!def.encours && nd.lv === mine && !(nd.info && nd.info.win));   // 2.0.80 : étape EN COURS (def.encours) : « TOI » sans ✓
     el.classList.toggle('me-here', nd.lv === mine);
     const who = here.get(nd.lv) || [];
     el.setAttribute('aria-label', nd.info.kicker + ', ' + nd.info.name + (who.length ? ' : ' + who.map(w => w === me ? 'toi' : w).join(', ') : ''));
