@@ -10,6 +10,8 @@
 [remparts] 🗺️ Sur l'écran des mondes, toucher un monde ne lance plus la partie : il se déplie sur place et montre son niveau classique, puis ses 4 régions de 5 niveaux avec leurs cadenas, leurs étoiles et leur gardien. Tu touches le niveau que tu veux jouer.
 [remparts] ▸ Un seul monde ouvert à la fois, et celui où tu en es s'ouvre tout seul quand tu arrives. Un monde encore fermé se déplie aussi, en grisé, pour voir ce qui t'attend. La Crypte oubliée se déplie pareil.
 [remparts] 📣 Les grandes annonces (« TOURS ÉBLOUIES ! »…) passent au-dessus de tout, sur un fond sombre : plus rien ne se met devant les lettres.
+[borne] ## 🖼️ « Mes projets » montre ta tuile en entier (borne 2.0.88)
+[borne] 🖼️ Dans « Mes projets », l’image de chaque projet est maintenant au même format que sa tuile sur la borne (4:3), sans rien de coupé en bas ni voile sombre.
 [borne] ## ✨ Les jeux de l’Atelier disent quand ils changent (borne 2.0.87)
 [borne] ✨ Quand un jeu né à l’Atelier sort une nouvelle version, sa tuile porte « Mis à jour » jusqu’à ce que tu l’ouvres, comme les jeux du studio, et la cloche te dit ce qui a changé (par exemple La Maison des Licornes V18).
 [borne] ## 🐣 Ton compagnon de l’Atelier est vivant (borne 2.0.86)
