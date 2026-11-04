@@ -14624,6 +14624,8 @@ function atlMineMark(wrap, b, id) {
   for (const o of wrap.querySelectorAll('.tile-mine,.tile-mod,.tile-mineclip,.tile-pen')) o.remove();
   for (const o of b.querySelectorAll('.tile-by')) o.remove();
   wrap.classList.toggle('atl-mine', !!x.mien); wrap.classList.add('atl-game'); wrap.classList.remove('has-mod');
+  { const ti = b.querySelector('.tile-img'); let jq = ti && ti.querySelector('.atl-jaq'); const u = x.vignette ? atlIaUrl(x.vignette) : '';   // 2.0.81 : la jaquette de l'Atelier, la même que dans l'Atelier
+    if (ti && u) { if (!jq) { jq = atlEl('img', 'atl-jaq'); jq.alt = ''; ti.appendChild(jq); } if (jq.src !== u) jq.src = u; } else if (jq) jq.remove(); }
   if (/^publie_/.test(String(x.etat || ''))) { b.classList.remove('tile-labo'); for (const o of b.querySelectorAll('.tile-labo-clip')) o.remove(); }   // 2.0.31 : publié = plus « TEST »
   if (x.mien) {
     const clip = atlEl('div', 'tile-mineclip'); clip.setAttribute('aria-hidden', 'true'); clip.appendChild(atlEl('span', 'tile-mine', 'MON JEU')); wrap.appendChild(clip);
@@ -14641,7 +14643,7 @@ async function atlJeuxLoad() {
   const invite = isGuest() || !profile.name, me = invite ? '' : cleanName(profile.name);
   let l; try { l = invite ? await rpc('at_jeux_monde', {}, { quiet404: true, quiet: true }) : await rpc('at_jeux', { p_name: profile.name, p_salle: room && room.id ? room.id : null }, { quiet404: true, quiet: true }); } catch (e) { return; }   // 2.0.30 : les jeux des membres de CETTE salle
   if ((invite ? '' : cleanName(profile.name)) !== me || !Array.isArray(l)) return;
-  l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien, version_publiee: x.version_publiee | 0, version: x.version | 0, createur: String(x.createur || '').slice(0, 20), fiche: /^[0-9a-f-]{36}$/.test(String(x.fiche || '')) ? String(x.fiche) : '', orientation: /^(portrait|paysage|les2)$/.test(String(x.orientation || '')) ? String(x.orientation) : '' }));
+  l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), vignette: /^i\/[0-9a-f-]{36}\.(png|jpg|webp)$/.test(String(x.vignette || '')) ? String(x.vignette) : '', titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien, version_publiee: x.version_publiee | 0, version: x.version | 0, createur: String(x.createur || '').slice(0, 20), fiche: /^[0-9a-f-]{36}$/.test(String(x.fiche || '')) ? String(x.fiche) : '', orientation: /^(portrait|paysage|les2)$/.test(String(x.orientation || '')) ? String(x.orientation) : '' }));
   const all = store.get('jdw.atl.jeux', {}) || {}, was = JSON.stringify(all[me] || []);
   all[me] = l; store.set('jdw.atl.jeux', all);
   if (was === JSON.stringify(l)) return;
@@ -15409,7 +15411,7 @@ function atlRenderProjet(W, f) {
   // en-tête : le design, le titre, l'état
   const dz = (f.design && atlIaUrl(f.design.f)) || atlIaUrl((as.find(a => a.sorte === 'grande image' && atlIaUrl(a.image)) || {}).image);
   const hd = atlEl('header', 'atl-phd');
-  const hv = atlEl('div', 'atl-phv'); if (dz) { const im = atlEl('img'); im.alt = ''; im.src = dz; im.addEventListener('click', () => atlZoom(dz)); hv.appendChild(im); } else hv.textContent = '🎮';
+  const hv = atlEl('div', 'atl-phv'); { const jq = atlJaquette(f, jouable ? g : null); if (jq.tagName === 'IMG') jq.addEventListener('click', () => atlZoom(jq.src)); hv.appendChild(jq); }   // 2.0.81 : la jaquette unique, pas l'affiche du design
   const ht = atlEl('div', 'atl-pht');
   ht.append(atlEl('h1', '', f.titre || 'Mon jeu sans nom'), atlEl('span', 'atl-pet atl-pet-' + et + atlPastCls(f), atlVersion(f)));
   ht.appendChild(atlEl('small', '', 'Commencé le ' + atlDate(f.created_at) + (f.envoyee_at ? ' · conception lancée le ' + atlDate(f.envoyee_at) : '')));
@@ -15445,10 +15447,7 @@ function atlRenderProjet(W, f) {
     const acc = (g && g.accent) || COLORS.amber; wrap.style.setProperty('--acc', acc); po.style.setProperty('--acc', acc);
     const lt = document.querySelector('#jdw-grid .tile-wrap .tile'), lw = lt ? lt.getBoundingClientRect().width : 0; if (lw > 120) wrap.style.width = Math.round(lw) + 'px';
     const ti = atlEl('div', 'tile-img');
-    const anim = atlVignetteUrl(f, 'vignette_animee');   // 23 h 15 (Benjamin) : l'image animée est payante (ou offerte par l'admin)
-    if (anim) { const im = atlEl('img'); im.alt = ''; im.src = anim; im.className = 'atl-gtimg'; ti.appendChild(im); }
-    else if (f.tuile_animee && g && typeof g.preview === 'function') { const cv = document.createElement('canvas'); cv.setAttribute('aria-hidden', 'true'); ti.appendChild(cv); atlTuileVivante(cv, g); po._cv = cv; }
-    else if (vg) { const im = atlEl('img'); im.alt = ''; im.src = vg; im.className = 'atl-gtimg'; ti.appendChild(im); } else ti.textContent = '🎮';
+    { const jq = atlJaquette(f, g, 'atl-gtimg'); if (jq.tagName === 'CANVAS') { jq.className = ''; po._cv = jq; } ti.appendChild(jq); }   // 2.0.81 : la jaquette unique
     ti.appendChild(atlEl('span', 'atl-gver', 'V' + ((f.version | 0) || 1)));
     const tm = atlEl('div', 'tile-meta'), tnm = atlEl('div', 'tile-name', f.titre || (g && g.title) || 'Mon jeu'); tm.appendChild(tnm); po.append(ti, tm); po.disabled = !g;
     // 2.0.74 : g = le module EMBARQUÉ (ex. « Seul sur la Lune ») ; la tuile prend le titre de la fiche et l'aperçu de la version à jouer, une fois chargée
@@ -16497,6 +16496,18 @@ function atlTuileVivante(c, g) {
   setTimeout(() => requestAnimationFrame(step), 30);
 }
 // 0 h 45 (Benjamin) : l'IMAGE DE PRÉSENTATION du jeu (sa tuile) = l'élément d'interface de rôle « vignette » (sinon le design) ;
+// 2.0.81 (l'admin : « l'image de présentation c'est l'image de la jacket, il n'y en a qu'une seule ») : UNE jaquette, la même partout (tuile de la
+// borne, « Comme les autres la voient », en-tête du projet, aperçu de « Modifier l'image de présentation ») : l'élément role 'vignette_animee'
+// ou 'vignette' s'il existe, sinon l'aperçu DESSINÉ PAR LE JEU (version jouée, comme la tuile de la borne). Les affiches du design restent dans
+// Éléments / Le design ; seulement avant la V1 (pas encore de jeu), l'affiche choisie tient lieu de jaquette.
+function atlJaqUrl(f) { return atlVignetteUrl(f, 'vignette_animee') || atlVignetteUrl(f, 'vignette'); }
+function atlJaquette(f, g, cls) {
+  const u = atlJaqUrl(f), dz = (f && f.design && atlIaUrl(f.design.f)) || (f && atlIaUrl(f.vignette));
+  if (u || !(g && typeof g.preview === 'function')) { if (!u && !dz) { const e = atlEl('span', cls || '', '🎮'); return e; } const im = atlEl('img', cls || ''); im.alt = ''; im.src = u || dz; return im; }
+  const cv = document.createElement('canvas'); cv.className = cls || ''; cv.setAttribute('aria-hidden', 'true'); atlTuileVivante(cv, g);
+  if (ATL_NES.has(f.jeu) && (f.version | 0) > 0) atlModule(f.jeu, f.version | 0).then(g2 => { if (g2 && typeof g2.preview === 'function') cv._g = g2; }).catch(() => {});
+  return cv;
+}
 // « 🖼️ Modifier l'image de présentation » : une demande au guide, image fixe (cout_image) ou ANIMÉE (cout_tuile_animee), image actuelle jointe
 function atlVignetteUrl(f, role) {
   const as = Array.isArray(f && f.assets) ? f.assets : [];
@@ -16508,7 +16519,8 @@ function atlVignetteDem(f, url) {
   const c = atlEl('div', 'atl-mcard'), hd = atlEl('div', 'atl-arh'), ht = atlEl('div');
   ht.append(atlEl('b', '', gNM()), atlEl('p', '', 'Comment veux-tu l’image de présentation de « ' + (f.titre || 'ton jeu') + ' » ? C’est l’image de sa tuile sur la borne.'));
   hd.append(atlGuideAv('atl-wav'), ht); c.appendChild(hd);
-  if (url) { const im = atlEl('img', 'atl-demimg'); im.alt = ''; im.src = url; c.appendChild(im); }
+  // 2.0.81 : l'aperçu = la jaquette ACTUELLE de la tuile (celle que voient les joueurs), jamais l'affiche du design
+  { const gj = f && f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(String(f.etat || '')) ? (window.JDW_GAMES || {})[f.jeu] : null, jq = atlJaquette(f, gj, 'atl-demimg'); c.appendChild(atlEl('small', 'atl-jaqlab', 'Ta tuile aujourd’hui :')); c.appendChild(jq); url = atlJaqUrl(f); }
   let type = 'vignette';
   const ch = atlEl('div', 'atl-vchoix'), opt = (k, t, d) => { const b = atlEl('button', 'atl-vopt' + (k === type ? ' on' : '')); b.type = 'button'; b.append(atlEl('b', '', t + (px[k] ? ' · ' + px[k] + ' 💎' : '')), atlEl('small', '', d)); b.addEventListener('click', () => { type = k; for (const x of ch.children) x.classList.toggle('on', x === b); go.textContent = 'Envoyer ' + gA() + (px[type] ? ' · ' + px[type] + ' 💎' : ''); }); ch.appendChild(b); };
   opt('vignette', '🖼️ Image fixe', 'une nouvelle image');
