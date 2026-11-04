@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 📱 La page de ton projet, plus simple (borne 2.0.95)
+[borne] 📱 Sur téléphone, le haut de la page d’un projet ne garde que son titre et sa version : la grande image est déjà dans la tuile « Comme les autres la voient », et les onglets Jouer, Mes demandes et Éléments arrivent tout de suite.
+[borne] 🌍 Les deux gros boutons de publication deviennent une seule liste « Publication : » (Non publié, Dans mes salles, Demander la mise en ligne mondiale). Elle montre toujours où en est ton jeu, par exemple « Mondial », et demande la même confirmation qu’avant.
+[borne] ⚙️ L’image de ta tuile, le sens de l’écran et le nom du créateur sont rangés dans « Réglages du jeu ». Sur téléphone, « Mes projets » ne montre plus deux fois les mêmes raccourcis.
 [borne] ## 💬 Tout ton projet dans une seule conversation (borne 2.0.94)
 [borne] 💬 « Discuter du jeu » raconte maintenant tout ton projet, dans l’ordre : tes demandes, les réponses et les questions, les propositions avec leur prix, chaque étape du travail en direct (« Étape 2/4 ») et chaque livraison.
 [borne] 🎉 À chaque nouvelle version, un message « Ta V… est sortie ! » te dit ce qu’elle apporte, avec un gros bouton « ▶️ Essayer » qui lance le jeu tout de suite. Le même bandeau t’attend en haut de la page du projet tant que tu ne l’as pas essayée.
