@@ -158,6 +158,11 @@
 [atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : {g} monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
 [atelier] 🎁 À ta première visite, {g} t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
 
+[abracadabra] ## 🌿 Abracadabra : plus personne ne s'envole, et la nature plus belle (borne 2.0.66)
+[abracadabra] 🦖 Quand le T-rex surgit, les villageois s'enfuient en courant… sans plus jamais grimper en l'air sur les toits.
+[abracadabra] 🐢 Mission 6 : la tortue accoste au bord de la plage, tout le monde descend les pieds dans le sable.
+[abracadabra] 🐑 Mission 12 : le chien de berger trotte pour de vrai, et les moutons rentrent par la barrière au lieu de traverser l'enclos.
+[abracadabra] 🌱 De vrais brins d'herbe qui ondulent au vent, des galets et des coquillages sur le sable, le ciel qui se reflète dans la rivière, et des bêtes qui marchent sans glisser.
 [abracadabra] ## 🦕 Abracadabra : des dinosaures tout en rondeurs (borne 2.0.55)
 [abracadabra] 🦕 Les dinosaures, le renard, l'alpaga et l'âne ne sont plus « carrés » : leurs formes sont lissées et arrondies, ils bougent toujours aussi bien.
 [abracadabra] 😱 Quand le T-rex attaque, plus personne ne bavarde : on n'entend que des cris.
