@@ -6,6 +6,13 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[lune] ## 🗺️ L'Explorateur de l'espace : une carte plus belle et plus claire (borne 2.0.74)
+[lune] 👾 Sur la carte, les médaillons des 3 grands boss sont dessinés par le jeu lui-même, et le numéro de chaque chapitre est écrit sur son étape (11, 12…).
+[lune] 🏷️ Le nom de chaque région tient en entier dans son cadre, même sur un petit téléphone, et la carte, la tuile et la cloche portent bien le nom « L'Explorateur de l'espace ».
+[atelier] ## 💬 Tout ce que dit {G} se lit en entier (borne 2.0.74)
+[atelier] 💬 Dans le cadre « Je travaille sur… » de l'onglet Jouer et dans les bulles des tickets, les phrases de {G} ne sont plus coupées : le texte passe à la ligne et le cadre grandit.
+[atelier] 🎯 Chaque demande en cours montre ce que tu as écrit (par exemple après un arrêt sur image) ; une demande très longue a un « voir plus ».
+[atelier] 🖼️ La tuile de ton jeu dans l'Atelier montre son vrai titre et l'aperçu de la dernière version.
 [chrono] ## 🏁 Turbo Chrono : 4 nouveaux circuits dans 4 mondes (borne 2.0.73)
 [chrono] 🌋 Le Volcan : la route file entre des rivières de lave qui rougeoient, saute par-dessus une coulée brûlante, passe sous une cascade qui tombe sur la piste et fait un looping au pied d'une falaise où l'eau tombe dans la lave en nuages de vapeur ; au loin, le volcan fume et crache du feu.
 [chrono] 🏖️ La Plage : sable chaud, palmiers qui bougent au vent, un lagon turquoise au milieu du circuit, un grand saut au-dessus du chenal, des bosses dans les dunes, un phare, des voiliers et des mouettes.

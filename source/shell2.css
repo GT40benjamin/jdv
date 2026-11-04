@@ -1672,6 +1672,7 @@ body.net-off #jdw-coop-switch [data-where=ami] span::after{content:" · réseau"
 .gs-ship{position:absolute;left:-20px;top:-62px;width:40px;height:56px;filter:drop-shadow(0 0 8px rgba(56,225,255,.55))}
 .gs-flame{transform-origin:20px 43px;animation:gsFlame .14s ease-in-out infinite alternate}
 @keyframes gsFlame{to{transform:scaleY(.65)}}
+.gm-sumtx small.gm-hint{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .gm-sumtx .gm-k{font:400 10px/1.2 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--nc,#ffd34d)}
 
 /* étapes « BOSS » sur le chemin de la carte */
@@ -4795,3 +4796,12 @@ body.atl-on .lose-tip{display:none}
 .gmap-ttl h2{overflow:hidden;text-overflow:ellipsis}
 .gmap[data-theme=noisette] .gmap-ttl h2{color:#fff3d6;text-shadow:0 3px 0 rgba(30,20,6,.85),0 0 16px rgba(232,138,58,.55)}
 .gmap[data-theme=noisette] .gs-art{position:absolute;left:-130px;top:-52px;pointer-events:none;filter:drop-shadow(0 4px 5px rgba(0,0,0,.45))}
+/* 2.0.74 (Benjamin : « il faut que l'on puisse voir tout ce que veut dire la mascotte ») : plus de phrase coupée par « … » dans les cadres de travail et les bulles : le texte passe à la ligne, le cadre grandit */
+.atl-travail ul{height:auto;overflow:visible}
+.atl-travail ul li{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.atl-tlive,.atl-travail .atl-tlive{height:auto;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.atl-travail > div:last-child > *{overflow:visible;text-overflow:clip}
+.atl-travail > div:last-child > b{white-space:normal;overflow-wrap:anywhere}
+.atl-dthink p{height:auto;display:block;overflow:visible;-webkit-line-clamp:unset;overflow-wrap:anywhere}
+.atl-dthink b,.atl-travb > div > b{display:block;-webkit-line-clamp:unset;white-space:normal;overflow:visible}
+.atl-vplus{border:0;background:none;padding:0;color:#ffd34d;font:700 12.5px var(--body);text-decoration:underline;cursor:pointer}

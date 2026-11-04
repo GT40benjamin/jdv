@@ -70,10 +70,12 @@ const ATL_JEUX = (() => {
     const l = n && Array.isArray(all[n]) ? all[n] : []; return new Map(l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => [String(x.jeu), x])); } catch (e) { return new Map(); }
 })();
 const laboOk = id => !LABO.has(id) || LABO_TEST || ATL_JEUX.has(id);
+// 2.0.74 : le titre d'un jeu de l'Atelier = celui de sa fiche (at_jeux), pas celui du module embarqué (« Seul sur la Lune » pour L'Explorateur V9)
+const atlTitre = g => { try { const x = g && ATL_NES.has(g.id) && ATL_JEUX.get(g.id); if (x && x.titre) return String(x.titre); } catch (e) {} return g ? g.title : ''; };
 // 2 nov. 17 h 30, Benjamin : un jeu NÉ À L'ATELIER n'a PAS de tuile sur la borne (ni en mode test, ni « ⭐ MON JEU ») tant qu'il n'est pas
 // publié : en alpha il se trouve et se joue UNIQUEMENT dans l'Atelier (page du projet, onglet 🎮 Jouer). Il arrive sur la borne avec
 // « Publier dans ma salle » (salle du joueur) ou la mise en ligne mondiale acceptée — at_jeux le dit (etat publie_salle / publie_monde).
-const ATL_NES = new Set(['licornes', 'lune', 'noisette', 'trone']);   // 2.0.73 : Trôn-e (REMS, fiche 9af84595) : assets/jeux/trone/vN.js, secours source/games/trone.js (live: true)
+const ATL_NES = new Set(['licornes', 'lune', 'noisette', 'trone']);   // 2.0.74 : Trôn-e (REMS, fiche 9af84595) : assets/jeux/trone/vN.js, secours source/games/trone.js (live: true)
 // 2.0.20 (Benjamin : « ici au moins c'est clair ») : le sens choisi sur la page du projet (at_fiches.orientation), par id du jeu
 const ATL_ORIENT = new Map();
 const atlOrientFiche = id => { const o = String(ATL_ORIENT.get(id) || ((typeof ATL_JEUX !== 'undefined' && ATL_JEUX.get(id)) || {}).orientation || ''); return /^(portrait|paysage|les2)$/.test(o) ? o : ''; };   // les jeux nés à l'Atelier (id du module) : à compléter à chaque nouveau jeu de l'Atelier
@@ -2195,7 +2197,7 @@ function notifRow(n, isNew) {
 // NOTES rangées par JEU : un bloc par jeu (icône + nom + dernière version), ses versions de la plus récente à la plus ancienne ; les jeux
 // dans l'ordre de leur dernière nouveauté. Ce qui est déjà vu : replié dans « Avant » (ou tout replié si on rouvre l'historique).
 const NOTE_IC = { noisette: '🐿️', lune: '🌕', trone: '🚽', licornes: '🦄', atelier: '✏️', remparts: '🏰', abracadabra: '🪄', flechettes: '🎯', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
-const noteName = (id) => { const g = id === 'pegase' || id === 'borne' ? null : (gameById(id) || duoById(id)); return id === 'pegase' ? 'Pégase' : id === 'borne' ? 'La borne' : id === 'atelier' ? 'L’Atelier des jeux' : g ? g.title : id; };
+const noteName = (id) => { const g = id === 'pegase' || id === 'borne' ? null : (gameById(id) || duoById(id)); return id === 'pegase' ? 'Pégase' : id === 'borne' ? 'La borne' : id === 'atelier' ? 'L’Atelier des jeux' : g ? atlTitre(g) : id; };
 function notesByGame(blocks) {
   const G = new Map(); for (const b of blocks) { if (!G.has(b.id)) G.set(b.id, []); G.get(b.id).push(b); }
   const out = [...G.entries()].map(([id, l]) => ({ id, blocks: l.sort((x, y) => vcmp(y.v, x.v)) }));
@@ -3201,7 +3203,7 @@ function gameTile(grid, g) {
     b.type = 'button'; b.className = 'tile'; b.style.setProperty('--acc', g.accent || COLORS.amber);
     b.setAttribute('aria-label', 'Jouer à ' + g.title);
     b.innerHTML = '<div class="tile-img"><canvas aria-hidden="true"></canvas></div><div class="tile-meta"><div class="tile-name"></div><div class="tile-online"><i></i><span></span></div></div>';
-    b.querySelector('.tile-name').textContent = g.title;
+    b.querySelector('.tile-name').textContent = atlTitre(g);
     b.addEventListener('click', () => { markGameSeen(g.id); openGame(g); });   // clic sur la tuile : l'étiquette « Nouveau » / « Mis à jour » s'en va
     // la tuile est enveloppée : la bulle du champion est un bouton à part (elle ouvre le classement de la salle, pas le jeu)
     const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', g.accent || COLORS.amber);
@@ -11801,6 +11803,7 @@ const MAP_DEFS = {
 // (meilleur niveau, file d'envoi, progboot), sinon progBoot renverrait l'ancien 7 ou 9 au serveur (remis à zéro à la livraison).
 const MAP_LUNE = {
   title: 'L’Explorateur de l’espace',
+  num: lv => lv,   // le numéro du chapitre sur le nœud (le thème « space » compterait de 1 à 8 par secteur, comme Galaxy Wars)
   theme: 'space', word: 'Chapitre', tierGap: 170, tierAt: 0.58,
   count: () => 13,
   // les chapitres et les régions sont recopiés ici (la carte s'ouvre aussi quand le jeu n'est pas encore chargé)
@@ -13444,6 +13447,8 @@ function openMap(gid, opener) {
   box.style.setProperty('--oy', r ? Math.round(r.top + r.height / 2) + 'px' : '90%');
   box.classList.remove('closing'); box.classList.add('opening'); box.hidden = false;
   mapBuild(true); mapTitreFit();
+  // 2.0.74 : jeu de l'Atelier dont la version jouée n'est pas encore chargée : on la charge, puis la carte se redessine (médaillons du jeu)
+  if (ATL_NES.has(gid)) { const v = atlVoulue(gid); if (v && !ATL_MODS_OK.has(gid + '@' + v)) atlModule(gid, v).then(g2 => { if (g2 && MAP.open && MAP.gid === gid) { for (const k of [...MF_MED.keys()]) if (k.indexOf('b' + gid + '-') === 0) MF_MED.delete(k); const sc = $('jdw-map-scroll'), keep = sc.scrollTop; mapBuild(false); sc.scrollTop = keep; } }).catch(() => {}); }
   setTimeout(() => box.classList.remove('opening'), 1600);
   setTimeout(() => $('jdw-map-close').focus({ preventScroll: true }), 60);
   Audio.ensure(); Audio.tone(392, 0.09, 'triangle', 0.035, 523); setTimeout(() => Audio.tone(659, 0.16, 'triangle', 0.03), 90);
@@ -13458,6 +13463,16 @@ function mapTitreFit() {
   const h = $('jdw-map-title'); if (!h) return; h.style.fontSize = '';
   const fit = () => { let f = parseFloat(getComputedStyle(h).fontSize) || 0; while (f > 16 && h.scrollWidth > h.clientWidth + 1) { f -= 1; h.style.fontSize = f + 'px'; } };
   fit(); requestAnimationFrame(fit);
+}
+// 2.0.74 (Équipe tests : « LES PÉRIPHÉRIES » sortait de son cadre en portrait) : le grand titre de chaque palier rapetisse jusqu'à tenir
+// dans la largeur de la carte (92 % moins les marges du cadre), sur toutes les cartes ; 12 px au plus petit
+function mapPaliersFit() {
+  const w = $('jdw-map-world'); if (!w) return;
+  const fit = () => { for (const b of w.querySelectorAll('.gt-plate > b')) {
+    b.style.fontSize = ''; const p = b.parentElement, max = p.parentElement.clientWidth * 0.92 - 40; if (!(max > 0)) continue;
+    let f = parseFloat(getComputedStyle(b).fontSize) || 0; while (f > 12 && b.scrollWidth > max) { f -= 1; b.style.fontSize = f + 'px'; }
+  } };
+  fit(); requestAnimationFrame(fit); if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (MAP.open) fit(); });
 }
 addEventListener('resize', () => { if (MAP.open) mapTitreFit(); });   // téléphone tourné
 function closeMap() {
@@ -14004,7 +14019,8 @@ const BOSS_ICON = {
   }
 };
 // 2.0.72 : les 3 médaillons des boss de L'Explorateur de l'espace (dessinés par le jeu : window.JDW_GAMES.lune.carte.icone)
-for (const k of ['droide', 'mere', 'gardien']) BOSS_ICON['lune-' + k] = x => { const G = window.JDW_GAMES && window.JDW_GAMES.lune; if (G && G.carte && G.carte.icone) G.carte.icone(k, x); };
+// 2.0.74 : le dessin vient de la version CHARGÉE (atlModule remet l'embarqué dans JDW_GAMES : sans ça, médaillons vides)
+for (const k of ['droide', 'mere', 'gardien']) BOSS_ICON['lune-' + k] = x => { let G = null; try { G = ATL_MODS_OK.get('lune@' + atlVoulue('lune')) || null; } catch (e) {} G = G || (window.JDW_GAMES && window.JDW_GAMES.lune); if (G && G.carte && G.carte.icone) G.carte.icone(k, x); };
 // médaillon du boss : cadre menaçant (couronne de pointes / octogone danger) + dessin du boss ; or + couronne pour le boss de fin de cycle
 function mapBossCanvas(def, bi, size) {
   const c = document.createElement('canvas'), dpr = Math.min(3, (window.devicePixelRatio || 1) * (MAP.z || 1)), P = size + 34;
@@ -14094,6 +14110,7 @@ function mapBuild(animate) {
     if (t.T.sub) mapEl('span', '', p).textContent = t.T.sub;
     b.dataset.tier = t.t;
   }
+  mapPaliersFit();   // 2.0.74 : chaque titre de palier tient dans son cadre
   // départ et suite
   const st = mapEl('div', 'gmap-start', world); st.style.left = L.start.x + 'px'; st.style.top = L.start.y + 'px';
   mapEl('i', 'gs-pad', st);
@@ -14112,7 +14129,7 @@ function mapBuild(animate) {
     const el = mapEl('div', 'gmap-node', world); el.style.left = nd.x + 'px'; el.style.top = nd.y + 'px'; el.style.setProperty('--nc', nd.info.acc);
     el.setAttribute('role', 'img');
     const pin = mapEl('div', 'gn-pin', el); pin.appendChild(mapNodeCanvas(def, nd.info, def.nodeSize || (def.theme === 'space' ? 54 : 52)));
-    mapEl('b', 'gn-num', pin).textContent = def.theme === 'space' ? String((nd.lv - 1) % 8 + 1) : String(nd.lv);
+    mapEl('b', 'gn-num', pin).textContent = def.num ? String(def.num(nd.lv)) : def.theme === 'space' ? String((nd.lv - 1) % 8 + 1) : String(nd.lv);   // 2.0.74 : def.num (L'Explorateur : le n° du chapitre, pas celui de Galaxy Wars)
     const side = Math.abs(nd.x - W / 2) < L.A * 0.3 ? (nd.lv % 2 ? 'r' : 'l') : nd.x < W / 2 ? 'r' : 'l';
     const lab = mapEl('div', 'gn-lab ' + side, el);
     const room = side === 'r' ? W - 10 - (nd.x + 40) : nd.x - 40 - 10;
@@ -14314,6 +14331,7 @@ function mapUpdate(animate) {
   mapEl('small', '', tx).textContent = ahead
     ? (ahead[1] > myV ? 'Devant toi : ' + aName + ' · ' + (aSp ? (aSp.win ? 'grande victoire' : aSp.long) : def.word + ' ' + ahead[1]) : myV >= ahead[1] && myV > 0 ? (ahead[1] === myV ? 'À égalité en tête avec ' + aName : 'Tu mènes la salle !') : '')
     : mine ? 'Ton meilleur ' + def.word.toLowerCase() : 'Lance une partie pour poser ta tête sur la carte';
+  if (!ahead && !mine) tx.lastChild.classList.add('gm-hint');   // 2.0.74 : sur 2 lignes plutôt que coupé (« … poser ta t… »)
   // les scores : le sien (s'il est devant ou à égalité) et le mien
   const myS = scores.get(me) || 0, aS = ahead && ahead[1] >= myV ? scores.get(ahead[0]) || 0 : 0;
   const parts = [];
@@ -15397,7 +15415,7 @@ function atlRenderProjet(W, f) {
       tx.append(atlEl('b', '', '🛠️ Je prépare ta V' + (vN + 1) + ' de « ' + (f.titre || 'ton jeu') + ' »…'));
       // 2.0.24 (Benjamin : « la seule chose qui bouge, c'est la mascotte, et point ») : un cadre de taille FIXE — 3 lignes de liste au plus (« + n autres »),
       // la ligne « En ce moment » toujours là (vide au départ) ; les textes changent sur place, coupés par « … », sans rien pousser
-      const ul = atlEl('ul'); for (const t of prepa.slice(0, prepa.length > 3 ? 2 : 3)) ul.appendChild(atlEl('li', '', String(t).slice(0, 90))); if (prepa.length > 3) ul.appendChild(atlEl('li', 'atl-tplus', '+ ' + (prepa.length - 2) + ' autres choses'));
+      const ul = atlEl('ul'); for (const t of prepa.slice(0, prepa.length > 3 ? 2 : 3)) ul.appendChild(atlVoirPlus('li', '', String(t))); if (prepa.length > 3) ul.appendChild(atlEl('li', 'atl-tplus', '+ ' + (prepa.length - 2) + ' autres choses'));
       tx.append(ul, atlEl('p', 'atl-tlive', '\u00a0'), atlEl('small', '', 'Je te préviens dès que c’est prêt 🔔 · Tu joues à la V' + vN + ' en attendant'));
       tb.append(sc, tx); p.appendChild(tb);
     }
@@ -15410,10 +15428,12 @@ function atlRenderProjet(W, f) {
     const ti = atlEl('div', 'tile-img');
     const anim = atlVignetteUrl(f, 'vignette_animee');   // 23 h 15 (Benjamin) : l'image animée est payante (ou offerte par l'admin)
     if (anim) { const im = atlEl('img'); im.alt = ''; im.src = anim; im.className = 'atl-gtimg'; ti.appendChild(im); }
-    else if (f.tuile_animee && g && typeof g.preview === 'function') { const cv = document.createElement('canvas'); cv.setAttribute('aria-hidden', 'true'); ti.appendChild(cv); atlTuileVivante(cv, g); }
+    else if (f.tuile_animee && g && typeof g.preview === 'function') { const cv = document.createElement('canvas'); cv.setAttribute('aria-hidden', 'true'); ti.appendChild(cv); atlTuileVivante(cv, g); po._cv = cv; }
     else if (vg) { const im = atlEl('img'); im.alt = ''; im.src = vg; im.className = 'atl-gtimg'; ti.appendChild(im); } else ti.textContent = '🎮';
     ti.appendChild(atlEl('span', 'atl-gver', 'V' + ((f.version | 0) || 1)));
-    const tm = atlEl('div', 'tile-meta'); tm.appendChild(atlEl('div', 'tile-name', (g && g.title) || f.titre || 'Mon jeu')); po.append(ti, tm); po.disabled = !g;
+    const tm = atlEl('div', 'tile-meta'), tnm = atlEl('div', 'tile-name', f.titre || (g && g.title) || 'Mon jeu'); tm.appendChild(tnm); po.append(ti, tm); po.disabled = !g;
+    // 2.0.74 : g = le module EMBARQUÉ (ex. « Seul sur la Lune ») ; la tuile prend le titre de la fiche et l'aperçu de la version à jouer, une fois chargée
+    if (g && ATL_NES.has(f.jeu) && (f.version | 0) > 0) atlModule(f.jeu, f.version | 0).then(g2 => { if (!g2) return; if (po._cv && typeof g2.preview === 'function') po._cv._g = g2; if (!f.titre && g2.title) tnm.textContent = g2.title; }).catch(() => {});
     // 2.0.32 (Benjamin) : « exactement ce que voient les autres joueurs » — la ligne du record de la salle et « by <nom du créateur> »
     { const on = atlEl('div', 'tile-online'), sp = atlEl('span'); on.append(atlEl('i'), sp); let tb = null; try { tb = g ? top(g.id)[0] : null; } catch (e) { tb = null; }
       sp.textContent = tb ? 'Record ' + fmt(tb.score) + unit(g) + ' · ' + dispName(tb.name) : 'Pas encore de record'; tm.appendChild(on);
@@ -16449,7 +16469,7 @@ function atlTuileVivante(c, g) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight; if (!w || !h) return;
     if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
     const x = c.getContext('2d'); x.save(); x.setTransform(dpr, 0, 0, dpr, 0, 0);
-    try { g.preview(x, w, h, ts / 1000); } catch (e) { x.fillStyle = COLORS.night; x.fillRect(0, 0, w, h); }
+    try { (c._g || g).preview(x, w, h, ts / 1000); } catch (e) { x.fillStyle = COLORS.night; x.fillRect(0, 0, w, h); }   // c._g : la version chargée (2.0.74)
     x.restore();
   };
   setTimeout(() => requestAnimationFrame(step), 30);
@@ -16779,6 +16799,15 @@ const ATL_DEM_SO = { vignette: '🖼️ Image de présentation', arret: '🎯 Ar
 // 2.0.9 : l'avancement d'une demande, étape par étape (at_demande_avancer) : « je prépare les images », « je construis », « je teste »…
 // 2.0.59 (Benjamin : « l'admin ne voit PAS la mascotte en train de travailler ») : la bulle d'un ticket en travail, identique chez le joueur
 // et dans la vue admin (« Demandes du projet (admin) ») ; elle se met à jour en direct (joueur : relue toutes les 3 s ; admin : atlAdminTravail)
+// 2.0.74 (Benjamin : « il faut que l'on puisse voir tout ce que veut dire la mascotte ») : plus aucune phrase coupée sans moyen de la lire ;
+// la ligne d'une demande = le texte du JOUEUR (sans le « (viseur à 27 % de la largeur…) » technique de l'arrêt sur image) ; très long : « voir plus »
+function atlDemLigne(x) { return String((x && x.choix && x.choix.libelle) || (x && x.texte) || '').replace(/\s*\(viseur à [^)]*\)/g, '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '').replace(/\s+/g, ' ').trim(); }
+function atlVoirPlus(tag, cls, t, n) {
+  t = String(t || ''); n = n || 180; const el = atlEl(tag, cls); if (t.length <= n) { el.textContent = t; return el; }
+  const court = t.slice(0, n).replace(/\s+\S*$/, ''), sp = atlEl('span', '', court + '… '), b = atlEl('button', 'atl-vplus', 'voir plus'); b.type = 'button';
+  b.addEventListener('click', e => { e.stopPropagation(); const ouvert = b.textContent === 'voir moins'; sp.textContent = ouvert ? court + '… ' : t + ' '; b.textContent = ouvert ? 'voir plus' : 'voir moins'; });
+  el.append(sp, b); return el;
+}
 function atlTravBulle(x, qui) {
   const l0 = Array.isArray(x && x.etapes) ? x.etapes.filter(e => e && (e.texte || e.etape)) : [], l = l0.filter(e => e.etape !== 'elements'), e = l[l.length - 1] || l0[l0.length - 1]; if (!e) return null;
   const ea = l0.filter(z => z.etape === 'elements' && String(z.at || '') >= String(e.at || '')).pop();   // 2.0.61 : « J'ai ajouté 3 éléments : … »
@@ -16823,7 +16852,7 @@ function atlTravailMaj() {
     const f = atlFiche(), mondial = l.some(x => /^🌍 Je demande la mise en ligne mondiale/.test(String(x.texte || '')));
     const tb = atlEl('div', 'atl-travail'), tx = atlEl('div'), ul = atlEl('ul'); tb.dataset.auto = '1';
     const sc = atlGuideScene(mondial ? ['Je vérifie que tout est beau…', 'Je teste ton jeu…', 'Je regarde les records…'] : ['Je réfléchis à ta demande…', 'Je prépare la suite…', 'Je te réponds bientôt…']);
-    for (const x of l.slice(0, 3)) ul.appendChild(atlEl('li', '', String((x.choix && x.choix.libelle) || x.texte || '').replace(/\s+/g, ' ').slice(0, 90)));
+    for (const x of l.slice(0, 3)) ul.appendChild(atlVoirPlus('li', '', atlDemLigne(x)));
     b = atlEl('p', 'atl-tlive', '\u00a0');
     tx.append(atlEl('b', '', mondial ? '🌍 Je regarde ton jeu pour le mettre partout…' : '🛠️ Je travaille sur « ' + ((f && f.titre) || 'ton jeu') + ' »…'), ul, b, atlEl('small', '', 'Je te préviens dès que c’est prêt 🔔'));
     tb.append(sc, tx); p.prepend(tb);
@@ -17420,7 +17449,7 @@ async function atlAdminDemandes() {
     const t = atlEl('div', 'atl-demt'), d0 = new Date(x.at);
     const d1 = new Date(x.etat_at), fdt = d => isNaN(d) ? '' : d.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     t.append(atlEl('b', 'atl-demet', (ATL_DEM_ET[x.etat] || x.etat) + (x.etat === 'vue' ? gN() : '') + (x.etat !== 'envoyee' && !isNaN(d1) ? ' · ' + fdt(d1) : '')),
-      atlEl('small', '', (ATL_DEM_SO[x.sorte] || '') + ' · ' + fdt(d0) + (x.cout ? ' · ' + x.cout + ' 💎' : '')), atlEl('p', '', String(x.texte || '').slice(0, 400)));
+      atlEl('small', '', (ATL_DEM_SO[x.sorte] || '') + ' · ' + fdt(d0) + (x.cout ? ' · ' + x.cout + ' 💎' : '')), atlVoirPlus('p', '', String(x.texte || ''), 400));   // 2.0.74 : plus coupé en silence
     if (x.reponse) t.appendChild(atlEl('p', 'atl-demrep', '🤖 Réponse envoyée : ' + x.reponse));
     if (!['faite', 'impossible'].includes(x.etat)) { const tb = atlTravBulle(x, dispName(((ATL.data && ATL.data.admin_voir) || {}).joueur || '') || 'le joueur'); if (tb) t.appendChild(tb); }   // 2.0.59
     if (Array.isArray(x.questions) && x.questions.length) t.appendChild(atlQuestions(x));   // 2.0.29 : les questions et les réponses du joueur
