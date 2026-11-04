@@ -1,45 +1,56 @@
 {
-  "version": "0.9.9.45",
-  "build": 96,
-  "size": 1671447871,
-  "sha256": "eaf27251aed1c5381b9ed040349bbdbf5f5443f2fa3c5dc20822c8377d8aa7c8",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v96/Pegase-PC-2026-11-03-0.9.9.45.zip",
-  "manifest": "ddecdeee7123ce234bfcdef4a0286377389e2fcf72ebcdd39eeb28239551eb6d",
+  "version": "0.9.9.46",
+  "build": 97,
+  "size": 1671502985,
+  "sha256": "a330419736f76a4e8fd5b4d01923d65d46994bea40a1b31dd9876ff8dd5acead",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v97/Pegase-PC-2026-11-04-0.9.9.46.zip",
+  "manifest": "6ddafabd404b9255ea709fc51701a2024cbacb669f169ac211304fe1c477d363",
   "patchs": [
     {
+      "de": "0.9.9.45",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v97/Pegase-PC-patch-0.9.9.45.zip",
+      "taille": 4989107,
+      "sha256": "204f735f5890a6ee23ea678eb6dc4a93b00d3eb9b5a4a194f06992dbfd01eb8a"
+    },
+    {
       "de": "0.9.9.44",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v96/Pegase-PC-patch-0.9.9.44.zip",
-      "taille": 5603459,
-      "sha256": "b538e107f22b5903c27935694bcd52aa759106172fb1c8de3c944cfd82c56cfe"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v97/Pegase-PC-patch-0.9.9.44.zip",
+      "taille": 6258296,
+      "sha256": "dcb5179caa78a047a242e89e59b458b88c6bbc841efe09f27ae2e5c1fce243a2"
     },
     {
       "de": "0.9.9.43",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v96/Pegase-PC-patch-0.9.9.43.zip",
-      "taille": 5899974,
-      "sha256": "f4fbf12831dfc04f8b0269e2afa0bef5d293c0391afc87ff08fe0a5d6ca44924"
-    },
-    {
-      "de": "0.9.9.42",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v96/Pegase-PC-patch-0.9.9.42.zip",
-      "taille": 7821883,
-      "sha256": "8d00c752aa9fe79bdd37c8a3c6030f6cfe0b2b224f0957444bea3ffa4f2037bc"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v97/Pegase-PC-patch-0.9.9.43.zip",
+      "taille": 6355097,
+      "sha256": "6b9978ddc4977ef6b61027d71524c78558210030584af53e5d08ea8db88c5704"
     }
   ],
   "notes": [
-    "Dehors, tes pas sonnent enfin selon le sol : herbe, terre, sable, gravier, pavés, pontons et ponts en bois.",
-    "À vélo, on entend les pneus rouler, plus fort quand tu vas vite, et le cliquet de la roue libre quand tu ne pédales pas.",
-    "Le parapluie claque en s'ouvrant et se froisse en se fermant ; la boîte aux lettres grince et ses lettres bruissent.",
-    "Les animaux muets ont leur vrai cri : le loup hurle la nuit, le cerf brame à l'aube, moutons et chèvres bêlent, la vipère siffle, la grenouille appelle et la biche donne l'alerte en fuyant.",
-    "La musique de l'écran de chargement et du téléchargement joue même quand la musique d'ambiance est coupée dans les réglages.",
-    "Les mains de Désiré ne rentrent plus dans son ventre ni dans son tablier.",
-    "Les habitants tiennent leur parapluie la main bien fermée autour du manche.",
-    "La nuit sous la pluie, plus de grosses barres blanches devant la caméra : les gouttes toutes proches restent fines.",
-    "La caméra ne saute plus en passant sous le store de Rosalie ni en frôlant son présentoir de biais.",
-    "Sur une paroi trop raide, tu glisses doucement jusqu'en bas au lieu de rester perchée, et jamais dans l'eau profonde sous l'arche.",
-    "Le bout de la rivière du haut descend en pente douce jusqu'aux galets : plus de mur d'eau.",
-    "Les bancs de poissons des criques ne nagent plus dans le sable."
+    "Les habitants qui passent près de toi font leurs pas sur le sol où ils marchent : herbe, sable, gravier, pierre, bois.",
+    "Les chats miaulent doucement quand tu approches et ronronnent si tu restes tout près d'eux.",
+    "La grande sauterelle verte et la cigale chantent depuis leur buisson.",
+    "S'asseoir sur un banc et se relever fait un doux froissement de vêtements.",
+    "Un petit clic feutré sur les boutons des écrans qui étaient muets : sac, barre d'objets, bar, téléphone…",
+    "Désiré montre ses deux mains, de face comme de trois quarts : plus de main cachée derrière le tablier.",
+    "Au bar, sur PC, le visage de Désiré est enfin éclairé : on voit ses yeux et son sourire.",
+    "Sur téléphone, les personnages dans l'hôtel, les boutiques et les maisons ont une lumière chaude : on voit enfin leurs visages.",
+    "Plus d'herbe qui pousse au fond de la mer ; les algues, elles, restent."
   ],
   "historique": [
+    {
+      "version": "0.9.9.46",
+      "notes": [
+        "Les habitants qui passent près de toi font leurs pas sur le sol où ils marchent : herbe, sable, gravier, pierre, bois.",
+        "Les chats miaulent doucement quand tu approches et ronronnent si tu restes tout près d'eux.",
+        "La grande sauterelle verte et la cigale chantent depuis leur buisson.",
+        "S'asseoir sur un banc et se relever fait un doux froissement de vêtements.",
+        "Un petit clic feutré sur les boutons des écrans qui étaient muets : sac, barre d'objets, bar, téléphone…",
+        "Désiré montre ses deux mains, de face comme de trois quarts : plus de main cachée derrière le tablier.",
+        "Au bar, sur PC, le visage de Désiré est enfin éclairé : on voit ses yeux et son sourire.",
+        "Sur téléphone, les personnages dans l'hôtel, les boutiques et les maisons ont une lumière chaude : on voit enfin leurs visages.",
+        "Plus d'herbe qui pousse au fond de la mer ; les algues, elles, restent."
+      ]
+    },
     {
       "version": "0.9.9.45",
       "notes": [
@@ -104,24 +115,6 @@
         "Plus de tête de cerf en trophée à l'hôtel : dans Pégase, on ne chasse pas les animaux.",
         "Dans les criques, les idoles des Maures montrent leurs bandes jaunes, blanches et noires quand tu les regardes de près. La nuit, ces poissons ne brillent plus.",
         "À vélo, le bord herbeux du plateau de l'est ne t'arrête plus « contre un rocher » : le retour de l'estuaire au village se fait d'une traite."
-      ]
-    },
-    {
-      "version": "0.9.9.41",
-      "notes": [
-        "Les chiens viennent tout près de toi, s'assoient à tes pieds et réclament : « Caresser » (E, ou le bouton cœur au téléphone), l'héroïne s'accroupit, le chien s'assoit tout content et un cœur s'envole. Les chats au repos te laissent approcher au pas et se laissent caresser aussi. (En robe ou en jupe, elle les caresse debout.) Et ils ne te poussent jamais.",
-        "Pêche en mer depuis les rochers et les plages : maquereau, chirurgiens, poisson-papillon, poisson-clown, idole des Maures, et plus au large cabillaud et mahi-mahi, selon le fond, l'heure et l'appât. Tes prises vont dans le sac et dans ton carnet des prises.",
-        "Dans 4 criques, des bancs de poissons de mer nagent près du bord : on les voit depuis la plage ou les rochers, et ils filent quand tu t'approches.",
-        "Les grandes cascades s'entendent quand tu t'en approches, et leur brume est blanche (et non plus beige) de jour comme au coucher du soleil.",
-        "Les falaises et les gros rochers derrière la plage ne sont plus d'un brun sombre : ils ont une couleur de grès plus claire et plus chaude, où l'on voit le relief de la roche.",
-        "Les cerfs, les biches et les autres grandes bêtes sauvages vivent leur journée : ils partent ensemble, en file, boire au lac ou à la rivière à l'aube et le soir, et se reposent à l'abri sous les arbres aux heures chaudes et la nuit. Dérangés, ils filent se cacher à leur place.",
-        "À l'hôtel, le salon n'est plus vide le soir : les clients y descendent un moment avant d'aller se coucher. On entend enfin l'intérieur (le bois qui craque, le dehors étouffé), Edmond et les clients ne récitent plus leurs adresses, et le grand fauteuil qui bouchait la chambre 8 est enlevé.",
-        "En haut à gauche, l'histoire principale a son étiquette dorée « HISTOIRE », et toutes les missions du jour sont affichées (jusqu'à 6, 4 au téléphone en hauteur).",
-        "Le viseur ne reconnaît plus « Le dernier géant » avant que l'histoire en parle.",
-        "La boîte aux lettres n'est plus prise dans le mur de la maison : elle recule vers le chemin.",
-        "Le téléphone des autres joueurs est tenu devant eux, à hauteur du ventre, au lieu de pendre au bout du bras.",
-        "À vélo, les grands plateaux de roche couverts d'herbe à l'est de l'île se roulent enfin, sans « Un rocher bloque le passage » sur le plat.",
-        "Les papillons ne volent plus sous les planchers, contre les murs ni dans la terrasse du coin cosy, et les animaux se chargent plus vite au lancement."
       ]
     }
   ]

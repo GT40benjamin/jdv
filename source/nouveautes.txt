@@ -6,6 +6,16 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🐈 Pégase 0.9.9.46 : le village s'anime en sons (borne 2.0.67)
+[pegase] 👣 Les habitants qui passent près de toi font leurs pas sur le sol où ils marchent : herbe, sable, gravier, pierre, bois.
+[pegase] 🐈 Les chats miaulent doucement quand tu approches et ronronnent si tu restes tout près d'eux.
+[pegase] 🦗 La grande sauterelle verte et la cigale chantent depuis leur buisson.
+[pegase] 🪑 S'asseoir sur un banc et se relever fait un doux froissement de vêtements.
+[pegase] 🖱️ Un petit clic feutré sur les boutons des écrans qui étaient muets : sac, barre d'objets, bar, téléphone…
+[pegase] 🍸 Désiré montre ses deux mains, de face comme de trois quarts : plus de main cachée derrière le tablier.
+[pegase] 🙂 Au bar, sur PC, le visage de Désiré est enfin éclairé : on voit ses yeux et son sourire.
+[pegase] 💡 Sur téléphone, les personnages dans l'hôtel, les boutiques et les maisons ont une lumière chaude : on voit enfin leurs visages.
+[pegase] 🌊 Plus d'herbe qui pousse au fond de la mer ; les algues, elles, restent.
 [pegase] ## 🔊 Pégase 0.9.9.45 : le monde se met à sonner (borne 2.0.53)
 [pegase] 👣 Dehors, tes pas sonnent enfin selon le sol : herbe, terre, sable, gravier, pavés, pontons et ponts en bois.
 [pegase] 🚲 À vélo, on entend les pneus rouler, plus fort quand tu vas vite, et le cliquet de la roue libre quand tu ne pédales pas.
