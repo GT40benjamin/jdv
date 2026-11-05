@@ -26,6 +26,9 @@
 [noisette] 🐿️ Sur la carte de la tuile, les arbres ne passent plus sur les mondes ni sur les titres, et les noisettes des mondes à venir restent bien claires.
 [jetporte] ## 🍑 Jet Porté arrive dans l’Atelier (borne 2.0.117)
 [jetporte] 🍑 Traite le rang de pêchers avant que le vent et la pluie s’en mêlent : 5 niveaux, du matin calme au coup de vent, avec la carte du verger sur la tuile et tes records par niveau.
+[borne] ## 💬 Ton projet, c’est une discussion avec {g} (borne 2.0.124)
+[borne] 💬 Tant que ta V1 n’est pas sortie, la page de ton projet est ta discussion avec {g} : tout ce que vous vous êtes dit, l’ambiance de ton jeu, et son travail en direct. Pour lancer ton jeu, touche « 🚀 Lancer la conception » dans sa dernière bulle. Un changement ou une idée en plus ? Écris-le-lui, c’est gratuit de discuter.
+[borne] 🧩 La feuille de route se regarde : touche « Éléments » pour voir tous les personnages, objets et décors déjà prêts.
 [borne] ## 💬 Tout se demande à {g} (borne 2.0.123)
 [borne] 💬 Un nouveau personnage, un objet, un décor ou une musique pour ton jeu ? Dis-le à {g} dans « Discuter du jeu » : il te pose ses questions, puis te propose une offre. L’onglet « Éléments » et la feuille de route se regardent : {g} les remplit pour toi.
 [borne] ## 📂 Ton projet s’ouvre tout de suite (borne 2.0.122)
