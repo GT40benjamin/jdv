@@ -1847,8 +1847,12 @@ function musicMuffle(k) {
 // jeux sans musique à eux : ils prennent celle d'un autre écran (vide depuis que Pégase a la sienne : assets/music/pegase-1.mp3,
 // « Chez toi » harpe, célesta et violoncelle, choisie par l'utilisateur le 22 oct. 2026, jouée dès l'ouverture du hub)
 const MUSIC_AS = { chrono: 'pleingaz', sensinterdit: 'si6' };   // Sens Interdit : sa poursuite si6 (30 oct. : plus Plein Gaz, « la première est nulle »)   // Turbo Chrono : la musique de course de Plein Gaz (le jeu a son moteur et ses bruitages à lui)
+// 2.0.137 (l'admin : « je les valide toutes pour l'Atelier ! et pas de mélange avec la borne ») : 6 musiques À PART (assets/music/atelier/,
+// jamais dans JDW_MUSIC), seulement sur les pages de l'Atelier, dans un ordre tiré au hasard, fondu enchaîné de 2,5 s (MUSIC_SUITE)
+const ATL_MUSIQUES = ['reveuse', 'joyeuse', 'mysterieuse', 'aventuriere', 'lumineuse', 'etoilee'].map(n => 'atelier/atelier-' + n);
 function musicVariants(id, mode) {
   id = MUSIC_AS[id] || id;
+  if (id === 'atelier') { const l = ATL_MUSIQUES.slice(); for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(shellRand() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return l; }
   // Pégase (page des îles et hub) : la SUITE de 4 morceaux (pgsuite-1…4, voir MUSIC_SUITE), pour tout le monde depuis la 1.34.19
   if (id === 'pegase' && (window.JDW_MUSIC || {}).pgsuite) return [...window.JDW_MUSIC.pgsuite.c];
   const v = (window.JDW_MUSIC || {})[id]; if (!v) return [id];
@@ -1931,7 +1935,7 @@ function musicOut(t) {
 // MUSIQUES EN SUITE (24 oct. 2026, la page Pégase : « Chez toi 2 » → « L'Île qui s'éveille » → « Lumière du soir » → « Chez Rosalie 2 »,
 // plus de 6 min variées) : toujours dans l'ordre à partir du 1er, fondu enchaîné LONG à puissance constante, sans blanc ni coupure nette ;
 // chaque morceau est mesuré une fois (début et fin réels sans silence, volume des passages joués) et ramené au même niveau.
-const MUSIC_SUITE = { pegase: 7, atelier: 5 };   // atelier : la musique de l'Atelier des jeux (s/e23a0321…, seau atelier-ia), silence coupé, fondu de 5 s   // id → durée du fondu enchaîné (s)
+const MUSIC_SUITE = { pegase: 7, atelier: 2.5 };   // 2.0.137 : atelier = les 6 musiques de l'Atelier (ordre au hasard), fondu de 2,5 s   // atelier : la musique de l'Atelier des jeux (s/e23a0321…, seau atelier-ia), silence coupé, fondu de 5 s   // id → durée du fondu enchaîné (s)
 function musicMeta(b) {
   if (b._m) return b._m;
   const ch = [...Array(b.numberOfChannels).keys()].map(i => b.getChannelData(i)), hop = Math.round(b.sampleRate * 0.05), n = Math.floor(b.length / hop), db = new Float32Array(n);
@@ -15490,9 +15494,9 @@ function atlBuild() {
   q('.atl-cred').addEventListener('click', atlRecharger);
   q('.atl-abob').addEventListener('click', atlRecharger);
   const musMaj = () => { const on = store.get('jdw.atl.mus', true) !== false; q('.atl-musb').textContent = on ? '🔊' : '🔇'; q('.atl-musb').title = on ? 'Couper la musique de l’Atelier' : 'Remettre la musique de l’Atelier'; };
-  q('.atl-musb').addEventListener('click', () => { const on = store.get('jdw.atl.mus', true) === false; store.set('jdw.atl.mus', on); musMaj(); if (ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else musicOut(0.6); } });
+  q('.atl-musb').addEventListener('click', () => { const on = store.get('jdw.atl.mus', true) === false; store.set('jdw.atl.mus', on); musMaj(); if (ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic(''); } });   // 2.0.137 : 🔇 = aucune musique (jamais celle de la borne)
   musMaj();
-  q('.atl-demb').addEventListener('click', () => { if (ATL.adminVoir && ATL.cur === ATL.adminVoir.id) atlAdminDemandes(); else if (ATL.cur && ATL.root.querySelector('.atl-wiz .atl-ptab[data-k="demandes"]')) atlProjTab('demandes'); else atlMesDemandes(); });   // 21 h 50 : toucher son solde → « Recharger mes crédits »
+  q('.atl-demb').addEventListener('click', () => { if (ATL.cur && ATL.root.querySelector('.atl-wiz .atl-ptab[data-k="demandes"]')) atlDemFeuille(); else if (ATL.adminVoir && ATL.cur === ATL.adminVoir.id) atlAdminDemandes(); else atlMesDemandes(); });   // 2.0.137 : la liste des tickets dans une fenêtre   // 21 h 50 : toucher son solde → « Recharger mes crédits »
   q('.atl-zoom').addEventListener('click', e => { const z = q('.atl-zoom'); if (atlFenEcrit(z) || (e.target !== z && e.target.closest('.atl-suivi, .atl-mcard, .atl-winbar'))) return; z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
   try { atlFenSuivre(); } catch (e) {}   // 2.0.63
   q('.atl-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) atlImage(f); });
@@ -15505,7 +15509,7 @@ function atlOpen() {
   if (netOff()) { try { netNeed('L’Atelier'); } catch (e) { atlToast('Pas de connexion : l’Atelier revient avec le réseau'); } return; }
   atlBuild(); ATL.open = true; ATL.root.hidden = false; document.body.classList.add('atl-on');
   if (where === 'menu') try { setWhere('atelier'); } catch (e) {}   // 2.0.134 : la présence (le serveur aussi) dit « dans l'Atelier »
-  if (store.get('jdw.atl.mus', true) !== false) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else musicOut(0.4);   // 22 h 45 : la musique de l'Atelier, douce (🔇 retenu sur l'appareil)
+  if (store.get('jdw.atl.mus', true) !== false) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic('');   // 22 h 45 : la musique de l'Atelier, douce (🔇 retenu sur l'appareil)
   atlRender(); atlLoad(true); setTimeout(atlBienvenue, 1200); atlDemCharger(true);
   setTimeout(() => { const i = ATL.root.querySelector('.atl-in'); if (i && !TOUCH) i.focus({ preventScroll: true }); }, 60);
 }
@@ -15518,7 +15522,7 @@ function atlClose() {
   ATL.open = false; ATL.root.hidden = true; document.body.classList.remove('atl-on');
   if (where === 'atelier') try { setWhere('menu'); } catch (e) {}
   if (ATL_SON) { try { ATL_SON.pause(); } catch (e) {} ATL_SON = null; ATL_SON_U = ''; musicHush(false); }
-  if (MUS.want === 'atelier') { musicBaseLevel(1); setMusic(menuMusic()); }
+  if (!MUS.want || MUS.want === 'atelier') { musicBaseLevel(1); setMusic(menuMusic()); }   // 2.0.137 : aussi quand l'Atelier était en 🔇
   atlTileState(); refreshBell(); atlSchedule();
   if (siteNew) setTimeout(maybeReload, 800);   // la mise à jour attendait la sortie de l'Atelier
 }
@@ -15951,7 +15955,8 @@ function atlArchiveVoir(f) {
 const atlSonUrl = f => /^s\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.mp3$/.test(String(f || '')) ? CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier-ia/' + f : '';
 const ATL_FICHE_ORDRE = [['idee', '💡', 'L’idée'], ['but', '🎯', 'Le but du jeu'], ['score', '🏆', 'Le score entre copains'], ['personnages', '🦸', 'Personnages'], ['heros', '🦸', 'Le héros'],
   ['objets', '🎁', 'Objets'], ['decor', '🏞️', 'Décor'], ['monde', '🗺️', 'Le monde'], ['sons', '🔊', 'Sons et bruitages'], ['style', '🎨', 'Le style'], ['dimension', '🧊', '2D ou 3D'], ['commandes', '🎮', 'Les commandes'], ['mobile', '📱', 'Sur téléphone']];
-function atlFrameStop() { const W = ATL && ATL.root && ATL.root.querySelector('.atl-wiz'); if (W) { const i = W.querySelector('.atl-gframe iframe'); if (i) { i.src = 'about:blank'; i.remove(); } } if (ATL) ATL.pSig = ''; }
+function atlFrameStop() { if (ATL && ATL.musJeu) { ATL.musJeu = false; if (ATL.open && store.get('jdw.atl.mus', true) !== false && !MUS.want) setMusic('atelier'); }   // 2.0.137 : le jeu du cadre fermé, la musique de l'Atelier revient
+  const W = ATL && ATL.root && ATL.root.querySelector('.atl-wiz'); if (W) { const i = W.querySelector('.atl-gframe iframe'); if (i) { i.src = 'about:blank'; i.remove(); } } if (ATL) ATL.pSig = ''; }
 function atlFrameStart() {
   const W = ATL.root && ATL.root.querySelector('.atl-wiz'), f = atlFiche(), fr = W && W.querySelector('.atl-gframe'); if (!fr || !f || !f.jeu) return;
   if (fr.querySelector('iframe')) return;
@@ -15960,36 +15965,13 @@ function atlFrameStart() {
   // le nom du guide pour le jeu dans le cadre (un jeu de l'Atelier peut dire « Parle à … » sans l'écrire dans ses fichiers)
   i.addEventListener('load', () => { try { i.contentWindow.postMessage({ type: 'atl-guide', nom: gNM(), a: gA(), de: gDe(), img: atlIaUrl(ATL_GUIDE.img) || ROOT + 'accueil/guide-portrait.webp' }, location.origin); } catch (e) {} });
   fr.classList.add('on'); fr.appendChild(i);
+  if (MUS.want === 'atelier') { ATL.musJeu = true; setMusic(''); }   // 2.0.137 : jamais deux musiques (le jeu a la sienne)
 }
+try { if (navigator.webdriver) window.JDW_ESSAI_ATL = { mus: () => ({ want: MUS.want, id: MUS.id, track: MUS.track || '', joue: !!MUS.cur }), frameStart: () => atlFrameStart(), frameStop: () => atlFrameStop(), close: () => atlClose() }; } catch (e) {}   // 2.0.137 : bancs seulement (navigateur piloté)
 // 2.0.10 (Benjamin : « Mes demandes et Améliorer : une seule fenêtre, comme un ticket bien fait ») : écrire une demande (prix d'une demande),
 // la suivre (étapes en direct), lire la réponse du guide ; la discussion du début (feuille de route) reste lisible, repliée
 function atlProjDem(p, f) {
-  p.appendChild(atlDiscBloc(f));   // 2.0.93 : la discussion gratuite, en tête
-  p.appendChild(atlEl('h3', 'atl-ph3', '🎫 Tes demandes pour « ' + (f.titre || 'ton jeu') + ' »'));
-  if (!atlAdminIci()) {
-    const crT = atlCred() || {}, nw = atlEl('div', 'atl-dnew'), ta = atlEl('textarea', 'atl-dnin'), px = crT.ticket != null ? crT.ticket | 0 : 0;   // 2.0.20 : un ticket est gratuit (cout_ticket)
-    ta.rows = 3; ta.placeholder = 'Qu’est-ce que tu veux changer ou ajouter dans ton jeu ? (ex. « la navette va plus vite », « un niveau dans la neige »)';
-    const go = atlEl('button', 'btn btn-play atl-dnenv', '📨 Envoyer ma demande' + (px ? ' · ' + px + ' 💎' : '')); go.type = 'button';
-    const msg = atlEl('small', 'atl-dnmsg', 'Pendant la partie, ⏸ Pause : tu peux aussi montrer avec le viseur ce qu’il faut changer.');
-    go.addEventListener('click', async () => {
-      atlMicFin();
-      const t = ta.value.trim(); if (t.length < 2) { ta.focus(); return; }
-      go.disabled = true; msg.textContent = 'J’envoie…';
-      try {
-        const r = await rpc('at_demande_ecrite', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true });
-        if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
-        ta.value = ''; msg.textContent = '✅ Demande envoyée ! ' + gNM() + ' la regarde et te répond ici.';
-        await atlDemCharger(true); atlProjDemListe(ATL.root.querySelector('.atl-wiz'));
-      } catch (e) { if (/credits/.test(String(e && e.message))) { msg.textContent = 'Il te faut ' + px + ' 💎 pour une demande.'; atlCreditsBtn(msg); } else msg.textContent = atlWhy(e); }
-      finally { go.disabled = false; }
-    });
-    const tw = atlEl('div', 'atl-artw'); tw.appendChild(ta); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));   // 2.0.20 (Benjamin : « ici il manque le micro »)
-    nw.append(tw, go, msg); nw.hidden = true;
-    const plus = atlEl('button', 'btn btn-play atl-dplus', '➕ Nouvelle demande'); plus.type = 'button';
-    plus.addEventListener('click', () => { nw.hidden = !nw.hidden; plus.classList.toggle('on', !nw.hidden); if (!nw.hidden) { ta.focus(); try { nw.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {} } });
-    p.append(plus, nw);
-  }
-  p.appendChild(atlEl('div', 'atl-dlist'));
+  p.appendChild(atlDiscBloc(f));   // 2.0.93 : la discussion gratuite ; 2.0.137 : SEULE (les tickets : le bouton « Mes demandes » en haut à droite)
   const h = atlEl('details', 'atl-dhist'); h.appendChild(atlEl('summary', '', '📜 Historique de la conception')); h.appendChild(atlEl('div', 'atl-pmsgs')); p.appendChild(h);
 }
 // 2.0.20 (Benjamin : « quand le guide rend une réponse, tout ça saute trop ! ») : la liste se reconstruit SANS bouger la page —
@@ -16008,9 +15990,39 @@ function atlSansSauter(box, refaire) {
   if (n) { const d = n.getBoundingClientRect().top - y0; if (Math.abs(d) > 1) sc.scrollTop += d; }
   requestAnimationFrame(() => { box.style.minHeight = ''; });
 }
+// 2.0.137 (l'admin : « on fait les demandes via la mascotte et on voit tout dans son chat ; on laisse juste les tickets en haut à droite ») :
+// « Mes demandes » = une fenêtre avec la liste (À choisir / En cours / Faites) ; un ticket touché → la discussion, à son endroit, qui brille
+function atlDemFeuille() {
+  const M = ATL.root && ATL.root.querySelector('.atl-mod'), f = atlFiche(); if (!M || !f) return;
+  const c = atlEl('div', 'atl-mcard atl-dfeuille'), hd = atlEl('div', 'atl-dfh');   // « ← Retour » et ✕ : la barre commune des fenêtres de l'Atelier
+  hd.append(atlEl('h2', '', (atlAdminIci() ? '🎫 Demandes de ' + (dispName(((ATL.data && ATL.data.admin_voir) || {}).joueur || '') || 'le joueur') : '🎫 Mes demandes') + ' · « ' + (f.titre || 'ton jeu') + ' »'));   // l'admin : la même liste ; ses outils restent dans « Demandes du projet » (barre rouge)
+  c.append(hd, atlEl('p', 'atl-dfp', 'Touche une demande : elle s’ouvre dans ta discussion avec ' + gN() + ', là où tout se passe.'), atlEl('div', 'atl-dlist'));
+  M.textContent = ''; M.appendChild(c); M.hidden = false;
+  M.onclick = e => { if (e.target === M) atlDemFeuilleFermer(); };
+  try { atlProjDemListe(ATL.root.querySelector('.atl-wiz')); atlDemVues(); } catch (e) {}
+  setTimeout(() => { try { const l = c.querySelector('.atl-dligne'); if (l) l.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 60);   // manette : la 1re demande
+}
+function atlDemFeuilleFermer() { const M = ATL.root && ATL.root.querySelector('.atl-mod'); if (M && M.querySelector('.atl-dfeuille')) { M.hidden = true; M.textContent = ''; M.onclick = null; } }
+function atlAllerTicket(x) {
+  atlDemFeuilleFermer(); atlProjTab('demandes');
+  const W = ATL.root && ATL.root.querySelector('.atl-wiz'); if (!W || !x) return;
+  atlDiscOuvrir(true, true);
+  let n = 0;
+  const viser = () => {
+    const lg = W.querySelector('.atl-disc .atl-disclog'); if (!lg && ++n < 16) { setTimeout(viser, 200); return; } if (!lg) return;
+    const id = String(x.id || ''), court = id.slice(0, 6), quatre = id.slice(0, 4);
+    const l = [...lg.querySelectorAll('[data-dk]')].filter(e => { const k = e.dataset.dk || ''; return e.getClientRects().length && (k.includes(id) || (k.startsWith('att') && k.includes(court)) || (k.startsWith('dfv') && k.includes(quatre))); });
+    if (!l.length && ++n < 16) { setTimeout(viser, 200); return; }
+    const cible = l.pop(); if (!cible) { atlAllerNonLu(); return; }
+    lg.scrollTop = Math.max(0, cible.offsetTop - lg.offsetTop - 12);
+    try { cible.scrollIntoView({ block: 'center' }); } catch (e) {}
+    cible.classList.add('atl-brille'); setTimeout(() => cible.classList.remove('atl-brille'), 2600);
+  };
+  setTimeout(viser, 250);
+}
 function atlProjDemListe(W) {
   try { if (W && ATL.cur) atlDiscMaj(W, atlFiche()); } catch (e) {}   // 2.0.94 : les demandes se racontent aussi dans la discussion
-  const box = W && W.querySelector('.atl-pane[data-k="demandes"] .atl-dlist'); if (!box || !ATL.cur) return;
+  const box = ATL.root && ATL.root.querySelector('.atl-mod .atl-dfeuille .atl-dlist'); if (!box || !ATL.cur) return;   // 2.0.137 : dans la fenêtre « Mes demandes »
   const f0 = atlFiche(), tous0 = f0 ? atlDiscDems(f0) : [], regr = tous0.filter(x => x && x.etat === 'regroupee'), tout = tous0.filter(x => x && x.etat !== 'regroupee'), fini = x => ['faite', 'impossible', 'regroupee'].includes(x.etat);   // 2.0.136 : en mode admin, les demandes du joueur (demandes_projet)
   const aChoisir = x => !fini(x) && (atlPropOuverte(x) || atlQAttente(x));
   const neuf = x => fini(x) && x.nouveau && x.reponse;
@@ -16034,12 +16046,12 @@ function atlProjDemListe(W) {
   const tabs = atlEl('div', 'atl-demtabs'), nCh = tout.filter(aChoisir).length, nFa = tout.filter(fini).length, nEn = tout.length - nCh - nFa;
   for (const [k, lab] of (nCh ? [['choisir', '💡 À choisir (' + nCh + ')']] : []).concat([['encours', 'En cours (' + nEn + ')'], ['faites', '✅ Faites (' + nFa + ')' + (tout.some(neuf) ? ' ✨' : '')]])) { const b = atlEl('button', 'atl-demtab' + (k === ong ? ' on' : ''), lab); b.type = 'button'; b.addEventListener('click', () => { ATL.demOngP = k; atlProjDemListe(W); }); tabs.appendChild(b); }
   box.appendChild(tabs);
-  if (regr.length) { const r = atlEl('p', 'atl-rgp'); const a = atlEl('button', 'atl-lien', 'voir la carte'); a.type = 'button'; a.addEventListener('click', () => atlAllerNonLu()); r.append('🔗 ' + regr.length + (regr.length > 1 ? ' demandes regroupées' : ' demande regroupée') + ' dans ta discussion · ', a); box.appendChild(r); }   // 2.0.136 : ni en cours, ni faites
+  if (regr.length) { const r = atlEl('p', 'atl-rgp'); const a = atlEl('button', 'atl-lien', 'voir la carte'); a.type = 'button'; a.addEventListener('click', () => { atlDemFeuilleFermer(); atlAllerNonLu(); }); r.append('🔗 ' + regr.length + (regr.length > 1 ? ' demandes regroupées' : ' demande regroupée') + ' dans ta discussion · ', a); box.appendChild(r); }   // 2.0.136 : ni en cours, ni faites
   if (!l.length) box.appendChild(atlEl('p', 'atl-chv', ong === 'faites' ? 'Pas encore de demande faite.' : ong === 'choisir' ? 'Rien à choisir pour l’instant.' : 'Pas de demande en cours. Écris ce que tu veux changer : ' + gN() + ' s’en occupe.'));
   let vu = null;
   for (const x of l) {
-    const ouv = atlDemOuvert(x, vz);   // 2.0.94 : une ligne de suivi par demande ; dépliée si quelque chose t'attend (choix, questions, réponse neuve)
-    box.appendChild(atlDemSuivi(x, ouv, () => { atlDemBasc(x, ouv); box.dataset.sig = ''; atlProjDemListe(W); })); if (!ouv) continue;
+    const ouv = false;   // 2.0.137 : une ligne par ticket ; un clic ramène à SON endroit dans la discussion (offres, questions, étapes : tout y est)
+    box.appendChild(atlDemSuivi(x, ouv, () => atlAllerTicket(x))); if (!ouv) continue;
     const c = atlDemCarte(x); c.classList.add('atl-dsous'); box.appendChild(c); if (atlPropOuverte(x)) box.appendChild(atlPropBoutons(x)); if (vz && x.id === vz.id) vu = c; else if (!vu && !vz && c.classList.contains('neuf')) vu = c; }
   if (vz) {   // venu de la tuile : le bouton « Choisir » (ou la réponse) bien en vue, une fois l'onglet affiché
     ATL.demVise = ''; const cible = vu && vu.nextElementSibling && !vu.nextElementSibling.classList.contains('atl-dem2') ? vu.nextElementSibling : vu;
@@ -16139,7 +16151,7 @@ function atlDiscFil(f) {
   const attIds0 = new Set(atlDiscDems(f).filter(x => x && !['faite', 'impossible', 'regroupee'].includes(x.etat) && (atlPropOuverte(x) || atlQAttente(x))).map(x => x.id));   // 2.0.136 : leurs offres vont dans la carte du bas
   const rgIds = new Set(atlDiscDems(f).filter(x => x && x.etat === 'regroupee').map(x => x.id));   // 2.0.136 (v147) : un ticket regroupé ne laisse que sa ligne « 🔗 Regroupée »
   for (const m of atlDiscMsgs().concat((ATL.discPend || []).filter(m => m.fiche === f.id))) if (!(m.demande && rgIds.has(m.demande)))
-    add(m.at, 'm' + (m.id || 'p') + (m.pending ? 'p' : '') + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : '') + (m.demande ? atlDiscSig(dem(m.demande)) : ''), !!m.atelier && !m.pending, () => atlBubble(m.demande && attIds0.has(m.demande) ? Object.assign({}, m, { sansOffre: true }) : m), !m.atelier && !m.pending);
+    add(m.at, 'm' + (m.id || 'p') + (m.pending ? 'p' : '') + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : '') + (m.demande ? atlDiscSig(dem(m.demande)) + '~' + m.demande : ''), !!m.atelier && !m.pending, () => atlBubble(m.demande && attIds0.has(m.demande) ? Object.assign({}, m, { sansOffre: true }) : m), !m.atelier && !m.pending);
   // 2.0.136 (l'admin) : plusieurs tickets livrés dans la même version = UNE bulle (« ✅ Livré dans la V2 : 4 corrections », liste dépliable)
   const livres = {}; for (const x of atlDiscDems(f)) if (x && x.etat === 'faite' && (x.version_livree | 0)) (livres[x.version_livree | 0] = livres[x.version_livree | 0] || []).push(x);
   for (const [v, xs] of Object.entries(livres)) {
@@ -16298,7 +16310,7 @@ function atlDiscMaj(W, f, force) {
     atlEl('p', '', 'Quand une idée demande du travail, je te fais une proposition avec son coût : rien n’est lancé sans ton « oui ». Tout ce que je fais sur ton jeu s’affiche ici.'));
   if (!atlAvantV1(f)) log.appendChild(acc);
   const fin = fil.filter(i => i.t >= 9e15);   // 2.0.124 : la carte de lancement / « je construis ta V1 » reste sous la réponse en préparation
-  for (const i of fil) { if (i.t >= 9e15) continue; try { const el = i.el(); if (el) log.appendChild(el); } catch (e) {} }
+  for (const i of fil) { if (i.t >= 9e15) continue; try { const el = i.el(); if (el) { el.dataset.dk = i.k; log.appendChild(el); } } catch (e) {} }   // 2.0.137 : data-dk = la clé (ticket retrouvé depuis « Mes demandes »)
   const dj = fil.filter(i => i.t < 9e15).pop();
   if (dj && dj.w) log.append(atlGuideScene(['Je lis ton message…', 'Je réfléchis…', 'J’écris ma réponse…'], 'conception'), (() => { const r = atlBubble({ atelier: true, texte: '💭 Je lis ton message et je te réponds juste ici. Tu peux aller jouer en attendant.', at: new Date().toISOString() }), t1 = r.querySelector('.atl-t'); if (t1) t1.remove(); return r; })());
   for (const i of fin) { try { const el = i.el(); if (el) log.appendChild(el); } catch (e) {} }
@@ -16396,7 +16408,7 @@ function atlRenderProjet(W, f) {
   if (jouable && atlAdminIci()) { const hp = atlEl('div', 'atl-phpub atl-phadm'); hp.appendChild(atlPubAdmin(f)); hd.appendChild(hp); }   // 2.0.127 : l'admin publie (SQL v138)
   if (jouable && !atlAdminIci()) { const hp = atlEl('div', 'atl-phpub'); atlBoutonsJeu(hp, f, true); const pv = atlEl('div', 'atl-pubv'); hp.appendChild(pv); atlPubV(pv, f); hd.appendChild(hp); }
   // 20 h 35 (Benjamin) : la fiche et les dessins sont dans la feuille de route (à droite) ; ici : Jouer + Discussion, ou la V1 en construction
-  const T = jouable ? [['jeu', '🎮 Jouer'], ['demandes', '🎫 Mes demandes'], ['elements', '🧩 Éléments']] : [];   // 2.0.10 (Benjamin) : après la feuille de route, tout passe par les demandes
+  const T = jouable ? [['jeu', '🎮 Jouer'], ['demandes', '💬 Discussion avec ' + gN()], ['elements', '🧩 Éléments']] : [];   // 2.0.137 (l'admin : « on voit tout dans le chat ») : plus d'onglet « Mes demandes »   // 2.0.10 (Benjamin) : après la feuille de route, tout passe par les demandes
   if (jouable && !T.some(x => x[0] === ATL.tab)) ATL.tab = 'jeu';
   if (jouable) {
     const nav = atlEl('div', 'atl-ptabs'); nav.setAttribute('role', 'tablist');

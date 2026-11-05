@@ -1,6 +1,6 @@
 -- borne 2.0.130 (SQL v139) — BOUTIQUE DES CRÉATEURS (fiche ~/jdv-tools/boutiques/BOUTIQUE-CREATEURS.md, confirmée par l'admin le 5 nov. 2026).
 -- Le créateur d'un jeu de l'Atelier vend des éléments de son jeu (apparence, contenu en plus) EN CRÉDITS ; l'acheteur paie, le créateur reçoit
--- 70 % (réglage boutique_part_createur), la borne garde 30 % — tout dans UNE opération (at_boutique_acheter). Jamais d'euros : les crédits
+-- 100 % (réglage boutique_part_createur = 100 : commission 0 %, décision de l'admin) — tout dans UNE opération (at_boutique_acheter). Jamais d'euros : les crédits
 -- gagnés servent à créer des jeux et à acheter dans la borne. Rien au hasard. Confirmation avant chaque achat (côté borne). Un élément acheté
 -- reste au joueur à vie, n'est ni donné ni échangé. Le créateur n'achète pas ses propres éléments. Plafond de dépense par mois
 -- (boutique_plafond_mois, 300 crédits) : l'âge des joueurs n'est pas enregistré, il vaut donc pour TOUS les comptes (protège les 13-17 ans).
@@ -26,7 +26,7 @@ create table if not exists public.at_boutique_signalements (
 alter table public.at_boutique_articles enable row level security;
 alter table public.at_boutique_achats enable row level security;
 alter table public.at_boutique_signalements enable row level security;
-insert into public.at_reglages (k, v) values ('boutique_part_createur', 70), ('boutique_plafond_mois', 300) on conflict (k) do nothing;
+insert into public.at_reglages (k, v) values ('boutique_part_createur', 100), ('boutique_plafond_mois', 300) on conflict (k) do nothing;
 
 -- un crédit ajouté (la part du créateur, un remboursement) : même chemin que les débits (journal at_credit_journal, motif = la fonction)
 create or replace function pegase_int.at_crediter(n text, c integer) returns integer language plpgsql security definer set search_path = public as $$
@@ -54,7 +54,7 @@ begin
     where a.jeu = lower(p_jeu) and ((a.actif and a.filtre_ok and a.retire_at is null) or exists (select 1 from public.at_boutique_achats b where b.article = a.id and b.acheteur = n and b.rembourse_at is null))), '[]'::jsonb));
 end $$;
 
--- acheter : TOUT d'un coup (débit de l'acheteur, 70 % au créateur, 30 % gardés, l'achat écrit) ; déjà possédé = rendu tel quel
+-- acheter : TOUT d'un coup (débit de l'acheteur, 100 % au créateur (commission 0 %), l'achat écrit) ; déjà possédé = rendu tel quel
 create or replace function public.at_boutique_acheter(p_name text, p_article uuid) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare n text := public.pg_n(p_name); a public.at_boutique_articles; cr text; part int; com int; s int; plaf int := coalesce(pegase_int.at_reglage('boutique_plafond_mois'), 300); dep int; i uuid;
 begin
@@ -70,7 +70,7 @@ begin
      or exists (select 1 from public.player_parents pp join public.players q on q.user_id = pp.parent where (pp.name = cr and q.name = n) or (pp.name = n and q.name = cr)) then raise exception 'ton propre jeu'; end if;
   select coalesce(sum(b.prix), 0) into dep from public.at_boutique_achats b where b.acheteur = n and b.rembourse_at is null and b.at >= date_trunc('month', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris';
   if dep + a.prix > plaf then raise exception 'plafond du mois'; end if;
-  part := floor(a.prix * coalesce(pegase_int.at_reglage('boutique_part_createur'), 70) / 100.0)::int; com := a.prix - part;
+  part := floor(a.prix * coalesce(pegase_int.at_reglage('boutique_part_createur'), 100) / 100.0)::int; com := a.prix - part;
   s := pegase_int.at_debiter(n, a.prix);
   perform pegase_int.at_crediter(cr, part);
   insert into public.at_boutique_achats (article, acheteur, createur, prix, part_createur, commission) values (a.id, n, cr, a.prix, part, com) returning id into i;

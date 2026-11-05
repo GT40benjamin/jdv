@@ -382,7 +382,7 @@ score). Les articles sont posés par la mascotte avec le créateur (`at_boutique
 - `await api.boutique.acheter(cle)` → la BORNE ouvre sa fenêtre « Acheter « X » ? » (prix en crédits et en euros, solde, plafond du mois,
   « Signaler »), met le jeu en pause pendant la fenêtre (pause()/resume()), et rend vrai si c'est acheté. Le jeu ne touche JAMAIS aux crédits.
 Jamais d'achat en un seul toucher pendant la partie : appeler `acheter` depuis un écran calme (menu, boutique du jeu). Rien au hasard (pas de
-caisse mystère). Le créateur reçoit 70 % du prix en crédits (réglage boutique_part_createur), la borne garde 30 % ; jamais d'euros. Le
+caisse mystère). Le créateur reçoit 100 % du prix en crédits (réglage boutique_part_createur = 100 : commission 0 %) ; jamais d'euros. Le
 créateur (et sa famille) ne peut pas acheter ses propres articles. Plafond de 300 crédits par mois et par joueur (boutique_plafond_mois).
 Borne 2.0.135 (décisions de l'admin) : TOUT revient au créateur (boutique_part_createur = 100), plus de plafond du mois. Si le jeu a des
 articles, la borne pose un bouton 🛍️ à côté de ⏸ (et le bouton Select / Vue de la manette, sauf quand on joue depuis l'Atelier où Select

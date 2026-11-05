@@ -5177,3 +5177,7 @@ body:has(.sheet:not([hidden])) .fs-tip,body:has([role=menu]:not([hidden])) .fs-t
 .atl-attcarte{margin:10px 0 4px;padding:10px 10px 4px;border-radius:18px;border:2px solid #ffd34d;background:linear-gradient(180deg,rgba(255,211,77,.12),rgba(255,211,77,.03))}
 .atl-atth{margin:0 0 6px;font:800 14px var(--body);color:#ffd34d}
 .atl-rgp{color:var(--muted);font:13px var(--body)}.atl-lien{border:0;background:none;color:#ffd34d;text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+/* 2.0.137 : « Mes demandes » = une fenêtre (la page du projet ne garde que la discussion) */
+.atl-dfeuille{width:min(720px,100%);max-height:min(86vh,900px);overflow:auto;display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+.atl-dfh{display:flex;align-items:center;justify-content:space-between;gap:10px}.atl-dfh h2{margin:0;font:800 18px var(--display,inherit);min-width:0;overflow-wrap:anywhere}
+.atl-dfp{margin:0;color:var(--muted);font:13px var(--body)}.atl-dfeuille .atl-dlist{display:grid;gap:8px;grid-template-columns:minmax(0,1fr)}
