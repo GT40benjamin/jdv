@@ -384,7 +384,7 @@ score). Les articles sont posés par la mascotte avec le créateur (`at_boutique
 Jamais d'achat en un seul toucher pendant la partie : appeler `acheter` depuis un écran calme (menu, boutique du jeu). Rien au hasard (pas de
 caisse mystère). Le créateur reçoit 70 % du prix en crédits (réglage boutique_part_createur), la borne garde 30 % ; jamais d'euros. Le
 créateur (et sa famille) ne peut pas acheter ses propres articles. Plafond de 300 crédits par mois et par joueur (boutique_plafond_mois).
-Borne 2.0.134 (décisions de l'admin) : TOUT revient au créateur (boutique_part_createur = 100), plus de plafond du mois. Si le jeu a des
+Borne 2.0.135 (décisions de l'admin) : TOUT revient au créateur (boutique_part_createur = 100), plus de plafond du mois. Si le jeu a des
 articles, la borne pose un bouton 🛍️ à côté de ⏸ (et le bouton Select / Vue de la manette, sauf quand on joue depuis l'Atelier où Select
 reste l'arrêt sur image) : la VITRINE de la boutique, dans le thème du jeu (sa couleur `accent`, sa jaquette), met le jeu en pause
 (pause() / resume()). Au retour, le jeu relit `api.boutique.possede(cle)` pour débloquer ce qui vient d'être acheté. Les articles dont le
