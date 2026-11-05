@@ -26,6 +26,8 @@
 [noisette] 🐿️ Sur la carte de la tuile, les arbres ne passent plus sur les mondes ni sur les titres, et les noisettes des mondes à venir restent bien claires.
 [jetporte] ## 🍑 Jet Porté arrive dans l’Atelier (borne 2.0.117)
 [jetporte] 🍑 Traite le rang de pêchers avant que le vent et la pluie s’en mêlent : 5 niveaux, du matin calme au coup de vent, avec la carte du verger sur la tuile et tes records par niveau.
+[borne] ## ✋ Plus de projet en double dans l’Atelier (borne 2.0.121)
+[borne] ✋ Un double clic sur « Envoyer » ne crée plus deux projets ni deux demandes : le bouton attend la réponse, et le même message envoyé deux fois de suite ne part qu’une fois.
 [borne] ## 🧩 Des pages de projets plus légères (borne 2.0.118)
 [borne] 🧩 Dans l’Atelier, la page d’un gros projet s’ouvre plus vite : elle ne charge plus que les éléments vraiment utilisés par ton jeu.
 [borne] ## 🕹️ La barre du haut des jeux bien rangée (borne 2.0.117)
