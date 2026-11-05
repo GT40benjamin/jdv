@@ -80,7 +80,10 @@ const atlTitre = g => { try { const x = g && ATL_NES.has(g.id) && ATL_JEUX.get(g
 // « Publier dans ma salle » (salle du joueur) ou la mise en ligne mondiale acceptée — at_jeux le dit (etat publie_salle / publie_monde).
 // 2.0.77 (Benjamin : Trôn-e est un jeu à plusieurs les uns contre les autres) : ces jeux de l'Atelier ont leur tuile dans l'onglet DÉFI
 // (#jdw-duo-grid), pas dans la grille classique ; ils se lancent pareil (module de l'Atelier, api.live)
-const ATL_DEFI = new Set(['trone']);
+const ATL_DEFI = new Set(['trone']);   // repli seulement (borne sans réponse du serveur) : l'onglet vient de at_fiches.rayon (SQL v138)
+// 2.0.127 : l'onglet de la borne (🎮 Classique / ⚔️ Duel / 🤝 Coop) d'un jeu de l'Atelier = sa fiche (rayon), choisi par l'admin
+const atlRayon = id => { let x = null; try { x = ATL_JEUX.get(id); } catch (e) { x = null; } const r = x && x.rayon; return r === 'duel' || r === 'coop' || r === 'classique' ? r : ATL_DEFI.has(id) ? 'duel' : 'classique'; };
+const atlGrilleDe = (id, grid) => { const r = atlRayon(id); return r === 'duel' ? ($('jdw-duo-grid') || grid) : r === 'coop' ? ($('jdw-coop-grid') || grid) : grid; };
 const ATL_NES = new Set(['licornes', 'lune', 'noisette', 'trone', 'jetporte']);   // 2.0.117 : Jet Porté (EMPEREUR, fiche 6e7a838b) : assets/jeux/jetporte/vN.js, secours source/games/jetporte.js
 // 2.0.74 : Trôn-e (REMS, fiche 9af84595) : assets/jeux/trone/vN.js, secours source/games/trone.js (live: true)
 // 2.0.20 (Benjamin : « ici au moins c'est clair ») : le sens choisi sur la page du projet (at_fiches.orientation), par id du jeu
@@ -2261,10 +2264,10 @@ function notifRow(n, isNew) {
   }
   if (n.kind === 'atelier') {   // l'Atelier des jeux a répondu au projet du joueur
     const ic = atlGuideAv('avatar nt-game'); ic.style.background = 'var(--gold)';
-    const f = atlProjets().find(atlProjNew) || atlFiche(), b = document.createElement('b'); b.textContent = f && f.etat === 'alpha' ? '🎮 Ton jeu est prêt à tester !' : gNM() + ' t’a répondu !';
+    const bp = atlBellPj(), f = bp ? bp.pj : null, b = document.createElement('b'); b.textContent = bp && bp.ver ? '🎮 Ta V' + bp.ver + ' est prête à tester !' : gNM() + ' t’a répondu !';
     const sm = document.createElement('small'); sm.textContent = (f && f.titre ? 'Ton projet « ' + f.titre + ' » · ' : 'Ton projet de jeu · ') + 'touche pour lire';
     tx.append(b, sm); li.append(ic, tx); li.classList.add('click');
-    li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); if (f && f.id) atlOuvrir(f.id); });
+    li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (f) { f.lu_at = atlProjNouv(f) || f.reponse_at; try { refreshBell(); } catch (e) {} } atlOpen(); if (f && f.id) atlOuvrir(f.id); });   // 2.0.127 : cliquée = partie (le serveur l'enregistre à l'ouverture : at_fil_lu)
     return li;
   }
   if (n.kind === 'installed') {
@@ -3336,7 +3339,7 @@ const tiles = [];
 function buildLibrary() {
   const grid = $('jdw-grid');
   atlTile(grid);   // « CRÉE TON JEU » : tout en haut, toute la largeur (porte labo)
-  for (const g of GAMES) gameTile(ATL_DEFI.has(g.id) ? ($('jdw-duo-grid') || grid) : grid, g);
+  for (const g of GAMES) gameTile(ATL_NES.has(g.id) ? atlGrilleDe(g.id, grid) : grid, g);
   setTimeout(tileByFit, 300); setTimeout(tileByFit, 1500);   // 2.0.83 : une fois la grille posée (boutons de carte compris)
   if ('IntersectionObserver' in window) {
     tilesIO = new IntersectionObserver(es => es.forEach(e => { const t = tiles.find(x => x.el === e.target); if (t) t.visible = e.isIntersecting; }), { root: $('jdw-lib') });
@@ -10426,7 +10429,7 @@ function livInvFenetre(g, o) {
     const bt = el('div', 'liv-btns'), no = el('button', 'btn btn-ghost', 'Fermer'), go = el('button', 'btn btn-play', '📣 Inviter'); no.type = go.type = 'button'; bt.append(no, go); C.append(bt);
     let res = null; const fermer = () => { M.remove(); document.removeEventListener('keydown', esc, true); fin(res); };
     const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); fermer(); } };
-    document.addEventListener('keydown', esc, true); no.addEventListener('click', fermer); M.addEventListener('click', e => { if (e.target === M) fermer(); });
+    document.addEventListener('keydown', esc, true); no.addEventListener('click', fermer); M._fermer = fermer; M.addEventListener('click', e => { if (e.target === M) fermer(); });
     const gens = [...players.values()].filter(p => p.member && p.name !== me && p.name !== AI_NAME).sort((a, b) => (b.live ? 1 : 0) - (a.live ? 1 : 0) || dispName(a.name).localeCompare(dispName(b.name), 'fr'));
     const rows = [];
     const maj = () => { const n = rows.filter(r => r.cb.checked && !r.cb.disabled).length; go.textContent = '📣 Inviter' + (n ? ' (' + n + ')' : ''); go.disabled = !n; };
@@ -14794,6 +14797,8 @@ addEventListener('popstate', () => { if (ATL_FEN_RETOUR) { ATL_FEN_RETOUR = fals
 document.addEventListener('keydown', e => { if (e.key !== 'Escape' || (typeof ATL_MIC !== 'undefined' && ATL_MIC)) return; try { if (atlFenOuverte()) { e.preventDefault(); e.stopPropagation(); atlFenFermer(); } } catch (x) {} }, true);
 function jdwBack() {
   if (PRIV.back && PRIV.back()) return true;   // espace privé (fenêtre ouverte par-dessus tout)
+  { const lm = document.getElementById('jdw-livmod'), li = document.getElementById('jdw-liveinv');   // 2.0.127 : « Inviter mes copains » et l'invitation reçue (B de la manette, retour d'Android)
+    if (lm) { if (lm._fermer) lm._fermer(); else lm.remove(); return true; } if (li && !li.hidden) { li.hidden = true; clearTimeout(LIVINV.cur); return true; } }
   if (QA.open) { quitAskClose(false); return true; }   // « Quitter la partie ? » : retour = Continuer
   if (moreClose()) return true;   // le menu « ⋯ » de la barre du haut
   if (popCloseAll()) return true;
@@ -14954,6 +14959,18 @@ const atlProjets = () => (ATL.data && Array.isArray(ATL.data.projets) ? ATL.data
 const atlSeenKey = id => ATL.name + '|' + id;
 const atlProjNouv = pj => String((pj && (pj.nouveau_at || pj.reponse_at)) || '');   // 2.0.106 : un message de la mascotte (offres comprises) ou une étape (SQL v116)
 const atlProjNew = pj => !!atlProjNouv(pj) && atlProjNouv(pj) > String(pj.lu_at || '') && atlProjNouv(pj) > String(ATL.seen[atlSeenKey(pj.id)] || '');   // 2.0.105/2.0.106 : UNE règle — plus récent que la lecture (serveur : at_fil_lu)   // 2.0.105 : la lecture est aussi gardée par le serveur (at_fil_lu, SQL v115)
+// 2.0.127 (l'admin : « Ton jeu est prêt à tester » restait pour la V15 déjà ouverte) : la CLOCHE ne parle que d'une vraie nouveauté — un message
+// de la mascotte plus récent que la lecture (serveur lu_at, at_fil_lu, et cet appareil), dit « Ta Vn est prête à tester ! » seulement si cette
+// version n'a pas encore été essayée ; une simple étape de travail (nouveau_at) reste sur la tuile du projet, jamais dans la cloche
+function atlBellPj() {
+  for (const pj of atlProjets()) {
+    const lu = [String(pj.lu_at || ''), String(ATL.seen[atlSeenKey(pj.id)] || '')].sort().pop(), rep = String(pj.reponse_at || '');
+    if (!rep || rep <= lu) continue;
+    let vu = 0; try { vu = atlEssaye(pj) | 0; } catch (e) { vu = 0; }
+    return { pj, ver: ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')) && (pj.version | 0) > vu ? pj.version | 0 : 0 };
+  }
+  return null;
+}
 const ATL_ETATS = { brouillon: '📝 Brouillon', en_discussion: '💬 En discussion', complete: '🎉 Fiche complète', design: '🎨 Choix du design', design_choisi: '📮 Lettre à envoyer',
   envoyee: '🛠️ Conception en cours', acceptee: '✅ Accepté', alpha: '🎮 Jouable (essai)', publie_salle: '🌟 Publié dans tes salles', publie_monde: '🌍 Publié pour tous' };
 const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : ''; };
@@ -15011,7 +15028,7 @@ function atlNotifs() {
       }
       if (ch) store.set('jdw.atl.elcl', cl); }
     for (const x of (((ATL.dem || {}).demandes) || [])) if (x && x.nouveau && x.choix && x.choix.par === 'admin') out.push({ kind: 'atelier-c', id: x.id, fiche: x.fiche, projet: x.projet, libelle: x.choix.libelle || '', credits: x.choix.credits | 0 });   // 2.0.57
-    if (atlProjets().some(atlProjNew)) out.push({ kind: 'atelier' });
+    if (atlBellPj()) out.push({ kind: 'atelier' });   // 2.0.127 : seulement une vraie réponse ou une version pas encore essayée (jamais une simple étape de travail)
     return out;
   } catch (e) { return []; }
 }
@@ -15064,11 +15081,12 @@ async function atlJeuxLoad() {
     let t = tiles.find(t2 => t2.g.id === x.jeu);
     if (!t) {
       const g = (window.JDW_GAMES || {})[x.jeu]; if (!g || g.id !== x.jeu || GAMES.includes(g) || !atlEnGrille(x.jeu)) continue;   // alpha : seulement dans l'Atelier
-      const gr = ATL_DEFI.has(x.jeu) ? ($('jdw-duo-grid') || grid) : grid;   // 2.0.77 : Trôn-e dans l'onglet Défi
+      const gr = atlGrilleDe(x.jeu, grid);   // 2.0.127 : l'onglet choisi par l'admin (rayon de la fiche ; Trôn-e : Duel)
       GAMES.push(g); const w = gameTile(gr, g); const first = gr.querySelector('.tile-wrap:not(.atl-wrap)');
       if (w && first && first !== w) gr.insertBefore(w, first);   // en tête des jeux, juste après « Crée ton jeu »
       t = tiles.find(t2 => t2.g.id === x.jeu);
     }
+    if (t) { const wr = t.el.parentNode, gr = atlGrilleDe(x.jeu, grid); if (wr && gr && wr.parentNode !== gr) { const first = gr.querySelector('.tile-wrap:not(.atl-wrap)'); gr.insertBefore(wr, first || null); } }   // l'admin a changé l'onglet
     if (t) atlMineMark(t.el.parentNode, t.el, x.jeu);
   }
   try { refreshNewBadges(); } catch (e) {}
@@ -16028,7 +16046,7 @@ function atlRenderProjet(W, f) {
   const jouable = !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(et), g = jouable ? (window.JDW_GAMES || {})[f.jeu] : null;
   R.querySelector('.atl-hs').textContent = atlHsTxt(f);
   const as = Array.isArray(f.assets) ? f.assets.filter(a => a && typeof a === 'object') : [];
-  const sig = [f.id, et, f.jeu || '', (f.design && f.design.f) || '', JSON.stringify(fi).length, f.titre || '', f.salle || '', f.monde_demande_at || '', String(!!g)].join('|');
+  const sig = [f.id, et, f.jeu || '', f.rayon || '', f.version_publiee || '', (f.design && f.design.f) || '', JSON.stringify(fi).length, f.titre || '', f.salle || '', f.monde_demande_at || '', String(!!g)].join('|');
   if (ATL.pSig === sig && W.querySelector('.atl-pbox')) { atlProjMsgs(W, f); atlVerMaj(W, f); try { atlElMaj(W, f); } catch (e) {} return; }
   atlFrameStop(); ATL.pSig = sig; W.textContent = ''; W.dataset.ver = String((f.version | 0) || 1);
   const box = atlEl('div', 'atl-pbox'); W.appendChild(box);
@@ -16040,6 +16058,7 @@ function atlRenderProjet(W, f) {
   ht.append(atlEl('h1', '', f.titre || 'Mon jeu sans nom'), atlEl('span', 'atl-pet atl-pet-' + et + atlPastCls(f), atlVersion(f)));
   hd.append(hv, ht); box.appendChild(hd); if (jouable) hd.classList.add('jouable');   // 2.0.95 : téléphone, l'image est dans la tuile plus bas
   // 2.0.11 (Benjamin : « Publier dans ma salle » et « mise en ligne mondiale » dans l'EN-TÊTE, à droite du titre ; « pour l'instant on va faire comme ça »)
+  if (jouable && atlAdminIci()) { const hp = atlEl('div', 'atl-phpub atl-phadm'); hp.appendChild(atlPubAdmin(f)); hd.appendChild(hp); }   // 2.0.127 : l'admin publie (SQL v138)
   if (jouable && !atlAdminIci()) { const hp = atlEl('div', 'atl-phpub'); atlBoutonsJeu(hp, f, true); const pv = atlEl('div', 'atl-pubv'); hp.appendChild(pv); atlPubV(pv, f); hd.appendChild(hp); }
   // 20 h 35 (Benjamin) : la fiche et les dessins sont dans la feuille de route (à droite) ; ici : Jouer + Discussion, ou la V1 en construction
   const T = jouable ? [['jeu', '🎮 Jouer'], ['demandes', '🎫 Mes demandes'], ['elements', '🧩 Éléments']] : [];   // 2.0.10 (Benjamin) : après la feuille de route, tout passe par les demandes
@@ -18092,16 +18111,19 @@ function atlRent(force) {
 }
 const atlEur = c => ((+c || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
 const atlRentDe = id => { const d = ATL_RENT.d; return d && Array.isArray(d.projets) ? d.projets.find(x => x && x.fiche === id) || null : null; };
-function atlRentCourt(r) { if (!r) return ''; const m = +r.marge_cents || 0; return '💶 ' + atlEur(r.euros_cents) + ' payé · coût ' + atlEur(r.cout_cents) + ' · ' + (m >= 0 ? '+' : '−') + atlEur(Math.abs(m)); }
+// 2.0.127 (SQL v137) : « payé » = crédits ACHETÉS seulement (offerts d'abord, puis achetés, au prix payé : pegase_int.at_paye_par_fiche)
+const atlOffTxt = r => (+r.credits_offerts || 0) ? ' · offert ' + (+r.credits_offerts).toLocaleString('fr-FR') + ' 💎' : '';
+function atlRentCourt(r) { if (!r) return ''; const m = +r.marge_cents || 0; return '💶 ' + atlEur(r.euros_cents) + ' payé' + atlOffTxt(r) + ' · coût ' + atlEur(r.cout_cents) + ' · marge ' + (m >= 0 ? '+' : '−') + atlEur(Math.abs(m)); }
+function atlRentPeint(el, r) { el.textContent = atlRentCourt(r); el.classList.toggle('neg', !!r && (+r.marge_cents || 0) < 0); }
 function atlRentLong(r, j, nom) {
   if (!r) return [];
   const c = r.cout || {}, parts = [['images', c.image], ['musiques', c.musique], ['sons', c.son], ['autres', c.autre]].filter(x => +x[1] > 0).map(x => x[0] + ' ' + atlEur(x[1]));
-  const m = +r.marge_cents || 0, l1 = '💶 Payé ' + (+r.credits || 0).toLocaleString('fr-FR') + ' 💎 ≈ ' + atlEur(r.euros_cents) + ' · coût réel ' + atlEur(r.cout_cents) + (parts.length ? ' (' + parts.join(' · ') + ')' : '') + ' · ' + (m >= 0 ? 'marge +' : 'perte −') + atlEur(Math.abs(m));
+  const m = +r.marge_cents || 0, l1 = '💶 Payé ' + atlEur(r.euros_cents) + ((+r.credits_achetes || 0) ? ' (' + (+r.credits_achetes).toLocaleString('fr-FR') + ' 💎 achetés)' : '') + atlOffTxt(r) + ' · dépensé ' + (+r.credits || 0).toLocaleString('fr-FR') + ' 💎 · coût réel ' + atlEur(r.cout_cents) + (parts.length ? ' (' + parts.join(' · ') + ')' : '') + ' · ' + (m >= 0 ? 'marge +' : 'perte −') + atlEur(Math.abs(m));
   const l1b = (+r.generations || 0) + ' générations' + ((+r.ratees || 0) ? ', dont ' + r.ratees + ' ratée' + (+r.ratees > 1 ? 's' : '') : '') + ((+r.sans_prix || 0) ? ' · ' + r.sans_prix + ' sans prix connu' : '') + ((+r.offertes || 0) ? ' · offert : ' + atlEur(r.offert_cents) + ' (' + r.offertes + ' génération' + (+r.offertes > 1 ? 's' : '') + ' pour un ticket offert)' : '');   // v128
   if (!j) return [l1, l1b];
   const of = [((+j.bienvenue || 0) ? 'bienvenue ' + (+j.bienvenue).toLocaleString('fr-FR') : ''), ((+j.admin || 0) ? 'cadeaux de l’admin ' + (+j.admin).toLocaleString('fr-FR') : '')].filter(Boolean);
   const l2 = 'Crédits de ' + dispName(nom) + ' : achetés ' + (+j.achats_credits || 0).toLocaleString('fr-FR') + ' 💎 (' + atlEur(j.achats_cents) + ')' + ((+j.abo_credits || 0) ? ' · abonnement ' + (+j.abo_credits).toLocaleString('fr-FR') + ' 💎 (' + atlEur(j.abo_cents) + ')' : '')
-    + ' · offerts : ' + (of.length ? of.join(', ') : 'aucun') + ' · mensuels gratuits : non comptés' + (j.solde != null ? ' · solde ' + (+j.solde).toLocaleString('fr-FR') + ' 💎' : '');
+    + ' · offerts : ' + (of.length ? of.join(', ') : 'aucun') + ' · mensuels et +5 cachés : comptés offerts' + (j.solde != null ? ' · solde ' + (+j.solde).toLocaleString('fr-FR') + ' 💎' : '');
   return [l1, l1b, l2];
 }
 async function atlTousProjets(box) {
@@ -18128,13 +18150,13 @@ async function atlTousProjets(box) {
       b.append(v, atlEl('b', '', x.titre || 'Sans nom'), atlEl('small', 'atl-pver' + (/^.\S* V\d/u.test(atlVersion(x, attx)) ? ' v' : '') + atlPastCls(x), atlVersion(x, attx, true)), atlEl('small', '', '👤 ' + dispName(x.joueur || '') + ' · ' + (isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))));
       const bd = x.monde_demande_at ? '🛡️ à valider' : (x.n_choisir | 0) ? '💬 ' + (x.n_choisir | 0) + ' à choisir' : (x.n_en_cours | 0) ? '🛠️ en cours' : (x.n_nouvelles | 0) ? '📨 ' + ((x.n_nouvelles | 0) > 1 ? (x.n_nouvelles | 0) + ' nouvelles demandes' : 'nouvelle demande') : '';
       if (bd) b.appendChild(atlEl('span', 'atl-patt', bd));
-      { const rl = atlEl('small', 'atl-rent'); rl.dataset.f = x.id; rl.textContent = atlRentCourt(atlRentDe(x.id)); b.appendChild(rl); }   // 2.0.119 : la rentabilité (admin)
+      { const rl = atlEl('small', 'atl-rent'); rl.dataset.f = x.id; atlRentPeint(rl, atlRentDe(x.id)); b.appendChild(rl); }   // 2.0.119 : la rentabilité (admin)
       b.addEventListener('click', () => atlVoirProjet(x.id)); g.appendChild(b);
     }
     if (!g.firstChild) g.appendChild(atlEl('p', 'atl-chv', 'Aucun projet.'));
   };
   fj.addEventListener('change', show); fe.addEventListener('change', show);
-  atlRent().then(() => { for (const e of sec.querySelectorAll('.atl-rent')) e.textContent = atlRentCourt(atlRentDe(e.dataset.f)); });   // 2.0.119
+  atlRent().then(() => { for (const e of sec.querySelectorAll('.atl-rent')) atlRentPeint(e, atlRentDe(e.dataset.f)); });   // 2.0.119
   const fl = atlEl('div', 'atl-tousfl'); fl.append(fj, fe); sec.append(fl, g); show();
 }
 async function atlVoirProjet(id) {
@@ -18810,6 +18832,36 @@ async function atlDessinePlanches() {
   finally { ATL.drawing = false; ATL.stick = true; await atlLoad(true); }
 }
 // 2.0.16 (Benjamin a appuyé par erreur sur « Demander la mise en ligne mondiale ») : toute publication passe par une confirmation
+// 2.0.127 (l'admin : « aucun réglage de publication sur la page de Trôn-e ») : en mode admin, la page de TOUT projet jouable a le bloc
+// « Publication » (Non publié / Dans la salle du joueur / Partout, avec la version publiée) et « Onglet de la borne » (Classique / Duel / Coop) ;
+// at_admin_publier (SQL v138) : le joueur reçoit un message de la mascotte, la tuile change d'onglet partout au prochain at_jeux
+function atlPubAdmin(f) {
+  const W = atlEl('div', 'atl-pubadm'), et = String(f.etat || ''), cur = et === 'publie_monde' ? 'monde' : et === 'publie_salle' ? 'salle' : 'non';
+  const av = (ATL.data && ATL.data.admin_voir) || {}, jn = dispName(av.joueur || f.name || '') || 'le joueur', vp = f.version_publiee | 0, vj = (f.version | 0) || 1;
+  const ray = f.rayon === 'duel' || f.rayon === 'coop' || f.rayon === 'classique' ? f.rayon : (ATL_DEFI.has(f.jeu) ? 'duel' : 'classique');
+  const ligne = (lab, opts, val, fn) => {
+    const r = atlEl('div', 'atl-padl'), seg = atlEl('div', 'atl-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', lab);
+    for (const [v, t] of opts) { const b = atlEl('button', 'atl-segb' + (v === val ? ' on' : ''), t); b.type = 'button'; b.setAttribute('aria-pressed', String(v === val)); b.addEventListener('click', () => { if (v !== val) fn(v, b); }); seg.appendChild(b); }
+    r.append(atlEl('span', 'atl-publab', lab), seg); W.appendChild(r);
+  };
+  const envoie = async (niv, rayon, b) => {
+    for (const x of W.querySelectorAll('button')) x.disabled = true;
+    try {
+      const r = await rpc('at_admin_publier', { p_name: profile.name, p_fiche: f.id, p_niveau: niv, p_rayon: rayon }, { quiet: true });
+      atlToast(niv === 'salle' ? '🌟 Publié dans la salle « ' + ((r && r.salle_nom) || '') + ' »' : niv === 'monde' ? '🌍 Publié partout' : niv === 'non' ? 'Retiré de la borne' : '✔ Onglet changé');
+      try { atlJeuxLoad(); } catch (e) {} ATL.pSig = ''; await atlLoad(true);
+    } catch (e) { for (const x of W.querySelectorAll('button')) x.disabled = false; atlErr(/pas de salle/.test(String(e && e.message)) ? jn + ' n’est dans aucune salle.' : /pas pret/.test(String(e && e.message)) ? 'Ce jeu n’est pas encore prêt.' : atlWhy(e)); }
+  };
+  ligne('Publication :', [['non', 'Non publié'], ['salle', '🌟 Salle de ' + jn], ['monde', '🌍 Partout']], cur, async v => {
+    const t = v === 'salle' ? ['🌟 Publier dans la salle de ' + jn + ' ?', 'La V' + vj + ' de « ' + (f.titre || 'ce jeu') + ' » apparaît sur la borne de tous les joueurs de sa salle, dans l’onglet ' + ({ classique: 'Classique', duel: 'Duel', coop: 'Coop' })[ray] + '. ' + jn + ' reçoit un message.', 'Oui, publier']
+      : v === 'monde' ? ['🌍 Publier partout ?', 'La V' + vj + ' de « ' + (f.titre || 'ce jeu') + ' » apparaît sur TOUTES les bornes, pour tout le monde, invités compris. ' + jn + ' reçoit un message.', 'Oui, partout']
+      : ['Retirer de la borne ?', '« ' + (f.titre || 'ce jeu') + ' » n’apparaît plus sur la borne ; il reste jouable dans l’Atelier. ' + jn + ' reçoit un message.', 'Oui, retirer'];
+    if (await atlConfirmer(t[0], t[1], t[2])) envoie(v, ray);
+  });
+  ligne('Onglet de la borne :', [['classique', '🎮 Classique'], ['duel', '⚔️ Duel'], ['coop', '🤝 Coop']], ray, v => envoie('', v));
+  W.appendChild(atlEl('small', 'atl-padv', (cur === 'non' ? 'Pas sur la borne · V' + vj + ' en essai' : 'Version publiée : V' + (vp || vj) + (vp && vp < vj ? ' · la V' + vj + ' est prête : republier la met en ligne' : '')) + ' · seul l’admin voit ces boutons'));
+  return W;
+}
 function atlConfirmer(titre, phrase, oui) {
   return new Promise(res => {
     const M = ATL.root && ATL.root.querySelector('.atl-mod');

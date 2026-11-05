@@ -5095,3 +5095,13 @@ body.howto-on .fs-tip,body.howto-on #jdw-cheer,body:has(#jdw-howto) .atl-flot{vi
 .liv-msg{margin:0;min-height:1.2em;color:#9fe3b0;font:600 14px/1.35 var(--body)}
 .liv-btns{display:flex;justify-content:flex-end;gap:8px}
 .liv-inv .liv-sous{display:block;margin-top:2px;color:var(--muted);font:12.5px/1.3 var(--body)}
+/* 2.0.127 : marge négative en rouge (rentabilité, admin) */
+.atl-rent.neg{color:#ff8a8a}
+/* 2.0.127 : le bloc Publication de l'admin (boutons : manette et doigt) */
+.atl-pubadm{display:grid;gap:8px;padding:10px 12px;border-radius:14px;border:1px dashed rgba(255,77,94,.55);background:rgba(255,77,94,.06)}
+.atl-padl{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.atl-seg{display:flex;flex-wrap:wrap;gap:6px}
+.atl-segb{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);font:700 13px var(--body);cursor:pointer}
+.atl-segb.on{background:#ffd34d;border-color:#ffd34d;color:#1a1408}
+.atl-segb:disabled{opacity:.5;cursor:wait}
+.atl-padv{color:var(--muted);font:12px/1.35 var(--body)}
