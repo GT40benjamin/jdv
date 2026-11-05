@@ -143,7 +143,7 @@ function mount(root, api) {
     ox = (W - LW * sc) / 2; oy = (H - LH * sc) / 2;
     V = { x: -ox / sc, y: -oy / sc, w: W / sc, h: H / sc };
     // la piste : la ligne de faute en bas, le triangle des quilles aux 2/5 ; largeur en pixels par mètre s(z)
-    const bas = !portrait && H <= 500, yF = V.y + V.h * (portrait ? 0.9 : 0.95), yHd = V.y + V.h * (portrait ? 0.42 : bas ? 0.45 : 0.4), yBk = yHd - (portrait ? 0.1 : bas ? 0.115 : 0.13) * V.h;
+    const bas = !portrait && H <= 500, yF = V.y + V.h * (portrait ? 0.9 : 0.95), yHd = V.y + V.h * (portrait ? 0.42 : bas ? 0.47 : 0.44), yBk = yHd - (portrait ? 0.1 : bas ? 0.115 : 0.13) * V.h;
     const wF = portrait ? Math.min(V.w * 0.9, 560) : Math.min(V.w * 0.56, 620), sF = wF / (2 * LANE);
     const sH = sF * (portrait ? 0.42 : 0.36);
     P = { yF, yHd, yBk, sF, sH, cx: LW / 2 };
@@ -151,7 +151,7 @@ function mount(root, api) {
   }
   const g1 = v => Math.pow(v, 1.75), g2 = v => Math.pow(v, 1.45);
   function yZ(z) { if (z <= ZH) { const v = 1 - z / ZH; return P.yHd + (P.yF - P.yHd) * g1(clamp(v, 0, 1)); } return P.yHd - (z - ZH) / (3 * ROW) * (P.yHd - P.yBk); }
-  function sZ(z) { if (z <= ZH) { const v = 1 - z / ZH; return P.sH + (P.sF - P.sH) * g2(clamp(v, 0, 1)); } return P.sH * (1 - (z - ZH) / (3 * ROW) * 0.14); }
+  function sZ(z) { if (z <= ZH) { const v = 1 - z / ZH; return P.sH + (P.sF - P.sH) * g2(clamp(v, 0, 1)); } return P.sH * (1 - (z - ZH) / (3 * ROW) * 0.25); }
   const proj = (x, z) => ({ x: P.cx + x * sZ(z), y: yZ(z), s: sZ(z) });
   function resize() {
     const r = root.getBoundingClientRect();
@@ -518,10 +518,32 @@ function mount(root, api) {
       for (const p of PLACES) { const q = proj(off + p.x, p.z), h = 0.38 * q.s * 1.15; g.fillStyle = 'rgba(230,220,255,' + (k === 1 ? 0.55 : 0.35) + ')'; g.beginPath(); g.ellipse(q.x, q.y - h * 0.4, h * 0.14, h * 0.4, 0, 0, TAU); g.fill(); g.beginPath(); g.arc(q.x, q.y - h * 0.86, h * 0.1, 0, TAU); g.fill(); }
     }
     // la machine à quilles au-dessus du triangle : capot sombre + enseigne en néon
-    const l = proj(-GOUT - 0.15, ZH + 3 * ROW + 0.3), r = proj(GOUT + 0.15, ZH + 3 * ROW + 0.3), hy = l.y - 0.07 * V.h;
-    g.fillStyle = '#0d0420'; carte(l.x, hy - 0.16 * V.h, r.x - l.x, 0.16 * V.h, 14, g); g.fill();
-    tube(g, [[l.x + 8, hy - 3], [r.x - 8, hy - 3]], '#ff3fd0', 2.5);
-    tube(g, [[l.x + 8, hy - 0.16 * V.h + 4], [r.x - 8, hy - 0.16 * V.h + 4]], '#33e6ff', 2);
+    const lg = portrait ? GOUT + 0.55 : GOUT + 0.15, l = proj(-lg, ZH + 3 * ROW + 0.3), r = proj(lg, ZH + 3 * ROW + 0.3), hy = l.y - 0.07 * V.h;
+    const basTableau = V.y + (portrait ? Math.max(64, 62 / sc) + 74 + 26 : 10 + (H <= 500 ? 56 : 66) + 24);
+    const hh = portrait ? Math.max(60, hy - basTableau - 6) : 0.16 * V.h, hx = l.x, hw = r.x - l.x, ht = hy - hh;
+    const gh = g.createLinearGradient(0, ht, 0, hy); gh.addColorStop(0, '#3a1470'); gh.addColorStop(0.55, '#24094a'); gh.addColorStop(1, '#14052c');
+    g.fillStyle = gh; carte(hx, ht, hw, hh, 14, g); g.fill();
+    // panneaux en relief (bandes plus claires en haut, plus sombres en bas) et rivets
+    g.fillStyle = 'rgba(255,255,255,0.06)'; carte(hx + 10, ht + 10, hw - 20, hh * 0.42, 10, g); g.fill();
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(hx + 10, hy - hh * 0.18, hw - 20, hh * 0.12);
+    for (let i = 0; i < 7; i++) { g.fillStyle = 'rgba(255,220,255,0.35)'; g.beginPath(); g.arc(hx + 18 + i * (hw - 36) / 6, hy - 9, 2, 0, TAU); g.fill(); }
+    tube(g, [[hx + 8, hy - 3], [hx + hw - 8, hy - 3]], '#ff3fd0', 2.5);
+    tube(g, [[hx + 8, ht + 4], [hx + hw - 8, ht + 4]], '#33e6ff', 2);
+    tube(g, [[hx + 4, ht + 10], [hx + 4, hy - 10]], '#a64dff', 1.6); tube(g, [[hx + hw - 4, ht + 10], [hx + hw - 4, hy - 10]], '#a64dff', 1.6);
+    // l'enseigne en néon, centrée dans la partie basse du capot (jamais sous le tableau des scores)
+    const ts = Math.round(clamp(hw * 0.085, 14, 42));
+    g.save(); g.font = '900 ' + ts + 'px ' + DF; g.textAlign = 'center'; g.shadowColor = '#ffe066'; g.shadowBlur = ts * 0.6; g.fillStyle = '#ffe066';
+    const ty = hy - Math.max(hh * 0.32, ts * 0.9);
+    if (ty - ts > basTableau) { g.fillText('STRIKE MONSTRES', hx + hw / 2, ty); g.shadowBlur = ts * 0.15; g.fillStyle = '#fff6c8'; g.fillText('STRIKE MONSTRES', hx + hw / 2, ty); }
+    g.restore();
+    if (hh > ts * 3.2 && ht + hh * 0.3 > basTableau) { for (const k of [0.22, 0.5, 0.78]) etoileNeon(g, hx + hw * k, ht + hh * 0.3, Math.min(14, hh * 0.08), k === 0.5 ? '#ff3fd0' : '#33e6ff'); }
+    // les spots qui éclairent les monstres : cônes de lumière douce du capot vers le triangle
+    for (const k of [0.25, 0.5, 0.75]) {
+      const sx = hx + hw * k, pa = proj((k - 0.5) * 1.1, ZH + 1.5 * ROW), cg = g.createLinearGradient(0, hy, 0, pa.y);
+      cg.addColorStop(0, 'rgba(255,240,210,0.22)'); cg.addColorStop(1, 'rgba(255,240,210,0)');
+      g.fillStyle = cg; g.beginPath(); g.moveTo(sx - 8, hy); g.lineTo(sx + 8, hy); g.lineTo(pa.x + 0.32 * pa.s, pa.y); g.lineTo(pa.x - 0.32 * pa.s, pa.y); g.closePath(); g.fill();
+      g.fillStyle = '#fff6dc'; g.beginPath(); g.ellipse(sx, hy + 1, 7, 3, 0, 0, TAU); g.fill();
+    }
     // décor en néon sur les murs : palmiers, éclairs, étoiles, une boule et des quilles
     const L = V.x + V.w * 0.12, R = V.x + V.w * 0.88, yy = V.y + V.h * (portrait ? 0.16 : 0.2), k = portrait ? 0.7 : 1;
     palmier(g, L, yy + 110 * k, 90 * k, '#a6ff4d'); palmier(g, R, yy + 110 * k, 90 * k, '#a6ff4d');
