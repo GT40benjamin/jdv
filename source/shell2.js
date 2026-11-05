@@ -16011,15 +16011,18 @@ function atlSansSauter(box, refaire) {
 function atlProjDemListe(W) {
   try { if (W && ATL.cur) atlDiscMaj(W, atlFiche()); } catch (e) {}   // 2.0.94 : les demandes se racontent aussi dans la discussion
   const box = W && W.querySelector('.atl-pane[data-k="demandes"] .atl-dlist'); if (!box || !ATL.cur) return;
-  const tout = ((ATL.dem || {}).demandes || []).filter(x => x && x.fiche === ATL.cur), fini = x => ['faite', 'impossible'].includes(x.etat);
+  const f0 = atlFiche(), tout = f0 ? atlDiscDems(f0) : [], fini = x => ['faite', 'impossible'].includes(x.etat);   // 2.0.136 : en mode admin, les demandes du joueur (demandes_projet)
+  const aChoisir = x => !fini(x) && (atlPropOuverte(x) || atlQAttente(x));
   const neuf = x => fini(x) && x.nouveau && x.reponse;
   // une réponse pas encore lue (ticket fait OU en cours avec une offre) : son onglet s'ouvre, une fois par ticket
   ATL.demAuto = ATL.demAuto || new Set();
   const lu = tout.filter(x => x.nouveau && (x.reponse || atlPropOuverte(x)) && !ATL.demAuto.has(x.id + '|' + x.etat)).sort((u, v) => String(v.etat_at || v.at).localeCompare(String(u.etat_at || u.at)))[0];
   const vz = ATL.demVise && tout.find(x => x.id === ATL.demVise);   // 2.0.16 : venu de la tuile → le ticket concerné
-  if (vz) { ATL.demAuto.add(vz.id + '|' + vz.etat); ATL.demOngP = fini(vz) ? 'faites' : 'encours'; ATL.demVu = ''; }
-  else if (lu) { ATL.demAuto.add(lu.id + '|' + lu.etat); ATL.demOngP = fini(lu) ? 'faites' : 'encours'; ATL.demVu = ''; }
-  const ong = ATL.demOngP === 'faites' ? 'faites' : 'encours', l = tout.filter(x => ong === 'faites' ? fini(x) : !fini(x));
+  const ongDe = x => fini(x) ? 'faites' : aChoisir(x) ? 'choisir' : 'encours';
+  if (vz) { ATL.demAuto.add(vz.id + '|' + vz.etat); ATL.demOngP = ongDe(vz); ATL.demVu = ''; }
+  else if (lu) { ATL.demAuto.add(lu.id + '|' + lu.etat); ATL.demOngP = ongDe(lu); ATL.demVu = ''; }
+  if (!ATL.demOngP && tout.some(aChoisir)) ATL.demOngP = 'choisir';   // quelque chose attend un choix : cet onglet d'abord
+  const ong = ['faites', 'choisir'].includes(ATL.demOngP) ? ATL.demOngP : 'encours', l = tout.filter(x => ongDe(x) === ong);
   const sig = ong + JSON.stringify(tout.map(x => [x.id, x.etat, x.reponse, (x.etapes || []).length, x.nouveau, !!x.choix, atlPropOuverte(x), (x.questions || []).map(q => q && q.reponse ? 1 : 0).join(''), atlDemOuvert(x)]));
   if (box.dataset.sig === sig) return;
   const ecrit = [...box.querySelectorAll('.atl-dedit:not([hidden]) textarea, .atl-q input')].find(e => e.value.trim() || document.activeElement === e);   // le joueur écrit une réponse : on ne touche à rien (relu au tour suivant)
@@ -16028,10 +16031,10 @@ function atlProjDemListe(W) {
   const premier = !box.childElementCount;
   atlSansSauter(box, () => {
   box.textContent = '';
-  const tabs = atlEl('div', 'atl-demtabs'), nEn = tout.filter(x => !fini(x)).length;
-  for (const [k, lab] of [['encours', 'En cours (' + nEn + ')'], ['faites', '✅ Faites (' + (tout.length - nEn) + ')' + (tout.some(neuf) ? ' ✨' : '')]]) { const b = atlEl('button', 'atl-demtab' + (k === ong ? ' on' : ''), lab); b.type = 'button'; b.addEventListener('click', () => { ATL.demOngP = k; atlProjDemListe(W); }); tabs.appendChild(b); }
+  const tabs = atlEl('div', 'atl-demtabs'), nCh = tout.filter(aChoisir).length, nFa = tout.filter(fini).length, nEn = tout.length - nCh - nFa;
+  for (const [k, lab] of (nCh ? [['choisir', '💡 À choisir (' + nCh + ')']] : []).concat([['encours', 'En cours (' + nEn + ')'], ['faites', '✅ Faites (' + nFa + ')' + (tout.some(neuf) ? ' ✨' : '')]])) { const b = atlEl('button', 'atl-demtab' + (k === ong ? ' on' : ''), lab); b.type = 'button'; b.addEventListener('click', () => { ATL.demOngP = k; atlProjDemListe(W); }); tabs.appendChild(b); }
   box.appendChild(tabs);
-  if (!l.length) box.appendChild(atlEl('p', 'atl-chv', ong === 'faites' ? 'Pas encore de demande faite.' : 'Pas de demande en cours. Écris ce que tu veux changer : ' + gN() + ' s’en occupe.'));
+  if (!l.length) box.appendChild(atlEl('p', 'atl-chv', ong === 'faites' ? 'Pas encore de demande faite.' : ong === 'choisir' ? 'Rien à choisir pour l’instant.' : 'Pas de demande en cours. Écris ce que tu veux changer : ' + gN() + ' s’en occupe.'));
   let vu = null;
   for (const x of l) {
     const ouv = atlDemOuvert(x, vz);   // 2.0.94 : une ligne de suivi par demande ; dépliée si quelque chose t'attend (choix, questions, réponse neuve)
@@ -16134,6 +16137,21 @@ function atlDiscFil(f) {
   }
   for (const m of atlDiscMsgs().concat((ATL.discPend || []).filter(m => m.fiche === f.id)))
     add(m.at, 'm' + (m.id || 'p') + (m.pending ? 'p' : '') + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : '') + (m.demande ? atlDiscSig(dem(m.demande)) : ''), !!m.atelier && !m.pending, () => atlBubble(m), !m.atelier && !m.pending);
+  // 2.0.136 (l'admin) : plusieurs tickets livrés dans la même version = UNE bulle (« ✅ Livré dans la V2 : 4 corrections », liste dépliable)
+  const livres = {}; for (const x of atlDiscDems(f)) if (x && x.etat === 'faite' && (x.version_livree | 0)) (livres[x.version_livree | 0] = livres[x.version_livree | 0] || []).push(x);
+  for (const [v, xs] of Object.entries(livres)) {
+    if (xs.length < 2) continue;
+    const at = xs.map(x => String(x.etat_at || x.at || '')).sort().pop(), reps = xs.map(x => String(x.reponse || '').trim()).filter(Boolean);
+    const commun = reps.find(r => reps.filter(q => q === r).length > 1) || reps[0] || 'C’est fait ! 🎉';
+    add(at, 'dfv' + v + '-' + xs.map(x => x.id.slice(0, 4)).join(''), true, () => {
+      const bl = atlBubble({ atelier: true, texte: commun, at }), mc = bl.querySelector('.atl-mc'), t = bl.querySelector('.atl-t');
+      mc.insertBefore(atlEl('p', 'atl-livre', '✅ Livré dans la V' + v + ' : ' + xs.length + ' corrections'), t);
+      const d = atlEl('details', 'atl-livres'); d.appendChild(atlEl('summary', '', 'Voir les ' + xs.length));
+      const ul = atlEl('ul'); for (const x of xs) { const li = atlEl('li', '', net(String(x.texte || '').split('\n\n↪ ')[0]).replace(/^🎯\s*/, '🎯 ')); const r = String(x.reponse || '').trim(); if (r && r !== commun) li.appendChild(atlEl('small', '', r)); ul.appendChild(li); }
+      d.appendChild(ul); mc.insertBefore(d, t); return bl;
+    });
+  }
+  const groupe = x => x && x.etat === 'faite' && (livres[x.version_livree | 0] || []).length > 1;
   for (const x of atlDiscDems(f)) {
     const ne = atlDiscDe(x), hi = Array.isArray(x.historique) ? x.historique.filter(h => h && h.sorte) : [], et = Array.isArray(x.etapes) ? x.etapes : [], sd = atlDiscSig(x), env = x.etat === 'envoyee';
     const J = (tx, at, cls) => () => { const bl = atlBubble({ texte: tx, at }); bl.classList.add(cls || 'atl-fdem'); return bl; };
@@ -16157,7 +16175,7 @@ function atlDiscFil(f) {
       if (Array.isArray(e.images) && e.images.length) { const ta = iso(T(e.at) + 1); add(ta, 'da' + x.id + i, true, () => atlBubble({ atelier: true, texte: String(e.texte || e.etape || '') + ' ✅', images: e.images, at: ta })); }   // 2.0.104 : « 👀 Aperçu de ton jeu » d'une étape testée
       add(e.at, 'de' + x.id + i + (vive ? 'n' : ''), true, vive ? () => atlTravBulle(x) : () => { const d0 = new Date(e.at), l = atlEl('div', 'atl-fet'); l.append(atlEl('span', '', '🛠️ ' + String(e.texte || e.etape || '')), atlEl('small', '', isNaN(d0) ? '' : d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))); return l; });
     });
-    if (x.etat === 'faite') add(x.etat_at, 'df' + x.id + sd, true, () => { const bl = atlBubble({ atelier: true, texte: x.reponse ? String(x.reponse) : 'C’est fait ! 🎉', at: x.etat_at }); if (x.version_livree) bl.querySelector('.atl-mc').insertBefore(atlEl('p', 'atl-livre', '✅ Livré dans la V' + x.version_livree), bl.querySelector('.atl-t')); return bl; });
+    if (x.etat === 'faite' && !groupe(x)) add(x.etat_at, 'df' + x.id + sd, true, () => { const bl = atlBubble({ atelier: true, texte: x.reponse ? String(x.reponse) : 'C’est fait ! 🎉', at: x.etat_at }); if (x.version_livree) bl.querySelector('.atl-mc').insertBefore(atlEl('p', 'atl-livre', '✅ Livré dans la V' + x.version_livree), bl.querySelector('.atl-t')); return bl; });
     else if (x.etat === 'impossible' && !(hi.length && hi[hi.length - 1].sorte === 'refus')) add(x.etat_at, 'di' + x.id, true, () => atlBubble({ atelier: true, texte: '❌ ' + (x.reponse ? String(x.reponse) : 'Ce n’est pas possible pour cette demande.'), at: x.etat_at }));
   }
   const vc = (f.version | 0) || 1;

@@ -5168,3 +5168,7 @@ body:has(.sheet:not([hidden])) .fs-tip,body:has([role=menu]:not([hidden])) .fs-t
 @keyframes atlBrille{0%,100%{box-shadow:0 0 0 0 transparent}30%{box-shadow:0 0 0 4px #ffd34d,0 0 26px rgba(255,211,77,.7)}}
 .atl-brille{animation:atlBrille 1.3s ease-in-out 2;border-radius:16px}
 .atl-pmsg{position:absolute;top:58px;right:10px;z-index:2;padding:3px 9px;border-radius:999px;background:#ffd34d;color:#1d1030;font:800 12px var(--body);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+/* 2.0.136 : livraisons groupées d'une version (liste dépliable) */
+.atl-livres{margin:6px 0 2px}.atl-livres summary{cursor:pointer;font:700 13px var(--body);color:#ffd34d}.atl-livres ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}.atl-livres li{font:13px/1.35 var(--body)}.atl-livres li small{display:block;color:var(--muted)}
+/* 2.0.136 : la page du projet ne déborde jamais en largeur (un texte ou une liste longue ne pousse plus la colonne : plus de décalage à gauche) */
+.atl-pbox,.atl-pane,.atl-dlist{grid-template-columns:minmax(0,1fr)}.atl-pbox>*,.atl-pane>*,.atl-dlist>*{min-width:0}.atl-pane{overflow-wrap:anywhere}
