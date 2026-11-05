@@ -17965,6 +17965,21 @@ async function atlVoirProjet(id) {
   const ms = atlEl('div', 'atl-pmsgs'); for (const m of (Array.isArray(r.messages) ? r.messages : []).slice(-60)) ms.appendChild(atlBubble(m)); P.appendChild(ms);
   P.appendChild(close);
 }
+// 2.0.121 (chef : LOU a créé 2 projets identiques d'un double clic) : ANTI DOUBLE ENVOI, pour tout l'Atelier. Le même envoi (même fonction, mêmes
+// valeurs) déjà en route n'est pas renvoyé : on attend sa réponse. Et le bouton qui l'a lancé reste grisé jusqu'à la réponse. Le serveur refuse
+// aussi les doublons de son côté (SQL v129/v130). Pas la case « Discuter du jeu » : elle reste toujours libre (sa file envoie dans l'ordre).
+const ATL_ENVOIS = new Set(['at_brouillon', 'at_dire', 'at_demande', 'at_demande_element', 'at_demande_modif', 'at_dessins_demander', 'at_design_refaire', 'at_choisir_design', 'at_lancer', 'at_publier_salle', 'at_demander_monde', 'at_demande_choisir', 'at_demande_repondre', 'at_demande_refuser', 'at_supprimer']);
+const ATL_EN_ROUTE = new Map(); let ATL_CLIC = null;
+rpc = (rpc0 => function (fn, a, o) {
+  if (!ATL_ENVOIS.has(fn)) return rpc0(fn, a, o);
+  const k = fn + '|' + JSON.stringify(a || {});
+  if (ATL_EN_ROUTE.has(k)) return ATL_EN_ROUTE.get(k);
+  const b = ATL_CLIC && performance.now() - ATL_CLIC.t < 400 && ATL_CLIC.b.isConnected && !ATL_CLIC.b.disabled ? ATL_CLIC.b : null;
+  if (b) { b.disabled = true; b.classList.add('atl-envoi'); }
+  const pr = Promise.resolve().then(() => rpc0(fn, a, o)).finally(() => { ATL_EN_ROUTE.delete(k); if (b) { b.disabled = false; b.classList.remove('atl-envoi'); } });
+  ATL_EN_ROUTE.set(k, pr); return pr;
+})(rpc);
+document.addEventListener('click', e => { const b = e.target && e.target.closest && e.target.closest('#jdw-atelier button'); if (b && !b.classList.contains('atl-discgo')) ATL_CLIC = { b, t: performance.now() }; }, true);
 // ---- 23 h 10 (Benjamin : « en tant qu'admin je puisse intervenir ») : MODE ADMIN. Les appels d'un projet ouvert depuis « Tous les projets »
 // sont redirigés vers le serveur admin (at_admin_lire / at_admin_agir : at_admins seulement, journal at_admin_journal, JAMAIS de débit) ;
 // un message écrit par l'admin s'affiche comme le guide (l'auteur réel est noté côté serveur). Les dépenses en € restent au patron.
