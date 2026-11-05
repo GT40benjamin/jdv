@@ -579,56 +579,95 @@ function menuMontrer(g) {
   const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
   const btn = (c, x, f) => { const b = el('button', 'btn ' + c, x); b.type = 'button'; b.addEventListener('click', f); return b; };
   let titre = g.title || ''; try { if (ATL_NES.has(g.id)) titre = atlTitre(g) || titre; } catch (e) {}
+  // 2.0.140 (l'admin : « dès qu'on lance, on a une belle image du jeu, puis les boutons en bas ») : l'IMAGE DU JEU en grand (sa jaquette, sinon
+  // son aperçu animé, sinon sa vignette de l'accueil), la même floutée derrière (jamais un fond vide), le titre et une rangée de boutons EN BAS
   const M = el('div', 'gmenu'); M.id = 'jdw-gmenu'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Menu de ' + titre); M.style.setProperty('--acc', g.accent || COLORS.amber);
-  try { const x = ATL_JEUX.get(g.id), jq = x && x.vignette && atlIaUrl(x.vignette); if (jq) M.style.setProperty('--gm-fond', 'url("' + jq + '")'); } catch (e) {}
-  const C = el('div', 'gm-c'); M.appendChild(C); $('jdw-play').appendChild(M);
+  const scene = el('div', 'gm-scene'), bas = el('div', 'gm-bas');
+  M.append(scene, bas); $('jdw-play').appendChild(M);
+  menuImage(g, M, scene);
+  try { const ro = new ResizeObserver(() => { if (M.isConnected) M.style.setProperty('--gm-bas', Math.ceil(bas.getBoundingClientRect().height) + 'px'); else ro.disconnect(); }); ro.observe(bas); } catch (e) {}   // l'image s'arrête au-dessus des boutons, quelle que soit leur hauteur
   sonJeuActiver(g.id); musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);   // la musique du jeu, à SON volume, pendant le menu
   let boutique = 0;
   const jouer = () => { MENU.passe = g.id; menuFermer(); mountGame(g); };
   const vue = (quoi) => {
-    C.textContent = ''; C.appendChild(el('p', 'gm-k', quoi === 'son' ? '🔊 Le son' : quoi === 'param' ? '⚙️ Paramètres' : '🎮 Menu'));
-    C.appendChild(el('h2', 'gm-t', titre));
-    const L = el('div', 'gm-l'); C.appendChild(L);
+    bas.textContent = ''; bas.appendChild(el('h2', 'gm-t', titre));
     if (!quoi) {
-      L.appendChild(btn('btn-play gm-go', '▶ Jouer', jouer));
-      if (howtoOf(g)) L.appendChild(btn('btn-ghost', '❓ Touches et explications', () => howtoShow(g, $('jdw-play'), { then: () => { const b = M.querySelector('.gm-go'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} } })));
-      if (boutique) L.appendChild(btn('btn-ghost', '🛍️ Boutique', () => { MENU.passe = g.id; menuFermer(); mountGame(g); setTimeout(() => { try { if (current && current.game.id === g.id) boutiqueOuvrir(); } catch (e) {} }, 1200); }));
-      L.appendChild(btn('btn-ghost', '🔊 Son', () => vue('son')));
-      L.appendChild(btn('btn-ghost', '⚙️ Paramètres', () => vue('param')));
-    } else if (quoi === 'son') {
-      const s = sonJeuLire(g.id);
-      const ligne = (k, kv, ic, nom) => {
-        const r = el('div', 'gm-son'), sl = el('input', 'gm-vol');
-        const t = btn('btn-ghost gm-tog', '', () => { sonJeuEcrire(g.id, { [k]: !sonJeuLire(g.id)[k] }); maj(); });
-        t.setAttribute('role', 'switch');
-        sl.type = 'range'; sl.min = '0'; sl.max = '100'; sl.step = '5'; sl.value = String(Math.round(s[kv] * 100)); sl.setAttribute('aria-label', 'Volume : ' + nom);
-        sl.addEventListener('input', () => { sonJeuEcrire(g.id, { [kv]: (+sl.value || 0) / 100, [k]: true }); maj(); });
-        const maj = () => { const v = sonJeuLire(g.id); t.textContent = ic + ' ' + nom + ' : ' + (v[k] ? 'oui' : 'non'); t.setAttribute('aria-checked', String(v[k])); t.classList.toggle('on', v[k]); sl.value = String(Math.round(v[kv] * 100)); r.classList.toggle('off', !v[k]); };
-        maj(); r.append(t, sl); return r;
-      };
-      L.append(ligne('m', 'mv', '🎵', 'Musique'), ligne('b', 'bv', '🔊', 'Bruitages'), el('p', 'gm-note', 'Réglé pour ce jeu seulement, et retenu.'));
-      L.appendChild(btn('btn-ghost gm-ret', '← Retour', () => vue('')));
+      const R = el('div', 'gm-row');
+      R.appendChild(btn('btn-play gm-go', '▶ Jouer', jouer));
+      if (howtoOf(g)) R.appendChild(btn('btn-ghost gm-b', '❓ Commandes', () => howtoShow(g, $('jdw-play'), { then: () => { const b = M.querySelector('.gm-go'); if (b) try { b.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} } })));
+      if (boutique) R.appendChild(btn('btn-ghost gm-b', '🛍️ Boutique', () => { MENU.passe = g.id; menuFermer(); mountGame(g); setTimeout(() => { try { if (current && current.game.id === g.id) boutiqueOuvrir(); } catch (e) {} }, 1200); }));
+      R.appendChild(btn('btn-ghost gm-b', '🔊 Son', () => vue('son')));
+      R.appendChild(btn('btn-ghost gm-b', '⚙️', () => vue('param'))); R.lastChild.setAttribute('aria-label', 'Paramètres'); R.lastChild.title = 'Paramètres';
+      bas.appendChild(R);
     } else {
-      L.appendChild(btn('btn-ghost', '🔊 Son', () => vue('son')));
-      if (g.saves || typeof g.recommencerAventure === 'function' || ATL_NES.has(g.id)) {
-        const ask = el('div', 'gm-ask'); ask.hidden = true;
-        const rb = btn('btn-ghost', '🔄 Recommencer l’aventure', () => {
-          ask.textContent = ''; ask.append(el('p', '', 'Tu perds ta progression dans ce jeu. Tes achats et tes records restent.'));
-          const oui = btn('btn-play', 'Oui, tout recommencer', () => menuRecommencer(g, vue)), non = btn('btn-ghost', 'Non', () => { ask.hidden = true; try { rb.focus({ preventScroll: true }); } catch (e) {} });
-          ask.append(oui, non); ask.hidden = false; setTimeout(() => { try { non.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 30);
-        });
-        L.append(rb, ask);
+      const P = el('div', 'gm-pan'); P.appendChild(el('p', 'gm-k', quoi === 'son' ? '🔊 Le son de ce jeu' : '⚙️ Paramètres')); bas.appendChild(P);
+      if (quoi === 'son') {
+        const s = sonJeuLire(g.id);
+        const ligne = (k, kv, ic, nom) => {
+          const r = el('div', 'gm-son'), sl = el('input', 'gm-vol');
+          const t = btn('btn-ghost gm-tog', '', () => { sonJeuEcrire(g.id, { [k]: !sonJeuLire(g.id)[k] }); maj(); });
+          t.setAttribute('role', 'switch');
+          sl.type = 'range'; sl.min = '0'; sl.max = '100'; sl.step = '5'; sl.value = String(Math.round(s[kv] * 100)); sl.setAttribute('aria-label', 'Volume : ' + nom);
+          sl.addEventListener('input', () => { sonJeuEcrire(g.id, { [kv]: (+sl.value || 0) / 100, [k]: true }); maj(); });
+          const maj = () => { const v = sonJeuLire(g.id); t.textContent = ic + ' ' + nom + ' : ' + (v[k] ? 'oui' : 'non'); t.setAttribute('aria-checked', String(v[k])); t.classList.toggle('on', v[k]); sl.value = String(Math.round(v[kv] * 100)); r.classList.toggle('off', !v[k]); };
+          maj(); r.append(t, sl); return r;
+        };
+        P.append(ligne('m', 'mv', '🎵', 'Musique'), ligne('b', 'bv', '🔊', 'Bruitages'), el('p', 'gm-note', 'Réglé pour ce jeu seulement, et retenu.'));
+      } else {
+        P.appendChild(btn('btn-ghost gm-b', '🔊 Son', () => vue('son')));
+        if (g.saves || typeof g.recommencerAventure === 'function' || ATL_NES.has(g.id)) {
+          const ask = el('div', 'gm-ask'); ask.hidden = true;
+          const rb = btn('btn-ghost gm-b', '🔄 Recommencer l’aventure', () => {
+            ask.textContent = ''; ask.append(el('p', '', 'Tu perds ta progression dans ce jeu. Tes achats et tes records restent.'));
+            const oui = btn('btn-play', 'Oui, tout recommencer', () => menuRecommencer(g, vue)), non = btn('btn-ghost', 'Non', () => { ask.hidden = true; try { rb.focus({ preventScroll: true }); } catch (e) {} });
+            ask.append(oui, non); ask.hidden = false; setTimeout(() => { try { non.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 30);
+          });
+          P.append(rb, ask);
+        }
       }
-      L.appendChild(btn('btn-ghost gm-ret', '← Retour', () => vue('')));
+      bas.appendChild(btn('btn-ghost gm-b gm-ret', '← Retour', () => vue('')));
     }
-    setTimeout(() => { try { const f = L.querySelector('button:not([disabled])'); if (f) f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40);
+    setTimeout(() => { try { const f = bas.querySelector('.gm-go, .gm-pan button:not([disabled]), button:not([disabled])'); if (f) f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40);
   };
   vue('');
-  M._esc = e => { if (e.key !== 'Escape' || document.getElementById('jdw-howto')) return; e.preventDefault(); e.stopImmediatePropagation(); if (C.querySelector('.gm-ret')) vue(''); else backToLibrary(); };
+  M._esc = e => { if (e.key !== 'Escape' || document.getElementById('jdw-howto')) return; e.preventDefault(); e.stopImmediatePropagation(); if (bas.querySelector('.gm-ret')) vue(''); else backToLibrary(); };
   document.addEventListener('keydown', M._esc, true);
   // la boutique : seulement si le jeu en a une (jeux de l'Atelier)
   if (ATL_NES.has(g.id) && ONLINE && !netOff() && !isGuest() && profile.name) rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true })
-    .then(r => { if (r && Array.isArray(r.articles) && r.articles.length && document.getElementById('jdw-gmenu') === M) { boutique = r.articles.length; if (!C.querySelector('.gm-ret')) vue(''); } }).catch(() => {});
+    .then(r => { if (r && Array.isArray(r.articles) && r.articles.length && document.getElementById('jdw-gmenu') === M) { boutique = r.articles.length; if (!bas.querySelector('.gm-ret')) vue(''); } }).catch(() => {});
+}
+// l'image du menu : la jaquette du jeu de l'Atelier (grande image), sinon l'aperçu animé du jeu (dessiné net à la taille de l'écran),
+// sinon sa vignette de l'accueil ; la même, floutée et agrandie, remplit tout l'écran derrière
+function menuImage(g, M, scene) {
+  const flou = document.createElement('div'); flou.className = 'gm-flou'; scene.appendChild(flou);
+  const cadre = document.createElement('div'); cadre.className = 'gm-cadre'; scene.appendChild(cadre);
+  let jaq = '';
+  try { if (ATL_NES.has(g.id)) { const x = ATL_JEUX.get(g.id) || atlProjets().find(q => q && q.jeu === g.id); const v = x && (x.vignette || x.jaq); jaq = v ? atlIaUrl(v) : ''; } } catch (e) {}
+  const image = (u, ensuite) => {
+    const i = new Image(); i.alt = ''; i.decoding = 'async';
+    i.onload = () => { if (!M.isConnected) return; cadre.textContent = ''; i.className = 'gm-vif'; cadre.appendChild(i); flou.style.backgroundImage = 'url("' + u + '")'; };
+    i.onerror = () => { if (ensuite) ensuite(); };
+    i.src = u;
+  };
+  const apercu = () => {
+    if (typeof g.preview !== 'function') { image(ROOT + 'accueil/' + g.id + '.webp'); return false; }
+    const c = document.createElement('canvas'); c.className = 'gm-vif gm-cv'; cadre.textContent = ''; cadre.appendChild(c);
+    const fc = document.createElement('canvas'); fc.width = 64; fc.height = 48; fc.className = 'gm-flouc'; flou.appendChild(fc);
+    const ctx = c.getContext('2d'), fx = fc.getContext('2d'), t0 = performance.now(); let n = 0;
+    const tic = () => {
+      if (!M.isConnected) return;
+      // la taille vient du CADRE (jamais du canvas lui-même : il grandirait à chaque image), en 4:3 comme les tuiles
+      const cs = getComputedStyle(cadre), aw = Math.max(40, cadre.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)), ah = Math.max(30, cadre.clientHeight);
+      let cw = aw, ch = aw * 3 / 4; if (ch > ah) { ch = ah; cw = ah * 4 / 3; }
+      const d = Math.min(2, devicePixelRatio || 1), w = Math.max(1, Math.round(cw * d)), h = Math.max(1, Math.round(ch * d));
+      if (c.width !== w || c.height !== h) { c.width = w; c.height = h; c.style.width = Math.round(cw) + 'px'; c.style.height = Math.round(ch) + 'px'; }
+      try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, w, h); ctx.save(); ctx.scale(d, d); g.preview(ctx, w / d, h / d, (performance.now() - t0) / 1000); ctx.restore(); } catch (e) { ctx.restore && ctx.restore(); }
+      if (!(n++ % 8)) try { fx.drawImage(c, 0, 0, 64, 48); } catch (e) {}
+      requestAnimationFrame(tic);
+    };
+    requestAnimationFrame(tic); return true;
+  };
+  if (jaq) image(jaq, apercu); else apercu();
 }
 // « Recommencer l'aventure » : la fonction du jeu (recommencerAventure, sans lancer la partie), sinon le jeu est lancé et sa remise à zéro
 // standard (api.pause.onRecommencerJeu, Ajout 24) est appelée ; un jeu qui ne garde rien repart déjà de zéro
@@ -8187,7 +8226,7 @@ function openDuo(d) {
 }
 function mountDuo() {
   const d = DUO.d; if (!d) return;
-  if (!NET.role && howtoAvant(d, $('jdw-duo'), () => mountDuo(), true)) return;   // 2.0.112 : « Comment jouer » avant le 1er duel
+  // 2.0.140 : plus de « Comment jouer » ouvert tout seul avant le 1er duel (❓ du duel)
   unmountDuo();
   DUO.waitRot = false; $('jdw-duo-rotate').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-hud').hidden = false;
   $('jdw-duo').classList.remove('net-single', 'ai-single');
@@ -10904,7 +10943,7 @@ function liveRecu(p) {
 }
 function mountGame(g) {
   { const lt = document.getElementById('jdw-losetip'); if (lt) lt.remove(); }   // 2.0.131 : pas de bandeau de nouveauté pendant une partie
-  if (howtoAvant(g, $('jdw-play'), () => mountGame(g))) return;   // 2.0.112 : « Comment jouer » avant la 1re partie
+  // 2.0.140 (l'admin) : plus JAMAIS de « Comment jouer » ouvert tout seul au lancement — seulement par ❓ (barre du jeu, menu, pause)
   if (current) { try { unmountGame(); } catch (e) {} }   // 2.0.44 : jamais deux jeux l'un sur l'autre
   const seq = ++mountSeq;
   let root;

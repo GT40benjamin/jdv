@@ -5181,29 +5181,6 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 .atl-dfeuille{width:min(720px,100%);max-height:min(86vh,900px);overflow:auto;display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
 .atl-dfh{display:flex;align-items:center;justify-content:space-between;gap:10px}.atl-dfh h2{margin:0;font:800 18px var(--display,inherit);min-width:0;overflow-wrap:anywhere}
 .atl-dfp{margin:0;color:var(--muted);font:13px var(--body)}.atl-dfeuille .atl-dlist{display:grid;gap:8px;grid-template-columns:minmax(0,1fr)}
-/* 2.0.139 (CONTRACT.md Ajout 27) : le MENU PRINCIPAL standard d'un jeu (avant la partie), au-dessus du cadre du jeu, dans la zone sûre */
-#jdw-play .gmenu{position:absolute;inset:0;z-index:24;display:grid;place-items:center;padding:max(14px,env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) max(14px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));
-  padding-top:calc(var(--tbh,52px) + max(14px,env(safe-area-inset-top,0px)));overflow:auto;
-  background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--acc) 26%,transparent),transparent 62%),linear-gradient(rgba(6,8,16,.78),rgba(6,8,16,.92)),var(--gm-fond,none) center/cover no-repeat,#070912}
-#jdw-play .gm-c{width:min(440px,100%);display:grid;gap:12px;justify-items:stretch;text-align:center;padding:22px 20px;border-radius:22px;background:rgba(14,18,32,.86);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);
-  box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04) inset}
-#jdw-play .gm-k{margin:0;font:700 12px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
-#jdw-play .gm-t{margin:0 0 4px;font:400 clamp(22px,5vw,32px)/1.1 var(--display,inherit);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.45);overflow-wrap:anywhere}
-#jdw-play .gm-l{display:grid;gap:10px}
-#jdw-play .gm-l > .btn{width:100%;min-height:48px;font-size:16px;justify-content:center}
-#jdw-play .gm-go{min-height:58px!important;font-size:20px!important}
-#jdw-play .gm-son{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center}
-#jdw-play .gm-son.off .gm-vol{opacity:.4}
-#jdw-play .gm-tog{min-height:46px;justify-content:flex-start}#jdw-play .gm-tog.on{border-color:var(--acc);color:#fff}
-#jdw-play .gm-vol{width:100%;accent-color:var(--acc);min-height:32px}
-#jdw-play .gm-note{margin:0;color:var(--muted);font:13px var(--body)}
-#jdw-play .gm-ask{display:grid;gap:8px;padding:12px;border-radius:14px;background:rgba(255,90,90,.08);border:1px solid rgba(255,120,120,.4)}#jdw-play .gm-ask p{margin:0;font:600 14px var(--body)}
-@media (orientation:landscape) and (max-height:500px){
-  #jdw-play .gmenu{padding-top:max(10px,env(safe-area-inset-top,0px))}
-  #jdw-play .gm-c{width:min(620px,100%);padding:14px 16px;gap:8px}
-  #jdw-play .gm-l{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#jdw-play .gm-l > .gm-go,#jdw-play .gm-l > .gm-ask,#jdw-play .gm-l > .gm-note,#jdw-play .gm-l > .gm-son{grid-column:1/-1}
-  #jdw-play .gm-l > .btn{min-height:42px;font-size:15px}#jdw-play .gm-go{min-height:48px!important}
-}
 /* 2.0.139 : téléphone couché, en partie — boutons de la borne plus petits, plus discrets, et qui s'endorment (classe btn-dodo, 3 s sans toucher) */
 @media (orientation:landscape) and (max-height:500px){
   #jdw-play .topbar > button,#jdw-play .topbar #jdw-back,#jdw-play .topbar #jdw-fs,#jdw-play .topbar #jdw-mute,#jdw-play .topbar.has-fs #jdw-mute{width:38px;height:38px;font-size:14px;opacity:.62;transition:opacity .35s}
@@ -5218,3 +5195,40 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 #jdw-play .topbar{grid-template-columns:auto minmax(0,1fr)!important;grid-auto-flow:column;grid-auto-columns:auto}
 @media (max-width:520px){#jdw-play .topbar .tb-word{display:none}#jdw-play .topbar{gap:6px}#jdw-play .topbar > button{padding-inline:9px;min-width:0}}   /* 2.0.139 : téléphone droit, beaucoup de boutons (✕ ⏸ 🛍️ ? 📣 ⛶ 🔊) : rien ne sort de l'écran */
 .atl-wiz.atl-defile{-webkit-mask-image:linear-gradient(to bottom,transparent 0,transparent 10px,#000 44px);mask-image:linear-gradient(to bottom,transparent 0,transparent 10px,#000 44px)}   /* 2.0.139 : plus de bouton coupé net en haut de la page du projet */
+/* 2.0.140 (l'admin : « une belle image du jeu, puis les boutons en bas ») : le MENU d'un jeu = son image en grand, floutée derrière, titre + rangée de boutons en bas */
+#jdw-play .gmenu{position:absolute;inset:0;z-index:19;display:grid;grid-template-rows:minmax(0,1fr) auto;overflow:hidden;background:#05060c}
+#jdw-play .gm-scene{position:absolute;inset:0}
+#jdw-play .gm-flou{position:absolute;inset:-8%;background:radial-gradient(70% 60% at 50% 40%,color-mix(in srgb,var(--acc) 45%,transparent),transparent 70%) center/cover no-repeat;background-size:cover;background-position:center;filter:blur(26px) brightness(.55) saturate(1.25)}
+#jdw-play .gm-flouc{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#jdw-play .gm-cadre{position:absolute;left:0;right:0;top:calc(var(--tbh,52px) + max(12px,env(safe-area-inset-top,0px)));bottom:var(--gm-bas,170px);display:grid;place-items:center;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+#jdw-play .gm-vif{display:block;max-width:100%;max-height:100%;border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08);object-fit:contain}
+#jdw-play .gm-cv{max-width:none;max-height:none}
+#jdw-play .gm-bas{position:relative;grid-row:2;display:grid;gap:10px;justify-items:center;padding:28px max(16px,env(safe-area-inset-right,0px)) max(18px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  background:linear-gradient(rgba(5,6,12,0),rgba(5,6,12,.78) 38%,rgba(5,6,12,.92))}
+#jdw-play .gm-t{margin:0;font:400 clamp(24px,4.4vw,44px)/1.05 var(--display,inherit);color:#fff;text-align:center;text-shadow:0 3px 0 rgba(0,0,0,.5),0 0 24px color-mix(in srgb,var(--acc) 55%,transparent);overflow-wrap:anywhere}
+#jdw-play .gm-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;max-width:900px}
+#jdw-play .gm-go{min-width:min(260px,100%);min-height:58px;font-size:22px;padding-inline:28px;box-shadow:0 6px 0 rgba(0,0,0,.45),0 0 30px color-mix(in srgb,var(--acc) 50%,transparent)}
+#jdw-play .gm-b{min-height:48px;padding-inline:16px;font-size:15px;background:rgba(10,12,22,.55);border-color:rgba(255,255,255,.28);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#jdw-play .gm-pan{width:min(560px,100%);display:grid;gap:10px;padding:14px;border-radius:18px;background:rgba(10,12,22,.72);border:1px solid rgba(255,255,255,.16);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#jdw-play .gm-k{margin:0;font:700 12px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+#jdw-play .gm-son{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center}
+#jdw-play .gm-son.off .gm-vol{opacity:.4}
+#jdw-play .gm-tog{min-height:46px;justify-content:flex-start}#jdw-play .gm-tog.on{border-color:var(--acc);color:#fff}
+#jdw-play .gm-vol{width:100%;accent-color:var(--acc);min-height:32px}
+#jdw-play .gm-note{margin:0;color:var(--muted);font:13px var(--body)}
+#jdw-play .gm-ask{display:grid;gap:8px;padding:12px;border-radius:14px;background:rgba(255,90,90,.1);border:1px solid rgba(255,120,120,.45)}#jdw-play .gm-ask p{margin:0;font:600 14px var(--body)}
+#jdw-play .gmenu{--gm-bas:178px}
+#jdw-play:has(#jdw-gmenu) #jdw-howto-b,#jdw-play:has(#jdw-gmenu) #jdw-mute,#jdw-play:has(#jdw-gmenu) #jdw-pause-b{display:none!important}   /* le menu a son ❓ et son 🔊 : pas en double */
+@media (max-width:600px){#jdw-play .gmenu{--gm-bas:230px}#jdw-play .gm-row{gap:8px}#jdw-play .gm-go{flex:1 1 100%}#jdw-play .gm-b{flex:1 1 120px;padding-inline:10px;min-width:0}}
+@media (orientation:landscape) and (max-height:500px){
+  #jdw-play .gmenu{--gm-bas:128px}
+  #jdw-play .gm-cadre{top:max(10px,env(safe-area-inset-top,0px))}
+  #jdw-play .gm-bas{padding-top:16px;gap:6px}
+  #jdw-play .gm-t{font-size:22px}
+  #jdw-play .gm-go{min-height:46px;font-size:18px;min-width:200px}#jdw-play .gm-b{min-height:42px;font-size:14px}
+  #jdw-play .gm-pan{padding:10px;gap:6px}
+}
+#jdw-play .gm-row{width:100%}#jdw-play .gm-row > .btn{flex:0 0 auto;width:auto}   /* une seule rangée quand la place le permet ; le menu passe SOUS la barre du jeu (✕ toujours visible) */
+@media (max-width:600px){#jdw-play .gm-row > .gm-go{flex:1 1 100%}#jdw-play .gm-row > .gm-b{flex:1 1 120px;min-width:0}}
+@media (max-width:600px){#jdw-play .gm-row > .gm-b:last-child{flex:0 0 58px}}   /* ⚙ : un petit bouton au bout de la rangée */
+@media (max-width:600px){#jdw-play .gm-b{white-space:nowrap;font-size:14px;padding-inline:8px}}
