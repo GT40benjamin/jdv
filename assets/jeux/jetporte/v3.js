@@ -655,7 +655,9 @@ function mount(root, api) {
     if (P.coccinelle) { const c = P.coccinelle; c.ph += dt; if (!c.vole) { c.u += c.du * dt; if (c.u > 0.7 || c.u < 0.3) c.du = -c.du; c.v = 0.38 + Math.sin(c.ph * 0.7) * 0.08; } else { c.vole += dt; } }
     // la caméra : le cultivateur au premier tiers, devant lui la rangée
     const cible = P.x - (P.face === 0 ? LW * 0.36 : LW * 0.64);
+    // V3 : au doigt, le héros reste toujours à droite des boutons ◀ ▶ (au hangar, la caméra recule un peu au lieu de le pousser dessous)
     P.cam = lerp(P.cam, clamp(cible, 0, FIN_RANG + 260 - LW), Math.min(1, dt * 3));
+    if (modeDoigt) { const bd = boutons().d; if (bd.y - bd.r < MY + PIED_Y) P.cam = Math.min(P.cam, P.x - 62 - (bd.x + bd.r + 16)); }   // (limite stricte : jamais de retard)
     // les sons
     boucle('moteur', P.essence > 0 ? 0.22 : 0, P.jet ? 1.12 : 1, dt);
     boucle('jet', P.jet ? 0.32 : 0, 1, dt);
