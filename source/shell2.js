@@ -683,7 +683,7 @@ function menuMontrer(g, o) {
     if (M.dataset.vue === 'touche') { if (['Shift', 'Control', 'Alt', 'Meta', 'Tab'].includes(e.key)) return; e.preventDefault(); e.stopImmediatePropagation(); if (e.key === 'Escape') backToLibrary(); else vue(''); return; }
     if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); e.stopImmediatePropagation(); if (M.dataset.vue !== 'liste') vue(''); else backToLibrary(); return; }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 's' || e.key === 'z' || e.key === 'w') {
-      const l = [...bas.querySelectorAll('.tm-it:not([hidden])')].filter(x => x.getClientRects().length); if (!l.length) return;   // (icônes comprises)
+      const l = [...M.querySelectorAll('.tm-bas .tm-it:not([hidden]), :scope > .tm-icos .tm-it:not([hidden])')].filter(x => x.getClientRects().length); if (!l.length) return;   // 2.0.145 : icônes du côté comprises (Boutique, Records, Options), clavier et manette
       const i = l.indexOf(document.activeElement), d = (e.key === 'ArrowDown' || e.key === 's') ? 1 : -1;
       e.preventDefault(); e.stopImmediatePropagation(); try { l[(i + d + l.length) % l.length].focus({ preventScroll: true }); } catch (x) {}
     }
