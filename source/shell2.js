@@ -636,7 +636,8 @@ if (PADJ) {
     back: () => { padIntroHide(); jdwBack(); },   // (B pendant « Quitter la partie ? » : Continuer)
     start: (kind, nav) => {
       padIntroHide();
-      if (!nav && kind === 'select' && typeof ATL !== 'undefined' && ATL && ATL.jeu && !document.querySelector('.atl-arret2')) { atlArretJeu(); return true; }   // jeu de l'Atelier : Vue / Select = arrêt sur image du guide
+      if (!nav && kind === 'select' && typeof ATL !== 'undefined' && ATL && ATL.jeu && !document.querySelector('.atl-arret2')) { atlArretJeu(); return true; }
+      if (!nav && kind === 'select' && boutVisible() && !document.getElementById('jdw-vitrine')) { boutiqueOuvrir(); return true; }   // 2.0.134 : Select = la boutique du jeu   // jeu de l'Atelier : Vue / Select = arrêt sur image du guide
       if (nav) {   // pas de jeu qui capte la manette : Start referme la pause
         if (QA.open) { quitAskClose(false); return true; }
         if (PADP.open) { padPauseClose(true); return true; }
@@ -3019,8 +3020,31 @@ function presReset() { PRES.state = {}; PRES.ok = false; }
 function rtBroadcast(data) { const t = roomTopic(); return t ? rtSend(t, 'broadcast', { type: 'broadcast', event: 'poke', payload: Object.assign({ from: clientId }, data) }) : false; }
 function rtTrack() {
   const t = roomTopic(); if (!t || !profile.name || document.hidden || !RT.ws || RT.ws.readyState !== 1) return;
-  rtSend(t, 'presence', { type: 'presence', event: 'track', payload: { name: cleanName(profile.name), game: where, cid: clientId, ver: myVersionTag(), co: coopPresCo() } });
+  rtSend(t, 'presence', { type: 'presence', event: 'track', payload: { name: cleanName(profile.name), game: where, cid: clientId, ver: myVersionTag(), co: coopPresCo(), atl: atlPres() } });
 }
+// 2.0.134 (l'admin) : « 🎨 dans l'Atelier », « 🎨 parle à <mascotte> · <titre> » (page d'un projet), « 🎮 essaie <titre> » (sa version d'essai) ;
+// les autres ne voient le titre que d'un projet PUBLIÉ (sinon « dans l'Atelier »), l'admin voit tout
+function atlPres() {
+  try {
+    if (typeof ATL === 'undefined' || !ATL) return null;
+    const f = atlFiche(), pub = !!(f && /^publie_/.test(String(f.etat || ''))), t = f ? String(f.titre || '').slice(0, 40) : '';
+    if (ATL.jeu && !$('jdw-play').hidden) return atlAdminIci() ? { s: 'atelier' } : { s: 'essaie', t, pub };
+    if (!ATL.open) return null;
+    if (f && !atlAdminIci()) return { s: 'discute', t, pub };
+    return { s: 'atelier' };
+  } catch (e) { return null; }
+}
+const presAdmin = () => { try { return localStorage.getItem('jdw.labo.ok') === cleanName(profile.name || ''); } catch (e) { return false; } };
+function presLabel(game, atl) {
+  if (atl && typeof atl === 'object') {
+    const t = String(atl.t || '').slice(0, 40), voir = !!t && (!!atl.pub || presAdmin());
+    if (atl.s === 'essaie' && voir) return '🎮 essaie ' + t;
+    if (atl.s === 'discute' && voir) return '🎨 parle à ' + gNM() + ' · ' + t;
+    return '🎨 dans l’Atelier';
+  }
+  return gameLabel(game);
+}
+(() => { let avant = ''; setInterval(() => { const k = JSON.stringify(atlPres()); if (k !== avant) { avant = k; try { rtTrack(); } catch (e) {} } }, 2500); })();   // l'état de l'Atelier change : la présence suit
 function rtUntrack() { const t = roomTopic(); if (t) rtSend(t, 'presence', { type: 'presence', event: 'untrack' }); }
 function presApply(d) {
   for (const [k, v] of Object.entries(d.leaves || {})) {
@@ -3042,7 +3066,8 @@ function presList() {
     const m = metas[metas.length - 1]; if (!m || !m.name) continue;
     const name = cleanName(m.name);
     if (playersAt && !roomMember(name)) continue;   // un appareil branché sur la salle sans en être membre n'apparaît nulle part
-    out.push({ name, game: m.game || 'menu', ver: m.ver || '', cid: m.cid || '', co: m.co ? cleanName(m.co) : '' });
+    const atl = m.atl && typeof m.atl === 'object' && /^(atelier|discute|essaie)$/.test(String(m.atl.s || '')) ? { s: String(m.atl.s), t: String(m.atl.t || '').slice(0, 40), pub: !!m.atl.pub } : null;   // 2.0.134
+    out.push({ name, game: m.game || 'menu', ver: m.ver || '', cid: m.cid || '', co: m.co ? cleanName(m.co) : '', atl });
   }
   return out;
 }
@@ -3050,14 +3075,14 @@ function presList() {
 function presUnknown() { for (const metas of Object.values(PRES.state)) { const m = metas[metas.length - 1]; if (m && m.name && !roomMember(cleanName(m.name))) return true; } return false; }
 function presChanged() {
   if (!PRES.ok) return;
-  const list = presList(), live = new Map(), liveVer = new Map();
-  for (const x of list) { if (!live.has(x.name) || live.get(x.name) === 'menu') live.set(x.name, x.game); if (x.ver || !liveVer.has(x.name)) liveVer.set(x.name, x.ver); }
+  const list = presList(), live = new Map(), liveVer = new Map(), liveAtl = new Map();
+  for (const x of list) { if (!live.has(x.name) || live.get(x.name) === 'menu') live.set(x.name, x.game); if (x.ver || !liveVer.has(x.name)) liveVer.set(x.name, x.ver); if (x.atl) liveAtl.set(x.name, x.atl); }
   counts = {}; total = list.length;
   for (const x of list) counts[x.game] = (counts[x.game] || 0) + 1;
   // joueurs d'une ancienne version (sans le direct) : vus en ligne par le serveur dans les 45 dernières secondes
   for (const p of players.values()) if (p.member && p.dbGame && !live.has(p.name)) { total++; counts[p.dbGame] = (counts[p.dbGame] || 0) + 1; }
   for (const p of players.values()) {
-    if (live.has(p.name)) { p.live = true; p.game = live.get(p.name); p.liveVer = liveVer.get(p.name) || ''; }
+    if (live.has(p.name)) { p.live = true; p.game = live.get(p.name); p.liveVer = liveVer.get(p.name) || ''; p.atl = liveAtl.get(p.name) || null; }
     else { if (p.live) p.seen = Date.now(); p.live = false; if (p.member) p.game = null; }
   }
   if (presUnknown() && Date.now() - playersAt > 5000) loadPlayers();
@@ -3213,7 +3238,7 @@ function seenText(t) {
   if (s < 86400) return 'vu il y a ' + Math.round(s / 3600) + ' h';
   const d = Math.round(s / 86400); return d === 1 ? 'vu hier' : 'vu il y a ' + d + ' jours';
 }
-function gameLabel(id) { if (!id || id === 'menu') return 'dans le menu'; if (/^coop-/.test(id)) { let e = null; try { e = coopById(id.slice(5)); } catch (x) {} return '🤝 à deux' + (e ? ' · ' + e.title : ''); } if (/^duel-/.test(id)) { const d = duoById(id.slice(5)); return '⚔️ en duel' + (d ? ' · ' + d.title : ''); } const g = gameById(id); return g ? 'joue à ' + g.title : 'en ligne'; }
+function gameLabel(id) { if (!id || id === 'menu') return 'dans le menu'; if (/^coop-/.test(id)) { let e = null; try { e = coopById(id.slice(5)); } catch (x) {} return '🤝 à deux' + (e ? ' · ' + e.title : ''); } if (/^duel-/.test(id)) { const d = duoById(id.slice(5)); return '⚔️ en duel' + (d ? ' · ' + d.title : ''); } const g = gameById(id); return g ? 'joue à ' + g.title : id === 'atelier' ? '🎨 dans l’Atelier' : 'en ligne'; }
 function renderMembers() {
   const me = cleanName(profile.name), list = [...players.values()].filter(p => p.member || p.name === me);
   const isOn = p => p.name === me || !!p.live || !!p.dbGame || (!PRES.ok && !!p.game);
@@ -3233,7 +3258,7 @@ function renderMembers() {
       if (owner && p.name === owner) { const cr = document.createElement('span'); cr.className = 'mem-owner'; cr.textContent = '👑'; cr.title = 'Créateur de la salle'; cr.setAttribute('aria-label', 'créateur de la salle'); n.append(cr); }
       if (p.name === me) n.append(' (moi)');
       const st = document.createElement('small');
-      st.textContent = outside ? 'pas dans la salle' : online ? (p.name === me ? gameLabel(where) : gameLabel(p.live ? p.game : (p.dbGame || p.game))) : seenText(p.seen);
+      st.textContent = outside ? 'pas dans la salle' : online ? (p.name === me ? presLabel(where, atlPres()) : presLabel(p.live ? p.game : (p.dbGame || p.game), p.live ? p.atl : null)) : seenText(p.seen);   // 2.0.134 : l'Atelier aussi
       const vt = p.name === me ? myVersionTag() : (online && p.live ? (p.liveVer || '') : (p.dbVer || ''));
       const vl = document.createElement('small'); vl.className = 'mem-ver';
       vl.textContent = vt ? versionLabel(vt) : (online && p.live ? 'ancienne version' : '');
@@ -8990,7 +9015,7 @@ function coopRenderList() {
     const old = !!x.ver && coopVer(x.ver) !== mine;
     const b = document.createElement('button'); b.type = 'button'; b.className = 'pick-row' + (old ? ' old' : '');
     const t = document.createElement('span'); t.className = 'pr-t'; const bb = document.createElement('b'); bb.textContent = dispName(x.name); const sm = document.createElement('small');
-    sm.textContent = old ? 'doit mettre sa borne à jour' : x.game && x.game !== 'menu' ? gameLabel(x.game) : 'dans le menu'; t.append(bb, sm);
+    sm.textContent = old ? 'doit mettre sa borne à jour' : x.atl ? presLabel(x.game, x.atl) : x.game && x.game !== 'menu' ? gameLabel(x.game) : 'dans le menu'; t.append(bb, sm);
     const go = document.createElement('span'); go.className = 'cg-go'; go.textContent = old ? 'Pas à jour' : 'Inviter';
     b.append(chatHead(x.name, { passive: true }), t, go);
     if (old) b.disabled = true;
@@ -9575,7 +9600,7 @@ function netRenderList() {
   for (const x of on) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'pick-row';
     const t = document.createElement('span'); t.className = 'pr-t'; const bb = document.createElement('b'); bb.textContent = dispName(x.name); const sm = document.createElement('small');
-    sm.textContent = x.game && x.game !== 'menu' ? gameLabel(x.game) : 'dans le menu'; t.append(bb, sm);
+    sm.textContent = x.atl ? presLabel(x.game, x.atl) : x.game && x.game !== 'menu' ? gameLabel(x.game) : 'dans le menu'; t.append(bb, sm);
     const go = document.createElement('span'); go.className = 'cg-go'; go.textContent = 'Défier';
     b.append(chatHead(x.name, { passive: true }), t, go);
     b.addEventListener('click', () => {
@@ -10580,7 +10605,7 @@ setInterval(livBtnMaj, 1500);
   mute.parentNode.insertBefore(b, mute);
 })();
 // ---- 2.0.130 : BOUTIQUE DES CRÉATEURS (fiche ~/jdv-tools/boutiques/BOUTIQUE-CREATEURS.md ; serveur source/boutique.sql, SQL v139) : un jeu
-// vend des éléments EN CRÉDITS (jamais d'euros) ; le créateur reçoit 70 %, la borne garde 30 % ; la BORNE confirme chaque achat (prix en crédits
+// vend des éléments EN CRÉDITS (jamais d'euros) ; 2.0.134 (l'admin) : TOUT revient au créateur (0 % pour la borne), plus de plafond du mois ; la BORNE confirme chaque achat (prix en crédits
 // et en euros, plafond du mois), le jeu ne touche jamais aux crédits ; rien au hasard ; un élément acheté reste au joueur ; « Signaler ».
 function boutiqueApi(g, seq) {
   const ok = () => !!current && current.seq === seq && ONLINE && !netOff() && !isGuest() && !!profile.name;
@@ -10598,10 +10623,10 @@ function boutiqueApi(g, seq) {
     }
   };
 }
-function boutiqueConfirmer(g, a, r) {
+function boutiqueConfirmer(g, a, r, o) {
   return new Promise(fin => {
     const old = document.getElementById('jdw-boutmod'); if (old && old._fermer) old._fermer();
-    const inst = current && current.inst; let enPause = false; try { if (inst && inst.pause) { inst.pause(); enPause = true; } } catch (e) {}
+    const inst = current && current.inst; let enPause = false; try { if (!(o && o.vitrine) && inst && inst.pause) { inst.pause(); enPause = true; } } catch (e) {}   // 2.0.134 : depuis la vitrine, elle garde la pause
     const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
     const M = el('div', 'liv-mod bout-mod'); M.id = 'jdw-boutmod'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Acheter');
     const C = el('div', 'liv-card'); M.appendChild(C);
@@ -10609,7 +10634,7 @@ function boutiqueConfirmer(g, a, r) {
     C.append(el('h2', '', '🛍️ Acheter « ' + a.nom + ' » ?'));
     if (a.image && atlIaUrl(a.image)) { const im = el('img', 'bout-img'); im.alt = a.nom; im.src = atlIaUrl(a.image); C.appendChild(im); }
     const pr = el('p', 'bout-prix'); pr.append(el('b', '', (a.prix | 0).toLocaleString('fr-FR') + ' 💎'), ' (≈ ' + eur + ')' + (solde != null ? ' · tu as ' + solde.toLocaleString('fr-FR') + ' crédits' : '')); C.appendChild(pr);
-    C.appendChild(el('p', 'liv-sub', 'Dans « ' + (atlTitre(g) || g.title || g.id) + ' ». C’est à toi pour toujours. Le créateur du jeu reçoit une part de tes crédits. Ce mois-ci : ' + (r.depense_mois | 0) + ' / ' + (r.plafond_mois | 0) + ' crédits dépensés dans les boutiques.'));
+    C.appendChild(el('p', 'liv-sub', 'Dans « ' + (atlTitre(g) || g.title || g.id) + ' ». C’est à toi pour toujours, et tout revient au créateur du jeu.'));
     const msg = el('p', 'liv-msg', ''); C.appendChild(msg);
     const bt = el('div', 'liv-btns'), no = el('button', 'btn btn-ghost', 'Non'), go = el('button', 'btn btn-play', 'Oui, acheter · ' + (a.prix | 0) + ' 💎'); no.type = go.type = 'button'; bt.append(no, go); C.appendChild(bt);
     const sig = el('button', 'bout-sig', '⚑ Signaler cet élément'); sig.type = 'button'; C.appendChild(sig);
@@ -10633,6 +10658,64 @@ function boutiqueConfirmer(g, a, r) {
     document.body.appendChild(M); setTimeout(() => { try { no.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40);
   });
 }
+// ---- 2.0.134 (l'admin) : la VITRINE de la boutique d'un jeu — bouton 🛍️ à côté de ⏸ (seulement si le jeu a des articles), ou le bouton
+// Select (Vue) de la manette ; le jeu se met en pause. Dans le THÈME du jeu : sa couleur, sa jaquette en fond, sa police ; des cartes
+// d'articles (image, nom, prix, « ✓ Acheté ») ; les niveaux bonus et objets spéciaux en avant. Un achat passe par la confirmation (« Non » d'avance).
+const BOUT = { seq: -1, r: null, n: 0 };
+const boutVisible = () => !!(current && current.seq === BOUT.seq && BOUT.n > 0 && !current.over && !current.coop && !$('jdw-play').hidden);
+async function boutiqueSonde(g, seq) {
+  BOUT.seq = seq; BOUT.r = null; BOUT.n = 0;
+  if (!g || !ATL_NES.has(g.id) || !ONLINE || netOff() || isGuest() || !profile.name) return;
+  let r = null; try { r = await rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true }); } catch (e) { r = null; }
+  if (!current || current.seq !== seq || !r || !Array.isArray(r.articles)) return;
+  BOUT.r = r; BOUT.n = r.articles.length;
+}
+const boutSpecial = a => /niveau|bonus|sp[ée]cial|secret|l[ée]gend|monde|chapitre/i.test(String(a.nom || '') + ' ' + String(a.cle || ''));
+async function boutiqueOuvrir() {
+  if (!boutVisible() || document.getElementById('jdw-vitrine')) return;
+  const g = current.game, inst = current.inst || {}, seq = current.seq;
+  try { if (inst.pause) inst.pause(); else padKey('p'); } catch (e) {}
+  const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+  const V = el('div', 'bout-vit'); V.id = 'jdw-vitrine'; V.setAttribute('role', 'dialog'); V.setAttribute('aria-label', 'Boutique de ' + (atlTitre(g) || g.title));
+  V.style.setProperty('--acc', g.accent || COLORS.amber);
+  const x = ATL_JEUX.get(g.id) || atlProjets().find(q => q && q.jeu === g.id), f = atlFiche(), ff = f && f.jeu === g.id ? f : null;   // la jaquette du jeu : publié, projet du joueur, ou la fiche ouverte (sa vignette, sinon son design)
+  const jaq = (x && x.vignette && atlIaUrl(x.vignette)) || (ff && (atlVignetteUrl(ff) || (ff.design && ff.design.f && atlIaUrl(ff.design.f)))) || ''; if (jaq) V.style.setProperty('--bout-fond', 'url("' + jaq + '")');
+  const C = el('div', 'bout-vc'), hd = el('div', 'bout-vh'), ferme = el('button', 'btn btn-ghost bout-vx', '✕'); ferme.type = 'button'; ferme.setAttribute('aria-label', 'Fermer la boutique');
+  hd.append(el('p', 'bout-vk', '🛍️ La boutique'), el('h2', 'bout-vt', atlTitre(g) || g.title), ferme);
+  const cr = atlCred(), sol = el('p', 'bout-vsol', cr ? 'Tu as ' + Math.max(0, cr.solde | 0).toLocaleString('fr-FR') + ' 💎' : '');
+  C.append(hd, sol); const corps = el('div', 'bout-vb'); C.appendChild(corps);
+  C.appendChild(el('p', 'bout-vn', 'Tout ce que tu achètes est à toi pour toujours, et tout revient au créateur du jeu.'));
+  V.appendChild(C);
+  const fermer = () => { V.remove(); document.removeEventListener('keydown', esc, true); if (current && current.seq === seq) { const i2 = current.inst || {}; try { if (current.pad) current.pad.flush(); } catch (e) {} try { if (i2.resume) i2.resume(); else padKey('p'); } catch (e) {} } };
+  const esc = e => { if (e.key === 'Escape' && !document.getElementById('jdw-boutmod')) { e.stopPropagation(); e.preventDefault(); fermer(); } };
+  V._fermer = fermer; document.addEventListener('keydown', esc, true); ferme.addEventListener('click', fermer);
+  const carte = (a, r) => {
+    const b = el('button', 'bout-va' + (a.possede ? ' eu' : '') + (boutSpecial(a) ? ' sp' : '')); b.type = 'button';
+    const u = a.image ? atlIaUrl(a.image) : '', im = el('div', 'bout-vai'); if (u) { const i = el('img'); i.alt = ''; i.loading = 'lazy'; i.src = u; im.appendChild(i); } else im.textContent = boutSpecial(a) ? '⭐' : '🎁';
+    b.append(im, el('b', 'bout-vam', a.nom), el('span', 'bout-vap', a.possede ? '✓ Acheté' : a.mien ? 'Ton jeu' : (a.prix | 0).toLocaleString('fr-FR') + ' 💎'));
+    b.disabled = !!(a.possede || a.mien);
+    b.addEventListener('click', async () => { const ok = await boutiqueConfirmer(g, a, r, { vitrine: true }); if (ok) { rendre(r); const c = atlCred(); if (c) sol.textContent = 'Tu as ' + Math.max(0, c.solde | 0).toLocaleString('fr-FR') + ' 💎'; } setTimeout(() => { try { const f = V.querySelector('.bout-va:not([disabled])') || ferme; f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40); });
+    return b;
+  };
+  const rendre = r => {
+    corps.textContent = ''; const L = (r && Array.isArray(r.articles) ? r.articles : []).slice();
+    if (!L.length) { corps.appendChild(el('p', 'bout-vvide', 'La boutique est vide pour l’instant.')); return; }
+    const sp = L.filter(boutSpecial), au = L.filter(a => !boutSpecial(a));
+    const rang = (titre, l) => { if (!l.length) return; corps.appendChild(el('h3', 'bout-vr', titre)); const gr = el('div', 'bout-vg'); for (const a of l) gr.appendChild(carte(a, r)); corps.appendChild(gr); };
+    rang('⭐ Niveaux bonus et objets spéciaux', sp); rang(sp.length ? '🛍️ Et aussi' : '🛍️ Les articles', au);
+  };
+  rendre(BOUT.r);
+  document.body.appendChild(V); setTimeout(() => { try { const f = V.querySelector('.bout-va:not([disabled])') || ferme; f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40);
+  try { const r2 = await rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true }); if (r2 && Array.isArray(r2.articles) && V.isConnected) { BOUT.r = r2; BOUT.n = r2.articles.length; rendre(r2); } } catch (e) {}
+}
+// le bouton 🛍️ de la barre du jeu, à côté de ⏸
+(() => {
+  const hb = document.getElementById('jdw-howto-b'); if (!hb || document.getElementById('jdw-bout-b')) return;
+  const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.id = 'jdw-bout-b'; b.type = 'button'; b.hidden = true; b.textContent = '🛍️'; b.title = 'La boutique du jeu (Select à la manette)'; b.setAttribute('aria-label', 'La boutique du jeu');
+  b.addEventListener('click', e => { e.stopPropagation(); boutiqueOuvrir(); });
+  hb.parentNode.insertBefore(b, hb);
+  setInterval(() => { b.hidden = !boutVisible(); }, 700);
+})();
 // « 🛍️ Ma boutique » (le créateur, sur la page de son projet) : ses éléments, ses ventes, ses crédits gagnés
 async function atlMaBoutique(box, f) {
   if (!box || !f || atlAdminIci() || isGuest()) return;
@@ -10641,7 +10724,7 @@ async function atlMaBoutique(box, f) {
   const d = atlEl('details', 'atl-greg atl-bout'); d.open = !atlPetit(); const tot = mine.reduce((m, x) => m + (x.gagne | 0), 0), nv = mine.reduce((m, x) => m + (x.ventes | 0), 0);
   d.appendChild(atlEl('summary', '', '🛍️ Ma boutique · ' + nv + ' vente' + (nv > 1 ? 's' : '') + ' · ' + tot.toLocaleString('fr-FR') + ' 💎 gagnés'));
   for (const x of mine) { const r = atlEl('div', 'atl-boutr'); r.append(atlEl('b', '', x.nom), atlEl('small', '', (x.prix | 0) + ' 💎 · ' + (x.ventes | 0) + ' vendu' + ((x.ventes | 0) > 1 ? 's' : '') + ' · ' + (x.gagne | 0) + ' 💎 pour toi' + (x.en_vente ? '' : x.filtre_ok ? ' · pas en vente' : ' · en attente de vérification'))); d.appendChild(r); }
-  d.appendChild(atlEl('small', 'atl-boutn', 'Tu reçois 70 % de chaque vente, en crédits : pour créer d’autres jeux et acheter dans la borne. Les crédits ne se changent pas en euros.'));
+  d.appendChild(atlEl('small', 'atl-boutn', 'Chaque vente te revient en entier, en crédits : pour créer d’autres jeux et acheter dans la borne. Les crédits ne se changent pas en euros.'));
   box.appendChild(d);
 }
 // 2.0.56 (équipe de L'Explorateur de l'espace) : le MONDE PARTAGÉ DE LA SALLE d'un jeu qui déclare « monde: true » — des documents JSON
@@ -10729,6 +10812,7 @@ function mountGame(g) {
   recReset(); setTimeout(recLine, 50);
   musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);
   try { current.inst = g.mount(root, api) || {}; } catch (e) { current.inst = {}; reportError('Lancement de ' + g.id + ' : ' + e.message, e.stack); }
+  setTimeout(() => { try { boutiqueSonde(g, seq); } catch (e) {} }, 800);   // 2.0.134 : le bouton 🛍️ si le jeu a une boutique
   setWhere(g.id);
   if (LANDSCAPE.has(g.id)) fsTip();   // iPhone dans Safari : astuce « Sur l'écran d'accueil » (une seule fois)
   if (!PAD_DOM.has(g.id)) padIntro(g);
@@ -14967,6 +15051,7 @@ document.addEventListener('keydown', e => { if (e.key !== 'Escape' || (typeof AT
 function jdwBack() {
   if (PRIV.back && PRIV.back()) return true;   // espace privé (fenêtre ouverte par-dessus tout)
   { const bm = document.getElementById('jdw-boutmod'); if (bm) { if (bm._fermer) bm._fermer(); else bm.remove(); return true; } }   // 2.0.130 : la fenêtre d'achat
+  { const bv = document.getElementById('jdw-vitrine'); if (bv) { if (bv._fermer) bv._fermer(); else bv.remove(); return true; } }   // 2.0.134 : la vitrine
   { const lm = document.getElementById('jdw-livmod'), li = document.getElementById('jdw-liveinv');   // 2.0.127 : « Inviter mes copains » et l'invitation reçue (B de la manette, retour d'Android)
     if (lm) { if (lm._fermer) lm._fermer(); else lm.remove(); return true; } if (li && !li.hidden) { li.hidden = true; clearTimeout(LIVINV.cur); return true; } }
   if (QA.open) { quitAskClose(false); return true; }   // « Quitter la partie ? » : retour = Continuer
@@ -15418,6 +15503,7 @@ function atlOpen() {
   if (isGuest()) { guestAsk('L’Atelier'); return; }
   if (netOff()) { try { netNeed('L’Atelier'); } catch (e) { atlToast('Pas de connexion : l’Atelier revient avec le réseau'); } return; }
   atlBuild(); ATL.open = true; ATL.root.hidden = false; document.body.classList.add('atl-on');
+  if (where === 'menu') try { setWhere('atelier'); } catch (e) {}   // 2.0.134 : la présence (le serveur aussi) dit « dans l'Atelier »
   if (store.get('jdw.atl.mus', true) !== false) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else musicOut(0.4);   // 22 h 45 : la musique de l'Atelier, douce (🔇 retenu sur l'appareil)
   atlRender(); atlLoad(true); setTimeout(atlBienvenue, 1200); atlDemCharger(true);
   setTimeout(() => { const i = ATL.root.querySelector('.atl-in'); if (i && !TOUCH) i.focus({ preventScroll: true }); }, 60);
@@ -15428,6 +15514,7 @@ function atlClose() {
   atlMicStop(); atlLetterClose(true); if (ATL.choix === 'question') ATL.choix = null;
   atlFrameStop();
   ATL.open = false; ATL.root.hidden = true; document.body.classList.remove('atl-on');
+  if (where === 'atelier') try { setWhere('menu'); } catch (e) {}
   if (ATL_SON) { try { ATL_SON.pause(); } catch (e) {} ATL_SON = null; ATL_SON_U = ''; musicHush(false); }
   if (MUS.want === 'atelier') { musicBaseLevel(1); setMusic(menuMusic()); }
   atlTileState(); refreshBell(); atlSchedule();
