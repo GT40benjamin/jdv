@@ -12,7 +12,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const ANIMS = {"chevalier":{"ko":[["chevalier.1c996e87",0.452,0]],"coup":[["chevalier.4e2ec534",0.576,0],["chevalier.549c1ac2",0.651,0]],"marche_dos":[["chevalier.6e176eee",0.414,2],["chevalier.b0fb6fc8",0.418,2]],"marche_face":[["chevalier.7e6a8f9c",0.582,0],["chevalier.4e2ec534",0.576,0],["chevalier.114663e2",0.578,0],["chevalier.4e2ec534",0.576,0]],"marche_profil":[["chevalier.0d69895f",0.585,2]],"repos_dos":[["chevalier.6e176eee",0.414,0],["chevalier.b0fb6fc8",0.418,0]],"repos_face":[["chevalier.4e2ec534",0.576,0]],"repos_profil":[["chevalier.0d69895f",0.585,0]]},"monstre":{"ko":[["monstre.9ccd9391",0.512,0]],"coup":[["monstre.093ba1f1",0.525,0],["monstre.8dda9f88",0.531,0]],"marche_dos":[["monstre.b8bfee78",0.49,0],["monstre.2c68c115",0.494,0],["monstre.8a169e5a",0.472,0],["monstre.2c68c115",0.494,0]],"marche_face":[["monstre.aee63df1",0.539,0],["monstre.7fafd286",0.508,0],["monstre.2ab3f848",0.508,0],["monstre.7fafd286",0.508,0]],"marche_profil":[["monstre.7c4bc8cf",0.503,2],["monstre.10bc060a",0.517,2]],"repos_dos":[["monstre.2c68c115",0.494,0],["monstre.1510bd71",0.493,0]],"repos_face":[["monstre.7fafd286",0.508,0],["monstre.211014ce",0.508,0]],"repos_profil":[["monstre.10bc060a",0.517,0],["monstre.0f347886",0.518,0]]},"paysan":{"ko":[["paysan.d97bae08",0.446,0]],"fuite":[["paysan.69c7f09a",0.478,0],["paysan.69c7f09a~",0.514,0]],"marche_dos":[["paysan.fda9a86d",0.522,0],["paysan.12ac73be",0.522,0],["paysan.d471b857",0.513,0],["paysan.12ac73be",0.522,0]],"marche_face":[["paysan.82b07dd6",0.49,0],["paysan.b5e78d06",0.497,0],["paysan.0bc1763f",0.487,0],["paysan.b5e78d06",0.497,0]],"marche_profil":[["paysan.347e93c7~",0.53,0],["paysan.563cbb59",0.504,0],["paysan.d45db1ba~",0.48,0],["paysan.563cbb59",0.504,0]],"repos_dos":[["paysan.12ac73be",0.522,0],["paysan.24bba059",0.52,0]],"repos_face":[["paysan.b5e78d06",0.497,0],["paysan.0bc1763f",0.487,0]],"repos_profil":[["paysan.563cbb59",0.504,0],["paysan.5ab8033d",0.546,0]]},"roi":{"ko":[["roi.df1e668c",0.469,0]],"coup":[["roi.9c131693",0.453,0],["roi.2ea0b3a6",0.451,0]],"marche_dos":[["roi.6aec9673",0.478,0],["roi.9f671b9e",0.476,0],["roi.3699794e",0.478,0],["roi.9f671b9e",0.476,0]],"marche_face":[["roi.7eef871a",0.497,0],["roi.46502e6a",0.5,0],["roi.1ca3ade4",0.497,0],["roi.46502e6a",0.5,0]],"marche_profil":[["roi.a191ec6c",0.505,0],["roi.69bf991c",0.505,0],["roi.34a1fdb9",0.504,0],["roi.69bf991c",0.505,0]],"repos_dos":[["roi.9f671b9e",0.476,0],["roi.3699794e",0.478,0]],"repos_face":[["roi.46502e6a",0.5,0],["roi.2ef7ee76",0.496,0]],"repos_profil":[["roi.69bf991c",0.505,0],["roi.69115750",0.507,0]]},"sorcier":{"marche_dos":[["sorcier.a3245f5b",0.487,0],["sorcier.6a333008~",0.514,0],["sorcier.b6377143",0.492,0],["sorcier.6a333008~",0.514,0]],"marche_face":[["sorcier.810e04c9~",0.479,0],["sorcier.650003f1",0.508,0],["sorcier.810e04c9",0.508,0],["sorcier.650003f1",0.508,0]],"marche_profil":[["sorcier.7466efa9",0.433,0],["sorcier.9396817e",0.457,0],["sorcier.4d40d9bb",0.438,0],["sorcier.9396817e",0.457,0]],"repos_dos":[["sorcier.6a333008~",0.514,0],["sorcier.f075a6e5",0.49,0]],"repos_face":[["sorcier.650003f1",0.508,0],["sorcier.78b938c6",0.503,0]],"repos_profil":[["sorcier.9396817e",0.457,0],["sorcier.45e20d31",0.472,0]],"sort":[["sorcier.dbb6413d",0.491,0],["sorcier.cc971a5b",0.495,0],["sorcier.1fe5d4ad",0.455,0]]}};
+const ANIMS = {"chevalier":{"ko":[["chevalier.1c996e87",0.452,0]],"coup":[["chevalier.4e2ec534",0.576,0],["chevalier.549c1ac2",0.651,0]],"marche_dos":[["chevalier.6e176eee",0.414,2],["chevalier.b0fb6fc8",0.418,2]],"marche_face":[["chevalier.7e6a8f9c",0.582,0],["chevalier.4e2ec534",0.576,0],["chevalier.114663e2",0.578,0],["chevalier.4e2ec534",0.576,0]],"repos_dos":[["chevalier.6e176eee",0.414,0],["chevalier.b0fb6fc8",0.418,0]],"repos_face":[["chevalier.4e2ec534",0.576,0]],"repos_profil":[["chevalier.prof-0",0.599,0],["chevalier.prof-1",0.597,0]],"marche_profil":[["chevalier.prof-2",0.597,2],["chevalier.prof-0",0.599,2]]},"monstre":{"ko":[["monstre.9ccd9391",0.512,0]],"coup":[["monstre.093ba1f1",0.525,0],["monstre.8dda9f88",0.531,0]],"marche_dos":[["monstre.b8bfee78",0.49,0],["monstre.2c68c115",0.494,0],["monstre.8a169e5a",0.472,0],["monstre.2c68c115",0.494,0]],"marche_face":[["monstre.aee63df1",0.539,0],["monstre.7fafd286",0.508,0],["monstre.2ab3f848",0.508,0],["monstre.7fafd286",0.508,0]],"marche_profil":[["monstre.7c4bc8cf",0.503,2],["monstre.10bc060a",0.517,2]],"repos_dos":[["monstre.2c68c115",0.494,0],["monstre.1510bd71",0.493,0]],"repos_face":[["monstre.7fafd286",0.508,0],["monstre.211014ce",0.508,0]],"repos_profil":[["monstre.10bc060a",0.517,0],["monstre.0f347886",0.518,0]]},"paysan":{"ko":[["paysan.d97bae08",0.446,0]],"fuite":[["paysan.69c7f09a",0.478,0],["paysan.69c7f09a~",0.514,0]],"marche_dos":[["paysan.fda9a86d",0.522,0],["paysan.12ac73be",0.522,0],["paysan.d471b857",0.513,0],["paysan.12ac73be",0.522,0]],"marche_face":[["paysan.82b07dd6",0.49,0],["paysan.b5e78d06",0.497,0],["paysan.0bc1763f",0.487,0],["paysan.b5e78d06",0.497,0]],"marche_profil":[["paysan.347e93c7~",0.53,0],["paysan.563cbb59",0.504,0],["paysan.d45db1ba~",0.48,0],["paysan.563cbb59",0.504,0]],"repos_dos":[["paysan.12ac73be",0.522,0],["paysan.24bba059",0.52,0]],"repos_face":[["paysan.b5e78d06",0.497,0],["paysan.0bc1763f",0.487,0]],"repos_profil":[["paysan.563cbb59",0.504,0],["paysan.5ab8033d",0.546,0]]},"roi":{"ko":[["roi.df1e668c",0.469,0]],"coup":[["roi.9c131693",0.453,0],["roi.2ea0b3a6",0.451,0]],"marche_dos":[["roi.6aec9673",0.478,0],["roi.9f671b9e",0.476,0],["roi.3699794e",0.478,0],["roi.9f671b9e",0.476,0]],"marche_face":[["roi.7eef871a",0.497,0],["roi.46502e6a",0.5,0],["roi.1ca3ade4",0.497,0],["roi.46502e6a",0.5,0]],"repos_dos":[["roi.9f671b9e",0.476,0],["roi.3699794e",0.478,0]],"repos_face":[["roi.46502e6a",0.5,0],["roi.2ef7ee76",0.496,0]],"marche_profil":[["roi.a191ec6c",0.505,0],["roi.69bf991c",0.505,0],["roi.34a1fdb9",0.504,0],["roi.69bf991c",0.505,0]],"repos_profil":[["roi.69bf991c",0.505,0],["roi.69115750",0.507,0]]},"sorcier":{"marche_dos":[["sorcier.a3245f5b",0.487,0],["sorcier.6a333008~",0.514,0],["sorcier.b6377143",0.492,0],["sorcier.6a333008~",0.514,0]],"marche_face":[["sorcier.810e04c9",0.508,0],["sorcier.650003f1",0.508,0],["sorcier.810e04c9",0.508,0],["sorcier.650003f1",0.508,0]],"marche_profil":[["sorcier.7466efa9",0.433,0],["sorcier.9396817e",0.457,0],["sorcier.4d40d9bb",0.438,0],["sorcier.9396817e",0.457,0]],"repos_dos":[["sorcier.6a333008~",0.514,0],["sorcier.f075a6e5",0.49,0]],"repos_face":[["sorcier.650003f1",0.508,0],["sorcier.78b938c6",0.503,0]],"repos_profil":[["sorcier.9396817e",0.457,0],["sorcier.45e20d31",0.472,0]],"sort":[["sorcier.dbb6413d",0.491,0],["sorcier.cc971a5b",0.495,0],["sorcier.1fe5d4ad",0.455,0]]}};
 
 /* ---------- images (paquet NOI1 : en-tête JSON [nom, début, longueur, largeur, hauteur] + WebP) ---------- */
 const IMG = {};
@@ -510,8 +510,8 @@ function mount(root, api) {
       if (state === 'fin') { if ((k === 'Enter' || k === ' ') && stT > 1.6) retourTitre(); return; }
       if (state === 'grimoire') { if (k === 'g' || k === 'Escape' || k === 'Enter' || k === 'Tab') fermerGrimoire(); return; }
       if (state !== 'play') return;
-      if (k === 'p' || k === 'Escape') { setPaused(!paused); return; }
-      if (paused) return;
+      if (paused) { menuPauseTouche(k); return; }
+      if (k === 'p' || k === 'Escape') { setPaused(true); return; }
       if (k === ' ' || k === 'j') IN.feu++;
       if (k === 'k') IN.eclair++;
       if (k === 'l') IN.monstre++;
@@ -544,7 +544,7 @@ function mount(root, api) {
     if (state === 'fin') { if (stT > 1.6) retourTitre(); return; }
     if (state === 'grimoire') { fermerGrimoire(); return; }
     if (state !== 'play') return;
-    if (paused) { setPaused(false); return; }
+    if (paused) { menuPauseClic(p); return; }
     const gb = BTN_GRIM(); if (p.x > gb.x && p.x < gb.x + gb.w && p.y > gb.y && p.y < gb.y + gb.h) { ouvrirGrimoire(); return; }
     if (tact) {
       const b = dansBouton(p);
@@ -573,7 +573,28 @@ function mount(root, api) {
   pauseBtn.addEventListener('pointerdown', onPauseBtn);
   function onVis() { if (document.hidden && state === 'play') setPaused(true); }
   document.addEventListener('visibilitychange', onVis);
-  function setPaused(b) { paused = b; pauseBtn.innerHTML = b ? PB_PLAY : PB_PAUSE; if (b) relache(); else viderManette(); }
+  function setPaused(b) { paused = b; pauseBtn.innerHTML = b ? PB_PLAY : PB_PAUSE; PM.sel = 0; PM.conf = false; if (b) relache(); else viderManette(); }
+  // ---------- le menu de pause : Reprendre · Recommencer (avec confirmation : tout ce que tu possèdes est effacé) · Quitter ----------
+  const PM = { sel: 0, conf: false, boutons: [], stick: false };
+  function menuPauseChoisir(i) {
+    snd.clic();
+    if (PM.conf) { if (i === 0) { PM.conf = false; viderManette(); nouvellePartie(); setPaused(false); dire('Pille le royaume !', '#ffe08a'); } else { PM.conf = false; PM.sel = 1; } return; }
+    if (i === 0) setPaused(false);
+    else if (i === 1) { PM.conf = true; PM.sel = 1; }
+    else quitter();
+  }
+  // quitter : le ✕ de la borne (elle garde le score en cours, comme une fin de partie) ; sans borne (banc d'essai) : retour au titre
+  function quitter() { const b = document.getElementById('jdw-back'); setPaused(false); if (b) b.click(); else retourTitre(); }
+  function menuPauseTouche(k) {
+    const n = PM.conf ? 2 : 3;
+    if (k === 'ArrowUp' || k === 'z' || k === 'w') { PM.sel = (PM.sel + n - 1) % n; snd.clic(); }
+    else if (k === 'ArrowDown' || k === 's') { PM.sel = (PM.sel + 1) % n; snd.clic(); }
+    else if (k === 'Enter' || k === ' ') menuPauseChoisir(PM.sel);
+    else if (k === 'Escape' || k === 'p') { if (PM.conf) { PM.conf = false; PM.sel = 1; } else setPaused(false); }
+  }
+  function menuPauseClic(pt) {
+    for (const b of PM.boutons) if (pt.x > b.x && pt.x < b.x + b.w && pt.y > b.y && pt.y < b.y + b.h) { PM.sel = b.i; menuPauseChoisir(b.i); return; }
+  }
   const monde = p => ({ x: p.x - LW / 2 + cam.x, y: p.y - LH / 2 + cam.y });
   function lireEntrees() {
     let dx = 0, dy = 0;
@@ -605,7 +626,14 @@ function mount(root, api) {
     if (state === 'title') { if (pad.pressed('a') || pad.pressed('start')) { modePad = true; lancer(); } }
     else if (state === 'fin') { if (stT > 1.6 && (pad.pressed('a') || pad.pressed('start'))) { modePad = true; retourTitre(); } }
     else if (state === 'grimoire') { if (pad.pressed('a') + pad.pressed('b') + pad.pressed('y') > 0) { modePad = true; fermerGrimoire(); } }
-    else if (state === 'play' && paused) { if (pad.pressed('a') + pad.pressed('b') > 0) { modePad = true; setPaused(false); } }
+    else if (state === 'play' && paused) {
+      const n = PM.conf ? 2 : 3, g2 = pad.get ? pad.get(0) : null, ly = g2 && g2.on ? (g2.ly || 0) : 0;
+      let d = (pad.pressed('down') || 0) - (pad.pressed('up') || 0);
+      if (!d && Math.abs(ly) > 0.6) { if (!PM.stick) { d = ly > 0 ? 1 : -1; PM.stick = true; } } else if (Math.abs(ly) < 0.3) PM.stick = false;
+      if (d) { modePad = true; PM.sel = (PM.sel + d + n) % n; snd.clic(); }
+      if (pad.pressed('a')) { modePad = true; menuPauseChoisir(PM.sel); }
+      else if (pad.pressed('b')) { modePad = true; if (PM.conf) { PM.conf = false; PM.sel = 1; } else setPaused(false); }
+    }
   }
   // les appuis de la manette faits dans un menu ne comptent pas dans le jeu (pas de boule de feu en sortant du grimoire)
   function viderManette() { try { if (pad && pad.flush) pad.flush(); } catch (e) { /* rien */ } IN.feu = IN.eclair = IN.monstre = 0; }
@@ -840,13 +868,13 @@ function mount(root, api) {
       }
       if (g.stun > 0) { g.stun -= dt; g.ph += dt * 2; continue; }
       let vx = 0, vy = 0, sp = 0;
-      const menace = G.ko ? null : S;
+      const menace = G.ko || window.__paisible ? null : S;   // __paisible : réglage d'essai (bandes d'animation)
       if (g.sorte === 'chevalier') {
         if (g.alerte > 0) g.alerte -= dt;
         // le chevalier attaque aussi les monstres s'ils sont plus près
         let cible = menace, dC = menace ? dS : 1e9;
         for (const m of G.allies) if (m.etat !== 'ko' && m.nait > 0.6) { const d = dist(m, g); if (d < dC) { dC = d; cible = m; } }
-        const voit = cible && (dC < 380 || (g.alerte > 0 && dC < 900)) && !(cible === S && auRepaire(S));
+        const voit = !window.__paisible && cible && (dC < 380 || (g.alerte > 0 && dC < 900)) && !(cible === S && auRepaire(S));
         if (g.etat === 'coup') {
           g.coupT += dt;
           if (g.coupT > 0.35 && !g.frappe) { g.frappe = true; if (cible && dist(cible, g) < 80) { if (cible === S) blesser(1, g); else { cible.pv -= 1; cible.choc = 1; snd.boum(); if (cible.pv <= 0) { cible.etat = 'ko'; cible.koT = 0; } } } }
@@ -1272,12 +1300,13 @@ function mount(root, api) {
       ctx.fillStyle = 'rgba(200,170,255,0.55)'; ctx.beginPath(); ctx.arc(joy.x, joy.y, 30, 0, TAU); ctx.fill();
     }
     // message
-    if (msg && !G.nouveau) {
+    const libre = state === 'play' && !paused;
+    if (msg && !G.nouveau && libre) {
       const k = msg.t / msg.d, al = clamp(Math.min(msg.t * 4, (1 - k) * 4), 0, 1), sz = portrait ? 30 : 34;
       ctx.globalAlpha = al; txt(msg.s, LW / 2, V.y + (portrait ? 300 : Math.max(200, V.h * 0.3)) - (1 - Math.min(1, msg.t * 3)) * 20, sz, msg.c, 'center', 900, 8, DF); ctx.globalAlpha = 1;
     }
-    if (G.nouveau) nouveauSort(now);
-    if (auRepaire(G.sor) && G.t > 2) { const haut = modeDoigt ? Math.min(...BT.map(b => b.y - b.r)) - 22 : V.y + V.h - 40; txt(G.pv < G.pvMax ? 'Ta tour te soigne ❤' : 'Ta tour : personne n\'ose y entrer', LW / 2, Math.min(haut, V.y + V.h - 40), 18, '#e0c8ff', 'center', 800, 5); }
+    if (G.nouveau && libre) nouveauSort(now);
+    if (libre && auRepaire(G.sor) && G.t > 2) { const haut = modeDoigt ? Math.min(...BT.map(b => b.y - b.r)) - 22 : V.y + V.h - 40; txt(G.pv < G.pvMax ? 'Ta tour te soigne ❤' : 'Ta tour : personne n\'ose y entrer', LW / 2, Math.min(haut, V.y + V.h - 40), 18, '#e0c8ff', 'center', 800, 5); }
   }
   function iconeSort(k, x, y, R, verrou) {
     if (k === 'feu') { ctx.globalCompositeOperation = 'lighter'; lueur(x, y, R * 0.9, 'rgba(66,165,245,', 0.8); lueur(x, y, R * 0.4, 'rgba(230,248,255,', 1); ctx.globalCompositeOperation = 'source-over'; }
@@ -1410,9 +1439,26 @@ function mount(root, api) {
     txt('Le royaume se prépare…', LW / 2, V.y + V.h / 2 + 34, 20, '#ffffff', 'center', 700, 5);
   }
   function dessinerPause() {
-    ctx.fillStyle = 'rgba(14,8,30,0.55)'; ctx.fillRect(V.x, V.y, V.w, V.h);
-    txt('PAUSE', LW / 2, V.y + V.h / 2 - 10, 60, '#ffffff', 'center', 900, 10, DF);
-    txt(PADON() ? GL('a') + ' pour reprendre' : modeDoigt ? 'Touche l\'écran pour reprendre' : 'Clic (ou P) pour reprendre', LW / 2, V.y + V.h / 2 + 36, 20, '#ffffff', 'center', 700, 6);
+    ctx.fillStyle = 'rgba(14,8,30,0.62)'; ctx.fillRect(V.x, V.y, V.w, V.h);
+    const L = PM.conf ? [['Oui, recommencer', '#ff8a8a'], ['Non, continuer', '#ffffff']] : [['▶ Reprendre', '#ffffff'], ['↺ Recommencer depuis le début', '#ffe08a'], ['✕ Quitter', '#ffb0c0']];
+    const w = Math.min(V.w - 32, 440), bh = 58, gap = 14, head = PM.conf ? 118 : 86, h = head + L.length * (bh + gap) + 50, x = LW / 2 - w / 2, y = V.y + (V.h - h) / 2;
+    ctx.fillStyle = '#2a1846'; carte(x, y, w, h, 22); ctx.fill(); ctx.strokeStyle = '#b78cff'; ctx.lineWidth = 3; ctx.stroke();
+    if (PM.conf) {
+      txt('Recommencer depuis le début ?', LW / 2, y + 44, 22, '#ffe08a', 'center', 900);
+      txt('Tout ce que tu possèdes sera effacé :', LW / 2, y + 74, 15, '#e0d0ff', 'center', 700);
+      txt('or, objets magiques, châteaux et sorts.', LW / 2, y + 96, 15, '#e0d0ff', 'center', 700);
+    } else txt('PAUSE', LW / 2, y + 58, 44, '#ffffff', 'center', 900, 0, DF);
+    PM.boutons = [];
+    L.forEach(([t, c], i) => {
+      const by = y + head + i * (bh + gap), bx = x + 24, bw = w - 48, on = i === PM.sel;
+      ctx.fillStyle = on ? 'rgba(183,140,255,0.38)' : 'rgba(255,255,255,0.07)'; carte(bx, by, bw, bh, 14); ctx.fill();
+      if (on) { ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 3; ctx.stroke(); }
+      txt(t, LW / 2, by + bh / 2 + 7, 20, c, 'center', 900);
+      PM.boutons.push({ i, x: bx, y: by, w: bw, h: bh });
+    });
+    const aide = PADON() ? 'Croix ou stick : choisir · ' + GL('a') + ' : valider · ' + GL('b') + ' : ' + (PM.conf ? 'non' : 'reprendre')
+      : modeDoigt ? 'Touche un bouton' : '↑ ↓ et Entrée, ou un clic · Échap : ' + (PM.conf ? 'non' : 'reprendre');
+    txt(aide, LW / 2, y + h - 18, 14, '#bfb0d8', 'center', 700);
   }
 
   function frame(ts) {
@@ -1429,7 +1475,7 @@ function mount(root, api) {
     dessinerVoile(now, C.cx, C.cy);
     // textes flottants, au-dessus du voile de la forêt sombre
     ctx.save(); ctx.translate(-C.cx, -C.cy);
-    for (const t of textes) { const k = t.t / 1.6; ctx.globalAlpha = 1 - k * k; txt(t.s, t.x, t.y - k * 50, t.gros ? 24 : 20, t.c, 'center', 900, 6); ctx.globalAlpha = 1; }
+    if (state === 'play' && !paused) for (const t of textes) { const k = t.t / 1.6; ctx.globalAlpha = 1 - k * k; txt(t.s, t.x, t.y - k * 50, t.gros ? 24 : 20, t.c, 'center', 900, 6); ctx.globalAlpha = 1; }
     ctx.restore();
     if (flash > 0) { ctx.fillStyle = 'rgba(220,235,255,' + flash * 0.35 + ')'; ctx.fillRect(V.x, V.y, V.w, V.h); }
     if (state === 'title') dessinerTitre(now);
@@ -1468,6 +1514,8 @@ function mount(root, api) {
       pieces: () => G ? G.pieces.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) })) : [], objetsSol: () => G ? G.objetsSol.map(o => ({ k: o.k, x: Math.round(o.x), y: Math.round(o.y) })) : [],
       ecran: (x, y) => ({ x: (x - cam.x + LW / 2) * sc + ox, y: (y - cam.y + LH / 2) * sc + oy, sc }),
       suivre(i) { if (!G) return null; const g = G.gens[i]; return g && { s: g.sorte, x: g.x, y: g.y, e: g.etat, d: g.dir }; },
+      envoyer(i, x, y) { const g = G && G.gens[i]; if (g) { g.etat = 'erre'; g.cible = { x, y }; g.attente = 0; g.rayon = 4000; g.home = { x, y }; } },
+      poser(i, x, y) { const g = G && G.gens[i]; if (g) { g.x = x; g.y = y; g.etat = 'erre'; } },
       allie: i => G && G.allies[i] && { x: G.allies[i].x, y: G.allies[i].y, e: G.allies[i].etat, d: G.allies[i].dir },
       grimoire: ouvrirGrimoire, modes: () => ({ doigt: modeDoigt, pad: modePad }), sons: () => sonsPrets
     }
