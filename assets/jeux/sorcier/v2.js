@@ -103,6 +103,7 @@ const DEC = {
 };
 
 function construireMonde() {
+  for (const c of CHATEAUX) delete c.box;   // le même monde à chaque partie (la zone devant les portes n'existe qu'une fois les châteaux posés)
   const R = rng(20261105), rr = (a, b) => a + R() * (b - a);
   const sol = new Uint8Array(N * N);
   const at = (x, y) => (x < 0 || y < 0 || x >= N || y >= N) ? FORET : sol[y * N + x];
@@ -150,6 +151,7 @@ function construireMonde() {
   const libre = (x, y, r) => { // en unités : rien de solide autour, sol d'herbe/forêt
     const tx = Math.floor(x / T), ty = Math.floor(y / T), v = at(tx, ty);
     if (v === EAU || v === PONT || v === CHEMIN || v === PAVE || v === CHAMP) return false;
+    for (const c of CHATEAUX) if (c.box && Math.abs(x - c.cx) < 150 + r && y > c.box.y1 - 10 && y < c.box.y1 + 340 + r) return false;
     for (const d of dec) if (Math.abs(d.x - x) < r + d.r && Math.abs(d.y - y) < r + d.r && Math.hypot(d.x - x, d.y - y) < r + d.r) return false;
     return true;
   };
@@ -1071,7 +1073,12 @@ function mount(root, api) {
     if (p.sorte === 'chevalier' && p.etat === 'chasse' && p.alerte > 4) { ctx.fillStyle = '#ffe08a'; ctx.font = '900 26px ' + RF; ctx.textAlign = 'center'; ctx.fillText('!', p.x, p.y - h - 8); }
   }
   const pick2 = (p, L) => L[Math.floor((p.home.x + p.home.y + (p.x > 0 ? 1 : 0)) % L.length)];
+  let BUL = [], CAMO = { cx: 0, cy: 0 };
   function bulle(x, y, s) {
+    const sx = x - CAMO.cx - V.x, sy = y - CAMO.cy - V.y;   // à l'écran (unités logiques depuis le bord haut-gauche)
+    if (sy < 200 && (sx < 340 || sx > V.w - 190)) return;
+    for (const b of BUL) if (Math.abs(b.x - x) < 120 && Math.abs(b.y - y) < 34) return;
+    BUL.push({ x, y });
     ctx.font = '800 15px ' + RF; const w = ctx.measureText(s).width + 16;
     ctx.fillStyle = 'rgba(255,252,240,0.95)'; carte(x - w / 2, y - 26, w, 24, 8); ctx.fill();
     ctx.beginPath(); ctx.moveTo(x - 5, y - 3); ctx.lineTo(x, y + 6); ctx.lineTo(x + 5, y - 3); ctx.fill();
@@ -1099,6 +1106,7 @@ function mount(root, api) {
   function dessinerMonde(now) {
     const sx = secousse > 0 ? rnd(-1, 1) * secousse * 8 : 0, sy = secousse > 0 ? rnd(-1, 1) * secousse * 8 : 0;
     const cx = Math.round((cam.x - LW / 2 + sx) * PX()) / PX(), cy = Math.round((cam.y - LH / 2 + sy) * PX()) / PX();
+    BUL = []; CAMO = { cx, cy };
     ctx.save(); ctx.translate(-cx, -cy);
     const vx0 = cx + V.x, vy0 = cy + V.y, vx1 = vx0 + V.w, vy1 = vy0 + V.h;
     // le sol
