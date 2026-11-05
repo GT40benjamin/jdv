@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['noisette', 'lune', 'licornes', 'trone', 'remparts', 'abracadabra', 'flechettes', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['noisette', 'lune', 'licornes', 'trone', 'jetporte', 'remparts', 'abracadabra', 'flechettes', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
@@ -40,7 +40,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Sur l'appareil (et dans l'appli Android) : 5 touches rapides sur le titre « Borne d'arcade » = vue admin ⇄ vue joueur.
-const LABO = new Set(['noisette', 'lune', 'trone']);   // 3 nov. 2026 (Benjamin : « mettre en production maintenant ! ») : l'Atelier des jeux (« CRÉE TON JEU ») est SORTI POUR TOUS ; en essai : Seul sur la Lune (2e jeu de l'Atelier, alpha de PATOU, 2 nov. 2026 au soir) ; sortie le 2026-11-03 à 15 h 17 en publication mondiale (2.0.45 : plus en essai, son nom permis dans les notes) : La Maison des Licornes (1er jeu de l'Atelier, de PATOU ; sa tuile vient de at_jeux / at_jeux_monde, comme tout jeu de l'Atelier) ; l'Atelier des jeux (tuile « CRÉE TON JEU », …/jouer/?labo=atelier, 2 nov. 2026) ; sorti pour tous le 2026-11-02 : Remparts ! (tower defense magique 3D, « Oui, public » de Benjamin) ; sorti pour tous le 2026-11-01 : Abracadabra (la voix fait apparaître les objets, borne 1.63, « Tu peux publier à tous abracadabra » de Benjamin) ; sorti pour tous le 2026-10-31 : Tête de Cible (fléchettes, borne 1.62, « Ok publier le jeu de fléchettes » de Benjamin) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
+const LABO = new Set(['noisette', 'lune', 'trone', 'jetporte']);   // 3 nov. 2026 (Benjamin : « mettre en production maintenant ! ») : l'Atelier des jeux (« CRÉE TON JEU ») est SORTI POUR TOUS ; en essai : Seul sur la Lune (2e jeu de l'Atelier, alpha de PATOU, 2 nov. 2026 au soir) ; sortie le 2026-11-03 à 15 h 17 en publication mondiale (2.0.45 : plus en essai, son nom permis dans les notes) : La Maison des Licornes (1er jeu de l'Atelier, de PATOU ; sa tuile vient de at_jeux / at_jeux_monde, comme tout jeu de l'Atelier) ; l'Atelier des jeux (tuile « CRÉE TON JEU », …/jouer/?labo=atelier, 2 nov. 2026) ; sorti pour tous le 2026-11-02 : Remparts ! (tower defense magique 3D, « Oui, public » de Benjamin) ; sorti pour tous le 2026-11-01 : Abracadabra (la voix fait apparaître les objets, borne 1.63, « Tu peux publier à tous abracadabra » de Benjamin) ; sorti pour tous le 2026-10-31 : Tête de Cible (fléchettes, borne 1.62, « Ok publier le jeu de fléchettes » de Benjamin) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -80,7 +80,8 @@ const atlTitre = g => { try { const x = g && ATL_NES.has(g.id) && ATL_JEUX.get(g
 // 2.0.77 (Benjamin : Trôn-e est un jeu à plusieurs les uns contre les autres) : ces jeux de l'Atelier ont leur tuile dans l'onglet DÉFI
 // (#jdw-duo-grid), pas dans la grille classique ; ils se lancent pareil (module de l'Atelier, api.live)
 const ATL_DEFI = new Set(['trone']);
-const ATL_NES = new Set(['licornes', 'lune', 'noisette', 'trone']);   // 2.0.74 : Trôn-e (REMS, fiche 9af84595) : assets/jeux/trone/vN.js, secours source/games/trone.js (live: true)
+const ATL_NES = new Set(['licornes', 'lune', 'noisette', 'trone', 'jetporte']);   // 2.0.117 : Jet Porté (EMPEREUR, fiche 6e7a838b) : assets/jeux/jetporte/vN.js, secours source/games/jetporte.js
+// 2.0.74 : Trôn-e (REMS, fiche 9af84595) : assets/jeux/trone/vN.js, secours source/games/trone.js (live: true)
 // 2.0.20 (Benjamin : « ici au moins c'est clair ») : le sens choisi sur la page du projet (at_fiches.orientation), par id du jeu
 const ATL_ORIENT = new Map();
 const atlOrientFiche = id => { const o = String(ATL_ORIENT.get(id) || ((typeof ATL_JEUX !== 'undefined' && ATL_JEUX.get(id)) || {}).orientation || ''); return /^(portrait|paysage|les2)$/.test(o) ? o : ''; };   // les jeux nés à l'Atelier (id du module) : à compléter à chaque nouveau jeu de l'Atelier
@@ -239,7 +240,7 @@ function atlMajNews(id) {
   if (!t || t <= base || !(Date.now() - t < NEWS_DAYS * 86400e3)) return '';
   return ((((store.get('jdw.atlmajvu', {}) || {})[seenKey()] || {})[id]) | 0) >= x.version_publiee ? '' : 'maj';
 }
-const ATL_EMO = { licornes: '🦄', lune: '🚀', noisette: '🐿️', trone: '👑' };
+const ATL_EMO = { licornes: '🦄', lune: '🚀', noisette: '🐿️', trone: '👑', jetporte: '🍑' };
 const atlMajNote = t => String(t || '').replace(/^\s*(V\d+\s*)?(\(?cadeau[^:)]*\)?)?\s*:\s*/i, '').trim();
 function atlMajNotifs() {
   const me = seenKey(), cl = (store.get('jdw.atlmajcl', {}) || {})[me] || {}, out = [];
@@ -2134,6 +2135,8 @@ function recTag(tag) {
   const msT = v => { const c = Math.round(v / 10), m = Math.floor(c / 6000), sec = Math.floor(c / 100) % 60; return m + ':' + String(sec).padStart(2, '0') + '.' + String(c % 100).padStart(2, '0'); };
   if (base === 'remparts') { const lvR = lv.replace(/-r\d+$/, ''), W = { prairie: 'La Forêt enchantée', dunes: 'Le Jardin maudit', neige: 'Les Grottes de glace', volcan: 'Les Forges ardentes', hante: 'La Crypte oubliée' }, inf = /^inf-/.test(lvR), CR = ['Cimetière des lanternes', 'Catacombes royales', 'Village englouti', 'Royaume des nuages'];   // Crypte oubliée (4 nov.) : c<monde>n<niveau>
     for (let a = 1; a <= 4; a++) for (let n = 1; n <= 5; n++) W['c' + a + 'n' + n] = 'Crypte · ' + CR[a - 1] + ' · niveau ' + n; return { g, base, lv: lvR, where: (g ? g.title : 'Remparts !') + ' · ' + (inf ? (W[lvR.slice(4)] || lvR.slice(4)) + ' sans fin' : W[lvR] || (/^defi-\d{8}$/.test(lvR) ? 'défi du ' + lvR.slice(11, 13) + '/' + lvR.slice(9, 11) : lvR)), val: v => fmt(Math.max(0, 100000 - v) * (inf ? 10 : 1)) + ' points', word: 'ton record', ic: '🏰' }; }   // Ajout 22 : coups = 100 000 − score ; « inf-<monde> » (Sans fin) rangé en points ÷ 10
+  if (base === 'jetporte') { const lvJ = lv.replace(/-r\d+$/, ''), gj = g || (window.JDW_GAMES || {}).jetporte || null, NJ = (gj && Array.isArray(gj.levels) && gj.levels.length ? gj.levels : MAP_DEFS.jetporte.N.map(x => x[0]));   // 2.0.117
+    return { g: gj, base, lv: lvJ, where: (gj ? gj.title : 'Jet Porté') + ' · ' + (NJ[(+lvJ | 0) - 1] || 'niveau ' + lvJ), val: v => fmt(Math.max(0, 100000 - v)) + ' points', word: 'ton record', ic: '🍑' }; }
   if (base === 'chrono') return { g, base, lv, where: (g ? g.title : 'Turbo Chrono') + ' · ' + ((CHRONO_TRACKS.find(x => x[0] === lv) || [])[1] || lv), val: msT, word: 'ton temps', ic: '⏱️' };
   const m = lv.match(/^(\d+)-(\d+)$/), label = base === 'coffres' && m ? 'Monde ' + m[1] + ' · ' + (+m[2] === 20 ? 'grand coffre' : 'coffre ' + m[2]) : 'niveau ' + lv;   // 20 coffres par monde (4 nov. 2026)
   if (base !== 'coffres') return { g, base, lv, where: (g ? g.title + ' · ' : '') + label, val: v => fmt(v), word: 'ton record', ic: '🏆' };   // jeu à niveaux pas encore connu ici : sans unité
@@ -2310,7 +2313,7 @@ function notifRow(n, isNew) {
 }
 // NOTES rangées par JEU : un bloc par jeu (icône + nom + dernière version), ses versions de la plus récente à la plus ancienne ; les jeux
 // dans l'ordre de leur dernière nouveauté. Ce qui est déjà vu : replié dans « Avant » (ou tout replié si on rouvre l'historique).
-const NOTE_IC = { noisette: '🐿️', lune: '🌕', trone: '🚽', licornes: '🦄', atelier: '✏️', remparts: '🏰', abracadabra: '🪄', flechettes: '🎯', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
+const NOTE_IC = { noisette: '🐿️', lune: '🌕', trone: '🚽', licornes: '🦄', jetporte: '🍑', atelier: '✏️', remparts: '🏰', abracadabra: '🪄', flechettes: '🎯', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
 const noteName = (id) => { const g = id === 'pegase' || id === 'borne' ? null : (gameById(id) || duoById(id)); return id === 'pegase' ? 'Pégase' : id === 'borne' ? 'La borne' : id === 'atelier' ? 'L’Atelier des jeux' : g ? atlTitre(g) : id; };
 function notesByGame(blocks) {
   const G = new Map(); for (const b of blocks) { if (!G.has(b.id)) G.set(b.id, []); G.get(b.id).push(b); }
@@ -12008,6 +12011,50 @@ const MAP_DEFS = {
     warm() { const G = window.JDW_GAMES && window.JDW_GAMES.noisette; if (G && G.heros) { try { G.heros(null, 0); } catch (e) { /* rien */ } } },   // ses images se chargent au calme, avant l'ouverture
     start: { title: 'Départ', sub: 'Noisette s’est perdu dans la forêt' },
     get cap() { return MAP_DEFS.noisette.v7() ? { title: 'La lumière revenue', sub: 'Les 4 amis et la forêt rallumée' } : { title: 'Le grand chêne', sub: 'Tous les amis réunis' }; }
+  },
+  // 2.0.117 : Jet Porté (Atelier, EMPEREUR) : le verger, 5 niveaux de météo de plus en plus dure ; currentLevel() = le niveau où l'on est (1 à 5)
+  jetporte: {
+    theme: 'jetporte', tierGap: 130, tierAt: 0.5, step: 200, nodeSize: 56, bgDpr: 1.5, encours: true, word: 'Niveau',
+    N: [['Matin calme', 'Grand soleil, pas un souffle de vent', '#ffc94d', '☀️'], ['Petite brise', 'Une petite brise pousse le jet', '#9bd36a', '🌬️'],
+      ['Les rafales', 'Le vent tourne, rafales, ciel couvert', '#7fb8d8', '💨'], ['La pluie arrive', 'Une grosse averse approche : vite !', '#6a9ad0', '🌧️'],
+      ['Le coup de vent', 'Fort vent qui change de sens, cuve fragile', '#9a86e0', '🌪️']],
+    count: () => 5,
+    level(lv) { const D = MAP_DEFS.jetporte.N[Math.max(1, Math.min(5, lv)) - 1]; return { lv, tier: 0, kicker: 'Niveau ' + lv, name: D[0], lines: [D[1]], acc: D[2], emoji: D[3] }; },
+    short(lv) { const i = MAP_DEFS.jetporte.level(lv); return i.kicker + ' · ' + i.name; },
+    tier() { return { kicker: 'Jet Porté', title: 'Le verger', sub: '5 niveaux pour traiter tout le rang de pêchers, du matin calme au coup de vent', acc: '#5ea844', acc2: '#b08a58' }; },
+    stops(L) { return [[L.H, '#3d7a2c'], [L.H * 0.5, '#4f9338'], [0, '#7cb855']]; },
+    paint(x, L, W, y0, h) {
+      // des pêchers en fleurs et en fruits, en rangs des deux côtés du chemin de terre, jamais sur un texte ni sur le chemin
+      const libre = MAP_DEFS.noisette.libre(L, W);
+      x.save(); x.translate(0, -y0);
+      for (let yy = Math.floor(y0 / 96) * 96; yy < y0 + h + 96; yy += 96) {
+        const r = mapRng(yy * 11 + 5);
+        for (const side of [0, 1]) for (const k of [0, 1]) {
+          const tx = side ? W - 26 - k * W * 0.13 - r() * 18 : 26 + k * W * 0.13 + r() * 18, s = 24 + r() * 12;
+          if (!libre(tx - s * 0.8, yy - s * 1.7, tx + s * 0.8, yy + 8)) continue;
+          x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(tx, yy + 4, s * 0.7, s * 0.18, 0, 0, 7); x.fill();
+          x.fillStyle = '#7a5434'; x.fillRect(tx - s * 0.09, yy - s * 0.7, s * 0.18, s * 0.7);
+          x.fillStyle = '#4f9a3a'; x.beginPath(); x.arc(tx, yy - s * 1.05, s * 0.72, 0, 7); x.fill();
+          x.fillStyle = '#62b04a'; x.beginPath(); x.arc(tx - s * 0.22, yy - s * 1.22, s * 0.42, 0, 7); x.fill();
+          for (let f = 0; f < 4; f++) { const a = r() * 6.28, d = s * (0.2 + r() * 0.42); x.fillStyle = r() < 0.5 ? '#ffb07a' : '#ff8f6a'; x.beginPath(); x.arc(tx + Math.cos(a) * d, yy - s * 1.05 + Math.sin(a) * d * 0.8, s * 0.11, 0, 7); x.fill(); }
+        }
+      }
+      x.restore();
+    },
+    node(x, info, size, P) {
+      // une pêche sur une pastille crème, à la couleur de la météo du niveau
+      const cx = P / 2, cy = P / 2, r = size * 0.42, acc = info.acc;
+      const g0 = x.createRadialGradient(cx, cy, 2, cx, cy, size * 0.75); g0.addColorStop(0, rgbaHex(acc, 0.5)); g0.addColorStop(1, rgbaHex(acc, 0)); x.fillStyle = g0; x.fillRect(0, 0, P, P);
+      x.fillStyle = '#fff6d2'; x.strokeStyle = acc; x.lineWidth = 3; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); x.stroke();
+      const pg = x.createRadialGradient(cx - r * 0.2, cy - r * 0.05, 1, cx, cy + r * 0.1, r * 0.6); pg.addColorStop(0, '#ffd2a0'); pg.addColorStop(0.6, '#ff9a6a'); pg.addColorStop(1, '#e8604a');
+      x.fillStyle = pg; x.beginPath(); x.arc(cx, cy + r * 0.1, r * 0.52, 0, 7); x.fill();
+      x.strokeStyle = 'rgba(160,50,40,.45)'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(cx, cy - r * 0.38); x.quadraticCurveTo(cx + r * 0.12, cy + r * 0.1, cx, cy + r * 0.58); x.stroke();
+      x.fillStyle = '#4f9a3a'; x.beginPath(); x.ellipse(cx + r * 0.2, cy - r * 0.5, r * 0.26, r * 0.12, -0.5, 0, 7); x.fill();
+      x.fillStyle = 'rgba(255,255,255,.4)'; x.beginPath(); x.ellipse(cx - r * 0.2, cy - r * 0.05, r * 0.1, r * 0.18, -0.4, 0, 7); x.fill();
+    },
+    startArt(x, P) { this.node(x, { acc: '#b08a58' }, P * 0.8, P); },
+    start: { title: 'Départ', sub: 'Le verger au petit matin' },
+    cap: { title: 'Le verger protégé', sub: 'Le rang de pêchers traité jusqu’au bout' }
   }
 };
 // 2.0.72 : la carte de « L'Explorateur de l'espace » (jeu 'lune', V9 : 12 chapitres de l'histoire + la fin, 5 régions du bord vers le Cœur).

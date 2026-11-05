@@ -2547,6 +2547,10 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 #jdw-play .topbar.has-fs{grid-template-columns:auto 1fr auto auto;gap:8px}
 #jdw-play .topbar.has-fs h1{font-size:14px}
 #jdw-play .topbar.has-fs #jdw-mute{min-width:0;padding-inline:8px}
+/* 2.0.117 : le bouton « ? » (Comment jouer) a sa colonne : le son ne passe plus à la ligne */
+#jdw-play .topbar:has(> #jdw-howto-b:not([hidden])){grid-template-columns:auto 1fr auto auto}
+#jdw-play .topbar.has-fs:has(> #jdw-howto-b:not([hidden])){grid-template-columns:auto 1fr auto auto auto;gap:6px}
+#jdw-play .topbar.has-fs #jdw-howto-b{min-width:0;padding-inline:10px}
 #jdw-fs{display:grid;place-items:center;margin-right:-2px;font-size:18px;padding-inline:8px;color:#c4ced6}
 #jdw-fs svg{display:block;width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 #jdw-fs[aria-pressed=true]{color:var(--ink)}
@@ -4902,6 +4906,17 @@ body.atl-on .lose-tip{display:none}
 .gmap[data-theme=noisette] .gmap-cap{opacity:1}.gmap[data-theme=noisette] .gmap-cap b{color:#fff3d6;text-shadow:0 2px 0 rgba(10,30,40,.8),0 0 12px rgba(255,209,102,.45)}.gmap[data-theme=noisette] .gmap-cap small{color:#e2eef2;text-shadow:0 1px 0 rgba(0,0,0,.5)}
 .gmap[data-theme=noisette] .gmap-tier.far{opacity:1}.gmap[data-theme=noisette] .gt-plate b{color:#fff3d6;text-shadow:0 3px 0 rgba(30,20,6,.7),0 0 14px rgba(232,138,58,.45)}.gmap[data-theme=noisette] .gt-plate small{color:#ffd166}
 .gmap[data-theme=noisette] .gt-plate{margin-top:-24px;padding:10px 22px 12px;border-radius:18px;background:linear-gradient(180deg,rgba(20,44,28,.94),rgba(14,32,20,.94));border:1px solid rgba(255,233,168,.28);box-shadow:0 10px 26px rgba(0,0,0,.35)}
+/* 2.0.117 : la carte de Jet Porté (le verger) reprend les règles de lisibilité de la carte Noisette */
+.gmap[data-theme=jetporte] .gp-groove{stroke:#b08a58;opacity:.9}.gmap[data-theme=jetporte] .gp-seg.far{stroke:rgba(255,246,210,.7)!important}
+.gmap[data-theme=jetporte] .gmap-ttl h2{color:#fff3d6;text-shadow:0 3px 0 rgba(30,20,6,.85),0 0 16px rgba(232,138,58,.55)}
+.gmap[data-theme=jetporte] .gs-art{position:absolute;left:-130px;top:-52px;pointer-events:none;filter:drop-shadow(0 4px 5px rgba(0,0,0,.45))}
+.gmap[data-theme=jetporte] .gn-lab{background:linear-gradient(180deg,#1d3a22,#142b19);border-color:color-mix(in srgb,var(--nc) 55%,transparent)}
+.gmap[data-theme=jetporte] .gmap-node.far .gn-pin{filter:saturate(.75) brightness(.92);opacity:1}
+.gmap[data-theme=jetporte] .gmap-node.far .gn-lab{opacity:.92;filter:none}
+.gmap[data-theme=jetporte] .gmap-node.far .gn-lab b{color:#e6efe2}
+.gmap[data-theme=jetporte] .gmap-cap{opacity:1}.gmap[data-theme=jetporte] .gmap-cap b{color:#fff3d6;text-shadow:0 2px 0 rgba(10,30,40,.8),0 0 12px rgba(255,209,102,.45)}.gmap[data-theme=jetporte] .gmap-cap small{color:#e2eef2;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+.gmap[data-theme=jetporte] .gmap-tier.far{opacity:1}.gmap[data-theme=jetporte] .gt-plate b{color:#fff3d6;text-shadow:0 3px 0 rgba(30,20,6,.7),0 0 14px rgba(232,138,58,.45)}.gmap[data-theme=jetporte] .gt-plate small{color:#ffd166}
+.gmap[data-theme=jetporte] .gt-plate{margin-top:-24px;padding:10px 22px 12px;border-radius:18px;background:linear-gradient(180deg,rgba(20,44,28,.94),rgba(14,32,20,.94));border:1px solid rgba(255,233,168,.28);box-shadow:0 10px 26px rgba(0,0,0,.35)}
 /* 2.0.74 (Benjamin : « il faut que l'on puisse voir tout ce que veut dire la mascotte ») : plus de phrase coupée par « … » dans les cadres de travail et les bulles : le texte passe à la ligne, le cadre grandit */
 .atl-travail ul{height:auto;overflow:visible}
 .atl-travail ul li{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
@@ -5022,4 +5037,4 @@ canvas.atl-demimg{display:block;width:100%;aspect-ratio:16/10;border-radius:14px
 #jdw-howto-b{font:800 17px var(--body);min-width:40px}
 .sm-howto{display:none;width:100%;margin-top:6px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.05);color:var(--ink);font:700 14px var(--body);text-align:left;cursor:pointer}
 @media (orientation:landscape) and (max-height:500px){.sm-howto:not([hidden]){display:block}}
-body.howto-on .fs-tip,body.howto-on #jdw-cheer{visibility:hidden!important;opacity:0!important}   /* 2.0.113 : aucune annonce sur « Comment jouer » : elles attendent sa fermeture + 2 s */
+body.howto-on .fs-tip,body.howto-on #jdw-cheer,body:has(#jdw-howto) .atl-flot{visibility:hidden!important;opacity:0!important}   /* 2.0.113 : aucune annonce sur « Comment jouer » : elles attendent sa fermeture + 2 s */
