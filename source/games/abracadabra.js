@@ -365,7 +365,7 @@ window.JDW_GAMES[ID] = {
   missions: MISSIONS, mapArt,   // (2 nov.) la carte de la borne (MAP_DEFS.abracadabra)
   boardLevel: true,   // (2 nov.) au classement, la mission atteinte à côté du score
   fps: false,
-  pad: { help: [['ls', 'Marcher'], ['rs', 'Regarder'], ['rb', 'GO / STOP (micro : les sorts)'], ['a', 'Sauter']] },
+  pad: { help: [['ls', 'Marcher'], ['rs', 'Regarder'], ['a', 'Lancer un sort (GO / STOP), puis parler'], ['rb', 'Lancer un sort (comme A)'], ['x', 'Indice (quand il est proposé)'], ['y', 'Vitesse ×2 (pendant la réussite)']] },   // (5 nov. : pas de saut dans ce jeu ; A et RB = sort(), X = indice(), Y = basculeVite() — game.js, boucle manette)
   preview,
   mount,
 };
