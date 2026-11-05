@@ -518,3 +518,52 @@ window.JDW_GAMES['monjeu'] = { id: 'monjeu', title: 'Mon jeu', menu: true, accen
     return { destroy() { on = false; c.remove(); } }; },
   mount(root, api) { /* … */ } };
 ```
+
+### Suivi de l'écran-titre (6 nov. 2026 ; à jour avec `python ~/jdv-tools/bancs-borne/suivi-menus.py`)
+L'admin : « on uniformise tout » — chaque jeu passe en `menu: true` (l'équipe Jeux pour les jeux de la borne, par lots). État du 6 nov. :
+
+| Jeu | Sorte | menu | style | menuImage | portrait | logo | musicMenu | demo |
+|---|---|---|---|---|---|---|---|---|
+| abracadabra | borne | — | — | — | — | — | — | — |
+| canards | borne | — | — | — | — | — | — | — |
+| carreaux | borne | — | — | — | — | — | — | — |
+| chrono | borne | — | — | — | — | — | — | — |
+| coffres | borne | — | — | — | — | — | — | — |
+| empilo | borne | ✅ | — | — | — | — | — | — |
+| flechettes | borne | — | — | — | — | — | — | — |
+| glouton | borne | ✅ | — | — | — | — | — | — |
+| ilo | borne | — | — | — | — | — | — | — |
+| magic | borne | — | — | — | — | — | — | — |
+| mouches | borne | ✅ | — | — | — | — | — | — |
+| neon | borne | — | — | — | — | — | — | — |
+| pegase | borne | — | — | — | — | — | — | — |
+| remparts | borne | — | — | — | — | — | — | — |
+| rouleaux | borne | — | — | — | — | — | — | — |
+| sensinterdit | borne | — | — | — | — | — | — | — |
+| smoothie | borne | — | — | — | — | — | — | — |
+| bolides | duel | — | — | — | — | — | — | — |
+| boum | duel | — | — | — | — | — | — | — |
+| briques | duel | — | — | — | — | — | — | — |
+| guerre | duel | — | — | — | — | — | — | — |
+| kombat | duel | — | — | — | — | — | — | — |
+| mots | duel | — | — | — | — | — | — | — |
+| palet | duel | — | — | — | — | — | — | — |
+| pingpong | duel | — | — | — | — | — | — | — |
+| souris | duel | — | — | — | — | — | — | — |
+| spatial | duel | — | — | — | — | — | — | — |
+| tirsaubut | duel | — | — | — | — | — | — | — |
+| toupies | duel | — | — | — | — | — | — | — |
+| trouve | duel | — | — | — | — | — | — | — |
+| jetporte | Atelier V7 | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| licornes | Atelier V24 | ✅ | cartoon | — | — | ✅ | ✅ | ✅ |
+| lune | Atelier V16 | — | — | — | — | — | — | — |
+| manoir | Atelier V1 | ✅ | aventure | ✅ | ✅ | ✅ | ✅ | ✅ |
+| noisette | Atelier V10 | ✅ | cartoon | — | — | ✅ | ✅ | ✅ |
+| pigeon | Atelier V4 | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| sorcier | Atelier V4 | ✅ | aventure | ✅ | ✅ | ✅ | ✅ | ✅ |
+| strike | Atelier V3 | ✅ | cartoon | — | — | ✅ | ✅ | ✅ |
+| trone | Atelier V3 | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+
+**Duels** : l'écran-titre n'existe pas encore pour eux (`menu: true` dans un duel est IGNORÉ : la mise en relation n'est pas touchée). Mise en page prévue :
+en LOCAL (même écran, contre l'IA), la tuile ouvre l'écran-titre et ▶ JOUER ouvre le duel ; EN LIGNE, jamais d'écran-titre après la mise en relation
+(les deux appareils démarrent ensemble) — l'écran-titre se montre avant l'invitation, et ▶ JOUER = « Défier un copain ».
