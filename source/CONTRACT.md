@@ -480,3 +480,28 @@ const stopSon = api.son ? api.son.suivre(e => { monGainMusique.gain.value = e.mu
   monGainSons.gain.value = e.bruitages.on ? e.bruitages.volume : 0; }) : () => {};
 ```
 Le testeur vérifie chaque jeu branché : PC, téléphone en portrait et couché, à la manette ; aucune jauge sous les boutons de la borne.
+
+## Ajout 27 bis : l'ÉCRAN-TITRE de jeu vidéo et la MUSIQUE DE MENU (borne 2.0.142 ; demandes de l'admin du 5 nov. 2026)
+Le menu standard (`menu: true`) est un vrai écran-titre : la scène du jeu derrière, le logo en grand avec une entrée animée, « Appuie sur une
+touche » qui clignote, puis une LISTE verticale ▶ JOUER · ❓ COMMANDES · 🛍️ BOUTIQUE (si le jeu en a une) · 🔊 SON · ⚙️ OPTIONS. Le choix actif
+grossit et brille, un petit son à chaque choix ; flèches / stick / croix, A ou Entrée pour valider, B ou Échap pour revenir. Jamais le cadre
+« Comment jouer » ouvert tout seul : seulement par ❓ COMMANDES.
+Champs du module (tous facultatifs) :
+- `accent` : couleur principale (liste, curseur, lueurs) ; `accent2` : couleur secondaire (curseur, reflets).
+- `musicMenu: '<nom>'` : la musique de MENU, courte (20-40 s en boucle) et TOUJOURS différente de la musique du jeu. Jeu de l'Atelier : la borne
+  cherche `assets/jeux/<id>/<nom>.mp3`, puis `assets/music/<nom>.mp3` (ou `.bin`) ; jeu de la borne : `assets/music/<nom>`. Elle joue sur le
+  menu et l'écran Commandes ; au ▶ JOUER, fondu vers la musique du jeu (`music`) ; au retour au menu (✕ Quitter, fin de partie) elle revient.
+  Sans `musicMenu` : la musique de l'accueil de la borne, jamais la musique du jeu.
+- `logo: 'logo.png'` : une image transparente (`assets/jeux/<id>/logo.png` pour un jeu de l'Atelier) affichée en grand. Sans logo, un jeu de la
+  borne affiche son titre dans la police de jeu ; un jeu de l'Atelier n'écrit rien (sa belle image porte déjà son titre) sauf `titreTexte: true`.
+- `demo(root, api)` : la scène qui VIT derrière le menu (le décor qui défile, une démo sans joueur). `root` = plein écran, sous le menu ;
+  `api` = `{ colors, fonts, assets, zoneSure, demo: true }` (ni score ni son : la musique de menu joue déjà). Rend `{ destroy() }`, appelé au
+  ▶ JOUER et en quittant le menu. Laisser libre le coin bas-gauche (la liste). Sans `demo` : la jaquette ou l'aperçu, avec un lent mouvement.
+- `menuImageT` (secondes) : le moment calme de l'aperçu `preview` à montrer quand il n'y a ni démo ni jaquette.
+```js
+window.JDW_GAMES['monjeu'] = { id: 'monjeu', title: 'Mon jeu', menu: true, accent: '#7a4ac8', accent2: '#ffe08a',
+  music: 'monjeu-1', musicMenu: 'monjeu-menu', logo: 'logo.png',
+  demo(root, api) { const c = document.createElement('canvas'); root.appendChild(c); let on = true; (function f() { if (!on) return; /* dessiner */ requestAnimationFrame(f); })();
+    return { destroy() { on = false; c.remove(); } }; },
+  mount(root, api) { /* … */ } };
+```

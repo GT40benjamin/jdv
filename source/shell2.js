@@ -573,71 +573,108 @@ const MENU_BORNE = new Set(['empilo', 'glouton', 'mouches']);   // 2.0.139 : les
 const MENU = { passe: '' };
 const menuAvoir = g => !!g && g.menu !== false && (g.menu === true || MENU_BORNE.has(g.id) || (navigator.webdriver && Array.isArray(window.JDW_MENU_ESSAI) && window.JDW_MENU_ESSAI.includes(g.id))) && !PAD_DOM.has(g.id) && !g.external && g.id !== 'pegase';   // jeux de l'Atelier : menu: true (leur équipe retire d'abord leur écran titre : jamais deux menus)
 function menuOuJouer(g) { if (menuAvoir(g) && MENU.passe !== g.id) menuMontrer(g); else mountGame(g); }
-function menuFermer() { const m = document.getElementById('jdw-gmenu'); if (m) { if (m._esc) document.removeEventListener('keydown', m._esc, true); m.remove(); } }
-function menuMontrer(g) {
-  menuFermer(); MENU.passe = ''; { const lt = document.getElementById('jdw-losetip'); if (lt) lt.remove(); }   // jamais un bandeau par-dessus le menu
+function menuFermer() { const m = document.getElementById('jdw-gmenu'); if (m) { if (m._esc) document.removeEventListener('keydown', m._esc, true); if (m._demo && m._demo.destroy) try { m._demo.destroy(); } catch (e) {} m.remove(); } }
+// 2.0.142 (l'admin : « un vrai menu de jeu vidéo ») : l'ÉCRAN-TITRE d'un jeu (menu: true, CONTRACT.md Ajout 27 bis) — la scène du jeu qui vit
+// (g.demo, sinon sa belle image qui bouge doucement), le LOGO en grand (g.logo, sinon le titre dans la police de jeu) avec une entrée animée,
+// « Appuie sur une touche » qui clignote, puis la LISTE verticale (▶ JOUER, ❓ COMMANDES, 🛍️ BOUTIQUE, 🔊 SON, ⚙️ OPTIONS) aux couleurs du jeu
+// (accent / accent2) : le choix actif grossit et brille, un petit son à chaque choix ; flèches / stick / croix, A ou Entrée, B pour revenir.
+// La MUSIQUE DE MENU (g.musicMenu, jamais la musique du jeu) joue en boucle, puis fondu vers la musique du jeu au ▶ JOUER.
+const MENU_MUS_URLS = {};   // nom du morceau → adresses à essayer (le dossier du jeu de l'Atelier, puis assets/music)
+function menuMusique(g) {
+  const nom = String((g && g.musicMenu) || '').trim();
+  if (!/^[a-z0-9][a-z0-9_.-]{0,60}$/i.test(nom)) return 'accueil';   // sans musique de menu : celle de l'accueil de la borne, jamais celle du jeu
+  const enc = MUSIC_ENC.has(nom), b = ROOT + 'assets/music/' + nom + (enc ? '.bin' : '.mp3');
+  MENU_MUS_URLS[nom] = ATL_NES.has(g.id) ? [ROOT + 'assets/jeux/' + g.id + '/' + nom + '.mp3', b] : [b];
+  return 'menu:' + nom;
+}
+function menuBip(k) {   // le petit son d'un choix (bruitages de la borne : coupé avec eux)
+  try { const A = Audio.ctx, out = Audio.master; if (!A || !out || muted) return; const o = A.createOscillator(), v = A.createGain(), t = A.currentTime;
+    o.type = 'triangle'; o.frequency.setValueAtTime(k === 'ok' ? 660 : 990, t); if (k === 'ok') o.frequency.exponentialRampToValueAtTime(1320, t + 0.09);
+    v.gain.setValueAtTime(0.0001, t); v.gain.exponentialRampToValueAtTime(0.22, t + 0.01); v.gain.exponentialRampToValueAtTime(0.0001, t + (k === 'ok' ? 0.16 : 0.07));
+    o.connect(v).connect(out); o.start(t); o.stop(t + 0.2); } catch (e) {}
+}
+function menuMontrer(g, o) {
+  o = o || {}; menuFermer(); MENU.passe = ''; { const lt = document.getElementById('jdw-losetip'); if (lt) lt.remove(); }
   const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
-  const btn = (c, x, f) => { const b = el('button', 'btn ' + c, x); b.type = 'button'; b.addEventListener('click', f); return b; };
   let titre = g.title || ''; try { if (ATL_NES.has(g.id)) titre = atlTitre(g) || titre; } catch (e) {}
-  // 2.0.140 (l'admin : « dès qu'on lance, on a une belle image du jeu, puis les boutons en bas ») : l'IMAGE DU JEU en grand (sa jaquette, sinon
-  // son aperçu animé, sinon sa vignette de l'accueil), la même floutée derrière (jamais un fond vide), le titre et une rangée de boutons EN BAS
-  const M = el('div', 'gmenu'); M.id = 'jdw-gmenu'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Menu de ' + titre); M.style.setProperty('--acc', g.accent || COLORS.amber);
-  const scene = el('div', 'gm-scene'), bas = el('div', 'gm-bas');
-  M.append(scene, bas); $('jdw-play').appendChild(M);
-  menuImage(g, M, scene);
-  try { const ro = new ResizeObserver(() => { if (M.isConnected) M.style.setProperty('--gm-bas', Math.ceil(bas.getBoundingClientRect().height) + 'px'); else ro.disconnect(); }); ro.observe(bas); } catch (e) {}   // l'image s'arrête au-dessus des boutons, quelle que soit leur hauteur
-  sonJeuActiver(g.id); musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);   // la musique du jeu, à SON volume, pendant le menu
+  const M = el('div', 'gmenu tmenu'); M.id = 'jdw-gmenu'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', titre);
+  M.style.setProperty('--acc', g.accent || COLORS.amber); M.style.setProperty('--acc2', g.accent2 || '#ffffff');
+  const scene = el('div', 'tm-scene'), voile = el('div', 'tm-voile'), haut = el('div', 'tm-haut'), bas = el('div', 'tm-bas');
+  M.append(scene, voile, haut, bas); $('jdw-play').appendChild(M);
+  // la scène : la démo du jeu (g.demo), sinon sa belle image qui bouge doucement
+  let demo = null;
+  if (typeof g.demo === 'function') { const dr = el('div', 'tm-demo'); scene.appendChild(dr);
+    try { demo = g.demo(dr, { colors: COLORS, fonts: FONTS, assets: () => window.JDW_ASSETS.load(g.id), zoneSure: () => zoneSure(), demo: true }) || null; } catch (e) { demo = null; reportError('Démo du menu (' + g.id + ') : ' + e.message, e.stack, { quiet: true }); dr.remove(); } }
+  M._demo = demo; if (!demo) { scene.classList.add('tm-bouge'); menuImage(g, M, scene); }
+  // le logo (g.logo : une image du jeu) ou le titre en grand, avec son entrée animée
+  const logo = el('div', 'tm-logo');
+  const lu = g.logo && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|webp|svg)$/i.test(String(g.logo)) ? ROOT + (ATL_NES.has(g.id) ? 'assets/jeux/' + g.id + '/' : 'assets/') + g.logo : '';
+  if (lu) { const i = el('img'); i.alt = titre; i.src = lu; i.onerror = () => { i.remove(); logo.appendChild(el('h2', 'tm-titre', titre)); }; logo.appendChild(i); }
+  else if (!ATL_NES.has(g.id) || g.titreTexte === true) logo.appendChild(el('h2', 'tm-titre', titre));   // un jeu de l'Atelier : son image porte déjà son titre (sinon : logo, ou titreTexte: true)
+  haut.appendChild(logo);
+  sonJeuActiver(g.id); musicBaseLevel(0.8); MUS.override = false; setMusic(menuMusique(g));   // la musique de MENU, au volume de ce jeu
   let boutique = 0;
-  const jouer = () => { MENU.passe = g.id; menuFermer(); mountGame(g); };
+  const jouer = () => { menuBip('ok'); MENU.passe = g.id; menuFermer(); mountGame(g); };
+  const it = (txt, fn, cls) => { const b = el('button', 'tm-it' + (cls ? ' ' + cls : ''), txt); b.type = 'button';
+    b.addEventListener('click', () => { if (!b.classList.contains('tm-go')) menuBip('ok'); fn(); });
+    b.addEventListener('focus', () => menuBip()); b.addEventListener('mouseenter', () => { try { b.focus({ preventScroll: true }); } catch (e) {} }); return b; };
   const vue = (quoi) => {
-    bas.textContent = ''; if (!ATL_NES.has(g.id)) bas.appendChild(el('h2', 'gm-t', titre));   // 2.0.141 : l'image d'un jeu de l'Atelier porte déjà son titre
-    if (!quoi) {
-      const R = el('div', 'gm-row');
-      R.appendChild(btn('btn-play gm-go', '▶ Jouer', jouer));
-      if (howtoOf(g)) R.appendChild(btn('btn-ghost gm-b', '❓ Commandes', () => howtoShow(g, $('jdw-play'), { then: () => { const b = M.querySelector('.gm-go'); if (b) try { b.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} } })));
-      if (boutique) R.appendChild(btn('btn-ghost gm-b', '🛍️ Boutique', () => { MENU.passe = g.id; menuFermer(); mountGame(g); setTimeout(() => { try { if (current && current.game.id === g.id) boutiqueOuvrir(); } catch (e) {} }, 1200); }));
-      R.appendChild(btn('btn-ghost gm-b', '🔊 Son', () => vue('son')));
-      R.appendChild(btn('btn-ghost gm-b', '⚙️', () => vue('param'))); R.lastChild.setAttribute('aria-label', 'Paramètres'); R.lastChild.title = 'Paramètres';
-      bas.appendChild(R);
+    bas.textContent = ''; M.dataset.vue = quoi || 'liste';
+    const L = el('div', 'tm-liste'); bas.appendChild(L);
+    if (quoi === 'touche') {
+      const t = it('Appuie sur une touche', () => vue(''), 'tm-touche'); L.appendChild(t);
+    } else if (!quoi) {
+      L.appendChild(it('▶ JOUER', jouer, 'tm-go'));
+      if (howtoOf(g)) L.appendChild(it('❓ COMMANDES', () => howtoShow(g, $('jdw-play'), { then: () => { const b = M.querySelector('.tm-it'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} } })));
+      if (boutique) L.appendChild(it('🛍️ BOUTIQUE', () => { MENU.passe = g.id; menuFermer(); mountGame(g); setTimeout(() => { try { if (current && current.game.id === g.id) boutiqueOuvrir(); } catch (e) {} }, 1200); }));
+      L.appendChild(it('🔊 SON', () => vue('son')));
+      L.appendChild(it('⚙️ OPTIONS', () => vue('param')));
+    } else if (quoi === 'son') {
+      L.appendChild(el('p', 'tm-k', '🔊 Le son de ce jeu'));
+      const ligne = (k, kv, ic, nom) => {
+        const r = el('div', 'tm-son'), sl = el('input', 'tm-vol'), s0 = sonJeuLire(g.id);
+        const t = it('', () => { sonJeuEcrire(g.id, { [k]: !sonJeuLire(g.id)[k] }); maj(); }, 'tm-tog'); t.setAttribute('role', 'switch');
+        sl.type = 'range'; sl.min = '0'; sl.max = '100'; sl.step = '5'; sl.value = String(Math.round(s0[kv] * 100)); sl.setAttribute('aria-label', 'Volume : ' + nom);
+        sl.addEventListener('input', () => { sonJeuEcrire(g.id, { [kv]: (+sl.value || 0) / 100, [k]: true }); maj(); });
+        const maj = () => { const v = sonJeuLire(g.id); t.textContent = ic + ' ' + nom + ' : ' + (v[k] ? 'OUI' : 'NON'); t.setAttribute('aria-checked', String(v[k])); sl.value = String(Math.round(v[kv] * 100)); r.classList.toggle('off', !v[k]); };
+        maj(); r.append(t, sl); return r;
+      };
+      L.append(ligne('m', 'mv', '🎵', 'MUSIQUE'), ligne('b', 'bv', '🔊', 'BRUITAGES'), el('p', 'tm-note', 'Réglé pour ce jeu, et retenu.'));
+      L.appendChild(it('← RETOUR', () => vue(''), 'tm-ret'));
     } else {
-      const P = el('div', 'gm-pan'); P.appendChild(el('p', 'gm-k', quoi === 'son' ? '🔊 Le son de ce jeu' : '⚙️ Paramètres')); bas.appendChild(P);
-      if (quoi === 'son') {
-        const s = sonJeuLire(g.id);
-        const ligne = (k, kv, ic, nom) => {
-          const r = el('div', 'gm-son'), sl = el('input', 'gm-vol');
-          const t = btn('btn-ghost gm-tog', '', () => { sonJeuEcrire(g.id, { [k]: !sonJeuLire(g.id)[k] }); maj(); });
-          t.setAttribute('role', 'switch');
-          sl.type = 'range'; sl.min = '0'; sl.max = '100'; sl.step = '5'; sl.value = String(Math.round(s[kv] * 100)); sl.setAttribute('aria-label', 'Volume : ' + nom);
-          sl.addEventListener('input', () => { sonJeuEcrire(g.id, { [kv]: (+sl.value || 0) / 100, [k]: true }); maj(); });
-          const maj = () => { const v = sonJeuLire(g.id); t.textContent = ic + ' ' + nom + ' : ' + (v[k] ? 'oui' : 'non'); t.setAttribute('aria-checked', String(v[k])); t.classList.toggle('on', v[k]); sl.value = String(Math.round(v[kv] * 100)); r.classList.toggle('off', !v[k]); };
-          maj(); r.append(t, sl); return r;
-        };
-        P.append(ligne('m', 'mv', '🎵', 'Musique'), ligne('b', 'bv', '🔊', 'Bruitages'), el('p', 'gm-note', 'Réglé pour ce jeu seulement, et retenu.'));
-      } else {
-        P.appendChild(btn('btn-ghost gm-b', '🔊 Son', () => vue('son')));
-        if (g.saves || typeof g.recommencerAventure === 'function' || ATL_NES.has(g.id)) {
-          const ask = el('div', 'gm-ask'); ask.hidden = true;
-          const rb = btn('btn-ghost gm-b', '🔄 Recommencer l’aventure', () => {
-            ask.textContent = ''; ask.append(el('p', '', 'Tu perds ta progression dans ce jeu. Tes achats et tes records restent.'));
-            const oui = btn('btn-play', 'Oui, tout recommencer', () => menuRecommencer(g, vue)), non = btn('btn-ghost', 'Non', () => { ask.hidden = true; try { rb.focus({ preventScroll: true }); } catch (e) {} });
-            ask.append(oui, non); ask.hidden = false; setTimeout(() => { try { non.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 30);
-          });
-          P.append(rb, ask);
-        }
+      L.appendChild(el('p', 'tm-k', '⚙️ Options'));
+      L.appendChild(it('🔊 SON', () => vue('son')));
+      if (g.saves || typeof g.recommencerAventure === 'function' || ATL_NES.has(g.id)) {
+        const ask = el('div', 'tm-ask'); ask.hidden = true;
+        const rb = it('🔄 RECOMMENCER L’AVENTURE', () => {
+          ask.textContent = ''; ask.append(el('p', '', 'Tu perds ta progression dans ce jeu. Tes achats et tes records restent.'));
+          const oui = it('OUI, TOUT RECOMMENCER', () => menuRecommencer(g, vue), 'tm-oui'), non = it('NON', () => { ask.hidden = true; try { rb.focus({ preventScroll: true }); } catch (e) {} });
+          ask.append(oui, non); ask.hidden = false; setTimeout(() => { try { non.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 30);
+        });
+        L.append(rb, ask);
       }
-      bas.appendChild(btn('btn-ghost gm-b gm-ret', '← Retour', () => vue('')));
+      L.appendChild(it('← RETOUR', () => vue(''), 'tm-ret'));
     }
-    setTimeout(() => { try { const f = bas.querySelector('.gm-go, .gm-pan button:not([disabled]), button:not([disabled])'); if (f) f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40);
+    setTimeout(() => { try { const f = L.querySelector('.tm-it'); if (f) f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40);
   };
-  vue('');
-  M._esc = e => { if (e.key !== 'Escape' || document.getElementById('jdw-howto')) return; e.preventDefault(); e.stopImmediatePropagation(); if (bas.querySelector('.gm-ret')) vue(''); else backToLibrary(); };
+  vue(o.direct ? '' : 'touche');
+  // clavier : n'importe quelle touche (écran « Appuie »), ↑ ↓ entre les choix, Échap / B = revenir
+  M._esc = e => {
+    if (document.getElementById('jdw-howto') || !M.isConnected) return;
+    if (M.dataset.vue === 'touche') { if (['Shift', 'Control', 'Alt', 'Meta', 'Tab'].includes(e.key)) return; e.preventDefault(); e.stopImmediatePropagation(); if (e.key === 'Escape') backToLibrary(); else vue(''); return; }
+    if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); e.stopImmediatePropagation(); if (M.dataset.vue !== 'liste') vue(''); else backToLibrary(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 's' || e.key === 'z' || e.key === 'w') {
+      const l = [...bas.querySelectorAll('.tm-it:not([hidden])')].filter(x => x.getClientRects().length); if (!l.length) return;
+      const i = l.indexOf(document.activeElement), d = (e.key === 'ArrowDown' || e.key === 's') ? 1 : -1;
+      e.preventDefault(); e.stopImmediatePropagation(); try { l[(i + d + l.length) % l.length].focus({ preventScroll: true }); } catch (x) {}
+    }
+  };
   document.addEventListener('keydown', M._esc, true);
+  M.addEventListener('pointerdown', e => { if (M.dataset.vue === 'touche' && !e.target.closest('.tm-it')) { e.preventDefault(); vue(''); } });
   // la boutique : seulement si le jeu en a une (jeux de l'Atelier)
   if (ATL_NES.has(g.id) && ONLINE && !netOff() && !isGuest() && profile.name) rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true })
-    .then(r => { if (r && Array.isArray(r.articles) && r.articles.length && document.getElementById('jdw-gmenu') === M) { boutique = r.articles.length; if (!bas.querySelector('.gm-ret')) vue(''); } }).catch(() => {});
+    .then(r => { if (r && Array.isArray(r.articles) && r.articles.length && document.getElementById('jdw-gmenu') === M) { boutique = r.articles.length; if (M.dataset.vue === 'liste') vue(''); } }).catch(() => {});
 }
-// l'image du menu : la jaquette du jeu de l'Atelier (grande image), sinon l'aperçu animé du jeu (dessiné net à la taille de l'écran),
-// sinon sa vignette de l'accueil ; la même, floutée et agrandie, remplit tout l'écran derrière
 // 2.0.141 (chef) : le moment CALME de l'aperçu de chaque jeu (ni « DOUBLE ! » ni confettis) ; un jeu peut donner le sien : menuImageT (secondes)
 const MENU_IMAGE_T = { empilo: 1.5, glouton: 1.5, mouches: 0.5 };
 function menuImageT(g) { const t = +g.menuImageT; return Number.isFinite(t) && t >= 0 ? t : (MENU_IMAGE_T[g.id] != null ? MENU_IMAGE_T[g.id] : 1); }
@@ -663,6 +700,7 @@ function menuImage(g, M, scene) {
       const cs = getComputedStyle(cadre), aw = Math.max(40, cadre.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)), ah = Math.max(30, cadre.clientHeight);
       let cw = aw, ch = aw * 3 / 4; if (ch > ah) { ch = ah; cw = ah * 4 / 3; }
       if (ah > aw * 1.05) { cw = aw; ch = Math.min(ah, aw * 4 / 3); }   // portrait : à la largeur de l'écran, plus haute que large
+      if (M.classList.contains('tmenu')) { cw = aw; ch = ah; }   // 2.0.142 : l'écran-titre, la scène remplit tout
       const d = Math.min(2, devicePixelRatio || 1), w = Math.max(1, Math.round(cw * d)), h = Math.max(1, Math.round(ch * d));
       if (c.width !== w || c.height !== h) { c.width = w; c.height = h; c.style.width = Math.round(cw) + 'px'; c.style.height = Math.round(ch) + 'px'; }
       const k = w + 'x' + h; if (k === taille && n > 3) { requestAnimationFrame(tic); return; } taille = k;
@@ -2042,6 +2080,7 @@ const MUSIC_AS = { chrono: 'pleingaz', sensinterdit: 'si6' };   // Sens Interdit
 // jamais dans JDW_MUSIC), seulement sur les pages de l'Atelier, dans un ordre tiré au hasard, fondu enchaîné de 2,5 s (MUSIC_SUITE)
 const ATL_MUSIQUES = ['reveuse', 'joyeuse', 'mysterieuse', 'aventuriere', 'lumineuse', 'etoilee'].map(n => 'atelier/atelier-' + n);
 function musicVariants(id, mode) {
+  if (/^menu:/.test(id)) return [id.slice(5)];   // 2.0.142 : la musique de MENU d'un jeu (g.musicMenu)
   id = MUSIC_AS[id] || id;
   if (id === 'atelier') { const l = ATL_MUSIQUES.slice(); for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(shellRand() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return l; }
   // Pégase (page des îles et hub) : la SUITE de 4 morceaux (pgsuite-1…4, voir MUSIC_SUITE), pour tout le monde depuis la 1.34.19
@@ -2085,8 +2124,13 @@ function musicBuffer(id) {
   return MUS_EN_ROUTE[id];
 }
 async function musicBuffer0(id) {
-  const enc = MUSIC_ENC.has(id);
-  const r = await fetch(id === 'atelier' ? CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier-ia/s/e23a0321-5bcc-498c-af3f-6c7fe136a20c.mp3' : ROOT + 'assets/music/' + id + (enc ? '.bin' : '.mp3')); if (!r.ok) throw new Error('musique ' + id + ' ' + r.status);
+  let enc = MUSIC_ENC.has(id), r = null;
+  if (MENU_MUS_URLS[id]) {   // 2.0.142 : musique de menu d'un jeu — le dossier du jeu de l'Atelier d'abord, puis assets/music
+    for (const u of MENU_MUS_URLS[id]) { try { r = await fetch(u); } catch (e) { r = null; } if (r && r.ok) { enc = /\.bin$/.test(u); break; } }
+    if (!r || !r.ok) throw new Error('musique ' + id + ' ' + (r ? r.status : 'réseau'));
+  } else {
+  r = await fetch(id === 'atelier' ? CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier-ia/s/e23a0321-5bcc-498c-af3f-6c7fe136a20c.mp3' : ROOT + 'assets/music/' + id + (enc ? '.bin' : '.mp3')); if (!r.ok) throw new Error('musique ' + id + ' ' + r.status);
+  }
   let ab = await r.arrayBuffer();
   if (enc) ab = await decryptBin(new Uint8Array(ab));
   const b = await new Promise((res, rej) => Audio.ctx.decodeAudioData(ab, res, rej));
@@ -11132,6 +11176,7 @@ function quitGame() {
       return;
     }
   }
+  if (current && !current.coop && menuAvoir(current.game) && !CADRE_G) { const g = current.game; unmountGame(); $('jdw-end').hidden = true; menuMontrer(g, { direct: true }); return; }   // 2.0.142 : retour au menu du jeu
   backToLibrary();
 }
 /* ---------- « Quitter la partie ? » (#jdw-quitask) ----------
@@ -11598,6 +11643,7 @@ async function showEnd(score) {
   }, 1600);
 }
 async function showEndInner(score) {
+  try { if (current && menuAvoir(current.game)) { MUS.override = false; setMusic(menuMusique(current.game)); } } catch (e) {}   // 2.0.142 : fin de partie = musique de menu
   quitAskHide();
   castEndAll(score);   // les spectateurs voient le score final
   flushPending(); musicBaseLevel(0.5);
@@ -16595,6 +16641,7 @@ function atlVerMaj(W, f) {
 // Menu latéral (PC) / menu flottant au pouce (téléphone) : 🏠 Mon jeu · 💬 Discussion · 🧩 Éléments · 🛍️ Boutique · 🗂️ Versions · 📊 Statistiques
 // · ⚙️ Paramètres ; la mascotte en haut à gauche ; le FOND de l'espace généré pour le projet (at_espace_fond, SQL v148) ; des cartes de résumé
 // et des statistiques RÉELLES (at_stats_lire) — jamais de faux chiffres : zéro = zéro, avec un mot gentil.
+const ATL_ESPACE_ON = false;   // 2.0.142 : l'espace du jeu sort en 2.0.143 (refait comme la maquette validée)
 const ATL_ESP = [['jeu', '🏠', 'Mon jeu'], ['demandes', '💬', 'Discussion'], ['elements', '🧩', 'Éléments'], ['boutique', '🛍️', 'Boutique'], ['versions', '🗂️', 'Versions'], ['stats', '📊', 'Statistiques'], ['params', '⚙️', 'Paramètres']];
 const ATL_ESP_EL = [['🦸', 'Personnages'], ['🎁', 'Objets'], ['🏞️', 'Décor'], ['🔊', 'Sons'], ['🎵', 'Musiques']];
 const atlNb0 = n => atlNb(Math.round(+n || 0));
@@ -16818,7 +16865,7 @@ function atlRenderProjet(W, f) {
   else if (!jouable) { const p = pane('discussion'), l = atlEl('div', 'atl-pmsgs'); p.appendChild(l);
     const w = atlEl('button', 'btn btn-play btn-sm', '💬 Parler ' + gA()); w.type = 'button'; w.addEventListener('click', () => { atlFrameStop(); ATL.chat = true; ATL.stick = true; atlRender(); }); p.appendChild(w); }
   else atlProjDem(pane('demandes'), f);
-  if (jouable) try { atlEspace(W, box, f, g, pane); } catch (e) { reportError('Espace du jeu : ' + e.message, e.stack, { quiet: true }); }   // 2.0.142
+  if (jouable && ATL_ESPACE_ON) try { atlEspace(W, box, f, g, pane); } catch (e) { reportError('Espace du jeu : ' + e.message, e.stack, { quiet: true }); }   // 2.0.142
   atlProjMsgs(W, f);
   if (jouable) atlProjTab(ATL.tab); else for (const q of W.querySelectorAll('.atl-pane')) q.hidden = false;   // la V1 en construction : tout sur une page
 }

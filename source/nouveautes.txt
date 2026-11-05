@@ -6,10 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
-[borne] ## 🌈 Ton jeu a son espace à lui (borne 2.0.142)
-[borne] 🌈 Dans l’Atelier, la page de ton jeu devient son espace : un fond dessiné pour ton jeu, à ses couleurs, et un menu (Mon jeu, Discussion, Éléments, Boutique, Versions, Statistiques, Paramètres).
-[borne] 📊 De vraies statistiques : parties lancées, joueurs, temps joué, visites de la boutique, ventes, avec une courbe sur 7 ou 30 jours.
-[borne] 📱 Sur téléphone, le menu s’ouvre avec un bouton au pouce, et {g} est toujours là pour discuter.
+[borne] ## 🎮 Un vrai écran-titre pour les jeux (borne 2.0.142)
+[borne] 🎮 Les jeux qui l’ont s’ouvrent sur leur écran-titre : la scène du jeu, son logo, « Appuie sur une touche », puis la liste JOUER, COMMANDES, BOUTIQUE, SON, OPTIONS, aux flèches, à la manette ou au doigt.
+[borne] 🎵 Chaque jeu peut avoir sa musique de menu, différente de sa musique de partie : elle revient quand tu reviens au menu.
 [borne] ## 🔵 Les versions à essayer se voient mieux (borne 2.0.141)
 [borne] 🔵 Dans tes projets, la pastille « Vn · en essai » est bleue quand tu peux essayer ta version, et grise quand {g} prépare déjà la suivante.
 [borne] 🖼️ Le menu des jeux montre un moment calme du jeu, en grand sur téléphone, sans titre en double.
