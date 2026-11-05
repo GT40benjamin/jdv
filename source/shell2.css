@@ -5057,3 +5057,19 @@ body.howto-on .fs-tip,body.howto-on #jdw-cheer,body:has(#jdw-howto) .atl-flot{vi
 .atl-adminb.pt .atl-rentb small{font-size:11px}
 #jdw-atelier .atl-envoi{opacity:.6;cursor:progress}   /* 2.0.121 : bouton grisé le temps de l'envoi */
 .atl-libmasc,.atl-rmasc{margin:10px 0 0;padding:8px 12px;border-radius:12px;background:rgba(255,211,77,.08);border:1px solid rgba(255,211,77,.25);color:#ffe9a8;font:600 13.5px/1.4 var(--body)}   /* 2.0.123 */
+
+/* 2.0.124 : un projet SANS V1 = la discussion avec la mascotte, en pleine page (le fil défile, la case reste en bas) ; la carte « 🚀 Lancer la conception » est sa dernière bulle */
+.atl-wiz.av1{display:flex;flex-direction:column;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
+.atl-wiz.av1>.atl-av1{flex:1 1 auto;min-height:0;width:100%;display:flex;flex-direction:column;gap:0}
+.atl-disc.plein{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin:0}
+.atl-disc.plein>.atl-dischd{display:none}
+.atl-disc.plein>.atl-discc{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:8px;padding:12px}
+.atl-disc.plein .atl-disclog{flex:1 1 auto;min-height:240px;max-height:none}
+.atl-mlancer .atl-b{display:grid;gap:10px;max-width:min(100%,560px);background:linear-gradient(180deg,rgba(255,211,77,.16),rgba(122,76,255,.16));border:1px solid rgba(255,211,77,.5)}
+.atl-mlancer .atl-goavant{margin:0}
+.atl-mlancer .atl-go{margin:2px 0 0}
+.atl-dzb{display:block;margin:8px 0 2px;padding:0;border:0;background:none;cursor:zoom-in;border-radius:12px;overflow:hidden;max-width:100%}
+.atl-dzb img{display:block;width:100%;max-width:520px;height:auto;border-radius:12px}
+.atl-mcard.atl-elvoir{width:min(980px,100%)}
+.atl-elvoir .atl-arch{border:0}
+.atl-elvoir .atl-libbar{display:none}

@@ -15453,60 +15453,60 @@ function atlRenderWiz() {
   const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, et = String(f.etat || ''), cr = atlCred();
   const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr && !ATL.soldeT) { cp.textContent = atlCredTxt(cr.solde); cp.classList.remove('low'); }
   R.querySelector('.atl-suivib').hidden = !(cr && cr.patron); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
-  if (ATL_AFTER.has(et) || et === 'refusee') { atlRenderProjet(W, f); return; }   // 17 h 20 : la vraie page du projet
-  W.textContent = ''; ATL.pSig = '';
-  const box = atlEl('div', 'atl-wbox'); W.appendChild(box);
-  const dz = f.design && atlIaUrl(f.design.f);
-  // 19 h 55 (Benjamin : « on a juste besoin de l'onglet design quand ça revient ») : un projet rempli s'ouvre sur « 🎨 Le design » ;
-  // les autres étapes restent là (onglets, feuille de route) pour qui veut modifier
-  if (ATL.step == null) ATL.step = ATL_STEPS.length - 1;
-  const st = Math.max(0, Math.min(ATL_STEPS.length - 1, ATL.step | 0)); ATL.step = st;
-  R.querySelector('.atl-hs').textContent = st === ATL_STEPS.length - 1 ? (atlDevis(f) ? 'Ton jeu est prêt à construire' : 'Ton design est prêt') : 'Modifier : ' + ATL_STEPS[st][2];
-  const DZ = ATL_STEPS.length - 1;   // 19 h 57 (Benjamin) : au centre le design ; les autres étapes s'ouvrent depuis la feuille de route (à droite)
-  if (st !== DZ) { const bk = atlEl('button', 'btn btn-ghost btn-sm atl-wback', '← Revenir au design'); bk.type = 'button'; bk.addEventListener('click', () => { ATL.step = DZ; atlRenderWiz(); atlRenderRoute(false); W.scrollTop = 0; }); box.appendChild(bk); }
-  const lm = atlMsgs().filter(m => m.atelier && m.texte).slice(-1)[0];
-  if (lm && st === ATL_STEPS.length - 1) { const wm = atlEl('div', 'atl-wmsg'), tx = atlEl('div'); tx.append(atlEl('b', '', gNM()), atlEl('p', '', lm.texte)); wm.append(atlGuideAv('atl-wav'), tx); box.appendChild(wm); }
-  const dv0 = st === ATL_STEPS.length - 1 ? atlDevis(f) : null;
-  if (dv0) {   // l'encart du jeu élément par élément, en grand, puis 🚀 juste dessous
-    box.appendChild(atlDevisEncart(f, fi, false));
-    const go0 = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (dv0.total > 0 ? ' · ' + dv0.total + ' 💎' : '')); go0.type = 'button'; go0.addEventListener('click', () => atlLancer(go0));
-    box.append(atlEl('p', 'atl-goavant', '✨ Rien à préparer : je crée tous les éléments de ta V1. Tu l’essaies, puis tu me dis dans la discussion ce que tu veux changer ou ajouter.'), go0, atlEl('p', 'atl-gonote', 'Je construis ta V1 : tu pourras l’essayer tout de suite, puis me demander des changements quand tu veux. Les crédits utilisés ne sont pas remboursés.'), atlEl('p', 'atl-gobug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'), atlEl('p', 'atl-werr atl-werr0'));
-    box.lastChild.hidden = true;
-  }
-  const [k, ic, lab, aide] = ATL_STEPS[st], page = atlEl('section', 'atl-page' + (dv0 ? ' petit' : ''));
-  page.append(atlEl('h2', '', ic + ' ' + lab), atlEl('p', 'atl-aide', aide));
-  if (k === 'idee') {
-    const tl = atlEl('label', 'atl-flab', 'Le nom de ton jeu'), ti = atlEl('input', 'atl-wti'); ti.type = 'text'; ti.maxLength = 40; ti.value = f.titre || ''; ti.placeholder = 'Le nom de ton jeu';
-    ti.addEventListener('change', () => { const v = ti.value.trim(); if (v.length >= 2 && v !== f.titre) atlEtape('titre', v); });
-    const ta = atlEl('textarea', 'atl-wta'); ta.rows = 6; ta.value = atlVal(fi.idee); ta.setAttribute('aria-label', 'L’idée de ton jeu');
-    ta.addEventListener('change', () => { const v = ta.value.trim(); if (v.length >= 2 && v !== atlVal(fi.idee)) atlEtape('idee', v); });
-    page.append(tl, ti, atlEl('label', 'atl-flab', 'Ton jeu en quelques phrases'), ta);
-  } else if (k === 'design') {
-    const pend = !!f.design_en_cours, d = atlEl('div', 'atl-wdz' + (pend ? ' pend' : ''));
-    if (dz) { const im = atlEl('img'); im.alt = 'Le design de ton jeu'; im.src = dz; im.addEventListener('click', () => atlZoom(dz)); d.appendChild(im); }
-    if (pend || !dz) { const o = atlEl('div', 'atl-wdzo'); o.innerHTML = '<span class="atl-spin" aria-hidden="true"></span>'; o.appendChild(atlEl('b', '', pend ? 'Ton premier design est en préparation…' : 'Ton design arrive bientôt…')); o.appendChild(atlEl('small', '', 'Une minute ou deux. Tu peux continuer à regarder tes étapes.')); d.appendChild(o); }
-    page.appendChild(d);
-    const cd = cr ? cr.design | 0 : 10, prix = cd > 0 ? ' · ' + cd + ' 💎' : '';
-    const row = atlEl('div', 'atl-wdb'), rf = atlEl('button', 'btn btn-ghost', '🔄 Refaire le design' + prix); rf.type = 'button'; rf.disabled = pend;
-    rf.addEventListener('click', () => atlDesign('', rf));
-    const mf = atlEl('form', 'atl-wdm'), mi = atlEl('input', 'atl-chin2'); mi.type = 'text'; mi.maxLength = 300; mi.placeholder = 'Ce que tu veux changer (ex. : de nuit, plus de couleurs…)'; mi.value = ATL.dchg || ''; mi.disabled = pend;
-    mi.addEventListener('input', () => { ATL.dchg = mi.value; });
-    const mb = atlEl('button', 'btn btn-play', '✏️ Modifier' + prix); mb.type = 'submit'; mb.disabled = pend;
-    mf.addEventListener('submit', e => { e.preventDefault(); const v = mi.value.trim(); if (v.length < 3) { mi.focus(); return; } atlDesign(v, mb); });
-    mf.append(mi, mb); row.appendChild(rf); page.append(row, mf, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.'));
-    atlWizDessins(page, f, fi);
-  } else atlWizChips(page, k, fi);
-  box.appendChild(page);
-  const er = atlEl('p', 'atl-werr'); er.hidden = true; box.appendChild(er);
-  if (st !== DZ) { const foot = atlEl('div', 'atl-wfoot'), n = atlEl('button', 'btn btn-play', '✔ C’est bon, retour au design'); n.type = 'button'; n.addEventListener('click', () => { ATL.step = DZ; atlRenderWiz(); atlRenderRoute(false); W.scrollTop = 0; }); foot.appendChild(n); box.appendChild(foot); }
-  if (st === ATL_STEPS.length - 1 && !dv0) {
-    const dv = null;
-    const cc = dv ? dv.total : cr ? cr.conception | 0 : 0, go = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (cc > 0 ? ' · ' + cc + ' 💎' : '')); go.type = 'button';
-    go.addEventListener('click', () => atlLancer(go));
-    box.append(atlEl('p', 'atl-goavant', '✨ Rien à préparer : je crée tous les éléments de ta V1. Tu l’essaies, puis tu me dis dans la discussion ce que tu veux changer ou ajouter.'), go, atlEl('p', 'atl-gonote', 'Je construis ta V1 : tu pourras l’essayer tout de suite, puis me demander des changements quand tu veux. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous. Les crédits utilisés ne sont pas remboursés.'), atlEl('p', 'atl-gobug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'));
-  }
-  const w = atlEl('button', 'atl-wchat', '✏️ Retravailler mon idée ou ajouter du style (' + (cr ? cr.message | 0 : 2) + ' 💎 le message)'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); });
-  box.append(w);   // 2.0.16 (Benjamin) : plus de mention « créé avec l’aide de l’IA »
+  // 2.0.124 (l'admin, 5 nov. : « tant qu'il n'y a pas de version de jeu, il ne peut pas créer des éléments, juste il doit lancer la conception
+  // dans une fenêtre de discussion ») : SANS V1, la page du projet = la discussion (atlRenderAvantV1) ; plus d'outils de design ni d'éléments
+  W.classList.toggle('av1', atlAvantV1(f));
+  if (atlAvantV1(f)) { atlRenderAvantV1(W, f); return; }
+  atlRenderProjet(W, f);   // 17 h 20 : la vraie page du projet (jeu jouable, ou projet refusé)
+}
+// ---- 2.0.124 : un projet SANS V1 (monté, lancé ou non) = LA DISCUSSION avec la mascotte, dans une seule fenêtre : tout le montage, l'ambiance
+// du design (bulle), ses demandes et ses étapes en direct, et, avant le lancement, sa carte « 🚀 Lancer la conception » (dernière bulle).
+// La case envoie par at_discuter (gratuit) ; un changement de design ou un élément en plus se demande ici (questions → offre avec son coût).
+// La feuille de route (à droite) se regarde seulement. L'admin voit EXACTEMENT la même page (seul son bandeau rouge s'ajoute).
+const atlJouable = f => !!f && !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(String(f.etat || ''));
+const atlAvantV1 = f => !!f && !atlJouable(f) && String(f.etat || '') !== 'refusee';
+function atlRenderAvantV1(W, f) {
+  const R = ATL.root, lance = ATL_AFTER.has(String(f.etat || ''));
+  R.querySelector('.atl-hs').textContent = lance ? (gNM() + ' construit ta V1') : 'Ton projet est prêt à lancer';
+  if (W.dataset.av1 === f.id && W.querySelector('.atl-av1')) { atlDiscMaj(W, f); return; }
+  atlFrameStop(); ATL.pSig = ''; W.textContent = ''; W.dataset.av1 = f.id; ATL.discFerme = '';
+  const box = atlEl('div', 'atl-pbox atl-av1'), d = atlDiscBloc(f); d.classList.add('plein'); box.appendChild(d); W.appendChild(box);
+  atlDiscMaj(W, f, true);
+  setTimeout(() => { const lg = W.querySelector('.atl-disclog'); if (lg) lg.scrollTop = lg.scrollHeight; }, 0);
+}
+// la carte de la mascotte : « Rien à préparer… », 🚀 Lancer la conception · N 💎 (le coût revérifié par le serveur, at_lancer), la note sur les bugs
+function atlLancerCarte(f) {
+  const cr = atlCred(), dv = atlDevis(f), cout = dv ? dv.total : cr ? cr.conception | 0 : 0;
+  const b = atlBubble({ atelier: true, texte: ' ' }), col = b.querySelector('.atl-mc'), bb = col.querySelector('.atl-b'), tm = col.querySelector('.atl-t'); if (tm) tm.remove();
+  b.classList.add('atl-mlancer'); bb.textContent = '';
+  bb.append(atlEl('p', 'atl-goavant', '✨ Rien à préparer : je crée tous les éléments de ta V1. Tu l’essaies, puis tu me dis ici ce que tu veux changer ou ajouter.'));
+  const go = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (cout > 0 ? ' · ' + cout.toLocaleString('fr-FR') + ' 💎' : '')); go.type = 'button';
+  go.addEventListener('click', () => { atlLancer(go); setTimeout(() => { if (go.isConnected && !ATL.sending && Date.now() - (ATL.lance || 0) >= 5000) { go.textContent = '🚀 Lancer la conception' + (cout > 0 ? ' · ' + cout.toLocaleString('fr-FR') + ' 💎' : ''); go.classList.remove('sur'); } }, 5200); });
+  const er = atlEl('p', 'atl-werr'); er.hidden = true;
+  bb.append(go, er, atlEl('p', 'atl-gonote', 'Je construis ta V1 : tu pourras l’essayer tout de suite, puis me demander des changements quand tu veux. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous. Les crédits utilisés ne sont pas remboursés.'),
+    atlEl('p', 'atl-gobug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'));
+  return b;
+}
+// l'ambiance du design, dans une bulle de la mascotte (touche = en grand)
+function atlDesignBulle(f, at) {
+  const u = atlIaUrl(f.design && f.design.f), b = atlBubble({ atelier: true, texte: '🎨 Voici l’ambiance de ton jeu : c’est le style que je suis pour construire ta V1.', at }), bb = b.querySelector('.atl-b');
+  if (u) { const a = atlEl('button', 'atl-dzb'); a.type = 'button'; a.setAttribute('aria-label', 'Voir l’ambiance en grand'); const im = atlEl('img'); im.alt = 'L’ambiance de ton jeu'; im.loading = 'lazy'; im.src = u; a.appendChild(im); a.addEventListener('click', () => atlZoom(u)); bb.appendChild(a); }
+  return b;
+}
+// les éléments déjà faits, à REGARDER (depuis la feuille de route) : aucun bouton de création, ni planche à télécharger
+function atlElemsVoir(f) {
+  const M = ATL.root && ATL.root.querySelector('.atl-mod'); if (!M || !f) return;
+  const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, c = atlEl('div', 'atl-mcard atl-elvoir');   // fermer : la barre « ← Retour ✕ » de toutes les fenêtres (atlFenBarre)
+  c.appendChild(atlEl('h2', '', '🧩 Les éléments de ton jeu'));
+  const host = atlEl('div', 'atl-elvc'); atlBiblio(host, f, fi, true); c.appendChild(host);   // sans « Vue planche » ni « Télécharger » (CSS .atl-elvoir .atl-libbar)
+  M.textContent = ''; M.appendChild(c); M.hidden = false;
+}
+// l'outil d'admin « éléments retirés » (2.0.118), ouvert depuis le bandeau rouge (2.0.124)
+function atlArchiveVoir(f) {
+  const M = ATL.root && ATL.root.querySelector('.atl-mod'); if (!M || !f) return;
+  const c = atlEl('div', 'atl-mcard atl-elvoir'); c.appendChild(atlEl('h2', '', '🗄️ Éléments retirés'));
+  const d = atlArchiveBloc(f); d.open = true; c.appendChild(d);
+  M.textContent = ''; M.appendChild(c); M.hidden = false;
 }
 
 // ---------- 2 nov. 17 h 20 (Benjamin) : la PAGE DU PROJET — « je dois tester mon jeu ICI » et « tout doit être visible » ----------
@@ -15688,12 +15688,21 @@ function atlDiscFil(f) {
   const L = [], T = v => Date.parse(v) || 0, iso = t => new Date(t).toISOString(), net = v => String(v || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '').trim();
   const add = (at, k, g, el, w) => L.push({ at: String(at || ''), t: T(at), k, g, el, w: !!w });
   const dem = id => atlDiscDems(f).find(d => d.id === id);
+  const av1 = atlAvantV1(f), dids = new Set(atlDiscDems(f).map(d => d.id)), reps = atlDiscDems(f).map(d => String(d.reponse || '').trim()).filter(r => r.length >= 15);
+  if (av1) {   // 2.0.124 : la discussion du montage d'abord (sans les demandes, qui se racontent elles-mêmes plus bas, ni les réponses déjà dans une demande)
+    for (const m of atlMsgs()) {
+      if (dids.has(m.id) || !(m.texte || m.image || (Array.isArray(m.images) && m.images.length && !m.planche))) continue;
+      if (m.atelier && reps.some(r => String(m.texte || '').includes(r))) continue;
+      add(m.at, 'mm' + m.id + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : ''), !!m.atelier, () => atlBubble(m), !m.atelier);
+    }
+    if (f.design && f.design.f) { const da = f.design.at || f.created_at; add(da, 'dz' + f.design.f, true, () => atlDesignBulle(f, da)); }
+  }
   for (const m of atlDiscMsgs().concat((ATL.discPend || []).filter(m => m.fiche === f.id)))
     add(m.at, 'm' + (m.id || 'p') + (m.pending ? 'p' : '') + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : '') + (m.demande ? atlDiscSig(dem(m.demande)) : ''), !!m.atelier && !m.pending, () => atlBubble(m), !m.atelier && !m.pending);
   for (const x of atlDiscDems(f)) {
     const ne = atlDiscDe(x), hi = Array.isArray(x.historique) ? x.historique.filter(h => h && h.sorte) : [], et = Array.isArray(x.etapes) ? x.etapes : [], sd = atlDiscSig(x), env = x.etat === 'envoyee';
     const J = (tx, at, cls) => () => { const bl = atlBubble({ texte: tx, at }); bl.classList.add(cls || 'atl-fdem'); return bl; };
-    if (!ne) {   // la demande écrite dans « Mes demandes » (ou en arrêt sur image) : elle se raconte ici aussi
+    if (!ne && !(av1 && /^🚀\s*Conception de ta V/.test(String(x.texte || '')))) {   // la demande écrite dans « Mes demandes » (ou en arrêt sur image) : elle se raconte ici aussi (2.0.124 : pas le ticket de conception, ouvert par la mascotte)
       add(x.at, 'dj' + x.id, false, J('🎫 ' + net((hi.find(h => h.avant) || {}).avant || x.texte).split('\n\n↪ ')[0], x.at), env && !hi.length);
       hi.forEach((h, i) => {
         if (h.reponse) { const t0 = iso(T(h.at) - 1000); add(t0, 'dg' + x.id + i, true, () => atlBubble({ atelier: true, texte: String(h.reponse), at: t0 })); }
@@ -15718,7 +15727,13 @@ function atlDiscFil(f) {
   }
   const vc = (f.version | 0) || 1;
   for (const vh of Array.isArray(f.versions) ? f.versions : []) { const v = vh && vh.v | 0; if (v) add(vh.at, 'v' + v + (v === vc ? 'c' : ''), true, () => atlDiscBulleV(f, vh, v === vc)); }
-  return L.sort((u, w) => u.t - w.t);
+  L.sort((u, w) => u.t - w.t);
+  if (av1 && !ATL_AFTER.has(String(f.etat || ''))) {   // 2.0.124 : pas encore lancé → la carte « 🚀 Lancer la conception », toujours en dernier
+    const cr = atlCred(), dv = atlDevis(f); L.push({ at: '', t: 9e15, k: 'go' + (dv ? dv.total : cr ? cr.conception | 0 : 0), g: false, el: () => atlLancerCarte(f), w: false });
+  } else if (av1 && !atlDiscDems(f).some(x => x.etat === 'en_cours')) {   // lancé, sans étape en direct : la mascotte est au travail
+    L.push({ at: '', t: 9e15, k: 'construit', g: false, w: false, el: () => { const w = atlEl('div', 'atl-dthink atl-travb'), col = atlEl('div'); col.append(atlEl('b', '', '🛠️ Je construis ta V1 de « ' + (f.titre || 'ton jeu') + ' »'), atlEl('small', '', 'Je te préviens dès qu’elle est prête 🔔 · Tu peux m’écrire ici quand tu veux')); w.append(atlGuideAv('atl-wav'), col); return w; } });
+  }
+  return L;
 }
 function atlDiscBloc(f) {
   const b = atlEl('section', 'atl-disc'), hd = atlEl('button', 'atl-dischd'); hd.type = 'button'; hd.setAttribute('aria-expanded', 'true');
@@ -15775,7 +15790,7 @@ function atlDiscMaj(W, f, force) {
   if (der && !adm && !atlDiscVu(f)) atlDiscVu(f, der.at);   // premier passage sur cet appareil : l'histoire d'avant n'est pas « nouvelle »
   const on = ATL.discFerme !== f.id, corps = b.querySelector('.atl-discc'), log = b.querySelector('.atl-disclog');
   corps.hidden = !on; b.classList.toggle('on', on); b.querySelector('.atl-dischd').setAttribute('aria-expanded', String(on));
-  if (on && der && ATL.tab === 'demandes' && !document.hidden && !adm && der.at > atlDiscVu(f)) atlDiscVu(f, der.at);
+  if (on && der && (ATL.tab === 'demandes' || atlAvantV1(f)) && !document.hidden && !adm && der.at > atlDiscVu(f)) atlDiscVu(f, der.at);
   const neuf = !adm && !!der && der.at > atlDiscVu(f); b.classList.toggle('neuf', neuf);
   const tb = W.querySelector('.atl-ptab[data-k="demandes"]'), db = W.querySelector('.atl-discbtn'); if (tb) tb.classList.toggle('atl-pdot', neuf); if (db) db.classList.toggle('atl-pdot', neuf);
   if (!on) return;
@@ -15787,10 +15802,12 @@ function atlDiscMaj(W, f, force) {
   acc.classList.add('atl-wel'); bb.textContent = '';
   bb.append(atlEl('p', '', '💬 On parle de « ' + (f.titre || 'ton jeu') + ' » ?'), atlEl('p', '', 'Ici, c’est gratuit : pose-moi tes questions, demande-moi où en est ton jeu, prépare avec moi tes idées de changements, même les gros.'),
     atlEl('p', '', 'Quand une idée demande du travail, je te fais une proposition avec son coût : rien n’est lancé sans ton « oui ». Tout ce que je fais sur ton jeu s’affiche ici.'));
-  log.appendChild(acc);
-  for (const i of fil) { try { const el = i.el(); if (el) log.appendChild(el); } catch (e) {} }
-  const dj = fil[fil.length - 1];
+  if (!atlAvantV1(f)) log.appendChild(acc);
+  const fin = fil.filter(i => i.t >= 9e15);   // 2.0.124 : la carte de lancement / « je construis ta V1 » reste sous la réponse en préparation
+  for (const i of fil) { if (i.t >= 9e15) continue; try { const el = i.el(); if (el) log.appendChild(el); } catch (e) {} }
+  const dj = fil.filter(i => i.t < 9e15).pop();
   if (dj && dj.w) log.append(atlGuideScene(['Je lis ton message…', 'Je réfléchis…', 'J’écris ma réponse…'], 'conception'), (() => { const r = atlBubble({ atelier: true, texte: '💭 Je lis ton message et je te réponds juste ici. Tu peux aller jouer en attendant.', at: new Date().toISOString() }), t1 = r.querySelector('.atl-t'); if (t1) t1.remove(); return r; })());
+  for (const i of fin) { try { const el = i.el(); if (el) log.appendChild(el); } catch (e) {} }
   if (bas) log.scrollTop = log.scrollHeight;
 }
 // 2.0.94 : « 🎉 Ta Vn est sortie ! » en haut de la page du projet, tant que le joueur ne l'a pas essayée (jdw.atl.essaye, sur cet appareil)
@@ -16388,20 +16405,6 @@ function atlDessinDe(f, fi, nom) {
   if ((Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours : []).some(x => atlNorm(x) === n)) return { attente: true };
   return null;
 }
-function atlWizDessins(page, f, fi) {
-  const els = atlElemsFiche(fi);
-  const sec = atlEl('div', 'atl-wds'); sec.appendChild(atlEl('h3', '', '🧩 Les éléments de ton jeu'));
-  if (!atlAdminIci()) { sec.appendChild(atlEl('p', 'atl-wdmain', '✨ Rien à préparer : ' + gN() + ' crée tous les éléments de ta V1. Une idée en plus ? Dis-la-lui dans la discussion.')); atlBiblio(sec, f, fi); page.appendChild(sec); return; }   // 2.0.123
-  sec.appendChild(atlEl('p', 'atl-wdmain', '⭐ Facultatif : crée tes éléments principaux, ' + gN() + ' fera tout le reste pendant la construction.'));
-  const faits = els.filter(e => { const d = atlDessinDe(f, fi, e.nom); return d && !d.attente; }).length;
-  atlBiblio(sec, f, fi);
-  const im = atlEl('button', 'btn btn-ghost btn-sm atl-wdimg', '🖼️ Joindre une image (2 💎)'); im.type = 'button'; im.addEventListener('click', () => ATL.root.querySelector('.atl-file').click());
-  sec.appendChild(im);
-  const att = Array.isArray(f.dessins_en_cours) && f.dessins_en_cours.length;
-  sec.appendChild(atlEl('p', 'atl-aide', att ? '⏳ Tes éléments arrivent (une à deux minutes).' : faits + ' / ' + els.length + ' éléments créés'));
-  const b = atlEl('button', 'btn btn-play', '🎨 Créer mes éléments'); b.type = 'button'; b.disabled = !!att; b.addEventListener('click', atlModale);
-  sec.appendChild(b); page.appendChild(sec);
-}
 // les éléments PRINCIPAUX (21 h, Benjamin) : les 2 premiers personnages et le 1er objet — cochés d'avance dans « Dessiner mes éléments »
 function atlPrincipal(fi, e) { const l = atlListeDe(fi[e.k]); const i = l.findIndex(x => atlNorm(x) === atlNorm(e.nom)); return (e.k === 'personnages' && i >= 0 && i < 2) || (e.k === 'objets' && i === 0); }
 function atlElemRenommer(cap, e, fi) {
@@ -16489,9 +16492,10 @@ function atlRenderRoute(liste) {
   const f = atlFiche(), fi = f && f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, b = atlBasesVal(), cr = atlCred(), et = f ? String(f.etat || '') : '', lance = f && (ATL_AFTER.has(et) || et === 'refusee');
   const B = D.querySelector('.atl-rbody'); B.textContent = '';
   const sec = (t) => { const s = atlEl('section', 'atl-rsec'); s.appendChild(atlEl('h4', '', t)); B.appendChild(s); return s; };
-  const ligne = (s, ic, lab, val, fn, ok, resume) => { if (!atlAdminIci()) fn = null; const r = atlEl(fn ? 'button' : 'div', 'atl-rl' + (ok ? ' ok' : '') + (resume ? ' res' : '')); if (fn) { r.type = 'button'; r.addEventListener('click', fn); } r.append(atlEl('span', 'atl-ric', ic), atlEl('span', 'atl-rlab', lab), atlEl('b', '', val)); if (resume) r.appendChild(atlEl('small', 'atl-rres', resume)); s.appendChild(r); };
+  // 2.0.124 : lecture seule pour TOUS (admin = joueur) ; seul « voir » ouvre quelque chose à regarder (l'ambiance en grand, les éléments)
+  const ligne = (s, ic, lab, val, fn, ok, resume, voir) => { fn = voir || null; const r = atlEl(fn ? 'button' : 'div', 'atl-rl' + (ok ? ' ok' : '') + (resume ? ' res' : '')); if (fn) { r.type = 'button'; r.addEventListener('click', fn); } r.append(atlEl('span', 'atl-ric', ic), atlEl('span', 'atl-rlab', lab), atlEl('b', '', val)); if (resume) r.appendChild(atlEl('small', 'atl-rres', resume)); s.appendChild(r); };
   if (!lance && !(f && atlRempli(f))) B.appendChild(atlEl('p', 'atl-rvide', '🤖 ' + gNM() + ' la remplira dès que tu lui auras raconté ton jeu.'));
-  if (!atlAdminIci()) B.appendChild(atlEl('p', 'atl-rmasc', '✏️ ' + gNM() + ' la remplit et la tient à jour. Tu veux changer quelque chose ? Écris-le-lui.'));   // 2.0.123
+  B.appendChild(atlEl('p', 'atl-rmasc', '✏️ ' + gNM() + ' la remplit et la tient à jour. Tu veux changer quelque chose ? Écris-le-lui.'));   // 2.0.123
   const s1 = sec('🧱 Les bases');
   ATL_BASES.forEach(([k, ic, , court], i) => ligne(s1, ic, court, b[k] || 'à préciser', lance ? null : () => { ATL.basesOn = true; ATL.basesUne = !!(f && f.id && atlRempli(f)); ATL.bq = i; atlRender(); }, !!b[k]));
   const s2 = sec('📋 Ta fiche');
@@ -16513,11 +16517,11 @@ function atlRenderRoute(liste) {
   }   // 23 h 30 : le devis, en lecture dans la feuille de route
   const s3 = sec('🎨 Le design');
   const els = f ? atlElemsFiche(fi) : [], faits = f ? els.filter(e => { const d = atlDessinDe(f, fi, e.nom); return d && !d.attente; }).length : 0, att = f && Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours.length : 0;
-  ligne(s3, '🖼️', 'L’ambiance', f && f.design_en_cours ? '⏳' : f && f.design ? '✔' : '…', etape(5), !!(f && f.design));
+  { const du = f && f.design && atlIaUrl(f.design.f); ligne(s3, '🖼️', 'L’ambiance', f && f.design_en_cours ? '⏳' : f && f.design ? '✔' : '…', null, !!(f && f.design), '', du ? () => atlZoom(du) : null); }
   { const th = atlEl('div', 'atl-rth'); let n = 0;
     for (const e of els) { const d = f && atlDessinDe(f, fi, e.nom); if (!d || d.attente || n >= 15) continue; n++; let v; if (d.img) { v = atlEl('img'); v.alt = e.nom; v.loading = 'lazy'; v.src = d.img; v.addEventListener('click', () => atlZoom(d.img)); } else v = atlFormeSvg(d.forme.forme, d.forme.couleur); v.title = e.nom; th.appendChild(v); }
     if (n) setTimeout(() => s3.appendChild(th), 0); }
-  if (f) { const it = atlBiblioItems(f, fi), n = ATL_CATS.reduce((m, [c]) => m + it[c].filter(x => !x.vide).length, 0); ligne(s3, '🧩', 'Éléments', n ? String(n) : '…', null, !!n, ATL_CATS.filter(([c]) => it[c].length).map(([c, ic]) => ic + ' ' + it[c].filter(x => !x.vide).length).join(' · ')); }
+  if (f) { const it = atlBiblioItems(f, fi), n = ATL_CATS.reduce((m, [c]) => m + it[c].filter(x => !x.vide).length, 0); ligne(s3, '🧩', 'Éléments', n ? String(n) : '…', null, !!n, ATL_CATS.filter(([c]) => it[c].length).map(([c, ic]) => ic + ' ' + it[c].filter(x => !x.vide).length).join(' · '), n && atlAvantV1(f) ? () => atlElemsVoir(f) : null); }
   ligne(s3, '🧩', 'Éléments créés', els.length ? faits + ' / ' + els.length + (att ? ' ⏳' : '') : '…', etape(5), !!els.length && faits === els.length);
   const s4 = sec('🚀 Où en est ton jeu');
   { const n = atlEtapeNum(); s4.appendChild(atlEl('p', 'atl-rst', 'Étape ' + n + ' / 3 : ' + ATL_ETAPES[n - 1][1])); }
@@ -16797,7 +16801,7 @@ function atlArchiveBloc(f) {
   return d;
 }
 function atlBiblio(host, f, fi, lecture) {
-  if (!atlAdminIci()) lecture = true;   // 2.0.123 (l'admin : « le bouton créer mes éléments, ça les embrouille ») : le joueur regarde ; un nouvel élément, il le demande à la mascotte
+  lecture = true;   // 2.0.123 / 2.0.124 (admin = même écran) (l'admin : « le bouton créer mes éléments, ça les embrouille ») : le joueur regarde ; un nouvel élément, il le demande à la mascotte
   const et = String(f.etat || ''), libre = !lecture && ['brouillon', 'en_discussion', 'complete'].includes(et), items = atlBiblioItems(f, fi);
   for (const cat in items) {   // un nom de la fiche « à dessiner » alors que ses poses existent déjà : retiré
     const pleins = items[cat].filter(it => it.asset);
@@ -16825,9 +16829,9 @@ function atlBiblio(host, f, fi, lecture) {
   }
   lib.appendChild(bar);
   const sec = atlEl('section', 'atl-libc');
-  if (!l.length) sec.appendChild(atlEl('p', 'atl-libvide', lecture && !atlAdminIci() ? (cat === 'musique' ? 'Pas encore de musique : demande-la à ' + gNM() + ' dans « Discuter du jeu ».' : cat === 'son' ? 'Pas encore de bruitage : demande-le à ' + gNM() + ' dans « Discuter du jeu ».' : 'Rien pour l’instant.') : cat === 'musique' ? 'Pas encore de musique : « ＋ Créer une musique » pour en demander une.' : cat === 'son' ? '« ＋ Créer un bruitage » pour en ajouter un, quand tu veux.' : 'Rien pour l’instant.'));
-  if (lecture && !atlAdminIci()) lib.appendChild(atlEl('p', 'atl-libmasc', '💬 Un nouveau personnage, un objet, un décor, une musique ? Dis-le à ' + gNM() + ' dans « Discuter du jeu » : il te pose ses questions, puis te propose une offre.'));
-  else if (cat === 'personnage') {
+  if (!l.length) sec.appendChild(atlEl('p', 'atl-libvide', lecture ? (cat === 'musique' ? 'Pas encore de musique : demande-la à ' + gNM() + ' dans la discussion.' : cat === 'son' ? 'Pas encore de bruitage : demande-le à ' + gNM() + ' dans la discussion.' : 'Rien pour l’instant.') : cat === 'musique' ? 'Pas encore de musique : « ＋ Créer une musique » pour en demander une.' : cat === 'son' ? '« ＋ Créer un bruitage » pour en ajouter un, quand tu veux.' : 'Rien pour l’instant.'));
+  if (lecture) lib.appendChild(atlEl('p', 'atl-libmasc', '💬 Un nouveau personnage, un objet, un décor, une musique ? Dis-le à ' + gNM() + ' dans la discussion : il te pose ses questions, puis te propose une offre.'));
+  if (cat === 'personnage') {   // 2.0.124 : en lecture aussi (2.0.123 n'affichait plus que le message, sans les éléments)
     const grp = new Map(); for (const it of l) { const g = it.parent || it.nom; if (!grp.has(g)) grp.set(g, []); grp.get(g).push(it); }
     const rang = xs => Math.min(1e9, ...xs.map(x => x.asset ? x.ix : 1e9));   // l'ordre du jeu (le héros d'abord), les noms « à dessiner » après
     for (const [g, xs] of [...grp].sort((a, b) => rang(a[1]) - rang(b[1]))) {
@@ -16841,7 +16845,6 @@ function atlBiblio(host, f, fi, lecture) {
   } else { const gr = atlEl('div', 'atl-libg'); for (const it of l) gr.appendChild(atlEncart(it, f, fi, libre, lecture)); sec.appendChild(gr); }
   lib.appendChild(sec);
   host.appendChild(lib);
-  if (atlAdminIci() && Array.isArray(f.assets_archive) && f.assets_archive.length) host.appendChild(atlArchiveBloc(f));   // 2.0.118 (SQL v121)
   if (ATL.tab === 'elements') setTimeout(() => { try { if (ATL.tab === 'elements' && host.isConnected && !host.closest('[hidden]')) atlElVus(f); } catch (e) {} }, 2500);   // 2.0.61
 }
 // 2.0.61 : l'onglet Éléments suit la conception EN DIRECT — redessiné sur place quand la liste change (jamais pendant qu'on y écrit)
@@ -17494,7 +17497,7 @@ function atlTravBulle(x, qui) {
   const ea = l0.filter(z => z.etape === 'elements' && String(z.at || '') >= String(e.at || '')).pop();   // 2.0.61 : « J'ai ajouté 3 éléments : … »
   const tx = String(e.texte || e.etape || ''), m = tx.match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i), d0 = new Date(e.at);
   const test = /^tests?$/.test(String(e.etape || '')), B = atlEl('div', 'atl-dthink atl-travb' + (test ? ' tests' : '')), col = atlEl('div'); B.dataset.id = x.id || ''; B.dataset.k = tx + '|' + (e.at || '');
-  col.append(atlEl('b', '', test ? '🔍 ' + gNM() + ' teste ' + (qui ? 'le jeu de ' + qui : 'ton jeu') + ' en profondeur' : '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : 'sur ta demande')), atlEl('p', 'atl-travt', test ? (tx.replace(/\s*🔍\s*/g, ' ').replace(/\s*je teste ton jeu en profondeur\s*[….]*\s*/i, ' ').replace(/\s+/g, ' ').trim().replace(/^./, c => c.toUpperCase()) || 'Chaque niveau, chaque bouton, chaque son.') : tx));   // 2.0.62 : l'étape « tests » (sans redire le titre)
+  col.append(atlEl('b', '', test ? '🔍 ' + gNM() + ' teste ' + (qui ? 'le jeu de ' + qui : 'ton jeu') + ' en profondeur' : '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : /^🚀\s*Conception de ta V\d/.test(String(x.texte || '')) ? 'sur ta V1' : 'sur ta demande')), atlEl('p', 'atl-travt', test ? (tx.replace(/\s*🔍\s*/g, ' ').replace(/\s*je teste ton jeu en profondeur\s*[….]*\s*/i, ' ').replace(/\s+/g, ' ').trim().replace(/^./, c => c.toUpperCase()) || 'Chaque niveau, chaque bouton, chaque son.') : tx));   // 2.0.62 : l'étape « tests » (sans redire le titre)
   if (m && +m[2] > 0) { const n = Math.min(+m[1], +m[2]), bar = atlEl('div', 'atl-travbar'), i = atlEl('i'); i.style.width = Math.round(n / +m[2] * 100) + '%'; bar.appendChild(i); col.append(bar, atlEl('small', 'atl-travn', 'Étape ' + n + ' / ' + m[2])); }
   if (ea && ea !== e) col.appendChild(atlEl('p', 'atl-travel', '🧩 ' + String(ea.texte || '') + ' (onglet Éléments)'));
   col.append(atlEl('small', '', (isNaN(d0) ? '' : 'à ' + d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' · ') + (qui ? 'en direct' : 'Je te préviens dès que c’est prêt 🔔')), atlEl('span', 'atl-dpts', '•••'));
@@ -18041,7 +18044,7 @@ function atlAdminBandeau() {
   { const cp = R.querySelector('.atl-cred'), cr = atlCred(); if (cp && cr) cp.textContent = atlCredTxt(cr.solde); }   // le solde du joueur, à chaque rendu
   const rp = atlRentDe(m.id);   // 2.0.119 : la rentabilité du projet (admin), chargée à part
   if (!ATL_RENT.d || Date.now() - ATL_RENT.at > 30000) atlRent().then(d => { if (d && ATL.adminVoir === m) atlAdminBandeau(); });
-  const sig = (av ? av.joueur + av.solde : '') + (ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet.length : 0) + (rp ? '|' + rp.credits + ':' + rp.cout_cents + ':' + ATL_RENT.at : '');
+  const sig = (av ? av.joueur + av.solde : '') + (ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet.length : 0) + '|' + ((atlFiche() || {}).assets_archive || []).length + (rp ? '|' + rp.credits + ':' + rp.cout_cents + ':' + ATL_RENT.at : '');
   if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
   const pt = atlPetit();   // 2.0.108 : téléphone = un bandeau court (titres courts, une ou deux lignes), la page reste visible
   b.classList.toggle('pt', pt);
@@ -18050,6 +18053,7 @@ function atlAdminBandeau() {
   bt('📋 Demandes du projet', atlAdminDemandes, '📋 Demandes');
   bt('📣 Annoncer un changement au joueur', () => atlAnnoncer(m), '📣 Annoncer');   // 2.0.14 (Benjamin) : remplace « ⬆ Version suivante »
   bt('🎁 Donner des crédits', async () => { const v = Math.round(+prompt('Combien de crédits offrir au joueur ?', '50')); if (!(v > 0)) return; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'credits', p_args: { montant: v } }, { quiet: true }); atlToast('🎁 ' + v + ' crédits offerts'); atlLoad(true); } catch (e) { atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } }, '🎁 Crédits');
+  { const fa = atlFiche(), na = fa && Array.isArray(fa.assets_archive) ? fa.assets_archive.length : 0; if (na) bt('🗄️ Éléments retirés (' + na.toLocaleString('fr-FR') + ')', () => atlArchiveVoir(fa), '🗄️ ' + na.toLocaleString('fr-FR')); }   // 2.0.124 : hors de la page (admin = même écran que le joueur)
   bt('✕ Quitter', () => { ATL.adminVoir = null; atlListe(); }, '✕');
   if (rp && av) { const rb = atlEl('div', 'atl-rentb'); for (const t of atlRentLong(rp, (ATL_RENT.d.joueurs || {})[av.joueur], av.joueur)) rb.appendChild(atlEl('small', '', t)); b.appendChild(rb); }   // 2.0.119
 }
@@ -18560,7 +18564,7 @@ function atlPlAjout(pl, idx, txt) {
   }
 }
 function atlPropCard() {
-  if (!atlAdminIci()) return null;   // 2.0.123 : le joueur ne crée plus ses éléments lui-même (il le demande à la mascotte ; SQL v133)
+  return null;   // 2.0.123 / 2.0.124 : personne ne crée d'éléments ici, ni le joueur ni l'admin (même écran) : on le demande à la mascotte
   const f = atlFiche(), et = atlEtat();
   if (!f || atlChoix() || !['en_discussion', 'complete', 'acceptee', 'alpha', 'publie_salle', 'publie_monde'].includes(et)) return null;
   const pl = atlPlModel(); if (!pl.length && !ATL.drawing) return null;
