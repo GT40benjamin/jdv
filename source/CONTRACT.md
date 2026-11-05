@@ -370,7 +370,7 @@ Le jeu dit ce qu'il sait faire (à appeler dans mount, vérifier `api.pause` d'a
 Un jeu qui garde SON propre menu de pause déclare `pauseJeu: true` dans son module : la borne n'affiche alors ni sa carte ni le bouton ⏸,
 Start / Échap vont au jeu. Son menu DOIT avoir les mêmes boutons : Reprendre, Recommencer le niveau (s'il a des niveaux), Recommencer le jeu
 depuis le début avec la même confirmation, Son, Commandes, Quitter (`api.quit` ou la croix de la borne).
-- `api.pause.ajouter([{ id, texte, fn }])` (borne 2.0.132, demande de Noisette) : jusqu'à 4 boutons du JEU dans le menu standard, placés
+- `api.pause.ajouter([{ id, texte, fn }])` (borne 2.0.133, demande de Noisette) : jusqu'à 4 boutons du JEU dans le menu standard, placés
   après « 🔁 Recommencer le niveau », même style et même focus doré. Au clic, la borne ferme le menu, fait reprendre le jeu, puis appelle `fn`.
   Un nouvel appel remplace la liste ; `[]` = aucun (ex. sur la carte). Le jeu teste `api.pause && api.pause.ajouter` avant de s'en servir.
 
@@ -385,7 +385,7 @@ Jamais d'achat en un seul toucher pendant la partie : appeler `acheter` depuis u
 caisse mystère). Le créateur reçoit 70 % du prix en crédits (réglage boutique_part_createur), la borne garde 30 % ; jamais d'euros. Le
 créateur (et sa famille) ne peut pas acheter ses propres articles. Plafond de 300 crédits par mois et par joueur (boutique_plafond_mois).
 
-## Ajout 26 : un jeu de l'Atelier se livre SANS publier la borne (borne 2.0.132, demande de l'admin du 5 nov. 2026)
+## Ajout 26 : un jeu de l'Atelier se livre SANS publier la borne (borne 2.0.133, demande de l'admin du 5 nov. 2026)
 La borne ne garde plus de liste des jeux nés à l'Atelier : elle apprend leur id par le SERVEUR (at_fiches.jeu, renvoyé par at_lire,
 at_jeux, at_admin_lire, at_tous_projets ; version, version_publiee, rayon, orientation, titre, vignette viennent aussi de la fiche).
 Livrer une V1 ou une V2 = déposer `assets/jeux/<id>/v<N>.js` (+ ses .bin, ses musiques) et pousser, puis `at_etat … p_jeu` / la version

@@ -28,7 +28,8 @@
 [noisette] 🐿️ Sur la carte de la tuile, les arbres ne passent plus sur les mondes ni sur les titres, et les noisettes des mondes à venir restent bien claires.
 [jetporte] ## 🍑 Jet Porté arrive dans l’Atelier (borne 2.0.117)
 [jetporte] 🍑 Traite le rang de pêchers avant que le vent et la pluie s’en mêlent : 5 niveaux, du matin calme au coup de vent, avec la carte du verger sur la tuile et tes records par niveau.
-[borne] ## ⏸️ Pause plus claire, Cosmodex dans l’ordre (borne 2.0.132)
+[borne] ## ⏸️ Pause plus claire, Cosmodex dans l’ordre (borne 2.0.133)
+[borne] 🧩 Les jeux créés à l’Atelier et leurs nouvelles versions arrivent tout seuls, sans attendre une mise à jour de la borne.
 [borne] ⏸️ Dans la pause : « 🎵 Musique : activée / coupée » et « 🔊 Bruitages » avec un interrupteur bien visible, et les commandes ne s’affichent plus qu’une fois.
 [borne] 📖 Le Cosmodex commence au N° 1, dans l’ordre des numéros.
 [borne] ## 🛍️ La boutique des créateurs (borne 2.0.130)
