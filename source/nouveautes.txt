@@ -24,6 +24,10 @@
 [noisette] 🐿️ Noisette et ses amis V7 : 6 mondes, 30 niveaux, 6 pouvoirs et l’Ombre des ronces à vaincre ! La carte de la tuile montre maintenant les 6 mondes.
 [noisette] ## 🐿️ Noisette et ses amis : une carte des 6 mondes bien lisible (borne 2.0.116)
 [noisette] 🐿️ Sur la carte de la tuile, les arbres ne passent plus sur les mondes ni sur les titres, et les noisettes des mondes à venir restent bien claires.
+[jetporte] ## 🍑 Jet Porté arrive dans l’Atelier (borne 2.0.117)
+[jetporte] 🍑 Traite le rang de pêchers avant que le vent et la pluie s’en mêlent : 5 niveaux, du matin calme au coup de vent, avec la carte du verger sur la tuile et tes records par niveau.
+[borne] ## 🕹️ La barre du haut des jeux bien rangée (borne 2.0.117)
+[borne] 🕹️ Avec le bouton « ? » (Comment jouer), le bouton du son reste sur la même ligne, sur ordinateur comme sur téléphone.
 [borne] ## 🕹️ « Comment jouer » plus lisible (borne 2.0.114)
 [borne] 🕹️ Plus aucune petite annonce par-dessus l’écran « Comment jouer » : elle attend que tu l’aies fermé. Et les touches s’affichent toujours en entier.
 [borne] ## 🕹️ « Comment jouer » dans tous les jeux (borne 2.0.112)
