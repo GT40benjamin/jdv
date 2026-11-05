@@ -5134,3 +5134,12 @@ body.howto-on .fs-tip,body.howto-on #jdw-cheer,body:has(#jdw-howto) .atl-flot{vi
 .bout-prix{margin:0;font:15px var(--body)}.bout-prix b{font:400 24px var(--display);color:#ffe9a8}
 .bout-sig{justify-self:start;border:0;background:none;color:var(--muted);font:12.5px var(--body);text-decoration:underline;cursor:pointer;padding:2px 0}
 .atl-bout{margin-top:8px}.atl-boutr{display:grid;padding:6px 0;border-bottom:1px solid var(--line)}.atl-boutr small{color:var(--muted)}.atl-boutn{display:block;margin-top:6px;color:var(--muted);font:12px/1.35 var(--body)}
+/* 2.0.131 : interrupteurs Musique / Bruitages de la pause ; aucun bandeau par-dessus la pause */
+#jdw-padpause .pp-tog{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pp-sw{position:relative;flex:0 0 46px;width:46px;height:26px;border-radius:999px;background:rgba(255,255,255,.18);transition:background .2s}
+.pp-sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
+.pp-tog.on .pp-sw{background:var(--leaf)}.pp-tog.on .pp-sw::after{transform:translateX(20px)}
+body:has(#jdw-padpause:not([hidden])) .fs-tip{display:none!important}
+/* 2.0.131 : boutique = crédits achetés seulement */
+.bout-solde{margin:0;font:14px var(--body);color:var(--muted)}.bout-solde b{color:#ffe9a8}
+.bout-packs{justify-self:center}.bout-packs[hidden]{display:none}

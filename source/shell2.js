@@ -411,7 +411,8 @@ function padPauseOpen(by) {
   $('jdw-padpause').style.setProperty('--acc', current.game.accent || COLORS.amber);
   $('jdw-padpause-game').textContent = current.game.title;
   padHelpInto($('jdw-padpause-help'), current.game);
-  if (!PADJ || !PADJ.active()) $('jdw-padpause-help').hidden = true;   // 2.0.128 : ouvert au doigt ou au clavier : pas d'aide de manette
+  $('jdw-padpause-help').hidden = true;   // 2.0.131 (chef) : les commandes une seule fois : derrière le bouton « 🎮 Commandes »
+  { const lt = document.getElementById('jdw-losetip'); if (lt) lt.remove(); }   // jamais un bandeau de nouveauté par-dessus la pause
   pauseStdMaj();   // 2.0.128 : les boutons du menu de pause standard
   $('jdw-padpause').hidden = false; musicBaseLevel(0.4);
   setTimeout(() => { if (PADP.open) $('jdw-padpause-resume').focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); }, 40);
@@ -451,6 +452,7 @@ function pauseStdMk() {
   mus.addEventListener('click', () => tog('jdw-sm-music')); sfx.addEventListener('click', () => tog('jdw-sm-sfx'));
   cmd.addEventListener('click', () => {   // la partie reste en pause pendant « Comment jouer », reprise à la fermeture
     const g = current && current.game; if (!g) return;
+    if (!howtoAvoir(g)) { const hb = $('jdw-padpause-help'); hb.hidden = !hb.hidden; cmd.setAttribute('aria-expanded', String(!hb.hidden)); return; }   // pas de « Comment jouer » : l'aide de la manette, dépliée sur place
     PADP.open = false; $('jdw-padpause').hidden = true; musicBaseLevel(0.8);
     howtoShow(g, $('jdw-play'), { reprendre: true, then: () => { if (!current || current.game !== g) return; const i2 = current.inst || {}; try { if (current.pad) current.pad.flush(); } catch (e) {} try { if (i2.resume) i2.resume(); else padKey('p'); } catch (e) {} } });
   });
@@ -462,8 +464,10 @@ function pauseStdMaj() {
   if (niv) niv.hidden = !P.niveau;
   if (deb) deb.hidden = !(P.jeu || (g && !g.saves));   // une partie gardée sans onRecommencerJeu : la borne ne sait pas l'effacer proprement
   const m = $('jdw-sm-music'), x = $('jdw-sm-sfx');
-  if ($('jdw-padpause-mus')) $('jdw-padpause-mus').textContent = '🎵 Musique : ' + (m && m.checked ? 'oui' : 'non');
-  if ($('jdw-padpause-sfx')) $('jdw-padpause-sfx').textContent = '🔊 Bruitages : ' + (x && x.checked ? 'oui' : 'non');
+  const sw = (id, ic, nom, on) => { const b = $(id); if (!b) return; b.textContent = ''; b.setAttribute('role', 'switch'); b.setAttribute('aria-checked', String(!!on)); b.classList.toggle('on', !!on);
+    b.append(ic + ' ' + nom + ' : ' + (on ? 'activée' : 'coupée'), Object.assign(document.createElement('span'), { className: 'pp-sw' })); };   // 2.0.131 (chef) : un vrai interrupteur, « activée / coupée »
+  sw('jdw-padpause-mus', '🎵', 'Musique', m && m.checked); sw('jdw-padpause-sfx', '🔊', 'Bruitages', x && x.checked);
+  if ($('jdw-padpause-sfx')) $('jdw-padpause-sfx').firstChild.textContent = '🔊 Bruitages : ' + (x && x.checked ? 'activés' : 'coupés');
   if ($('jdw-padpause-cmd')) $('jdw-padpause-cmd').hidden = !(g && (howtoAvoir(g) || padHelpOf(g)));
 }
 function howtoAvoir(g) { try { const cj = window.JDW_COMMENT_JOUER || {}; return !!(cj[g.id] || g.howto); } catch (e) { return false; } }
@@ -10572,28 +10576,39 @@ function boutiqueConfirmer(g, a, r) {
     const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
     const M = el('div', 'liv-mod bout-mod'); M.id = 'jdw-boutmod'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Acheter');
     const C = el('div', 'liv-card'); M.appendChild(C);
-    const cr = atlCred(), solde = cr ? cr.solde | 0 : null, eur = ((+a.euros_cents || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+    // 2.0.131 (décision du chef, 5 nov. 16 h 30 ; SQL v141) : la boutique ne prend QUE des crédits ACHETÉS (jamais les offerts)
+    const ach = Number.isFinite(+r.achetes) ? +r.achetes | 0 : null, off = Number.isFinite(+r.offerts) ? +r.offerts | 0 : null, eur = ((+a.euros_cents || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
     C.append(el('h2', '', '🛍️ Acheter « ' + a.nom + ' » ?'));
     if (a.image && atlIaUrl(a.image)) { const im = el('img', 'bout-img'); im.alt = a.nom; im.src = atlIaUrl(a.image); C.appendChild(im); }
-    const pr = el('p', 'bout-prix'); pr.append(el('b', '', (a.prix | 0).toLocaleString('fr-FR') + ' 💎'), ' (≈ ' + eur + ')' + (solde != null ? ' · tu as ' + solde.toLocaleString('fr-FR') + ' crédits' : '')); C.appendChild(pr);
+    const pr = el('p', 'bout-prix'); pr.append(el('b', '', (a.prix | 0).toLocaleString('fr-FR') + ' 💎'), ' (≈ ' + eur + ')'); C.appendChild(pr);
+    if (ach != null) { const sd = el('p', 'bout-solde'); sd.append('Tu as ', el('b', '', ach.toLocaleString('fr-FR') + ' 💎 achetés'), ' · ' + (off | 0).toLocaleString('fr-FR') + ' 🎁 offerts'); C.appendChild(sd); }
     C.appendChild(el('p', 'liv-sub', 'Dans « ' + (atlTitre(g) || g.title || g.id) + ' ». C’est à toi pour toujours. Le créateur du jeu reçoit une part de tes crédits. Ce mois-ci : ' + (r.depense_mois | 0) + ' / ' + (r.plafond_mois | 0) + ' crédits dépensés dans les boutiques.'));
     const msg = el('p', 'liv-msg', ''); C.appendChild(msg);
     const bt = el('div', 'liv-btns'), no = el('button', 'btn btn-ghost', 'Non'), go = el('button', 'btn btn-play', 'Oui, acheter · ' + (a.prix | 0) + ' 💎'); no.type = go.type = 'button'; bt.append(no, go); C.appendChild(bt);
+    const pk = el('button', 'btn btn-sm btn-ghost bout-packs', '💎 Voir les packs de crédits'); pk.type = 'button'; pk.hidden = true; C.appendChild(pk);
     const sig = el('button', 'bout-sig', '⚑ Signaler cet élément'); sig.type = 'button'; C.appendChild(sig);
+    // pas assez de crédits ACHETÉS : on le dit gentiment (13-17 ans : aucune honte, les offerts gardent leur usage) + le chemin vers les packs
+    const manque = () => { msg.textContent = 'Il te faut des crédits achetés pour la boutique d’un jeu. Tes crédits offerts 🎁 servent à créer dans l’Atelier.'; pk.hidden = false; try { if (PADJ) PADJ.autoFocus(); } catch (e) {} };
+    let pkSur = false;
+    pk.addEventListener('click', () => {
+      if (!pkSur && quitInGame()) { pkSur = true; msg.textContent = 'Les packs sont dans l’Atelier : ta partie va s’arrêter.'; pk.textContent = 'D’accord, voir les packs'; return; }
+      res = false; fermer(); try { backToLibrary(); } catch (e) {}
+      setTimeout(() => { try { atlOpen(); } catch (e) { return; } let n = 0; const t = setInterval(() => { if (++n > 30 || (ATL.open && atlCred())) { clearInterval(t); if (ATL.open) atlRecharger(); } }, 100); }, 120);
+    });
     let res = false;
     const fermer = () => { M.remove(); document.removeEventListener('keydown', esc, true); try { if (enPause && inst && inst.resume && current && current.inst === inst) inst.resume(); } catch (e) {} fin(res); };
     const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); fermer(); } };
     M._fermer = fermer; document.addEventListener('keydown', esc, true); no.addEventListener('click', fermer); M.addEventListener('click', e => { if (e.target === M) fermer(); });
     sig.addEventListener('click', async () => { sig.disabled = true; try { await rpc('at_boutique_signaler', { p_name: profile.name, p_article: a.id, p_motif: null }, { quiet: true }); sig.textContent = '✔ Signalé : l’admin va regarder'; } catch (e) { sig.disabled = false; } });
     go.addEventListener('click', async () => {
-      if (solde != null && solde < (a.prix | 0)) { msg.textContent = 'Il te manque ' + ((a.prix | 0) - solde).toLocaleString('fr-FR') + ' crédits.'; return; }
+      if (ach != null && ach < (a.prix | 0)) { manque(); return; }
       go.disabled = true; msg.textContent = 'J’achète…';
       try {
-        const x = await rpc('at_boutique_acheter', { p_name: profile.name, p_article: a.id }, { quiet: true });
+        const x = await rpc('at_boutique_acheter', { p_name: profile.name, p_article: a.id }, { quiet: true }); if (x && Number.isFinite(+x.achetes)) r.achetes = +x.achetes;
         if (x && Number.isFinite(+x.solde)) try { atlSolde(+x.solde); } catch (e) {}
         a.possede = true; res = true; msg.textContent = '✅ C’est à toi !'; setTimeout(fermer, 900);
       } catch (e) {
-        go.disabled = false; const m = String((e && e.message) || '');
+        go.disabled = false; const m = String((e && e.message) || ''); if (/achetes insuffisants/.test(m)) { manque(); return; }
         msg.textContent = /credits insuffisants/.test(m) ? 'Il te manque des crédits.' : /plafond/.test(m) ? 'Tu as atteint ta limite de ' + (r.plafond_mois | 0) + ' crédits ce mois-ci dans les boutiques.' : /propre jeu/.test(m) ? 'C’est ton jeu : tu as déjà tout !' : /pas en vente/.test(m) ? 'Cet élément n’est plus en vente.' : 'Pas acheté : vérifie le réseau et réessaie.';
       }
     });
@@ -10636,6 +10651,7 @@ function liveRecu(p) {
   for (const f of LIVE.fns) { try { f({ from: String(p.cid || ''), name: cleanName(p.n), d: p.d }); } catch (e) {} }
 }
 function mountGame(g) {
+  { const lt = document.getElementById('jdw-losetip'); if (lt) lt.remove(); }   // 2.0.131 : pas de bandeau de nouveauté pendant une partie
   if (howtoAvant(g, $('jdw-play'), () => mountGame(g))) return;   // 2.0.112 : « Comment jouer » avant la 1re partie
   if (current) { try { unmountGame(); } catch (e) {} }   // 2.0.44 : jamais deux jeux l'un sur l'autre
   const seq = ++mountSeq;
@@ -16382,6 +16398,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
   const er = atlEl('p', 'atl-werr'); er.hidden = true;
   const row = atlEl('div', 'atl-arbtns'), rp = atlEl('button', 'btn btn-ghost', '▶ Reprendre'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (cout ? (cout ? ' · ' + cout + ' 💎' : '') : ''));
   rp.type = 'button'; go.type = 'button';
+  const adm = atlAdminIci(); if (adm) { go.textContent = '🛡️ Envoyer ma remarque'; tw.appendChild(atlEl('small', 'atl-noremb', '🛡️ Remarque de l’admin : gratuite, le joueur ne paie rien, l’équipe la reçoit tout de suite.')); }   // 2.0.131 (SQL v140)
   const fin = () => { if (ATL_MIC && ATL_MIC.field === ta) atlMicFin(); O.remove(); reprendre(); };
   rp.addEventListener('click', fin);
   go.addEventListener('click', async () => {
@@ -16410,7 +16427,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
         const tok = await acctToken(profile);
         await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/atelier/' + r.image, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'image/jpeg' }, body: blob }, 60000);
       }
-      go.textContent = '✅ Envoyé'; await anim; await new Promise(ok => setTimeout(ok, 450)); fin(); atlLoad(true);
+      go.textContent = adm ? '✅ Remarque envoyée' : '✅ Envoyé'; if (adm && r && r.id) O.dataset.remarque = r.id; await anim; await new Promise(ok => setTimeout(ok, 450)); fin(); atlLoad(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
   row.append(rp, go); O.append(hd, zone, tw, er, row); if (cout) O.appendChild(atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); host.appendChild(O);
@@ -17120,6 +17137,7 @@ function atlBiblio(host, f, fi, lecture) {
   for (const [k, ic, lab] of ATL_CATS) { if (!items[k].length) continue; const nn = items[k].filter(x => x.neuf).length, b = atlEl('button', 'atl-libt' + (k === cat ? ' on' : '') + (nn ? ' neuf' : ''), ic + ' ' + lab + ' · ' + items[k].length + (nn ? ' · ✨' + nn : '')); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(k === cat)); b.addEventListener('click', () => { store.set('jdw.atl.libcat', k); atlLibVider(host); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
   if (coll.lignees.length) { const b = atlEl('button', 'atl-libt atl-libcoll' + (cat === 'collection' ? ' on' : ''), '📖 ' + coll.nom + ' · ' + coll.n.toLocaleString('fr-FR')); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(cat === 'collection')); b.addEventListener('click', () => { store.set('jdw.atl.libcat', 'collection'); atlLibVider(host); host.textContent = ''; atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
   lib.appendChild(nav);
+  setTimeout(() => { try { const on = nav.querySelector('.atl-libt.on'); if (on && nav.scrollWidth > nav.clientWidth + 4) nav.scrollLeft = Math.max(0, on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2); } catch (e) {} }, 0);   // 2.0.131 : l'onglet choisi toujours en vue (téléphone : la rangée défile)
   if (cat === 'collection') { lib.appendChild(nav); atlCollRendre(lib, coll); host.appendChild(lib); return; }   // 2.0.129
   const [, ic, lab, k] = ATL_CATS.find(c => c[0] === cat), l = items[cat], visuel = !['son', 'musique'].includes(cat);
   let vue = store.get('jdw.atl.libvue', 'planche'); if (vue !== 'cartes') vue = 'planche';
@@ -17177,9 +17195,9 @@ function atlCollection(f) {
     if (!l.stades.has(k)) l.stades.set(k, { num, nom: String(a.nom || '').split(' — ')[0].trim() || ln, stade: String(a.af_stade), vues: [] });
     l.stades.get(k).vues.push({ u: atlIaUrl(a.image), o: +a.af_ordre || 9, v: String(a.af_vue || '') });
   }
-  const rang = st => st === 'ancienne' ? 2 : st === 'légendaire' ? 1 : 0;
-  const lignees = [...L.values()].map(l => { const st = [...l.stades.values()].sort((a, b) => a.num - b.num); for (const x of st) x.vues.sort((a, b) => a.o - b.o); return { nom: l.nom, min: l.min, stades: st, r: rang(st[0] && st[0].stade) }; })
-    .sort((a, b) => a.r - b.r || a.min - b.min || a.nom.localeCompare(b.nom, 'fr'));
+  // 2.0.131 (le chef : « la liste commence au N° 16 : où sont les N° 1 à 15 ? ») : l'ordre des NUMÉROS, rien d'autre (les anciennes = N° 1-15)
+  const lignees = [...L.values()].map(l => { const st = [...l.stades.values()].sort((a, b) => a.num - b.num); for (const x of st) x.vues.sort((a, b) => a.o - b.o); return { nom: l.nom, min: l.min, stades: st }; })
+    .sort((a, b) => a.min - b.min || a.nom.localeCompare(b.nom, 'fr'));
   return { nom, lignees, n: lignees.reduce((m, l) => m + l.stades.length, 0) };
 }
 function atlCollRendre(lib, coll) {
@@ -17823,7 +17841,7 @@ async function atlRecharger() {
   c.append(ren, rappel, ab, er0, atlEl('p', 'atl-aide', 'Ou choisis un pack :'));
   const gr = atlEl('div', 'atl-packs'); gr.appendChild(atlEl('p', 'atl-chv', 'Un instant…')); c.appendChild(gr);
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
-  c.appendChild(atlEl('p', 'atl-noremb', '🔒 Paiement sécurisé par Stripe · Les crédits ne sont pas remboursés · Les crédits servent seulement dans l’Atelier.'));
+  c.appendChild(atlEl('p', 'atl-noremb', '🔒 Paiement sécurisé par Stripe · Les crédits ne sont pas remboursés · Les crédits achetés servent dans l’Atelier et dans les boutiques des jeux.'));
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Fermer'); no.type = 'button'; no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
   row.append(no); c.appendChild(row); M.appendChild(c); etat();
   let packs = [];
@@ -18410,6 +18428,7 @@ rpc = (rpc0 => async function (fn, a, o) {
   if (fn === 'at_fiche_etape') return a.p_cle === 'titre' ? agir('renommer', { titre: a.p_valeur }) : agir('fiche', { cle: a.p_cle, valeur: a.p_valeur });
   if (fn === 'at_fiche_joueur') return agir('fiche', { cle: a.p_cle, valeur: a.p_texte });
   if (fn === 'at_lancer') return agir('lancer');
+  if (fn === 'at_demande') return rpc0('at_admin_remarque', { p_name: profile.name, p_fiche: m.id, p_texte: a.p_texte, p_x: a.p_x, p_y: a.p_y, p_image: !!a.p_image }, o);   // 2.0.131 (SQL v140) : arrêt sur image de l'admin = « 🛡️ Remarque de l'admin », ticket gratuit
   if (ATL_ADMIN_NON.has(fn)) throw new Error('mode admin');
   return rpc0(fn, a, o);
 })(rpc);

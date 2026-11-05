@@ -381,3 +381,6 @@ score). Les articles sont posés par la mascotte avec le créateur (`at_boutique
 Jamais d'achat en un seul toucher pendant la partie : appeler `acheter` depuis un écran calme (menu, boutique du jeu). Rien au hasard (pas de
 caisse mystère). Le créateur reçoit 70 % du prix en crédits (réglage boutique_part_createur), la borne garde 30 % ; jamais d'euros. Le
 créateur (et sa famille) ne peut pas acheter ses propres articles. Plafond de 300 crédits par mois et par joueur (boutique_plafond_mois).
+Borne 2.0.131 (SQL v141, source/credits-achetes.sql) : on n'achète QU'AVEC des crédits ACHETÉS (at_credits.achete), jamais les offerts ;
+la fenêtre montre « 💎 achetés · 🎁 offerts » et, s'il en manque, le dit gentiment avec « 💎 Voir les packs de crédits ». Les gains du
+créateur comptent comme achetés. Rien ne change pour le jeu.
