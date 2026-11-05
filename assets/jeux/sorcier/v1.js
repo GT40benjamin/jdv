@@ -78,7 +78,7 @@ const CHATEAUX = [
 ];
 // les sorts : débloqués par ce que tu possèdes
 const SORTS = [
-  { p: 0, nom: 'Boule de feu', rang: 'Apprenti sorcier', txt: 'Une boule de feu bleu qui assomme' },
+  { p: 0, nom: 'Boule de feu', rang: 'Apprenti sorcier', txt: 'Une boule de feu bleue qui assomme' },
   { p: 250, nom: 'Éclair', rang: 'Sorcier des bois', txt: 'L\'éclair frappe 3 ennemis d\'un coup' },
   { p: 700, nom: 'Invocation', rang: 'Sorcier noir', txt: 'Un monstre vient t\'aider' },
   { p: 1500, nom: 'Triple feu', rang: 'Mage des flammes', txt: '3 boules de feu à la fois' },
@@ -573,7 +573,7 @@ function mount(root, api) {
   pauseBtn.addEventListener('pointerdown', onPauseBtn);
   function onVis() { if (document.hidden && state === 'play') setPaused(true); }
   document.addEventListener('visibilitychange', onVis);
-  function setPaused(b) { paused = b; pauseBtn.innerHTML = b ? PB_PLAY : PB_PAUSE; if (b) relache(); }
+  function setPaused(b) { paused = b; pauseBtn.innerHTML = b ? PB_PLAY : PB_PAUSE; if (b) relache(); else viderManette(); }
   const monde = p => ({ x: p.x - LW / 2 + cam.x, y: p.y - LH / 2 + cam.y });
   function lireEntrees() {
     let dx = 0, dy = 0;
@@ -601,15 +601,21 @@ function mount(root, api) {
   }
   function menuManette() {
     if (!pad || !pad.pressed) return;
-    if (state === 'title' && (pad.pressed('a') || pad.pressed('start'))) lancer();
-    else if (state === 'fin' && stT > 1.6 && pad.pressed('a')) retourTitre();
-    else if (state === 'grimoire' && (pad.pressed('a') || pad.pressed('b') || pad.pressed('y'))) fermerGrimoire();
+    const g = pad.get ? pad.get(0) : null; if (g && g.on && g.held && (g.held.a || g.held.b || g.held.x || g.held.y)) { modePad = true; modeDoigt = false; }
+    if (state === 'title') { if (pad.pressed('a') || pad.pressed('start')) { modePad = true; lancer(); } }
+    else if (state === 'fin') { if (stT > 1.6 && (pad.pressed('a') || pad.pressed('start'))) { modePad = true; retourTitre(); } }
+    else if (state === 'grimoire') { if (pad.pressed('a') + pad.pressed('b') + pad.pressed('y') > 0) { modePad = true; fermerGrimoire(); } }
+    else if (state === 'play' && paused) { if (pad.pressed('a') + pad.pressed('b') > 0) { modePad = true; setPaused(false); } }
   }
+  // les appuis de la manette faits dans un menu ne comptent pas dans le jeu (pas de boule de feu en sortant du grimoire)
+  function viderManette() { try { if (pad && pad.flush) pad.flush(); } catch (e) { /* rien */ } IN.feu = IN.eclair = IN.monstre = 0; }
+  const PADON = () => modePad || !!(pad && pad.active && pad.active());
+  const GL = b => { try { return pad && pad.glyph ? pad.glyph(b) : b.toUpperCase(); } catch (e) { return b.toUpperCase(); } };
 
-  function lancer() { if (!LOADED) return; snd.clic(); nouvellePartie(); state = 'play'; stT = 0; pauseBtn.style.display = 'flex'; setPaused(false); dire('Pille le royaume !', '#ffe08a'); }
+  function lancer() { if (!LOADED) return; snd.clic(); viderManette(); nouvellePartie(); state = 'play'; stT = 0; pauseBtn.style.display = 'flex'; setPaused(false); dire('Pille le royaume !', '#ffe08a'); }
   function retourTitre() { state = 'title'; stT = 0; G = null; pauseBtn.style.display = 'none'; }
   function ouvrirGrimoire() { if (state !== 'play' || !G) return; state = 'grimoire'; stT = 0; relache(); snd.clic(); }
-  function fermerGrimoire() { state = 'play'; stT = 0; snd.clic(); }
+  function fermerGrimoire() { state = 'play'; stT = 0; snd.clic(); viderManette(); }
   function dire(s, c, d) { msg = { s, c: c || '#ffffff', t: 0, d: d || 2.6 }; }
   function texte(x, y, s, c, gros) { textes.push({ x, y, s, c, t: 0, gros }); if (textes.length > 40) textes.shift(); }
 
@@ -972,9 +978,10 @@ function mount(root, api) {
     stT += dt;
     if (state !== 'play' || paused) cuireUnPeu();
     if (state === 'title') { for (const g of TITRE_GENS) g.ph += dt * 2.2; cam.x = TOUR.x * T + Math.sin(stT * 0.12) * 600; cam.y = TOUR.y * T + 120 + Math.cos(stT * 0.09) * 380; menuManette(); return; }
-    if (state === 'grimoire') { lireEntrees(); menuManette(); return; }
+    if (state === 'grimoire') { menuManette(); return; }
     if (state === 'fin') { majParts(dt); menuManette(); return; }
-    if (state !== 'play' || paused) return;
+    if (state === 'play' && paused) { menuManette(); return; }
+    if (state !== 'play') return;
     lireEntrees();
     G.t += dt;
     majSorcier(dt); majGens(dt); majAllies(dt); majTirs(dt); majParts(dt); majRenforts(dt);
@@ -1126,8 +1133,6 @@ function mount(root, api) {
     for (const m of M.maisons) if (!m.pille && m.x > vx0 - 100 && m.x < vx1 + 100 && m.y > vy0 && m.y < vy1 + 200) lueur(m.x + (m.flip ? -24 : 24), m.y - 50, 34, 'rgba(255,200,110,', 0.18 + 0.05 * Math.sin(now * 3 + m.x));
     lueur(tw.x, tw.y - 150, 120, 'rgba(90,255,140,', 0.10 + 0.04 * Math.sin(now * 2.3));
     ctx.globalCompositeOperation = 'source-over';
-    // textes flottants
-    for (const t of textes) { const k = t.t / 1.6; ctx.globalAlpha = 1 - k * k; txt(t.s, t.x, t.y - k * 50, t.gros ? 24 : 20, t.c, 'center', 900, 5); ctx.globalAlpha = 1; }
     ctx.restore();
     return { cx, cy };
   }
@@ -1241,18 +1246,22 @@ function mount(root, api) {
     for (let i = 0; i < G.pvMax; i++) coeur(x0 + 16 + i * 32, y0 + 70, 3.4, i < G.pv);
     // le rang et le prochain sort
     const nx = SORTS[r + 1], y1 = y0 + 104, bw2 = Math.max(bw, portrait ? 250 : 286);
-    ctx.fillStyle = 'rgba(25,14,45,0.7)'; carte(x0, y1, bw2, nx ? 46 : 28, 12); ctx.fill();
-    txt('🧙 ' + SORTS[r].rang, x0 + 12, y1 + 19, 15, '#e0c8ff', 'left', 800);
+    const tRang = '🧙 ' + SORTS[r].rang, tProch = nx ? nx.nom + ' à ' + fmt(nx.p) : '';
+    ctx.font = '800 15px ' + RF; const wR = ctx.measureText(tRang).width; ctx.font = '700 12px ' + RF; const wP = ctx.measureText(tProch).width;
+    const dessous = nx && wR + wP + 40 > bw2;
+    ctx.fillStyle = 'rgba(25,14,45,0.7)'; carte(x0, y1, bw2, nx ? (dessous ? 62 : 46) : 28, 12); ctx.fill();
+    txt(tRang, x0 + 12, y1 + 19, 15, '#e0c8ff', 'left', 800);
     if (nx) {
       const k = clamp((s - SORTS[r].p) / (nx.p - SORTS[r].p), 0, 1);
       ctx.fillStyle = 'rgba(255,255,255,0.15)'; carte(x0 + 12, y1 + 28, bw2 - 24, 9, 4.5); ctx.fill();
       ctx.fillStyle = '#b78cff'; carte(x0 + 12, y1 + 28, Math.max(9, (bw2 - 24) * k), 9, 4.5); ctx.fill();
-      txt(nx.nom + ' à ' + fmt(nx.p), x0 + bw2 - 12, y1 + 19, 12, '#bfb0d8', 'right', 700);
+      if (dessous) txt('Prochain : ' + tProch, x0 + 12, y1 + 54, 12, '#bfb0d8', 'left', 700); else txt(tProch, x0 + bw2 - 12, y1 + 19, 12, '#bfb0d8', 'right', 700);
     }
     // grimoire (bouton) et la carte du royaume
     const gb = BTN_GRIM();
     ctx.fillStyle = 'rgba(70,40,110,0.78)'; carte(gb.x, gb.y, gb.w, gb.h, 14); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2; ctx.stroke();
     icone('grimoire', gb.x + gb.w / 2, gb.y + gb.h / 2, gb.h * 0.68);
+    if (!modeDoigt) txt(PADON() ? GL('y') : 'G', gb.x + gb.w / 2, gb.y + gb.h + 15, 13, '#ffffff', 'center', 800, 4);
     if (G.nouveau && Math.floor(now * 4) % 2 === 0) { ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 4; carte(gb.x - 3, gb.y - 3, gb.w + 6, gb.h + 6, 16); ctx.stroke(); }
     minicarte(now);
     // les sorts (boutons en tactile, petites icônes sinon)
@@ -1284,7 +1293,7 @@ function mount(root, api) {
     if (cd > 0 && !verrou) { ctx.fillStyle = 'rgba(10,5,20,0.55)'; ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.arc(b.x, b.y, b.r, -Math.PI / 2, -Math.PI / 2 + TAU * cd / max); ctx.closePath(); ctx.fill(); }
   }
   function sortsClavier(now) {
-    const L = [['feu', modePad ? 'A' : 'Espace', 0], ['eclair', modePad ? 'B' : 'K', 1], ['monstre', modePad ? 'X' : 'L', 2]];
+    const P = PADON(), L = [['feu', P ? GL('a') : 'Espace', 0], ['eclair', P ? GL('b') : 'K', 1], ['monstre', P ? GL('x') : 'L', 2]];
     const R = 26, y = V.y + V.h - 44; let x = V.x + V.w - 30 - (L.length - 1) * 74 - R;
     for (const [k, t, n] of L) {
       const verrou = n && !a(n), cd = G.cd[k], max = k === 'feu' ? 0.4 : k === 'eclair' ? (rang() >= 4 ? 1.8 : 3) : 14;
@@ -1323,22 +1332,28 @@ function mount(root, api) {
   }
   function dessinerGrimoire(now) {
     ctx.fillStyle = 'rgba(10,5,22,0.7)'; ctx.fillRect(V.x, V.y, V.w, V.h);
-    const w = Math.min(V.w - 28, 640), lh = portrait ? 62 : 52, h = 120 + SORTS.length * lh, x = LW / 2 - w / 2, y = V.y + Math.max(20, (V.h - h) / 2);
+    const w = Math.min(V.w - 28, 680), x = LW / 2 - w / 2;
+    ctx.font = '900 18px ' + RF; const wNom = Math.max(...SORTS.map(S => ctx.measureText(S.nom).width)); ctx.font = '600 14px ' + RF; const wTxt = Math.max(...SORTS.map(S => ctx.measureText(S.txt).width));
+    const deuxLignes = portrait || 64 + wNom + 24 + wTxt + 70 > w;
+    const haut = 100, pied = 70, dispo = V.h - 24 - pied;
+    const lh = clamp((dispo - haut - 16) / SORTS.length, 36, deuxLignes ? 62 : 52), deux = deuxLignes && lh >= 50;
+    const h = haut + 16 + SORTS.length * lh, y = V.y + Math.max(12, (V.h - pied - h) / 2);
+    const colT = deux ? x + 64 : x + 64 + wNom + 24, fsT = deux ? 14 : Math.min(14, 14 * (x + w - 90 - colT) / wTxt);
     ctx.fillStyle = '#2a1846'; carte(x, y, w, h, 22); ctx.fill(); ctx.strokeStyle = '#d8b050'; ctx.lineWidth = 4; ctx.stroke();
     ctx.strokeStyle = 'rgba(216,176,80,0.35)'; ctx.lineWidth = 2; carte(x + 10, y + 10, w - 20, h - 20, 16); ctx.stroke();
     icone('grimoire', x + 50, y + 50, 56);
     txt('Le grimoire des sorts', x + 92, y + 58, portrait ? 24 : 28, '#ffe08a', 'left', 900, 0, DF);
     const s = possede(), r = rang();
     SORTS.forEach((S, i) => {
-      const yy = y + 104 + i * lh, ok = i <= r;
+      const yy = y + haut + i * lh, ok = i <= r, m = (lh - 8) / 2 - 4;
       ctx.fillStyle = ok ? 'rgba(183,140,255,0.16)' : 'rgba(255,255,255,0.04)'; carte(x + 18, yy - 4, w - 36, lh - 8, 10); ctx.fill();
-      txt(ok ? '✨' : '🔒', x + 40, yy + 26, 20, '#fff', 'center', 900);
-      txt(S.nom, x + 64, yy + (portrait ? 20 : 26), 18, ok ? '#ffffff' : '#8f86a0', 'left', 900);
-      txt(S.txt, portrait ? x + 64 : x + 250, yy + (portrait ? 44 : 26), 14, ok ? '#d8c8f0' : '#7f7690', 'left', 600);
-      txt(ok ? '' : fmt(S.p), x + w - 32, yy + 26, 16, '#ffe08a', 'right', 800);
+      txt(ok ? '✨' : '🔒', x + 40, yy + m + 7, 20, '#fff', 'center', 900);
+      txt(S.nom, x + 64, yy + (deux ? m - 4 : m + 6), 18, ok ? '#ffffff' : '#8f86a0', 'left', 900);
+      txt(S.txt, colT, yy + (deux ? m + 18 : m + 6), fsT, ok ? '#d8c8f0' : '#7f7690', 'left', 600);
+      txt(ok ? '' : fmt(S.p), x + w - 32, yy + m + 7, 16, '#ffe08a', 'right', 800);
     });
-    txt('Tu possèdes ' + fmt(s) + ' · ' + G.objets + ' objet' + (G.objets > 1 ? 's' : '') + ' magique' + (G.objets > 1 ? 's' : '') + ' · ' + G.conquis + ' château' + (G.conquis > 1 ? 'x' : '') + ' conquis', LW / 2, y + h + 32, 16, '#ffffff', 'center', 800, 5);
-    txt(modePad ? 'A pour revenir au jeu' : modeDoigt ? 'Touche pour revenir au jeu' : 'G ou Entrée pour revenir au jeu', LW / 2, y + h + 58, 15, '#d8c8f0', 'center', 700, 4);
+    txt('Tu possèdes ' + fmt(s) + ' · ' + G.objets + ' objet' + (G.objets > 1 ? 's' : '') + ' magique' + (G.objets > 1 ? 's' : '') + ' · ' + G.conquis + ' château' + (G.conquis > 1 ? 'x' : '') + ' conquis', LW / 2, y + h + 30, 16, '#ffffff', 'center', 800, 5);
+    txt(PADON() ? GL('a') + ' ou ' + GL('y') + ' pour revenir au jeu' : modeDoigt ? 'Touche pour revenir au jeu' : 'G ou Entrée pour revenir au jeu', LW / 2, y + h + 56, 15, '#d8c8f0', 'center', 700, 4);
   }
   // le titre : le royaume qui défile, le sorcier en grand, « Comment jouer » selon l'appareil
   const TITRE_GENS = [];
@@ -1347,7 +1362,7 @@ function mount(root, api) {
     ctx.fillStyle = 'rgba(14,8,30,0.45)'; ctx.fillRect(V.x, V.y, V.w, V.h);
     const doigt = modeDoigt || (!modePad && (('ontouchstart' in window) || navigator.maxTouchPoints > 0) && !matchMedia('(pointer:fine)').matches);
     const P = modePad || (pad && pad.active && pad.active());
-    const L = P ? [['Stick', 'marcher dans le royaume'], ['A · B · X', 'boule de feu · éclair · monstre'], ['Y', 'le grimoire des sorts']]
+    const L = P ? [['Stick ou croix', 'marcher dans le royaume'], [GL('a') + ' · ' + GL('b') + ' · ' + GL('x'), 'boule de feu · éclair · monstre'], [GL('y'), 'le grimoire des sorts'], [GL('start'), 'pause']]
       : doigt ? [['Pouce gauche', 'marcher dans le royaume'], ['Boutons à droite', 'boule de feu · éclair · monstre'], ['📖', 'le grimoire des sorts']]
       : [['Flèches  ou  ZQSD', 'marcher dans le royaume'], ['Espace · K · L', 'boule de feu · éclair · monstre (ou clic)'], ['G', 'le grimoire des sorts']];
     const lignes = [...L, ['Pille !', 'maisons, coffres, paysans, chevaliers, rois'], ['Ton score', 'tout ce que tu possèdes : or, objets, châteaux'], ['Ta tour', 'te soigne : les chevaliers n\'y entrent pas']];
@@ -1372,7 +1387,7 @@ function mount(root, api) {
     lignes.forEach(([a1, b1], i) => { const y = by + 76 + i * RH; txt(a1, bx + 24, y, 17, '#e0c8ff', 'left', 900); if (portrait) txt(b1, bx + 24, y + 22, fsB, '#ffffff', 'left', 600); else txt(b1, bx + colB, y, fsB, '#ffffff', 'left', 600); });
     if (record > 0) txt('Ton record : ' + fmt(record), bx + bw / 2, by + bh + 30, 18, '#ffe08a', 'center', 800, 5);
     const go = 0.75 + 0.25 * Math.sin(t * 4);
-    ctx.globalAlpha = go; txt(P ? 'Appuie sur A pour commencer !' : doigt ? 'Touche l\'écran pour commencer !' : 'Entrée, Espace ou clic pour commencer !', bx + bw / 2, by + bh + (record > 0 ? 66 : 44), 24, '#ffffff', 'center', 900, 7); ctx.globalAlpha = 1;
+    ctx.globalAlpha = go; txt(P ? 'Appuie sur ' + GL('a') + ' pour commencer !' : doigt ? 'Touche l\'écran pour commencer !' : 'Entrée, Espace ou clic pour commencer !', bx + bw / 2, by + bh + (record > 0 ? 66 : 44), 24, '#ffffff', 'center', 900, 7); ctx.globalAlpha = 1;
   }
   function dessinerFin(now) {
     const k = clamp(stT * 2, 0, 1);
@@ -1387,7 +1402,7 @@ function mount(root, api) {
     L.forEach(([a1, b1], i) => { txt(a1, x + 40, y + 192 + i * 28, 16, '#ffffff', 'left', 700); txt(b1, x + w - 40, y + 192 + i * 28, 16, '#ffe08a', 'right', 800); });
     txt(G.record ? '🏆 Nouveau record !' : 'Ton record : ' + fmt(record), LW / 2, y + h - 14, 17, G.record ? '#ffe08a' : '#d8c8f0', 'center', 800);
     ctx.globalAlpha = 1;
-    if (stT > 1.6) { ctx.globalAlpha = 0.75 + 0.25 * Math.sin(stT * 4); txt(modePad ? 'A pour rejouer' : modeDoigt ? 'Touche pour rejouer' : 'Entrée ou clic pour rejouer', LW / 2, y + h + 40, 22, '#ffffff', 'center', 900, 6); ctx.globalAlpha = 1; }
+    if (stT > 1.6) { ctx.globalAlpha = 0.75 + 0.25 * Math.sin(stT * 4); txt(PADON() ? GL('a') + ' pour rejouer' : modeDoigt ? 'Touche pour rejouer' : 'Entrée ou clic pour rejouer', LW / 2, y + h + 40, 22, '#ffffff', 'center', 900, 6); ctx.globalAlpha = 1; }
   }
   function dessinerChargement() {
     ctx.fillStyle = '#1e1730'; ctx.fillRect(V.x, V.y, V.w, V.h);
@@ -1397,7 +1412,7 @@ function mount(root, api) {
   function dessinerPause() {
     ctx.fillStyle = 'rgba(14,8,30,0.55)'; ctx.fillRect(V.x, V.y, V.w, V.h);
     txt('PAUSE', LW / 2, V.y + V.h / 2 - 10, 60, '#ffffff', 'center', 900, 10, DF);
-    txt('Touche l\'écran (ou P) pour reprendre', LW / 2, V.y + V.h / 2 + 36, 20, '#ffffff', 'center', 700, 6);
+    txt(PADON() ? GL('a') + ' pour reprendre' : modeDoigt ? 'Touche l\'écran pour reprendre' : 'Clic (ou P) pour reprendre', LW / 2, V.y + V.h / 2 + 36, 20, '#ffffff', 'center', 700, 6);
   }
 
   function frame(ts) {
@@ -1412,6 +1427,10 @@ function mount(root, api) {
     if (state === 'load') { dessinerChargement(); return; }
     const C = dessinerMonde(now);
     dessinerVoile(now, C.cx, C.cy);
+    // textes flottants, au-dessus du voile de la forêt sombre
+    ctx.save(); ctx.translate(-C.cx, -C.cy);
+    for (const t of textes) { const k = t.t / 1.6; ctx.globalAlpha = 1 - k * k; txt(t.s, t.x, t.y - k * 50, t.gros ? 24 : 20, t.c, 'center', 900, 6); ctx.globalAlpha = 1; }
+    ctx.restore();
     if (flash > 0) { ctx.fillStyle = 'rgba(220,235,255,' + flash * 0.35 + ')'; ctx.fillRect(V.x, V.y, V.w, V.h); }
     if (state === 'title') dessinerTitre(now);
     else if (G) { dessinerHUD(now); if (state === 'grimoire') dessinerGrimoire(now); if (state === 'fin') dessinerFin(now); if (paused && state === 'play') dessinerPause(); }
