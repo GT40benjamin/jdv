@@ -284,7 +284,7 @@ function mount(root, api) {
   let V = { x: 0, y: 0, w: LW, h: LH };
   // V4 (Ajout 27) : la zone sûre de la borne (en px CSS) ; VZ() = la partie de l'écran où le HUD a le droit d'aller
   let Z = { haut: 0, gauche: 0, droite: 0, bas: 0 }, VF = V;   // (VF : tout l'écran ; VZ() part toujours de lui, jamais deux fois)
-  const MENU_B = !!api.zoneSure;   // borne 2.0.138 et plus : son menu principal remplace notre écran titre
+  const MENU_B = !!api.zoneSure, DEMO = !!api.demo;   // DEMO : la scène derrière le menu de la borne (pas de partie, pas de texte, pas d'entrée, pas de son)   // borne 2.0.138 et plus : son menu principal remplace notre écran titre
   const VZ = () => { const z = api.zoneSure ? Z : { haut: 0, gauche: !portrait && petit ? 56 : 0, droite: 0, bas: 0 };
     return { x: VF.x + z.gauche / sc, y: VF.y + z.haut / sc, w: VF.w - (z.gauche + z.droite) / sc, h: VF.h - (z.haut + z.bas) / sc }; };
   const placerPause = () => { pauseBtn.style.top = (6 + Z.haut) + 'px'; pauseBtn.style.right = (6 + Z.droite) + 'px'; };
@@ -518,6 +518,7 @@ function mount(root, api) {
   // ---------- entrées ----------
   const KEYS = new Set();
   function onKey(e) {
+    if (DEMO) return;
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (e.type === 'keydown') {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
@@ -554,6 +555,7 @@ function mount(root, api) {
   const HAUTD = () => Math.max(58, 58 / sc);
   const BTN_GRIM = () => { const VV = VZ(), w = Math.max(40, 46 / sc); return { x: VV.x + VV.w - 58 / sc - w - 4, y: VV.y + 6 / sc, w, h: w }; };
   function onDown(e) {
+    if (DEMO) return;
     e.preventDefault(); try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ }
     const p = toL(e), tact = e.pointerType === 'touch' || e.pointerType === 'pen';
     if (tact) { modeDoigt = true; modePad = false; } else { modeDoigt = false; }
@@ -1062,7 +1064,8 @@ function mount(root, api) {
   function update(dt) {
     stT += dt;
     if (state !== 'play' || paused) cuireUnPeu();
-    if (state === 'title') { for (const g of TITRE_GENS) g.ph += dt * 2.2; cam.x = TOUR.x * T + Math.sin(stT * 0.12) * 600; cam.y = TOUR.y * T + 120 + Math.cos(stT * 0.09) * 380; menuManette(); return; }
+    if (state === 'title') { for (const g of TITRE_GENS) g.ph += dt * 2.2; if (DEMO) { cam.x = TOUR.x * T + 40 + Math.sin(stT * 0.1) * 260; cam.y = TOUR.y * T - 120 + Math.cos(stT * 0.08) * 70; return; }   /* la démo : la tour toujours dans l'image */
+      cam.x = TOUR.x * T + Math.sin(stT * 0.12) * 600; cam.y = TOUR.y * T + 120 + Math.cos(stT * 0.09) * 380; menuManette(); return; }
     if (state === 'grimoire') { menuManette(); return; }
     if (state === 'fin') { majParts(dt); menuManette(); return; }
     if (state === 'play' && paused) { menuManette(); return; }
@@ -1685,7 +1688,7 @@ function mount(root, api) {
     raf = requestAnimationFrame(frame);
     const now = ts / 1000; let dt = last ? Math.min(0.05, now - last) : 0.016; last = now;
     dt *= FAST;
-    if (state === 'load' && LOADED && ANIMS) { state = 'title'; stT = 0; if (MENU_B) lancer(); }
+    if (state === 'load' && LOADED && ANIMS) { state = 'title'; stT = 0; if (MENU_B && !DEMO) lancer(); }
     try { update(dt); } catch (e) { console.error(e); }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#1e1730'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(sc * dpr, 0, 0, sc * dpr, ox * dpr, oy * dpr);
@@ -1705,7 +1708,7 @@ function mount(root, api) {
     }
     ctx.restore();
     if (flash > 0) { ctx.fillStyle = 'rgba(220,235,255,' + flash * 0.35 + ')'; ctx.fillRect(V.x, V.y, V.w, V.h); }
-    if (state === 'title') dessinerTitre(now);
+    if (state === 'title' && !DEMO) dessinerTitre(now);
     else if (G) { { const V0 = V; V = VZ(); try { dessinerHUD(now); } finally { V = V0; } } if (state === 'grimoire') dessinerGrimoire(now); if (state === 'fin') dessinerFin(now); if (paused && state === 'play') dessinerPause(); }
   }
   resize();
@@ -1759,11 +1762,14 @@ window.JDW_GAMES.sorcier = {
   title: 'Le Sorcier du Royaume',
   tagline: 'Pille le royaume, deviens le plus puissant !',
   accent: '#7a4ac8',
+  accent2: '#ffe08a',   // V4 (Ajout 27 bis) : l'or des titres, pour l'écran-titre de la borne
   scoreLabel: 'trésor',
   orientation: 'les2',
   menu: true,           // V4 (Ajout 27) : le menu principal de la borne (▶ Jouer · ❓ Touches · 🔊 Son · ⚙️ Paramètres)
   pauseJeu: true,       // une seule pause : la nôtre (la borne cache son ⏸)
-  musicMenu: 'sorcier-menu',   // V4 (Ajout 27 bis) : la musique du menu de la borne (assets/jeux/sorcier/sorcier-menu.mp3), différente de celle du jeu
+  musicMenu: 'sorcier-menu',
+  // V4 (Ajout 27 bis) : la scène derrière le menu de la borne : le royaume qui défile autour de la tour, avec ses habitants, sans joueur
+  demo(root, api) { const i = mount(root, Object.assign({}, api, { demo: true, music: null, audio: null, pad: null })); return { destroy() { try { i.destroy(); } catch (e) { /* rien */ } } }; },   // V4 (Ajout 27 bis) : la musique du menu de la borne (assets/jeux/sorcier/sorcier-menu.mp3), différente de celle du jeu
   fps: false,
   preview,
   mount,
