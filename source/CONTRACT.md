@@ -493,6 +493,10 @@ Champs du module (tous facultatifs) :
 - `menuImage: 'menu.jpg'` (16:9) et `menuImagePortrait: 'menu-portrait.jpg'` (9:16) : l'IMAGE DE MENU du jeu (key art, faite à la fin de la conception,
   SANS AUCUN TEXTE), dans le dossier du jeu, en plein écran (prioritaire sur la démo). Sans elle : la démo, sinon la belle image du jeu, jamais coupée en haut.
 - `imageATitre: true` : la belle image du jeu porte déjà son titre (pas de titre en texte). Sans logo ni `imageATitre`, la borne écrit toujours le titre.
+- MISE EN PAGE FIGÉE du menu cartoon (borne 2.0.143 ; ne change plus sans prévenir les équipes), en % de la hauteur de la scène (sous la barre du jeu) :
+  écran large (PC 16:9, téléphone couché) : LOGO 0-28 %, HÉROS 28-70 %, BOUTONS 70-100 % ; debout : LOGO 0-22 %, HÉROS 22-66 %, BOUTONS 66-100 %.
+  Composez l'image de menu (ou la démo) pour que le héros soit dans sa bande. `api.menuZones()` → `{ orientation: 'large'|'debout', logo, heros, boutons }`
+  (paires [début, fin] en %), aussi dans l'api de `demo`.
 - `menuFocus: { x: 50, y: 40 }` (en %) : le point de l'image à garder au centre. L'image du menu est TOUJOURS plein écran (cover, pas de bandes) ;
   avec `imageATitre`, le recadrage garde le haut (le titre). En portrait, une image paysage perd ses bords : fournissez `menuImagePortrait`.
 - `musicMenu: '<nom>'` : la musique de MENU, courte (20-40 s en boucle) et TOUJOURS différente de la musique du jeu. Jeu de l'Atelier : la borne

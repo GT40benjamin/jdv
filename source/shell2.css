@@ -5388,3 +5388,23 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 /* « APPUIE SUR UNE TOUCHE » lisible sur toutes les images */
 #jdw-play .tmenu .tm-it.tm-touche{color:#fff!important;font-weight:700;background:rgba(8,8,16,.72)!important;border:0;border-radius:999px;padding:12px 28px!important;-webkit-text-stroke:2px rgba(0,0,0,.85);paint-order:stroke fill;text-shadow:0 2px 6px rgba(0,0,0,.9)!important;box-shadow:0 6px 18px rgba(0,0,0,.45)}
 @media (max-width:600px){#jdw-play .tm-cartoon .tm-bas{left:16px!important;right:16px;width:auto!important;transform:none!important}#jdw-play .tm-cartoon .tm-go{width:calc(100% - 20px)!important;box-sizing:border-box}}
+/* 2.0.142 : MISE EN PAGE FIGÉE du menu cartoon (api.menuZones, CONTRACT Ajout 27 bis) — % de la hauteur de la SCÈNE (sous la barre du jeu)
+   large (PC, couché) : logo 0-28 %, héros 28-70 %, boutons 70-100 % ; debout : logo 0-22 %, héros 22-66 %, boutons 66-100 % */
+#jdw-play .tm-cartoon{--sh0:calc(var(--tbh,52px) + env(safe-area-inset-top,0px))}
+#jdw-play .tm-cartoon .tm-haut{top:calc(var(--sh0) + (100% - var(--sh0)) * .02)!important;height:calc((100% - var(--sh0)) * .25);align-items:center;padding-right:16px!important;justify-content:center!important}
+#jdw-play .tm-cartoon .tm-logo{max-height:100%;display:flex;align-items:center;justify-content:center}
+#jdw-play .tm-cartoon .tm-logo img{max-height:calc((100vh - var(--sh0)) * .25);max-width:min(70vw,720px)}
+#jdw-play .tm-cartoon .tm-titre{font-size:min(clamp(30px,6vw,84px),calc((100vh - var(--sh0)) * .11))!important;text-align:center!important}
+#jdw-play .tm-cartoon .tm-bas{top:calc(var(--sh0) + (100% - var(--sh0)) * .70)!important;bottom:auto!important;height:calc((100% - var(--sh0)) * .30);display:flex;align-items:center;justify-content:center;padding:0!important}
+#jdw-play .tm-cartoon .tm-liste{grid-template-columns:1fr 1fr;gap:min(14px,1.6vh)!important;justify-items:stretch;width:min(520px,100%);margin:0 auto}
+#jdw-play .tm-cartoon .tm-liste > .tm-go,#jdw-play .tm-cartoon .tm-liste > .tm-k,#jdw-play .tm-cartoon .tm-liste > .tm-son,#jdw-play .tm-cartoon .tm-liste > .tm-note,#jdw-play .tm-cartoon .tm-liste > .tm-ask,#jdw-play .tm-cartoon .tm-liste > .tm-touche{grid-column:1/-1;justify-self:center}
+#jdw-play .tm-cartoon .tm-liste > .tm-go{width:100%!important;font-size:min(clamp(30px,4vw,54px),calc((100vh - var(--sh0)) * .075))!important;padding-block:min(20px,2.6vh) min(24px,3vh)!important}
+#jdw-play .tm-cartoon .tm-liste > .tm-it:not(.tm-go):not(.tm-touche){padding:min(10px,1.4vh) 12px!important;font-size:min(18px,calc((100vh - var(--sh0)) * .028))!important;white-space:nowrap}
+#jdw-play .tm-cartoon[data-vue="son"] .tm-bas,#jdw-play .tm-cartoon[data-vue="param"] .tm-bas{top:auto!important;bottom:max(14px,env(safe-area-inset-bottom,0px))!important;height:auto}
+@media (max-aspect-ratio:1/1){
+  #jdw-play .tm-cartoon .tm-haut{height:calc((100% - var(--sh0)) * .19)}
+  #jdw-play .tm-cartoon .tm-logo img{max-height:calc((100vh - var(--sh0)) * .19)}
+  #jdw-play .tm-cartoon .tm-bas{top:calc(var(--sh0) + (100% - var(--sh0)) * .66)!important;height:calc((100% - var(--sh0)) * .34);flex-direction:column;gap:12px}
+  #jdw-play .tm-cartoon .tm-bas .tm-icos{position:static;transform:none;display:flex;justify-content:center;gap:16px;margin:0}
+}
+#jdw-play .tm-cartoon .tm-bas{left:0!important;right:0!important;width:auto!important;transform:none!important}#jdw-play .tm-cartoon .tm-liste{width:min(520px,calc(100% - 52px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)))!important}   /* 16 px + l'anneau du JOUER de chaque côté */

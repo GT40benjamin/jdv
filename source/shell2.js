@@ -571,6 +571,8 @@ addEventListener('click', e => { if (Date.now() - DODO.reveil < 600 && e.target 
 // « Recommencer l'aventure »). Pour les jeux qui le déclarent (menu: true, jeux de l'Atelier compris) et les jeux de la borne de MENU_BORNE.
 const MENU_BORNE = new Set(['empilo', 'glouton', 'mouches']);   // 2.0.139 : les 3 premiers jeux de la borne branchés (sans écran titre à eux)
 const MENU = { passe: '' };
+// 2.0.142 : les BANDES FIGÉES de l'écran-titre (en % de la hauteur de la scène) — ne pas changer sans prévenir les équipes
+function menuZones() { const debout = matchMedia('(max-aspect-ratio:1/1)').matches; return debout ? { orientation: 'debout', logo: [0, 22], heros: [22, 66], boutons: [66, 100] } : { orientation: 'large', logo: [0, 28], heros: [28, 70], boutons: [70, 100] }; }
 const menuAvoir = g => !!g && g.menu !== false && (g.menu === true || MENU_BORNE.has(g.id) || (navigator.webdriver && Array.isArray(window.JDW_MENU_ESSAI) && window.JDW_MENU_ESSAI.includes(g.id))) && !PAD_DOM.has(g.id) && !g.external && g.id !== 'pegase';   // jeux de l'Atelier : menu: true (leur équipe retire d'abord leur écran titre : jamais deux menus)
 function menuPrecharger(g) { try { for (const f of [g.menuImage, g.menuImagePortrait, g.logo]) if (f && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp|svg)$/i.test(String(f))) { const i = new Image(); i.src = ROOT + (ATL_NES.has(g.id) ? 'assets/jeux/' + g.id + '/' : 'assets/') + f; } } catch (e) {} }
 function menuOuJouer(g) { if (menuAvoir(g) && MENU.passe !== g.id) { menuPrecharger(g); menuMontrer(g); } else mountGame(g); }
@@ -617,7 +619,7 @@ function menuMontrer(g, o) {
   }
   let demo = null;
   if (!mi && typeof g.demo === 'function') { const dr = el('div', 'tm-demo'); scene.appendChild(dr);
-    try { demo = g.demo(dr, { colors: COLORS, fonts: FONTS, assets: () => window.JDW_ASSETS.load(g.id), zoneSure: () => zoneSure(), appareil: appareilApi(), demo: true }) || null; } catch (e) { demo = null; reportError('Démo du menu (' + g.id + ') : ' + e.message, e.stack, { quiet: true }); dr.remove(); } }
+    try { demo = g.demo(dr, { colors: COLORS, fonts: FONTS, assets: () => window.JDW_ASSETS.load(g.id), zoneSure: () => zoneSure(), appareil: appareilApi(), menuZones: () => menuZones(), demo: true }) || null; } catch (e) { demo = null; reportError('Démo du menu (' + g.id + ') : ' + e.message, e.stack, { quiet: true }); dr.remove(); } }
   M._demo = demo; if (!demo && !mi) { scene.classList.add('tm-bouge'); menuImage(g, M, scene); }
   // le logo (g.logo : une image du jeu) ou le titre en grand, avec son entrée animée
   const logo = el('div', 'tm-logo');
@@ -11057,6 +11059,7 @@ function mountGame(g) {
     live: g.live ? liveApi(g, seq) : undefined,
     boutique: boutiqueApi(g, seq),   // 2.0.130 : la boutique du créateur (CONTRACT.md Ajout 25, SQL v139)
     // 2.0.139 (CONTRACT.md Ajout 27) : la zone sûre (ce que la borne couvre) et le son réglé pour ce jeu
+    menuZones: () => menuZones(),   // 2.0.142 : où sont le logo, le héros et les boutons du menu
     appareil: appareilApi(),   // 2.0.142 : 'toucher' | 'clavier' | 'manette' (dernier appui, dès le menu)
     zoneSure: Object.assign(() => zoneSure(), { suivre: fn => { if (typeof fn !== 'function' || !current || current.seq !== seq) return () => {}; ZS.fns.add(fn); try { fn(zoneSure()); } catch (e) {} return () => ZS.fns.delete(fn); } }),
     son: { etat: () => sonJeuEtat(), suivre: fn => { if (typeof fn !== 'function' || !current || current.seq !== seq) return () => {}; SON_JEU.fns.add(fn); try { fn(sonJeuEtat()); } catch (e) {} return () => SON_JEU.fns.delete(fn); } },
@@ -11767,7 +11770,7 @@ function renderEndBoard(g, me) {
   ol.hidden = isGuest() || g.id === 'chrono';   // invité : pas de classement (scores non enregistrés) ; Turbo Chrono : « Tes positions » (chronoEnd)
   if (ol.hidden) return;
   const rows = top(g.id).slice(0, 5);
-  if (!rows.length) return emptyRow(ol);
+  if (!rows.length) { ol.hidden = true; return; }   // 2.0.142 (l'admin) : classement vide = rien
   for (const r of rows) { const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g); ol.appendChild(rowEl(r.name, s, r.name === me)); }
 }
 
