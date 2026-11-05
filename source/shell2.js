@@ -601,6 +601,8 @@ function menuMontrer(g, o) {
   const style = (g.menuStyle || (navigator.webdriver && window.JDW_MENU_STYLE && window.JDW_MENU_STYLE[g.id])) === 'aventure' ? 'aventure' : 'cartoon';   // 2.0.142 (chef) : gros boutons « cartoon » par défaut, liste élégante « aventure »
   const M = el('div', 'gmenu tmenu tm-' + style); M.id = 'jdw-gmenu'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', titre);
   M.style.setProperty('--acc', g.accent || COLORS.amber); M.style.setProperty('--acc2', g.accent2 || '#ffffff');
+  { const fx = g.menuFocus && Number.isFinite(+g.menuFocus.x) ? Math.min(100, Math.max(0, +g.menuFocus.x)) : 50, fy = g.menuFocus && Number.isFinite(+g.menuFocus.y) ? Math.min(100, Math.max(0, +g.menuFocus.y)) : 40;   // 2.0.142 : plein écran (cover), centré sur le héros ; titre dans l'image = gardé en haut
+    const titreImg = g.imageATitre === true || (navigator.webdriver && Array.isArray(window.JDW_IMAGE_A_TITRE) && window.JDW_IMAGE_A_TITRE.includes(g.id)); M.style.setProperty('--tm-pos', fx + '% ' + (titreImg ? '0%' : fy + '%')); }
   const scene = el('div', 'tm-scene'), voile = el('div', 'tm-voile'), haut = el('div', 'tm-haut'), bas = el('div', 'tm-bas');
   M.append(scene, voile, haut, bas); $('jdw-play').appendChild(M);
   // la scène : la démo du jeu (g.demo), sinon sa belle image qui bouge doucement

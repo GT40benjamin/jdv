@@ -493,6 +493,8 @@ Champs du module (tous facultatifs) :
 - `menuImage: 'menu.jpg'` (16:9) et `menuImagePortrait: 'menu-portrait.jpg'` (9:16) : l'IMAGE DE MENU du jeu (key art, faite à la fin de la conception,
   SANS AUCUN TEXTE), dans le dossier du jeu, en plein écran (prioritaire sur la démo). Sans elle : la démo, sinon la belle image du jeu, jamais coupée en haut.
 - `imageATitre: true` : la belle image du jeu porte déjà son titre (pas de titre en texte). Sans logo ni `imageATitre`, la borne écrit toujours le titre.
+- `menuFocus: { x: 50, y: 40 }` (en %) : le point de l'image à garder au centre. L'image du menu est TOUJOURS plein écran (cover, pas de bandes) ;
+  avec `imageATitre`, le recadrage garde le haut (le titre). En portrait, une image paysage perd ses bords : fournissez `menuImagePortrait`.
 - `musicMenu: '<nom>'` : la musique de MENU, courte (20-40 s en boucle) et TOUJOURS différente de la musique du jeu. Jeu de l'Atelier : la borne
   cherche `assets/jeux/<id>/<nom>.mp3`, puis `assets/music/<nom>.mp3` (ou `.bin`) ; jeu de la borne : `assets/music/<nom>`. Elle joue sur le
   menu et l'écran Commandes ; au ▶ JOUER, fondu vers la musique du jeu (`music`) ; au retour au menu (✕ Quitter, fin de partie) elle revient.

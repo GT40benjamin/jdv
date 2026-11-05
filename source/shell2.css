@@ -5381,3 +5381,10 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 #jdw-play .tmenu .tm-attente{position:absolute;inset:-4%;background:center/cover no-repeat;filter:blur(18px) brightness(.8);animation:tmNet 1.2s ease-out .3s forwards}   /* 2.0.142 : en attendant l'image de menu */
 @keyframes tmNet{to{filter:blur(4px) brightness(.85)}}
 #jdw-play .tmenu .tm-key{opacity:0;transition:opacity .6s}#jdw-play .tmenu .tm-key.pret{opacity:1}
+/* 2.0.142 (l'admin : « pleine page ») : l'image du menu TOUJOURS plein écran (cover), centrée sur le héros (g.menuFocus) ou gardant le titre en haut ; les boutons par-dessus, sur un dégradé */
+#jdw-play .tmenu .tm-scene .gm-vif:not(.gm-cv){object-fit:cover!important;object-position:var(--tm-pos,50% 40%)!important}
+#jdw-play .tmenu .tm-key{background-position:var(--tm-pos,50% 40%)!important}
+#jdw-play .tm-cartoon .tm-voile{background:linear-gradient(0deg,rgba(8,5,3,.72),rgba(8,5,3,.35) 30%,rgba(8,5,3,0) 55%)!important}
+/* « APPUIE SUR UNE TOUCHE » lisible sur toutes les images */
+#jdw-play .tmenu .tm-it.tm-touche{color:#fff!important;font-weight:700;background:rgba(8,8,16,.72)!important;border:0;border-radius:999px;padding:12px 28px!important;-webkit-text-stroke:2px rgba(0,0,0,.85);paint-order:stroke fill;text-shadow:0 2px 6px rgba(0,0,0,.9)!important;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+@media (max-width:600px){#jdw-play .tm-cartoon .tm-bas{left:16px!important;right:16px;width:auto!important;transform:none!important}#jdw-play .tm-cartoon .tm-go{width:calc(100% - 20px)!important;box-sizing:border-box}}
