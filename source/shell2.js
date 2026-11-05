@@ -17888,6 +17888,30 @@ async function atlMesDemandes() {
 }
 // ---- 23 h 45 (Benjamin) : « 🗂️ Tous les projets (admin) » — at_admins seulement (vérifié par le serveur : at_tous_projets / at_voir) ;
 // filtres joueur / état ; un clic ouvre le projet en LECTURE (bandeau « Projet de … »), sans modification ni dépense
+// 2.0.119 (l'admin) : la RENTABILITÉ de chaque projet, pour les admins seulement (SQL v126/v127, at_admin_rentabilite : refusé à tout autre compte) —
+// ce que le joueur a payé en crédits et leur valeur en euros (prix de l'abonnement), le coût réel des générations, la différence, et d'où viennent
+// ses crédits. Les chiffres viennent du serveur à chaque fois (rien d'écrit ici). Même écran pour tous les projets.
+const ATL_RENT = { at: 0, d: null, p: null };
+function atlRent(force) {
+  if (!force && ATL_RENT.d && Date.now() - ATL_RENT.at < 30000) return Promise.resolve(ATL_RENT.d);
+  if (ATL_RENT.p) return ATL_RENT.p;
+  ATL_RENT.p = rpc('at_admin_rentabilite', { p_name: profile.name }, { quiet: true, quiet404: true }).then(d => { ATL_RENT.d = d && typeof d === 'object' ? d : null; ATL_RENT.at = Date.now(); return ATL_RENT.d; }).catch(() => null).finally(() => { ATL_RENT.p = null; });
+  return ATL_RENT.p;
+}
+const atlEur = c => ((+c || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+const atlRentDe = id => { const d = ATL_RENT.d; return d && Array.isArray(d.projets) ? d.projets.find(x => x && x.fiche === id) || null : null; };
+function atlRentCourt(r) { if (!r) return ''; const m = +r.marge_cents || 0; return '💶 ' + atlEur(r.euros_cents) + ' payé · coût ' + atlEur(r.cout_cents) + ' · ' + (m >= 0 ? '+' : '−') + atlEur(Math.abs(m)); }
+function atlRentLong(r, j, nom) {
+  if (!r) return [];
+  const c = r.cout || {}, parts = [['images', c.image], ['musiques', c.musique], ['sons', c.son], ['autres', c.autre]].filter(x => +x[1] > 0).map(x => x[0] + ' ' + atlEur(x[1]));
+  const m = +r.marge_cents || 0, l1 = '💶 Payé ' + (+r.credits || 0).toLocaleString('fr-FR') + ' 💎 ≈ ' + atlEur(r.euros_cents) + ' · coût réel ' + atlEur(r.cout_cents) + (parts.length ? ' (' + parts.join(' · ') + ')' : '') + ' · ' + (m >= 0 ? 'marge +' : 'perte −') + atlEur(Math.abs(m));
+  const l1b = (+r.generations || 0) + ' générations' + ((+r.ratees || 0) ? ', dont ' + r.ratees + ' ratée' + (+r.ratees > 1 ? 's' : '') : '') + ((+r.sans_prix || 0) ? ' · ' + r.sans_prix + ' sans prix connu' : '');
+  if (!j) return [l1, l1b];
+  const of = [((+j.bienvenue || 0) ? 'bienvenue ' + (+j.bienvenue).toLocaleString('fr-FR') : ''), ((+j.admin || 0) ? 'cadeaux de l’admin ' + (+j.admin).toLocaleString('fr-FR') : '')].filter(Boolean);
+  const l2 = 'Crédits de ' + dispName(nom) + ' : achetés ' + (+j.achats_credits || 0).toLocaleString('fr-FR') + ' 💎 (' + atlEur(j.achats_cents) + ')' + ((+j.abo_credits || 0) ? ' · abonnement ' + (+j.abo_credits).toLocaleString('fr-FR') + ' 💎 (' + atlEur(j.abo_cents) + ')' : '')
+    + ' · offerts : ' + (of.length ? of.join(', ') : 'aucun') + ' · mensuels gratuits : non comptés' + (j.solde != null ? ' · solde ' + (+j.solde).toLocaleString('fr-FR') + ' 💎' : '');
+  return [l1, l1b, l2];
+}
 async function atlTousProjets(box) {
   const sec = atlEl('section', 'atl-tous'); box.appendChild(sec);
   sec.append(atlEl('h2', 'atl-ph', '🗂️ Tous les projets (admin)'));
@@ -17912,11 +17936,13 @@ async function atlTousProjets(box) {
       b.append(v, atlEl('b', '', x.titre || 'Sans nom'), atlEl('small', 'atl-pver' + (/^.\S* V\d/u.test(atlVersion(x, attx)) ? ' v' : '') + atlPastCls(x), atlVersion(x, attx, true)), atlEl('small', '', '👤 ' + dispName(x.joueur || '') + ' · ' + (isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))));
       const bd = x.monde_demande_at ? '🛡️ à valider' : (x.n_choisir | 0) ? '💬 ' + (x.n_choisir | 0) + ' à choisir' : (x.n_en_cours | 0) ? '🛠️ en cours' : (x.n_nouvelles | 0) ? '📨 ' + ((x.n_nouvelles | 0) > 1 ? (x.n_nouvelles | 0) + ' nouvelles demandes' : 'nouvelle demande') : '';
       if (bd) b.appendChild(atlEl('span', 'atl-patt', bd));
+      { const rl = atlEl('small', 'atl-rent'); rl.dataset.f = x.id; rl.textContent = atlRentCourt(atlRentDe(x.id)); b.appendChild(rl); }   // 2.0.119 : la rentabilité (admin)
       b.addEventListener('click', () => atlVoirProjet(x.id)); g.appendChild(b);
     }
     if (!g.firstChild) g.appendChild(atlEl('p', 'atl-chv', 'Aucun projet.'));
   };
   fj.addEventListener('change', show); fe.addEventListener('change', show);
+  atlRent().then(() => { for (const e of sec.querySelectorAll('.atl-rent')) e.textContent = atlRentCourt(atlRentDe(e.dataset.f)); });   // 2.0.119
   const fl = atlEl('div', 'atl-tousfl'); fl.append(fj, fe); sec.append(fl, g); show();
 }
 async function atlVoirProjet(id) {
@@ -17989,7 +18015,9 @@ function atlAdminBandeau() {
   if (!m || !ATL.cur || ATL.cur !== m.id) { if (b) b.remove(); return; }
   if (!b) { b = atlEl('div', 'atl-adminb'); const bar = R.querySelector('.atl-bar'); if (bar) bar.prepend(b); else R.prepend(b); }   // dans la barre du haut (la page est une grille sur PC)
   { const cp = R.querySelector('.atl-cred'), cr = atlCred(); if (cp && cr) cp.textContent = atlCredTxt(cr.solde); }   // le solde du joueur, à chaque rendu
-  const sig = (av ? av.joueur + av.solde : '') + (ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet.length : 0);
+  const rp = atlRentDe(m.id);   // 2.0.119 : la rentabilité du projet (admin), chargée à part
+  if (!ATL_RENT.d || Date.now() - ATL_RENT.at > 30000) atlRent().then(d => { if (d && ATL.adminVoir === m) atlAdminBandeau(); });
+  const sig = (av ? av.joueur + av.solde : '') + (ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet.length : 0) + (rp ? '|' + rp.credits + ':' + rp.cout_cents + ':' + ATL_RENT.at : '');
   if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
   const pt = atlPetit();   // 2.0.108 : téléphone = un bandeau court (titres courts, une ou deux lignes), la page reste visible
   b.classList.toggle('pt', pt);
@@ -17999,6 +18027,7 @@ function atlAdminBandeau() {
   bt('📣 Annoncer un changement au joueur', () => atlAnnoncer(m), '📣 Annoncer');   // 2.0.14 (Benjamin) : remplace « ⬆ Version suivante »
   bt('🎁 Donner des crédits', async () => { const v = Math.round(+prompt('Combien de crédits offrir au joueur ?', '50')); if (!(v > 0)) return; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'credits', p_args: { montant: v } }, { quiet: true }); atlToast('🎁 ' + v + ' crédits offerts'); atlLoad(true); } catch (e) { atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } }, '🎁 Crédits');
   bt('✕ Quitter', () => { ATL.adminVoir = null; atlListe(); }, '✕');
+  if (rp && av) { const rb = atlEl('div', 'atl-rentb'); for (const t of atlRentLong(rp, (ATL_RENT.d.joueurs || {})[av.joueur], av.joueur)) rb.appendChild(atlEl('small', '', t)); b.appendChild(rb); }   // 2.0.119
 }
 // 2.0.11 (Benjamin) : l'admin modifie les offres SUR LES CARTES (« ✏️ Modifier » : libellé, crédits, détails, conseillé ; « ✕ » ; « ➕ Option »),
 // puis « Renvoyer au joueur » (at_admin_proposer). 2.0.12 (Benjamin : « si je veux faire une remise ») : pas de blocage ; le prix calculé
