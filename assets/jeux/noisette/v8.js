@@ -908,10 +908,13 @@ function pasBete(L, P, e, dt) {
   }
   // le contact avec Noisette : saut dessus, boule, sinon aïe
   if (L.preuve || !e.vivant) return;
-  const hw = (B.w || 40) / 2, hh = B.h || 34, ey = B.comp === 'vole' || B.comp === 'pique' || B.comp === 'dort' || B.comp === 'suit' || B.comp === 'fil' || B.vole ? e.y + hh / 2 : e.y;
+  // V8.1 : ceux qui volent ou qui pendent (chauve-souris endormie au plafond, araignée, ombre, feu follet) se battent aussi d'un coup de tête par-dessous
+  const enHaut = B.comp === 'vole' || B.comp === 'pique' || B.comp === 'dort' || B.comp === 'suit' || B.comp === 'fil' || B.vole;
+  const hw = (B.w || 40) / 2 * (P.vy > 60 ? 1.25 : 1), hh = B.h || 34, ey = B.comp === 'dort' && (e.etat === 'va' || e.etat === 'reveil') ? e.y + hh + 26 : enHaut ? e.y + hh / 2 : e.y;   // (endormie, elle pend sous le plafond)
   if (P.x + P.hw > e.x - hw && P.x - P.hw < e.x + hw && P.y > ey - hh && P.y - P.h < ey) {
+    if (enHaut && P.vy < -40 && P.y - P.h > ey - hh * 0.6 && !B.eclair) { toucherBete(L, e, 'tete'); P.vy = 80; P.invul = Math.max(P.invul, 0.25); return; }
     // V8 : on retombe dessus (pieds au-dessus de son milieu, en descendant) → rebond ; une carapace (scarabée) fait rebondir sans blesser
-    const pardessus = P.vy > 60 && P.y - 20 < ey - hh * 0.4, dessus = pardessus && !(B.ombre && !P.lum) && !B.eclair;
+    const pardessus = P.vy > 60 && P.y - 20 < ey - hh * 0.4, dessus = pardessus && !B.eclair;
     const roule = P.boule && Math.abs(P.vx) > 220 && !B.vole && !B.eclair;
     if (dessus || roule) { if (!B.cuirasse || roule) toucherBete(L, e, roule ? 'boule' : 'saut'); else L.ev.push(['toc', e.x, e.y]);
       if (dessus) { P.vy = -620; P.sautsAir = aP(L, 'double') ? 1 : 0; P.y = Math.min(P.y, ey - hh); P.invul = Math.max(P.invul, 0.2); } }
