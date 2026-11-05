@@ -16106,8 +16106,9 @@ function atlJouerVrai(f, pret) {
   // les éléments retirés par l'équipe (assets[].actif = false) : le jeu ne les montre plus (window.JDW_ATL_OFF, message atl-off) ;
   // une musique retirée : la borne ne lance pas la musique du jeu
   // 2.0.70 : un élément renommé par l'admin (at_assets_renommer, SQL v92) garde son ancien nom dans nom_origine — les deux noms partent au jeu
-  const off = (Array.isArray(f.assets) ? f.assets : []).filter(a => a && a.actif === false).flatMap(a => [String(a.nom || ''), String(a.nom_origine || '')].filter(Boolean));
-  window.JDW_ATL_OFF = off; window.JDW_ATL_MUS_OFF = (Array.isArray(f.assets) ? f.assets : []).some(a => a && a.actif === false && (a.sorte === 'musique' || a.cat === 'musique')) ? g.id : '';
+  const retires = (Array.isArray(f.assets) ? f.assets : []).filter(a => a && a.actif === false).concat(Array.isArray(f.assets_off) ? f.assets_off : []);   // 2.0.118 : + les archivés (SQL v121, assets_off)
+  const off = retires.flatMap(a => [String((a && a.nom) || ''), String((a && a.nom_origine) || '')].filter(Boolean));
+  window.JDW_ATL_OFF = off; window.JDW_ATL_MUS_OFF = retires.some(a => a && (a.sorte === 'musique' || a.cat === 'musique')) ? g.id : '';
   try { window.postMessage({ type: 'atl-off', noms: off }, location.origin); } catch (e) {}
   atlClose();
   const qb = $('jdw-back'); qb.dataset.atl = '1'; qb.innerHTML = '↩<span class="tb-word"> Retour à l’Atelier</span>'; qb.setAttribute('aria-label', 'Retour à l’Atelier');
@@ -16765,6 +16766,29 @@ function atlMemeChose(a, b) {   // « Le petit robot de bord » = « Le robot de
   const x = atlMots(a), y = atlMots(b); if (!x.length || !y.length) return atlNorm(a) === atlNorm(b);
   const [p, q] = x.length <= y.length ? [x, y] : [y, x]; return p.every(w => q.includes(w));
 }
+// 2.0.118 (chef, SQL v121) : les éléments retirés d'un projet sont rangés à part (at_fiches.assets_archive) : la page du projet ne les charge
+// plus, le jeu les cache toujours (assets_off). L'admin les voit ici, repliés, et peut en remettre un (at_admin_agir 'asset_actif'). Rien n'est supprimé.
+function atlArchiveBloc(f) {
+  const l = f.assets_archive.filter(x => x && x.nom), d = atlEl('details', 'atl-arch'), sm = atlEl('summary', '', '🗄️ Éléments retirés (' + l.length.toLocaleString('fr-FR') + ')');
+  const q = atlEl('input', 'atl-archq'); q.type = 'search'; q.placeholder = 'Chercher un élément retiré…';
+  const ul = atlEl('div', 'atl-archl'), plus = atlEl('small', 'atl-archp');
+  const show = () => {
+    ul.textContent = ''; const t = q.value.trim().toLowerCase(), m = l.filter(x => !t || String(x.nom).toLowerCase().includes(t));
+    for (const x of m.slice(0, 120)) {
+      const r = atlEl('div', 'atl-archr'), u = atlIaUrl(x.image);
+      if (u) { const im = atlEl('img'); im.loading = 'lazy'; im.alt = ''; im.src = u; r.appendChild(im); } else r.appendChild(atlEl('span', 'atl-archv', '🧩'));
+      r.append(atlEl('span', 'atl-archn', String(x.nom)), atlEl('small', '', String(x.cat || '')));
+      const b = atlEl('button', 'btn btn-ghost btn-sm', '↩ Remettre'); b.type = 'button';
+      b.addEventListener('click', async () => { b.disabled = true; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: f.id, p_action: 'asset_actif', p_args: { nom: x.nom, actif: true } }, { quiet: true }); atlToast('↩ « ' + x.nom + ' » est revenu dans le projet'); atlLoad(true); } catch (e) { b.disabled = false; atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } });
+      r.appendChild(b); ul.appendChild(r);
+    }
+    plus.textContent = m.length > 120 ? '… et ' + (m.length - 120).toLocaleString('fr-FR') + ' autres : cherche par le nom' : '';
+  };
+  q.addEventListener('input', show);
+  d.addEventListener('toggle', () => { if (d.open && !ul.firstChild) show(); });
+  d.append(sm, atlEl('p', 'atl-aide', 'Retirés du projet par l’équipe : le joueur ne les voit plus et le jeu ne les montre pas. Rien n’est supprimé.'), q, ul, plus);
+  return d;
+}
 function atlBiblio(host, f, fi, lecture) {
   const et = String(f.etat || ''), libre = !lecture && ['brouillon', 'en_discussion', 'complete'].includes(et), items = atlBiblioItems(f, fi);
   for (const cat in items) {   // un nom de la fiche « à dessiner » alors que ses poses existent déjà : retiré
@@ -16808,6 +16832,7 @@ function atlBiblio(host, f, fi, lecture) {
   } else { const gr = atlEl('div', 'atl-libg'); for (const it of l) gr.appendChild(atlEncart(it, f, fi, libre, lecture)); sec.appendChild(gr); }
   lib.appendChild(sec);
   host.appendChild(lib);
+  if (atlAdminIci() && Array.isArray(f.assets_archive) && f.assets_archive.length) host.appendChild(atlArchiveBloc(f));   // 2.0.118 (SQL v121)
   if (ATL.tab === 'elements') setTimeout(() => { try { if (ATL.tab === 'elements' && host.isConnected && !host.closest('[hidden]')) atlElVus(f); } catch (e) {} }, 2500);   // 2.0.61
 }
 // 2.0.61 : l'onglet Éléments suit la conception EN DIRECT — redessiné sur place quand la liste change (jamais pendant qu'on y écrit)

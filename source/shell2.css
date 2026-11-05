@@ -5038,3 +5038,13 @@ canvas.atl-demimg{display:block;width:100%;aspect-ratio:16/10;border-radius:14px
 .sm-howto{display:none;width:100%;margin-top:6px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.05);color:var(--ink);font:700 14px var(--body);text-align:left;cursor:pointer}
 @media (orientation:landscape) and (max-height:500px){.sm-howto:not([hidden]){display:block}}
 body.howto-on .fs-tip,body.howto-on #jdw-cheer,body:has(#jdw-howto) .atl-flot{visibility:hidden!important;opacity:0!important}   /* 2.0.113 : aucune annonce sur « Comment jouer » : elles attendent sa fermeture + 2 s */
+/* 2.0.118 : admin — les éléments retirés d'un projet (archive), repliés sous l'onglet Éléments */
+.atl-arch{min-width:0;max-width:100%;box-sizing:border-box;margin:16px 0 0;padding:10px 14px;border-radius:14px;border:1px dashed var(--line);background:rgba(255,255,255,.03)}
+.atl-arch > summary{cursor:pointer;font:800 14px var(--body);color:var(--ink)}
+.atl-archq{width:100%;box-sizing:border-box;margin:8px 0;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);font:14px var(--body)}
+.atl-archl{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;max-height:420px;overflow:auto}
+.atl-archr{min-width:0;display:flex;align-items:center;gap:10px;padding:4px 6px;border-radius:10px;background:rgba(255,255,255,.04)}
+.atl-archr img,.atl-archv{flex:0 0 40px;width:40px;height:40px;object-fit:contain;display:grid;place-items:center}
+.atl-archn{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 13.5px var(--body)}
+.atl-archr small{color:var(--muted);flex:0 0 auto}.atl-archp{color:var(--muted)}
+@media (max-width:600px){.atl-archr small{display:none}.atl-archr .btn{padding:5px 8px;font-size:12px}}
