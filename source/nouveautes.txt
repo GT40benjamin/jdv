@@ -20,6 +20,8 @@
 [chrono] 👑 Le rond du champion sur la tuile Turbo Chrono montre enfin sa photo, comme sur les autres tuiles et dans le classement (avant, un joueur qui a un surnom dans la salle n'avait qu'une lettre).
 [chrono] 🥇 Les médailles d'or du Volcan, de la Plage, de la Forêt et des Nuages comptent maintenant pour le titre de champion (avant, seulement les 4 premiers circuits).
 [chrono] 📋 Classement › Turbo Chrono et « Tes positions » en fin de course montrent les 8 circuits.
+[noisette] ## 🐿️ Noisette et ses amis V7 (borne 2.0.115)
+[noisette] 🐿️ Noisette et ses amis V7 : 6 mondes, 30 niveaux, 6 pouvoirs et l’Ombre des ronces à vaincre ! La carte de la tuile montre maintenant les 6 mondes.
 [borne] ## 🕹️ « Comment jouer » plus lisible (borne 2.0.114)
 [borne] 🕹️ Plus aucune petite annonce par-dessus l’écran « Comment jouer » : elle attend que tu l’aies fermé. Et les touches s’affichent toujours en entier.
 [borne] ## 🕹️ « Comment jouer » dans tous les jeux (borne 2.0.112)
