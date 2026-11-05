@@ -67,14 +67,15 @@ function bruit(x, y) {
   return lerp(lerp(hash(xi, yi), hash(xi + 1, yi), u), lerp(hash(xi, yi + 1), hash(xi + 1, yi + 1), u), v);
 }
 // les lieux (en cases)
-const TOUR = { x: 52, y: 57 };
+// V3 (idée de J2B) : la tour du sorcier au cœur de la forêt maléfique ; le château oublié de l'autre côté du royaume (à l'est)
+const TOUR = { x: 16, y: 64 };
 const VILLAGES = [
   { nom: 'Pré-Doré', x: 36, y: 27 }, { nom: 'Les Trois-Puits', x: 55, y: 88 }, { nom: 'Bourg-la-Rivière', x: 95, y: 61 }, { nom: 'Moulin-Haut', x: 95, y: 24 }
 ];
 const CHATEAUX = [
   { nom: 'le château du Roi', x: 57, y: 12, w: 14, h: 10, gardes: 5, coffres: 3, roi: true },
   { nom: 'le château de l\'Est', x: 94, y: 92, w: 12, h: 9, gardes: 4, coffres: 2, roi: true },
-  { nom: 'le château oublié', x: 16, y: 66, w: 11, h: 8, gardes: 3, coffres: 3, roi: true, foret: true }
+  { nom: 'le château oublié', x: 97, y: 43, w: 11, h: 8, gardes: 3, coffres: 3, roi: true, oublie: true }
 ];
 // les sorts : débloqués par ce que tu possèdes
 const SORTS = [
@@ -134,7 +135,7 @@ function construireMonde() {
   }
   for (const v of VILLAGES) chemin(TOUR, v);
   for (const c of CHATEAUX) chemin(TOUR, { x: c.x, y: c.y + c.h / 2 + 1 });
-  chemin(VILLAGES[0], VILLAGES[3]); chemin(VILLAGES[2], VILLAGES[3]); chemin(VILLAGES[1], { x: CHATEAUX[1].x, y: CHATEAUX[1].y + 5 });
+  chemin(VILLAGES[0], VILLAGES[3]); chemin(VILLAGES[3], { x: 86, y: 31 }); chemin({ x: 86, y: 31 }, { x: 86, y: 52 }); chemin({ x: 86, y: 52 }, VILLAGES[2]);   // (le chemin contourne le château oublié par l'ouest) chemin(VILLAGES[1], { x: CHATEAUX[1].x, y: CHATEAUX[1].y + 5 });
   // un pont sur toute la largeur de la rivière là où un chemin passe
   for (const y of ponts) { const c = riv(y); for (let x = c - 1; x <= c + 1; x++) if (at(x, y) === EAU) set(x, y, PONT); }
   // les cours pavées des châteaux
@@ -194,7 +195,7 @@ function construireMonde() {
     for (const [x, y] of [[x0, y0 + 12], [x1, y0 + 12], [x0, y1 + 10], [x1, y1 + 10]]) poser('tourc', x, y, { r: 44, col: { t: 'c', r: 40 } });
     c.donjon = poser('tourc', c.cx, y0 + (y1 - y0) * 0.42, { h: 260, r: 56, col: { t: 'c', r: 50 }, donjon: true });
     // V3 : le trésor gardé du château (sur un socle, devant le donjon)
-    { const L = c.roi && !c.foret && c.gardes >= 5 ? ['baton', 'grimoire'] : c.foret ? ['grimoire'] : ['baton'];
+    { const L = c.roi && !c.oublie && c.gardes >= 5 ? ['baton', 'grimoire'] : c.oublie ? ['grimoire'] : ['baton'];
       c.socles = L.map((k, i) => poser('socle', c.cx + (L.length > 1 ? (i ? 80 : -80) : 0), y0 + (y1 - y0) * 0.42 + 104, { r: 22, col: { t: 'c', r: 18 }, objet: k, chateau: c })); }
     for (let i = 0; i < c.coffres; i++) {
       const cote = i % 2 ? 1 : -1, hw = (x1 - x0) / 2 - 84, x = c.cx + cote * Math.min(i < 2 ? 190 : hw, hw), y = i < 2 ? y0 + (y1 - y0) * 0.6 + (i % 2) * 50 : y0 + (y1 - y0) * 0.27;   // V3 : toujours DANS la cour (le 3e au fond), jamais sur un mur   // jamais dans l'axe de la porte
