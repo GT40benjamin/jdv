@@ -19913,7 +19913,7 @@ if (netOff()) { document.body.classList.add('net-off'); netBar(); }   // ouverte
 if (ONLINE && !isGuest() && !room && !netOff() && !invPending() && !INV.bad && !CADRE) openRooms();
 if (CADRE) {   // le jeu seul, dans la page du projet
   document.body.classList.add('cadre');
-  const g0 = (window.JDW_GAMES || {})[CADRE], g = g0 && g0.id === CADRE && laboOk(CADRE) ? g0 : (!g0 && atlNe(CADRE) ? atlStub({ jeu: CADRE }) : null);   // 2.0.132 : jeu connu par le serveur, sans module embarqué   // un jeu de l'Atelier en alpha n'est pas dans GAMES (pas de tuile)
+  const g0 = (window.JDW_GAMES || {})[CADRE], g = g0 && g0.id === CADRE && (laboOk(CADRE) || atlNe(CADRE)) ? g0 : (!g0 && atlNe(CADRE) ? atlStub({ jeu: CADRE }) : null);   // 2.0.133 : un jeu de l'Atelier en essai (LABO) s'ouvre toujours dans le cadre de sa page   // 2.0.132 : jeu connu par le serveur, sans module embarqué   // un jeu de l'Atelier en alpha n'est pas dans GAMES (pas de tuile)
   if (g) atlModule(CADRE, atlVoulue(CADRE)).then(g2 => { const g = g2 || g0; if (!g) { const d = document.createElement('div'); d.className = 'cadre-vide'; d.textContent = 'Ce jeu arrive sur la borne très bientôt !'; document.body.appendChild(d); return; } CADRE_G = g; setTimeout(() => { try { markGameSeen(g.id); Audio.ensure(); } catch (e) {} $('jdw-lib').hidden = true; $('jdw-play').style.setProperty('--acc', g.accent); $('jdw-gtitle').textContent = g.title; backToLibrary(); }, 200); });   // sans salle ni appli : le jeu, tout de suite
   else { const d = document.createElement('div'); d.className = 'cadre-vide'; d.textContent = 'Ce jeu arrive sur la borne très bientôt !'; document.body.appendChild(d); }
   window.addEventListener('message', e => {
