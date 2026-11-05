@@ -26,6 +26,8 @@
 [noisette] 🐿️ Sur la carte de la tuile, les arbres ne passent plus sur les mondes ni sur les titres, et les noisettes des mondes à venir restent bien claires.
 [jetporte] ## 🍑 Jet Porté arrive dans l’Atelier (borne 2.0.117)
 [jetporte] 🍑 Traite le rang de pêchers avant que le vent et la pluie s’en mêlent : 5 niveaux, du matin calme au coup de vent, avec la carte du verger sur la tuile et tes records par niveau.
+[borne] ## ⏸ Le même menu de pause dans tous les jeux (borne 2.0.128)
+[borne] ⏸ Start à la manette, Échap au clavier ou le bouton ⏸ en haut : Reprendre, Recommencer le jeu depuis le début (on te demande d’abord si tu es sûr), Musique, Bruitages, Commandes et Quitter. Les jeux à niveaux ajoutent « Recommencer le niveau ».
 [borne] ## 🔔 Des notifications plus justes dans l’Atelier (borne 2.0.127)
 [borne] 🔔 La cloche te prévient seulement quand {g} t’a vraiment répondu, ou qu’une nouvelle version de ton jeu est prête à tester. Une fois touchée, ou ton projet ouvert, elle disparaît, sur tous tes appareils.
 [borne] 🎮 Quand ton jeu est publié, il arrive dans le bon onglet de la borne : Classique, Duel ou Coop.
