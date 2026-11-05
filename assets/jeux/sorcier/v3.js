@@ -1552,9 +1552,11 @@ function mount(root, api) {
     const S = G.sor; ctx.fillStyle = Math.floor(now * 3) % 2 ? '#ffffff' : '#ffe08a'; ctx.beginPath(); ctx.arc(x + S.x * k, y + S.y * k, 3.5, 0, TAU); ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(x + (cam.x - V.w / 2) * k, y + (cam.y - V.h / 2) * k, V.w * k, V.h * k);
   }
+  // la carte « Nouveau sort » : sa place (les textes flottants passent dessous, jamais dessous elle)
+  function carteSort() { const VV = typeof VZ === 'function' ? VZ() : V, w = portrait ? 440 : 480; return { x: LW / 2 - w / 2, y: VV.y + (portrait ? 300 : Math.max(196, VV.h * 0.3)), w, h: 96 }; }
   function nouveauSort(now) {
     const n = G.nouveau, k = n.t, S = SORTS[n.r], al = clamp(Math.min(k * 3, (3.4 - k) * 3), 0, 1);
-    const w = portrait ? 440 : 480, x = LW / 2 - w / 2, y = V.y + (portrait ? 300 : Math.max(196, V.h * 0.3));
+    const R0 = carteSort(), w = R0.w, x = R0.x, y = R0.y;
     ctx.globalAlpha = al; ctx.fillStyle = 'rgba(30,16,56,0.9)'; carte(x, y, w, 96, 18); ctx.fill(); ctx.strokeStyle = '#b78cff'; ctx.lineWidth = 3; ctx.stroke();
     icone('grimoire', x + 50, y + 48, 58);
     txt('Nouveau sort : ' + S.nom, x + 96, y + 36, 21, '#ffe08a', 'left', 900, 0, DF);
@@ -1687,7 +1689,7 @@ function mount(root, api) {
     ctx.save(); ctx.translate(-C.cx, -C.cy);
     if (state === 'play' && !paused) {
       // V3 : jamais coupés au bord de l'écran ; jamais sous l'annonce du haut (ils passent dessous, l'un sous l'autre)
-      const Bd = msg && !(G && G.nouveau) ? bandeau() : null, L = textes.map(t => ({ t, k: t.t / 1.6, y: t.y - (t.t / 1.6) * 50 })).sort((a, b) => a.y - b.y);
+      const Bs = G && G.nouveau ? carteSort() : null, Bd = Bs ? { bas: Bs.y + Bs.h + 16, demi: Bs.w / 2 + 16 } : msg ? bandeau() : null, L = textes.map(t => ({ t, k: t.t / 1.6, y: t.y - (t.t / 1.6) * 50 })).sort((a, b) => a.y - b.y);
       let bas = Bd ? C.cy + Bd.bas + 20 : -1e9;
       for (const q of L) { const t = q.t, z = t.gros ? 24 : 20; ctx.font = '900 ' + z + 'px ' + RF; const hw = ctx.measureText(t.s).width / 2 + 14;
         const x = clamp(t.x, C.cx + V.x + hw, C.cx + V.x + V.w - hw); let y = q.y;
