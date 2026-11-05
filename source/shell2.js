@@ -15575,6 +15575,7 @@ function atlRenderProjets() {
     else if (ch.length || rp.length) b.appendChild(atlEl('span', 'atl-patt ' + (ch.length ? 'atl-pch' : 'atl-pre') + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), ch.length ? '💡 Offre à choisir' + (ch.length > 1 ? ' (' + ch.length + ')' : '') : '✨ ' + rp.length + ' réponse' + (rp.length > 1 ? 's' : '')));
     else if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '✉️ Nouvelle réponse'));   // 2.0.91 : sous « 🛠️ en cours », plus par-dessus
     if (nqq || ch.length) b.classList.add('choix'); else if (rp.length) b.classList.add('rep');   // le contour de la tuile aussi
+    { const nm = (atlProjNew(pj) ? 1 : 0) + rp.length + ch.length + qq.length; if (nm) b.appendChild(atlEl('span', 'atl-pmsg', '💬 ' + nm)); }   // 2.0.135 : la mascotte a répondu
     b.addEventListener('click', () => { ATL.demVise = vise; atlOuvrir(pj.id); });
     // 20 h 50 (Benjamin) : la ROUE ⚙️ de chaque tuile (Renommer / Supprimer) ; à côté de la tuile, pour ne pas ouvrir le projet
     const w = atlEl('div', 'atl-pwrap'), rg = atlEl('button', 'atl-proue', '⚙️'); rg.type = 'button'; rg.setAttribute('aria-label', 'Réglages du projet « ' + (pj.titre || 'Mon jeu sans nom') + ' »');
@@ -15591,6 +15592,8 @@ function atlRenderProjets() {
   R.querySelector('.atl-suivib').hidden = !(cr && cr.patron); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
 }
 function atlOuvrir(id) {
+  // 2.0.135 (l'admin) : un message NON LU de la mascotte (réponse, question, offre, livraison) → la page s'ouvre SUR ce message (atlAllerNonLu)
+  try { const pj0 = atlProjets().find(x => x.id === id) || ((ATL.tous && Array.isArray(ATL.tous.l)) ? ATL.tous.l.find(x => x.id === id) : null); ATL.allerNonLu = (pj0 && atlProjNew(pj0)) || (((ATL.dem || {}).demandes || []).some(x => x && x.fiche === id && ((x.nouveau && x.reponse) || atlPropOuverte(x) || atlQAttente(x)))) ? id : ''; } catch (e) { ATL.allerNonLu = ''; }
   try { const pj = atlProjets().find(x => x.id === id); if (pj && (pj.version | 0) && ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || ''))) { const vv = store.get('jdw.atl.vvu', {}) || {}; if ((vv[id] | 0) < (pj.version | 0)) { vv[id] = pj.version | 0; store.set('jdw.atl.vvu', vv); } } } catch (e) {}
   atlMicStop(); atlLetterClose(true); atlErr('');
   ATL.demOngP = ''; ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = null; ATL.lance = 0; ATL.tab = (((ATL.dem || {}).demandes || []).some(x => x && x.fiche === id && ((x.nouveau && x.reponse) || atlPropOuverte(x) || atlQAttente(x))) ? 'demandes' : ''); ATL.pSig = ''; ATL.basesOn = false; ATL.bq = 0; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
@@ -16208,6 +16211,22 @@ function atlDiscBloc(f) {
     row.append(tw, go); corps.append(row, msg, rg);
   }
   b.append(hd, corps); return b;
+}
+// 2.0.135 : la discussion ouverte, défilée jusqu'à la dernière réponse de la mascotte, qui brille un instant ; une question ou une offre :
+// visible tout de suite, avec le focus (manette comprise)
+function atlAllerNonLu() {
+  const W = ATL.root && ATL.root.querySelector('.atl-wiz'), f = atlFiche(); if (!W || !f || !ATL.open) return;
+  atlDiscOuvrir(true, true);
+  setTimeout(() => {
+    const b = W.querySelector('.atl-disc'), lg = b && b.querySelector('.atl-disclog'); if (!lg) return;
+    const choix = [...lg.querySelectorAll('.atl-q, .atl-prop, .atl-props, .atl-pchoix')].filter(e => e.getClientRects().length).pop();
+    const cible = choix || [...lg.querySelectorAll('.atl-m.atl-a')].filter(e => e.getClientRects().length).pop(); if (!cible) return;
+    try { b.scrollIntoView({ block: 'start' }); } catch (e) {}
+    lg.scrollTop = Math.max(0, cible.offsetTop - lg.offsetTop - 12);
+    try { cible.scrollIntoView({ block: choix ? 'center' : 'nearest' }); } catch (e) {}
+    cible.classList.add('atl-brille'); setTimeout(() => cible.classList.remove('atl-brille'), 2600);
+    if (choix) { const x = choix.querySelector('button:not([disabled]), input, textarea'); if (x) try { x.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }
+  }, 350);
 }
 function atlDiscOuvrir(on = true, ici) {
   const W = ATL.root && ATL.root.querySelector('.atl-wiz'), f = atlFiche(); if (!W || !f) return;
@@ -18922,7 +18941,8 @@ async function atlLoad(force) {
     if (after && after > before && before && ATL.root) { ATL.root.classList.add('atl-joie'); clearTimeout(ATL.joieT); ATL.joieT = setTimeout(() => ATL.root && ATL.root.classList.remove('atl-joie'), 2600); }   // la réponse arrive : il saute de joie
     if (ATL.open && !document.hidden) atlMarkSeen();
     else if (after && after > before && before && ATL.toastedFor !== after) { ATL.toastedFor = after; try { atlToast('✉️ ' + gNM() + ' t’a répondu !'); } catch (e) {} }
-    atlDoux(atlRender, !force, 'load', atlSigVue()); if (ATL.open) atlDemCharger(false);   // 3 nov. : demandes, réponses et versions en direct (toutes les 20 s) ; 2.0.134 : en douceur
+    atlDoux(atlRender, !force, 'load', atlSigVue()); if (ATL.open) atlDemCharger(false);
+    if (ATL.open && ATL.allerNonLu && ATL.allerNonLu === ATL.cur && atlFiche()) { ATL.allerNonLu = ''; setTimeout(atlAllerNonLu, 250); }   // 2.0.135   // 3 nov. : demandes, réponses et versions en direct (toutes les 20 s) ; 2.0.134 : en douceur
   } catch (e) { if (e && e.status === 404) ATL.off = true; ATL.err++; ATL.errMsg = String((e && e.message) || ''); if (!ATL.data && ATL.open) try { atlRender(); } catch (x) {} if (/projet inconnu/.test(String(e && e.message)) && ATL.cur) { ATL.cur = null; ATL.err = 0; atlRender(); } }
   finally { ATL.busy = false; atlTileState(); try { refreshBell(); } catch (e) {} atlSchedule(); }
 }
