@@ -604,7 +604,7 @@ function menuMontrer(g, o) {
   // la scène : la démo du jeu (g.demo), sinon sa belle image qui bouge doucement
   let demo = null;
   if (typeof g.demo === 'function') { const dr = el('div', 'tm-demo'); scene.appendChild(dr);
-    try { demo = g.demo(dr, { colors: COLORS, fonts: FONTS, assets: () => window.JDW_ASSETS.load(g.id), zoneSure: () => zoneSure(), demo: true }) || null; } catch (e) { demo = null; reportError('Démo du menu (' + g.id + ') : ' + e.message, e.stack, { quiet: true }); dr.remove(); } }
+    try { demo = g.demo(dr, { colors: COLORS, fonts: FONTS, assets: () => window.JDW_ASSETS.load(g.id), zoneSure: () => zoneSure(), appareil: appareilApi(), demo: true }) || null; } catch (e) { demo = null; reportError('Démo du menu (' + g.id + ') : ' + e.message, e.stack, { quiet: true }); dr.remove(); } }
   M._demo = demo; if (!demo) { scene.classList.add('tm-bouge'); menuImage(g, M, scene); }
   // le logo (g.logo : une image du jeu) ou le titre en grand, avec son entrée animée
   const logo = el('div', 'tm-logo');
@@ -660,7 +660,7 @@ function menuMontrer(g, o) {
   vue(o.direct ? '' : 'touche');
   // clavier : n'importe quelle touche (écran « Appuie »), ↑ ↓ entre les choix, Échap / B = revenir
   M._esc = e => {
-    if (document.getElementById('jdw-howto') || !M.isConnected) return;
+    if (document.getElementById('jdw-howto') || !M.isConnected || Date.now() - (HOWTO.fermeAt || 0) < 450) return;
     if (M.dataset.vue === 'touche') { if (['Shift', 'Control', 'Alt', 'Meta', 'Tab'].includes(e.key)) return; e.preventDefault(); e.stopImmediatePropagation(); if (e.key === 'Escape') backToLibrary(); else vue(''); return; }
     if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); e.stopImmediatePropagation(); if (M.dataset.vue !== 'liste') vue(''); else backToLibrary(); return; }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 's' || e.key === 'z' || e.key === 'w') {
@@ -669,6 +669,7 @@ function menuMontrer(g, o) {
       e.preventDefault(); e.stopImmediatePropagation(); try { l[(i + d + l.length) % l.length].focus({ preventScroll: true }); } catch (x) {}
     }
   };
+  M._recul = () => { menuBip(); if (M.dataset.vue && M.dataset.vue !== 'liste' && M.dataset.vue !== 'touche') vue(''); else backToLibrary(); };
   document.addEventListener('keydown', M._esc, true);
   M.addEventListener('pointerdown', e => { if (M.dataset.vue === 'touche' && !e.target.closest('.tm-it')) { e.preventDefault(); vue(''); } });
   // la boutique : seulement si le jeu en a une (jeux de l'Atelier)
@@ -815,7 +816,7 @@ function howtoHide(suite) {
   const el = $('jdw-howto'), then = HOWTO.then; HOWTO.then = null;
   if (HOWTO.keyH) { window.removeEventListener('keydown', HOWTO.keyH, true); HOWTO.keyH = null; }
   if (HOWTO.pad) { padClose(HOWTO.pad); HOWTO.pad = null; }
-  HOWTO.open = false; clearTimeout(HOWTO.calmeT); HOWTO.calmeT = setTimeout(() => { if (!HOWTO.open) document.body.classList.remove('howto-on'); }, 2000);
+  HOWTO.open = false; HOWTO.fermeAt = Date.now(); clearTimeout(HOWTO.calmeT); HOWTO.calmeT = setTimeout(() => { if (!HOWTO.open) document.body.classList.remove('howto-on'); }, 2000);
   if (el) { el.classList.add('out'); el.id = ''; setTimeout(() => el.remove(), 260); }
   if (suite && then) { try { then(); } catch (e) { reportError('Comment jouer : ' + e.message, e.stack, { quiet: true }); } }
 }
@@ -2037,6 +2038,12 @@ const MUSIC_VOL = 0.42, XFADE = 1.6;
 // 2.0.139 (CONTRACT.md Ajout 27) : musique et bruitages réglés À PART pour chaque jeu (oui / non + volume), retenus (jdw.son.<jeu>) ;
 // ils s'ajoutent aux réglages généraux de la borne (menu 🔊)
 const SON_JEU = { id: '', m: true, mv: 1, b: true, bv: 1, fns: new Set() };
+// 2.0.142 (CONTRACT.md Ajout 27 bis) : l'appareil du joueur — 'toucher' | 'clavier' | 'manette' — d'après le DERNIER appui (dès le menu)
+const APPAREIL = { v: (navigator.maxTouchPoints > 0 && matchMedia('(pointer:coarse)').matches) ? 'toucher' : 'clavier', fns: new Set() };
+function appareilMettre(v) { if (APPAREIL.v === v) return; APPAREIL.v = v; for (const f of APPAREIL.fns) { try { f(v); } catch (e) {} } }
+addEventListener('pointerdown', e => appareilMettre(e.pointerType === 'touch' || e.pointerType === 'pen' ? 'toucher' : 'clavier'), true);
+addEventListener('keydown', e => { if (!e.isTrusted) return; appareilMettre('clavier'); }, true);
+const appareilApi = () => Object.assign(() => (typeof PADJ !== 'undefined' && PADJ && PADJ.active && PADJ.active() && APPAREIL.v !== 'toucher') ? 'manette' : APPAREIL.v, { suivre: fn => { if (typeof fn !== 'function') return () => {}; APPAREIL.fns.add(fn); return () => APPAREIL.fns.delete(fn); } });
 // niveau de la musique selon l'écran (accueil 1, en jeu 0.8, fin de partie 0.5) et baisse momentanée pendant un cri
 let musBase = 1, duckLvl = 1, duckUntil = 0, duckTimer = 0, musHush = false;   // musHush : fenêtre des cris ouverte = musique coupée
 function musicLevel() { return musHush ? 0 : MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1) * (micQ ? MIC_QUIET : 1) * (SON_JEU.m ? SON_JEU.mv : 0); }
@@ -11033,6 +11040,7 @@ function mountGame(g) {
     live: g.live ? liveApi(g, seq) : undefined,
     boutique: boutiqueApi(g, seq),   // 2.0.130 : la boutique du créateur (CONTRACT.md Ajout 25, SQL v139)
     // 2.0.139 (CONTRACT.md Ajout 27) : la zone sûre (ce que la borne couvre) et le son réglé pour ce jeu
+    appareil: appareilApi(),   // 2.0.142 : 'toucher' | 'clavier' | 'manette' (dernier appui, dès le menu)
     zoneSure: Object.assign(() => zoneSure(), { suivre: fn => { if (typeof fn !== 'function' || !current || current.seq !== seq) return () => {}; ZS.fns.add(fn); try { fn(zoneSure()); } catch (e) {} return () => ZS.fns.delete(fn); } }),
     son: { etat: () => sonJeuEtat(), suivre: fn => { if (typeof fn !== 'function' || !current || current.seq !== seq) return () => {}; SON_JEU.fns.add(fn); try { fn(sonJeuEtat()); } catch (e) {} return () => SON_JEU.fns.delete(fn); } },
     // 2.0.128 (CONTRACT.md Ajout 24) : le menu de pause standard — le jeu dit ce qu'il sait faire
@@ -15299,7 +15307,10 @@ function atlFenSuivre() {
 addEventListener('popstate', () => { if (ATL_FEN_RETOUR) { ATL_FEN_RETOUR = false; return; } try { if (atlFenOuverte()) atlFenFermer(null, true); } catch (e) {} });
 document.addEventListener('keydown', e => { if (e.key !== 'Escape' || (typeof ATL_MIC !== 'undefined' && ATL_MIC)) return; try { if (atlFenOuverte()) { e.preventDefault(); e.stopPropagation(); atlFenFermer(); } } catch (x) {} }, true);
 function jdwBack() {
-  if (PRIV.back && PRIV.back()) return true;   // espace privé (fenêtre ouverte par-dessus tout)
+  if (PRIV.back && PRIV.back()) return true;
+  // 2.0.142 : « Comment jouer » ouvert, ou fermé par ce même appui → rien de plus ; l'écran-titre d'un jeu recule d'un cran
+  if (typeof HOWTO !== 'undefined' && (HOWTO.open || Date.now() - (HOWTO.fermeAt || 0) < 450)) { if (HOWTO.open) howtoHide(true); return true; }
+  { const gm = document.getElementById('jdw-gmenu'); if (gm && gm._recul) { gm._recul(); return true; } }   // espace privé (fenêtre ouverte par-dessus tout)
   { const bm = document.getElementById('jdw-boutmod'); if (bm) { if (bm._fermer) bm._fermer(); else bm.remove(); return true; } }   // 2.0.130 : la fenêtre d'achat
   { const bv = document.getElementById('jdw-vitrine'); if (bv) { if (bv._fermer) bv._fermer(); else bv.remove(); return true; } }   // 2.0.134 : la vitrine
   { const lm = document.getElementById('jdw-livmod'), li = document.getElementById('jdw-liveinv');   // 2.0.127 : « Inviter mes copains » et l'invitation reçue (B de la manette, retour d'Android)

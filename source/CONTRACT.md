@@ -498,6 +498,8 @@ Champs du module (tous facultatifs) :
   `api` = `{ colors, fonts, assets, zoneSure, demo: true }` (ni score ni son : la musique de menu joue déjà). Rend `{ destroy() }`, appelé au
   ▶ JOUER et en quittant le menu. Laisser libre le coin bas-gauche (la liste). Sans `demo` : la jaquette ou l'aperçu, avec un lent mouvement.
 - `menuImageT` (secondes) : le moment calme de l'aperçu `preview` à montrer quand il n'y a ni démo ni jaquette.
+- `api.appareil()` → 'toucher' | 'clavier' | 'manette' (le DERNIER appui, connu dès le menu) et `api.appareil.suivre(fn)` : le jeu montre tout de
+  suite les bons boutons (le téléphone ne démarre jamais en mode clavier). Aussi dans l'`api` de `demo`.
 ```js
 window.JDW_GAMES['monjeu'] = { id: 'monjeu', title: 'Mon jeu', menu: true, accent: '#7a4ac8', accent2: '#ffe08a',
   music: 'monjeu-1', musicMenu: 'monjeu-menu', logo: 'logo.png',
