@@ -5232,3 +5232,5 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 @media (max-width:600px){#jdw-play .gm-row > .gm-go{flex:1 1 100%}#jdw-play .gm-row > .gm-b{flex:1 1 120px;min-width:0}}
 @media (max-width:600px){#jdw-play .gm-row > .gm-b:last-child{flex:0 0 58px}}   /* ⚙ : un petit bouton au bout de la rangée */
 @media (max-width:600px){#jdw-play .gm-b{white-space:nowrap;font-size:14px;padding-inline:8px}}
+.atl-pver.pe.pb,.atl-pet.pe.pb{background:#3d8bff !important;color:#fff !important;box-shadow:0 2px 0 rgba(0,0,0,.35),0 0 12px rgba(61,139,255,.45)}   /* 2.0.141 : on peut l'essayer, rien en cours */
+@media (max-width:600px){#jdw-play .gm-cadre{place-items:start center;padding:10px 8px 0}#jdw-play .gm-vif{border-radius:14px}}   /* 2.0.141 : portrait, l'image à la largeur de l'écran, en haut */

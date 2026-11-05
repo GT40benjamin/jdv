@@ -590,7 +590,7 @@ function menuMontrer(g) {
   let boutique = 0;
   const jouer = () => { MENU.passe = g.id; menuFermer(); mountGame(g); };
   const vue = (quoi) => {
-    bas.textContent = ''; bas.appendChild(el('h2', 'gm-t', titre));
+    bas.textContent = ''; if (!ATL_NES.has(g.id)) bas.appendChild(el('h2', 'gm-t', titre));   // 2.0.141 : l'image d'un jeu de l'Atelier porte déjà son titre
     if (!quoi) {
       const R = el('div', 'gm-row');
       R.appendChild(btn('btn-play gm-go', '▶ Jouer', jouer));
@@ -638,6 +638,9 @@ function menuMontrer(g) {
 }
 // l'image du menu : la jaquette du jeu de l'Atelier (grande image), sinon l'aperçu animé du jeu (dessiné net à la taille de l'écran),
 // sinon sa vignette de l'accueil ; la même, floutée et agrandie, remplit tout l'écran derrière
+// 2.0.141 (chef) : le moment CALME de l'aperçu de chaque jeu (ni « DOUBLE ! » ni confettis) ; un jeu peut donner le sien : menuImageT (secondes)
+const MENU_IMAGE_T = { empilo: 1.5, glouton: 1.5, mouches: 0.5 };
+function menuImageT(g) { const t = +g.menuImageT; return Number.isFinite(t) && t >= 0 ? t : (MENU_IMAGE_T[g.id] != null ? MENU_IMAGE_T[g.id] : 1); }
 function menuImage(g, M, scene) {
   const flou = document.createElement('div'); flou.className = 'gm-flou'; scene.appendChild(flou);
   const cadre = document.createElement('div'); cadre.className = 'gm-cadre'; scene.appendChild(cadre);
@@ -653,15 +656,17 @@ function menuImage(g, M, scene) {
     if (typeof g.preview !== 'function') { image(ROOT + 'accueil/' + g.id + '.webp'); return false; }
     const c = document.createElement('canvas'); c.className = 'gm-vif gm-cv'; cadre.textContent = ''; cadre.appendChild(c);
     const fc = document.createElement('canvas'); fc.width = 64; fc.height = 48; fc.className = 'gm-flouc'; flou.appendChild(fc);
-    const ctx = c.getContext('2d'), fx = fc.getContext('2d'), t0 = performance.now(); let n = 0;
+    const ctx = c.getContext('2d'), fx = fc.getContext('2d'); let n = 0, taille = '';   // 2.0.141 (chef) : une image FIXE, au tout début de l'aperçu
     const tic = () => {
       if (!M.isConnected) return;
       // la taille vient du CADRE (jamais du canvas lui-même : il grandirait à chaque image), en 4:3 comme les tuiles
       const cs = getComputedStyle(cadre), aw = Math.max(40, cadre.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)), ah = Math.max(30, cadre.clientHeight);
       let cw = aw, ch = aw * 3 / 4; if (ch > ah) { ch = ah; cw = ah * 4 / 3; }
+      if (ah > aw * 1.05) { cw = aw; ch = Math.min(ah, aw * 4 / 3); }   // portrait : à la largeur de l'écran, plus haute que large
       const d = Math.min(2, devicePixelRatio || 1), w = Math.max(1, Math.round(cw * d)), h = Math.max(1, Math.round(ch * d));
       if (c.width !== w || c.height !== h) { c.width = w; c.height = h; c.style.width = Math.round(cw) + 'px'; c.style.height = Math.round(ch) + 'px'; }
-      try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, w, h); ctx.save(); ctx.scale(d, d); g.preview(ctx, w / d, h / d, (performance.now() - t0) / 1000); ctx.restore(); } catch (e) { ctx.restore && ctx.restore(); }
+      const k = w + 'x' + h; if (k === taille && n > 3) { requestAnimationFrame(tic); return; } taille = k;
+      try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, w, h); ctx.save(); ctx.scale(d, d); g.preview(ctx, w / d, h / d, menuImageT(g)); ctx.restore(); } catch (e) { ctx.restore && ctx.restore(); }
       if (!(n++ % 8)) try { fx.drawImage(c, 0, 0, 64, 48); } catch (e) {}
       requestAnimationFrame(tic);
     };
@@ -15427,7 +15432,9 @@ const ATL_ETATS = { brouillon: '📝 Brouillon', en_discussion: '💬 En discuss
 const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : ''; };
 // 23 h 55 (Benjamin : « la version très simple, V1 ou V2 ») : le badge d'un projet
 // 2.0.34 : la couleur de la pastille (🌍 vert, ⏳ jaune, 🏠 violet, 🧪 gris), la même partout
-function atlPastCls(p) { const et = String((p && p.etat) || ''); return et === 'publie_monde' ? ' pm' : et === 'publie_salle' ? (p && p.monde_demande_at ? ' pd' : ' ps') : et === 'alpha' ? ' pe' : ''; }
+function atlPastCls(p) { const et = String((p && p.etat) || ''); return et === 'publie_monde' ? ' pm' : et === 'publie_salle' ? (p && p.monde_demande_at ? ' pd' : ' ps') : et === 'alpha' ? (atlVersionEnCours(p) ? ' pe' : ' pe pb') : ''; }
+// 2.0.141 (l'admin) : une nouvelle version est en cours = le badge « Vn en préparation » / « en cours » de la tuile → pastille GRISE ; sinon BLEUE
+function atlVersionEnCours(p) { return !!p && ((Array.isArray(p.prepa) && p.prepa.length > 0) || (p.n_en_cours | 0) > 0); }
 // 2.0.35 : « Vn prête à publier » dans sa petite pastille à part (cartes de projets)
 function atlVersionPlus(p) { const et = String((p && p.etat) || ''), v = (p && p.version) | 0 || 1, vp = (p && p.version_publiee) | 0 || v; return /^publie_/.test(et) && v > vp ? '🆕 V' + v + ' prête à publier' : ''; }
 function atlVersion(p, att, court) {
