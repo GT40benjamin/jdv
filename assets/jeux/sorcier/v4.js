@@ -1764,7 +1764,8 @@ window.JDW_GAMES.sorcier = {
   title: 'Le Sorcier du Royaume',
   tagline: 'Pille le royaume, deviens le plus puissant !',
   accent: '#7a4ac8',
-  accent2: '#ffe08a',   // V4 (Ajout 27 bis) : l'or des titres, pour l'écran-titre de la borne
+  accent2: '#ffe08a',
+  menuStyle: 'aventure', menuImage: 'menu.jpg', menuImagePortrait: 'menu-portrait.jpg', logo: 'logo.png',   // V4 (Ajout 27 bis) : le vrai écran-titre (ticket offert c38145f5)   // V4 (Ajout 27 bis) : l'or des titres, pour l'écran-titre de la borne
   scoreLabel: 'trésor',
   orientation: 'les2',
   menu: true,           // V4 (Ajout 27) : le menu principal de la borne (▶ Jouer · ❓ Touches · 🔊 Son · ⚙️ Paramètres)
