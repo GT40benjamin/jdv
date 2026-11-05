@@ -98,7 +98,7 @@ begin
     from public.at_boutique_articles a join public.at_fiches f on f.id = a.fiche where f.name = n and f.supprime_at is null), '[]'::jsonb);
 end $$;
 
--- POOKY (service) pose les articles décidés avec le créateur (fiche.boutique) : le nom passe le filtre, sinon l'article reste hors vente
+-- la mascotte (service) pose les articles décidés avec le créateur (fiche.boutique) : le nom passe le filtre, sinon l'article reste hors vente
 create or replace function public.at_boutique_poser(p_fiche uuid, p_cle text, p_nom text, p_prix int, p_image text default null) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare f public.at_fiches; k text := left(lower(btrim(coalesce(p_cle, ''))), 40); nm text := left(btrim(coalesce(p_nom, '')), 60); ok boolean; aid uuid;
 begin
