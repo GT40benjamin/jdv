@@ -945,12 +945,17 @@ function mount(root, api) {
       } else { g.marche = false; g.ph += dt * 2.2; }
     }
     // V3 : chacun garde sa place : deux personnages debout (du même métier) ne se tassent jamais à moins de 44 l'un de l'autre (ils se poussent doucement)
-    const D = 44, V2 = G.gens.filter(g => g.etat !== 'ko' && g.etat !== 'parti');
+    const V2 = G.gens.filter(g => g.etat !== 'ko' && g.etat !== 'parti');
     for (let i = 0; i < V2.length; i++) for (let j = i + 1; j < V2.length; j++) {
-      const a = V2[i], b = V2[j], dx = b.x - a.x, dy = (b.y - a.y) * 1.6; if (a.sorte !== b.sorte || Math.abs(dx) > D || Math.abs(dy) > D) continue;   // (entre gens du même métier : un paysan qui fuit se faufile entre les chevaliers)
+      const a = V2[i], b = V2[j], D = a.sorte === 'chevalier' ? 58 : 46, dx = b.x - a.x, dy = (b.y - a.y) * 0.79; if (a.sorte !== b.sorte || Math.abs(dx) > D || Math.abs(dy) > D) continue;   // (chevaliers : la largeur d'un corps)   // (entre gens du même métier : un paysan qui fuit se faufile entre les chevaliers)
       const d = Math.hypot(dx, dy) || 0.01; if (d >= D) continue;
-      const k = (D - d) / 2, ux = dx / d, uy = dy / d / 1.6;   // (corrigé tout de suite : la poursuite ne les retasse que de quelques unités)
+      const k = (D - d) / 2, ux = dx / d, uy = dy / d / 0.79;   // (un corps fait ~55 de large et ~70 de profondeur : l'un derrière l'autre = à 73 au moins)   // (corrigé tout de suite : la poursuite ne les retasse que de quelques unités)
       bouger(a, -ux * k, -uy * k, 12); bouger(b, ux * k, uy * k, 12);
+    }
+    // autour du sorcier, les chevaliers se placent en arc (à 50 de lui au moins) et pas devant lui : on le voit toujours
+    for (const g of V2) { if (g.sorte !== 'chevalier') continue; const dx = g.x - S.x, dy = g.y - S.y, dw = Math.hypot(dx, dy * 0.79);
+      if (dw < 50) { const k = 50 - dw, ux = dw > 0.01 ? dx / dw : (g.flip ? -1 : 1), uy = dw > 0.01 ? dy / dw : 0; bouger(g, ux * k, uy * k, 12); }
+      if (dy > 4 && dy < 70 && Math.abs(dx) < 46) bouger(g, (dx >= 0 ? 1 : -1) * Math.min(4, 46 - Math.abs(dx)), 0, 12);   // devant lui : il glisse sur le côté
     }
     // (repoussé par un voisin au point de ne presque pas avancer : il ne court pas sur place, il attend)
     for (const g of V2) if (g.marche && g.fx != null && Math.hypot(g.x - g.fx, g.y - g.fy) < 0.6) g.marche = false;
@@ -1451,7 +1456,7 @@ function mount(root, api) {
     if (larg(msg.s, sz) > place) { const m = msg.s.length / 2; let cut = -1; for (let d = 0; d < m; d++) { if (msg.s[Math.floor(m + d)] === ' ') { cut = Math.floor(m + d); break; } if (msg.s[Math.floor(m - d)] === ' ') { cut = Math.floor(m - d); break; } }
       if (cut > 0) L = [msg.s.slice(0, cut), msg.s.slice(cut + 1)]; sz = portrait ? 28 : 32; while (sz > 16 && Math.max(...L.map(t => larg(t, sz))) > place) sz -= 2; }
     const y0 = V.y + (portrait ? 250 : Math.max(150, V.h * 0.2)) - (1 - Math.min(1, msg.t * 3)) * 20;
-    return { L, sz, y0, bas: y0 + (L.length - 0.5) * sz * 1.15 + 6 };
+    return { L, sz, y0, bas: y0 + (L.length - 0.5) * sz * 1.15 + 6, demi: Math.max(...L.map(t => larg(t, sz))) / 2 + 16 };
   }
   function txt(s, x, y, size, c, al, w, stroke, font) {
     ctx.font = (w || 800) + ' ' + size + 'px ' + (font || RF); ctx.textAlign = al || 'center';
@@ -1679,7 +1684,7 @@ function mount(root, api) {
       let bas = Bd ? C.cy + Bd.bas + 20 : -1e9;
       for (const q of L) { const t = q.t, z = t.gros ? 24 : 20; ctx.font = '900 ' + z + 'px ' + RF; const hw = ctx.measureText(t.s).width / 2 + 14;
         const x = clamp(t.x, C.cx + V.x + hw, C.cx + V.x + V.w - hw); let y = q.y;
-        if (Bd && Math.abs(x - (C.cx + LW / 2)) < hw + 300) { y = Math.max(y, bas); bas = y + 30; }
+        if (Bd && Math.abs(x - (C.cx + LW / 2)) < hw + Bd.demi) { y = Math.max(y, bas); bas = y + 30; }   // (toute la largeur réelle de l'annonce)
         ctx.globalAlpha = 1 - q.k * q.k; txt(t.s, x, y, z, t.c, 'center', 900, 6); ctx.globalAlpha = 1; }
     }
     ctx.restore();
