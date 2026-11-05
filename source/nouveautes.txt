@@ -34,7 +34,7 @@
 [borne] 🎨 Dans la liste des joueurs : « dans l’Atelier », ou le jeu publié qu’un copain est en train de créer.
 [borne] 🌿 L’Atelier se met à jour en douceur : plus rien ne saute pendant que tu regardes ou que tu fais défiler, et un nouveau message t’attend avec « ⬇ nouveau message ».
 [borne] 🎉 « Ta V… est sortie ! » donne la date et l’heure, et ne revient plus une fois vu, sur aucun de tes appareils.
-[borne] 💬 Quand {g} t’a répondu, ton projet s’ouvre directement sur sa réponse, et sa tuile le montre avec « 💬 ».
+[borne] 💬 Quand {g} t’a répondu, ton projet s’ouvre directement sur sa réponse, qui brille un instant.
 [borne] ## 🔒 Les jeux en préparation restent secrets (borne 2.0.134)
 [borne] 🔒 Un jeu de l’Atelier qui n’est pas encore sorti ne s’affiche plus dans le chat ni dans la cloche : ses records restent entre son créateur et l’admin.
 [borne] 🏆 Les records des jeux de l’Atelier sortis montrent leur vrai titre et leur image.
