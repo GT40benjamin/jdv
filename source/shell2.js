@@ -11950,12 +11950,15 @@ const MAP_DEFS = {
     tier() { const v7 = MAP_DEFS.noisette.v7(); return { kicker: 'Noisette et ses amis', title: v7 ? 'L’aventure féerique' : 'La forêt', sub: v7 ? '30 niveaux en 6 mondes : retrouve tes 4 amis et rends la lumière à la forêt' : (MAP_DEFS.noisette.v6() ? '20 niveaux en 4 chapitres' : '4 niveaux') + ' pour retrouver Pompon, Piquant, Hulotte et Roussette', acc: '#e88a3a', acc2: '#7fd35a' }; },
     stops(L) { return [[L.H, '#3f6b2c'], [L.H * 0.55, '#2c5a3a'], [L.H * 0.2, '#3f7c8a'], [0, '#2e5f86']]; },
     paint(x, L, W, y0, h) {
-      // des sapins et des feuillus de chaque côté du chemin, toujours aux mêmes places
+      // des sapins et des feuillus de chaque côté du chemin, toujours aux mêmes places ; 2.0.116 (chef) : jamais sur une carte de monde,
+      // un titre, le départ, l'arrivée ni le chemin (zones gardées libres, calculées une fois par carte)
+      const libre = MAP_DEFS.noisette.libre(L, W);
       x.save(); x.translate(0, -y0);
       for (let yy = Math.floor(y0 / 90) * 90; yy < y0 + h + 90; yy += 90) {
         const r = mapRng(yy * 7 + 3);
         for (const side of [0, 1]) {
           const tx = side ? W - 20 - r() * W * 0.22 : 20 + r() * W * 0.22, s = 26 + r() * 22;
+          if (!libre(tx - s * 0.62, yy - s * 1.65, tx + s * 0.62, yy + 8)) continue;
           x.fillStyle = 'rgba(0,0,0,.18)'; x.beginPath(); x.ellipse(tx, yy + 4, s * 0.6, s * 0.16, 0, 0, 7); x.fill();
           x.fillStyle = '#6b4a2b'; x.fillRect(tx - s * 0.08, yy - s * 0.5, s * 0.16, s * 0.5);
           if (r() < 0.5) { x.fillStyle = '#2f7a3a'; x.beginPath(); x.moveTo(tx, yy - s * 1.6); x.lineTo(tx + s * 0.55, yy - s * 0.35); x.lineTo(tx - s * 0.55, yy - s * 0.35); x.closePath(); x.fill(); }
@@ -11963,6 +11966,28 @@ const MAP_DEFS = {
         }
       }
       x.restore();
+    },
+    libre(L, W) {   // (x1, y1, x2, y2) → true si un arbre peut aller là
+      if (L.__libre && L.__libreW === W) return L.__libre;
+      const R = [], pad = 10;
+      for (const nd of L.nodes) {   // la pastille et sa carte, du côté choisi par mapBuild
+        const side = Math.abs(nd.x - W / 2) < L.A * 0.3 ? (nd.lv % 2 ? 'r' : 'l') : nd.x < W / 2 ? 'r' : 'l';
+        const room = side === 'r' ? W - 10 - (nd.x + 40) : nd.x - 40 - 10, lw = Math.max(110, Math.min(250, room));
+        R.push([nd.x - 46, nd.y - 46, nd.x + 46, nd.y + 46]);
+        R.push(side === 'r' ? [nd.x + 34, nd.y - 56, nd.x + 46 + lw, nd.y + 56] : [nd.x - 46 - lw, nd.y - 56, nd.x - 34, nd.y + 56]);
+      }
+      for (const t of L.tiers) R.push([0, t.y - 70, W, t.y + 62]);   // le titre « L'aventure féerique » et sa phrase, sur toute la largeur
+      R.push([L.start.x - 150, L.start.y - 70, L.start.x + 150, L.start.y + 96]);   // le départ (Noisette à gauche, le texte dessous)
+      R.push([W / 2 - 170, L.capY - 50, W / 2 + 170, L.capY + 50]);   // l'arrivée
+      const P = [L.start, ...L.nodes, ...L.bosses].slice().sort((a, b) => b.y - a.y);   // le chemin : du bas vers le haut
+      const xAt = k => W / 2 + L.A * Math.sin(k * 0.95 - 0.35);
+      const cheminX = y => { for (let i = 1; i < P.length; i++) { const a = P[i - 1], b = P[i]; if (y <= a.y && y >= b.y) { const f = a.y === b.y ? 0 : (a.y - y) / (a.y - b.y); return xAt(a.k + (b.k - a.k) * f); } } return null; };
+      const f = (x1, y1, x2, y2) => {
+        for (const q of R) if (x2 > q[0] - pad && x1 < q[2] + pad && y2 > q[1] - pad && y1 < q[3] + pad) return false;
+        for (let y = y1; y <= y2; y += 8) { const cx = cheminX(y); if (cx != null && x2 > cx - 30 && x1 < cx + 30) return false; }
+        return true;
+      };
+      L.__libre = f; L.__libreW = W; return f;
     },
     node(x, info, size, P) {
       // une noisette (dorée à la victoire) sur une pastille de la couleur du niveau

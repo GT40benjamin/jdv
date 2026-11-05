@@ -4894,6 +4894,13 @@ body.atl-on .lose-tip{display:none}
 .gmap-ttl h2{overflow:hidden;text-overflow:ellipsis}
 .gmap[data-theme=noisette] .gmap-ttl h2{color:#fff3d6;text-shadow:0 3px 0 rgba(30,20,6,.85),0 0 16px rgba(232,138,58,.55)}
 .gmap[data-theme=noisette] .gs-art{position:absolute;left:-130px;top:-52px;pointer-events:none;filter:drop-shadow(0 4px 5px rgba(0,0,0,.45))}
+/* 2.0.116 (chef) : carte Noisette — les cartes des mondes et le titre sur un fond plein (rien ne passe au travers), les mondes pas encore atteints restent lisibles */
+.gmap[data-theme=noisette] .gn-lab{background:linear-gradient(180deg,#1d3a22,#142b19);border-color:color-mix(in srgb,var(--nc) 55%,transparent)}
+.gmap[data-theme=noisette] .gmap-node.far .gn-pin{filter:saturate(.75) brightness(.92);opacity:1}
+.gmap[data-theme=noisette] .gmap-node.far .gn-lab{opacity:.92;filter:none}
+.gmap[data-theme=noisette] .gmap-node.far .gn-lab b{color:#e6efe2}
+.gmap[data-theme=noisette] .gmap-tier.far{opacity:1}.gmap[data-theme=noisette] .gt-plate b{color:#fff3d6;text-shadow:0 3px 0 rgba(30,20,6,.7),0 0 14px rgba(232,138,58,.45)}.gmap[data-theme=noisette] .gt-plate small{color:#ffd166}
+.gmap[data-theme=noisette] .gt-plate{padding:12px 22px 14px;border-radius:18px;background:linear-gradient(180deg,rgba(20,44,28,.94),rgba(14,32,20,.94));border:1px solid rgba(255,233,168,.28);box-shadow:0 10px 26px rgba(0,0,0,.35)}
 /* 2.0.74 (Benjamin : « il faut que l'on puisse voir tout ce que veut dire la mascotte ») : plus de phrase coupée par « … » dans les cadres de travail et les bulles : le texte passe à la ligne, le cadre grandit */
 .atl-travail ul{height:auto;overflow:visible}
 .atl-travail ul li{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
