@@ -5410,3 +5410,10 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 #jdw-play .tm-cartoon .tm-bas{left:0!important;right:0!important;width:auto!important;transform:none!important}#jdw-play .tm-cartoon .tm-liste{width:min(520px,calc(100% - 52px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)))!important}   /* 16 px + l'anneau du JOUER de chaque côté */
 #jdw-play .tmenu[data-vue="touche"] .tm-bas{left:0!important;right:0!important;width:auto!important;transform:none!important;display:flex;justify-content:center}#jdw-play .tmenu[data-vue="touche"] .tm-liste{width:auto!important;justify-items:center}#jdw-play .tmenu .tm-it.tm-touche{white-space:nowrap;margin:0 auto}   /* 2.0.143 : toujours centré, sur une ligne */
 #jdw-play .tmenu .tm-it.tm-touche{animation:tmPouls 1.4s ease-in-out infinite!important;opacity:1}@keyframes tmPouls{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}   /* la pastille reste pleine : elle bat doucement au lieu de s'effacer */
+/* 2.0.144 (chef) : téléphone COUCHÉ — JOUER ≤ 40 % de la largeur et ≤ 13 % de la hauteur, COMMANDES et SON à sa droite, le tout dans la bande 72-100 % */
+@media (orientation:landscape) and (max-height:500px){
+  #jdw-play .tm-cartoon .tm-bas{top:calc(var(--sh0) + (100% - var(--sh0)) * .72)!important;height:calc((100% - var(--sh0)) * .28)!important}
+  #jdw-play .tm-cartoon[data-vue="liste"] .tm-liste{display:flex!important;flex-direction:row;align-items:center;justify-content:center;gap:12px!important;width:auto!important;max-width:calc(100% - 140px)}
+  #jdw-play .tm-cartoon[data-vue="liste"] .tm-liste > .tm-go{width:37vw!important;max-width:37vw;max-height:12vh;min-height:0;font-size:min(26px,7vh)!important;padding:0 18px!important;height:12vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+  #jdw-play .tm-cartoon[data-vue="liste"] .tm-liste > .tm-it:not(.tm-go){height:9.5vh;min-height:0;padding:0 14px!important;font-size:min(15px,4.4vh)!important;display:flex;align-items:center}
+}
