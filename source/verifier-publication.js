@@ -17,7 +17,8 @@ const PRIV_MARQUES = [['jdw', 'pk', 'win'].join('-'), ['pk', 'ov'].join('-') + '
 const IMG_OK = [/^icon-(maskable-)?\d+\.png$/, /^android(-apktool)?\/.*ic_launcher(_round|_foreground|_background|_monochrome)?\.png$/, /^android\/icon-512\.png$/, /^accueil\/[a-z0-9_-]+\.(webp|jpg|jpeg|png|webm|svg)$/,
   /^assets\/pegase\/decor(_\d{2}[a-z]?)?(_portrait|_m)?_poster\.(jpg|webp)$/,   // affiche du décor filmé dans le jeu (prairie, aucune personne)
   /^assets\/ilo\/ilo_(boucle|bande_annonce)(_m)?_poster\.(jpg|webp)$/,
-  /^assets\/remparts\.vignette\.webp$/,   // tuile animée de Remparts ! : capture du jeu en marche (plateau 3D, monstres, aucune personne), pas un fichier de pack ; accord de Benjamin du 2 nov. 2026, 1 h 08 (« ok pour la capture animé »), confirmé en direct le 3 nov.   // affiches d'ILO filmées dans le jeu (espace, vaisseau, aucune personne), 27 oct. 2026
+  /^assets\/remparts\.vignette\.webp$/,
+  /^assets\/jeux\/[a-z0-9_-]+\/(menu|menu-portrait|logo)\.(jpg|jpeg|png|webp)$/,   // 2.0.143 : image de menu et logo d'un jeu de l'Atelier (CONTRACT Ajout 27 bis : décor du jeu dessiné, aucune personne ; seulement ces 3 noms)   // tuile animée de Remparts ! : capture du jeu en marche (plateau 3D, monstres, aucune personne), pas un fichier de pack ; accord de Benjamin du 2 nov. 2026, 1 h 08 (« ok pour la capture animé »), confirmé en direct le 3 nov.   // affiches d'ILO filmées dans le jeu (espace, vaisseau, aucune personne), 27 oct. 2026
   /^assets\/pegase\/ile_nuages_(1024|2048)\.webp$/];   // l'île SOUS SA MER DE NUAGES (image fixe de la présentation, rendue par ~/jdv-tools/ilo-a-venir/v4/vitrine.js ; 28 oct. 2026 : la vraie carte n'est plus publique)   // rendu 3D de l'île (fond transparent, aucune personne)   // carte de l'île de Pégase vue de dessus (rendu du jeu, aucune personne), 24 oct. 2026
 const TEXT = /\.(html?|js|mjs|json|md|txt|sql|sh|css|java|xml|yml|webmanifest|svg|py|gradle|properties|hex)$/i;
 for (const f of files) {

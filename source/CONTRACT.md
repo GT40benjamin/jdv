@@ -491,7 +491,7 @@ Champs du module (tous facultatifs) :
 - `menuStyle: 'cartoon' | 'aventure'` (défaut : 'cartoon') : 'cartoon' = un GROS bouton ▶ JOUER arrondi, brillant, en relief, qui respire, les autres choix
   en petits boutons du même style, et Boutique / Records / Options en icônes rondes sur le côté ; 'aventure' = une liste élégante à gauche sur la scène.
 - `menuImage: 'menu.jpg'` (16:9) et `menuImagePortrait: 'menu-portrait.jpg'` (9:16) : l'IMAGE DE MENU du jeu (key art, faite à la fin de la conception,
-  SANS AUCUN TEXTE), dans le dossier du jeu, en plein écran (prioritaire sur la démo). Sans elle : la démo, sinon la belle image du jeu, jamais coupée en haut.
+  SANS AUCUN TEXTE), dans le dossier du jeu, nommées EXACTEMENT menu.jpg / menu-portrait.jpg / logo.png (.jpg, .png ou .webp : la vérification de publication refuse tout autre nom d'image), en plein écran (prioritaire sur la démo). Sans elle : la démo, sinon la belle image du jeu, jamais coupée en haut.
 - `imageATitre: true` : la belle image du jeu porte déjà son titre (pas de titre en texte). Sans logo ni `imageATitre`, la borne écrit toujours le titre.
 - MISE EN PAGE FIGÉE du menu cartoon (borne 2.0.143 ; ne change plus sans prévenir les équipes), en % de la hauteur de la scène (sous la barre du jeu) :
   écran large (PC 16:9, téléphone couché) : LOGO 0-28 %, HÉROS 28-70 %, BOUTONS 70-100 % ; debout : LOGO 0-22 %, HÉROS 22-66 %, BOUTONS 66-100 %.
