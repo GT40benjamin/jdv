@@ -658,7 +658,8 @@ function mount(root, api) {
   }
   function orienter(p, vx, vy) {
     if (vx * vx + vy * vy < 1e-6) return;
-    if (Math.abs(vx) > Math.abs(vy) * 0.85) { p.dir = 'profil'; p.flip = (p.sorte === 'monstre' || p.sorte === 'sorcier') ? vx < 0 : vx > 0; }   // images de profil : sorcier et monstre regardent à droite, les autres à gauche
+    const kP = p.dir === 'profil' ? 0.7 : 1.05;   // V2 : hystérésis (en diagonale il ne clignote plus entre profil et face)
+    if (Math.abs(vx) > Math.abs(vy) * kP) { p.dir = 'profil'; p.flip = (p.sorte === 'monstre' || p.sorte === 'sorcier') ? vx < 0 : vx > 0; }   // images de profil : sorcier et monstre regardent à droite, les autres à gauche
     else p.dir = vy > 0 ? 'face' : 'dos';
   }
   const auRepaire = p => Math.hypot(p.x - M.dec[0].x, p.y - M.dec[0].y) < 300;
@@ -897,8 +898,19 @@ function mount(root, api) {
           g.fuiteT -= dt; vx = g.x - S.x; vy = g.y - S.y; sp = g.sorte === 'roi' ? 105 : 150;
           // reste près de chez lui
           const dh = Math.hypot(g.x - g.home.x, g.y - g.home.y); if (dh > (g.rayon || 300) * 1.6) { vx += (g.home.x - g.x) * 1.5; vy += (g.home.y - g.y) * 1.5; }
-          if (g.bute > 12) { g.bute = 0; g.evite = { x: rnd(-1, 1), y: rnd(-1, 1), t: 0.6 }; }
-          if (g.evite && g.evite.t > 0) { g.evite.t -= dt; vx = g.evite.x; vy = g.evite.y; }
+          // V2 (J2B) : il CONTOURNE le décor au lieu de pousser contre une tour : parmi 16 directions, celle qui l'éloigne le plus du
+          // sorcier en restant libre sur 90 (largeur de son corps comprise) ; il garde sa direction un quart de seconde (pas de tremblote)
+          { const la = Math.hypot(vx, vy) || 1, ax = vx / la, ay = vy / la;
+            g.fdirT = (g.fdirT || 0) - dt;
+            if (!g.fdir || g.fdirT <= 0 || g.bute > 2) {
+              let best = null, bs = -9;
+              for (let k = 0; k < 16; k++) { const an = k / 16 * TAU, ux = Math.cos(an), uy = Math.sin(an); let ok = true;
+                for (let d = 18; d <= 90 && ok; d += 18) for (const o of [-12, 0, 12]) if (bloque(g.x + ux * d - uy * o, g.y + uy * d + ux * o)) { ok = false; break; }
+                const sc = ux * ax + uy * ay + (g.fdir ? 0.3 * (ux * g.fdir.x + uy * g.fdir.y) : 0);
+                if (ok && sc > bs) { bs = sc; best = { x: ux, y: uy }; } }
+              g.fdir = best || { x: ax, y: ay }; g.fdirT = 0.25; g.bute = 0;
+            }
+            vx = g.fdir.x; vy = g.fdir.y; }
           if (g.fuiteT <= 0 && dS > peur) g.etat = 'erre';
         } else [vx, vy, sp] = errer(g, dt, g.sorte === 'roi' ? 40 : 55);
       }
@@ -908,7 +920,9 @@ function mount(root, api) {
         bouger(g, mx, my, 14);
         const fait = Math.hypot(g.x - x0, g.y - y0);
         if (fait < sp * dt * 0.3) { g.bute = (g.bute || 0) + 1; if (g.etat !== 'fuite') g.cible = null; if (g.bute > 18) { g.bute = 0; bouger(g, rnd(-1, 1) * 30, rnd(-1, 1) * 30, 14); } }
-        orienter(g, mx, my); g.ph += dt * (g.etat === 'fuite' ? 11 : g.etat === 'chasse' ? 9 : 7); g.marche = true;
+        // V2 : il ne court jamais sur place : l'animation suit le pas VRAIMENT fait (bloqué = il s'arrête, au repos)
+        if (fait > sp * dt * 0.3) { orienter(g, g.x - x0, g.y - y0); g.ph += dt * (g.etat === 'fuite' ? 11 : g.etat === 'chasse' ? 9 : 7); g.marche = true; }
+        else { g.marche = false; g.ph += dt * 2.2; }
       } else { g.marche = false; g.ph += dt * 2.2; }
     }
   }
