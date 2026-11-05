@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pigeon] ## 🐦 Pigeon Bombardier arrive dans l’Atelier (borne 2.0.132)
+[pigeon] 🐦 Survole la ville en profondeur et vise les passants et les voitures avec tes fientes ; évite les lampadaires, les câbles, les oiseaux et les ballons. Ta distance, ta meilleure série et les records de tes copains (petits drapeaux sur le trottoir) sont là.
 [abracadabra] ## 🎮 Abracadabra : les vraies commandes de la manette (borne 2.0.113)
 [abracadabra] 🎮 L'écran « Comment jouer » montre maintenant les bons boutons : A (ou RB) lance un sort GO / STOP, puis tu parles ; X demande l'indice quand il est proposé ; Y passe en vitesse ×2 pendant la réussite. Il n'y a pas de bouton pour sauter dans ce jeu.
 [chrono] ## 🏁 Turbo Chrono : une mini-carte du circuit, et le fantôme ne cache plus la route (borne 2.0.110)
