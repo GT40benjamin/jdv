@@ -130,6 +130,7 @@ function mount(root, api) {
   pauseBtn.type = 'button'; pauseBtn.setAttribute('aria-label', 'Pause'); pauseBtn.innerHTML = PB_PAUSE;
   pauseBtn.style.cssText = 'position:absolute;top:6px;right:6px;width:46px;height:46px;border-radius:14px;border:2px solid rgba(255,255,255,0.85);background:rgba(90,30,140,0.8);color:#fff;display:none;align-items:center;justify-content:center;padding:0;cursor:pointer;z-index:3;box-shadow:0 0 12px rgba(255,63,208,0.6)';
   root.appendChild(pauseBtn);
+  const PAUSE_BORNE = !!(api.pause && typeof api.pause.ouvrir === 'function');
 
   // ---------- mise en page : paysage 640 de haut, portrait 600 de large ; la salle remplit tout l'écran ----------
   let W = 1, H = 1, dpr = 1, portrait = false, LW = 1100, LH = 640, sc = 1, ox = 0, oy = 0;
@@ -215,8 +216,8 @@ function mount(root, api) {
       if (KEYS.has(k)) return; KEYS.add(k);
       if (state === 'title') { if (k === 'Enter' || k === ' ') lancer(); return; }
       if (state === 'fin') { if ((k === 'Enter' || k === ' ') && stT > 1.6) retourTitre(); return; }
-      if (paused) { menuPauseTouche(k); return; }
-      if (k === 'p' || k === 'Escape') { setPaused(true); return; }
+      if (paused) { if (!PAUSE_BORNE) menuPauseTouche(k); return; }
+      if (k === 'p' || k === 'Escape') { if (PAUSE_BORNE && enJeu()) { try { api.pause.ouvrir(); } catch (er) { setPaused(true); } } else setPaused(true); return; }
       if (state === 'viser' && (k === ' ' || k === 'Enter')) commencerCharge();
     } else {
       KEYS.delete(k);
@@ -231,7 +232,7 @@ function mount(root, api) {
     const p = toL(e); modeDoigt = e.pointerType === 'touch' || e.pointerType === 'pen'; modePad = false;
     if (state === 'title') { lancer(); return; }
     if (state === 'fin') { if (stT > 1.6) retourTitre(); return; }
-    if (paused) { menuPauseClic(p); return; }
+    if (paused) { if (!PAUSE_BORNE) menuPauseClic(p); return; }
     if (state !== 'viser') return;
     IN.glisse = { id: e.pointerId, pts: [p], x0: G.x0, place: null };
   }
@@ -293,7 +294,7 @@ function mount(root, api) {
   }
   function commencerCharge() { if (state !== 'viser' || G.charge) return; G.charge = true; G.chT = 0; G.parPad = modePad; }
 
-  function lancer() { if (!LOADED) return; snd.clic(); viderManette(); nouvellePartie(); state = 'viser'; stT = 0; pauseBtn.style.display = 'flex'; setPaused(false); dire('Manche 1 sur 6', '#7ff7ff'); }
+  function lancer() { if (!LOADED) return; snd.clic(); viderManette(); nouvellePartie(); state = 'viser'; stT = 0; pauseBtn.style.display = PAUSE_BORNE ? 'none' : 'flex'; setPaused(false); dire('Manche 1 sur 6', '#7ff7ff'); }
   function retourTitre() { state = 'title'; stT = 0; G = null; pauseBtn.style.display = 'none'; }
   function dire(s, c, d, gros) { msg = { s, c: c || '#ffffff', t: 0, d: d || 1.8, gros }; }
   function viderManette() { try { if (pad && pad.flush) pad.flush(); } catch (e) { /* rien */ } }
@@ -448,7 +449,7 @@ function mount(root, api) {
     const g = pad.get ? pad.get(0) : null; if (g && g.on && g.held && (g.held.a || g.held.b || g.held.x || g.held.y)) { modePad = true; modeDoigt = false; }
     if (state === 'title') { if (pad.pressed('a') || pad.pressed('start')) { modePad = true; lancer(); } }
     else if (state === 'fin') { if (stT > 1.6 && (pad.pressed('a') || pad.pressed('start'))) { modePad = true; retourTitre(); } }
-    else if (paused) {
+    else if (paused && !PAUSE_BORNE) {
       const n = PM.conf ? 2 : 3, ly = g && g.on ? (g.ly || 0) : 0;
       let d = (pad.pressed('down') || 0) - (pad.pressed('up') || 0);
       if (!d && Math.abs(ly) > 0.6) { if (!PM.stick) { d = ly > 0 ? 1 : -1; PM.stick = true; } } else if (Math.abs(ly) < 0.3) PM.stick = false;
@@ -776,7 +777,12 @@ function mount(root, api) {
     dessinerJeu(now);
     if (flash > 0) { ctx.fillStyle = 'rgba(255,200,255,' + flash * 0.25 + ')'; ctx.fillRect(V.x, V.y, V.w, V.h); }
     if (state === 'title') dessinerTitre(now);
-    else if (G) { dessinerHUD(now); if (state === 'fin') dessinerFin(now); if (paused && enJeu()) dessinerPause(); }
+    else if (G) { dessinerHUD(now); if (state === 'fin') dessinerFin(now); if (paused && enJeu() && !PAUSE_BORNE) dessinerPause(); }
+  }
+  // la borne : « Recommencer le jeu depuis le début » (après sa confirmation) = une partie neuve, manche 1, 0 point (pas de partie gardée)
+  if (PAUSE_BORNE) {
+    try { if (api.pause.onRecommencerJeu) api.pause.onRecommencerJeu(() => { if (dead) return; viderManette(); nouvellePartie(); state = 'viser'; stT = 0; setPaused(false); dire('Manche 1 sur 6', '#7ff7ff'); }); } catch (e) { /* rien */ }
+    try { if (api.pause.onReprendre) api.pause.onReprendre(() => setPaused(false)); } catch (e) { /* rien */ }
   }
   resize();
   const ro = new ResizeObserver(() => { if (!dead) resize(); });
