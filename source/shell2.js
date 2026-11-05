@@ -402,24 +402,88 @@ function padHelpInto(box, g) {
 function padPauseOpen(by) {
   if (!current || current.coop || PADP.open) return;
   const inst = current.inst || {};
+  if (current.game.pauseJeu) { try { if (inst.pause) inst.pause(); else padKey('p'); } catch (e) {} return; }   // 2.0.128 : le jeu a son propre menu (avec les 3 boutons du contrat)
   PADP.open = true; PADP.g = current.game; PADP.by = by || '';
   try { if (inst.pause) inst.pause(); else padKey('p'); } catch (e) {}
   $('jdw-padpause').style.setProperty('--acc', current.game.accent || COLORS.amber);
   $('jdw-padpause-game').textContent = current.game.title;
   padHelpInto($('jdw-padpause-help'), current.game);
+  if (!PADJ || !PADJ.active()) $('jdw-padpause-help').hidden = true;   // 2.0.128 : ouvert au doigt ou au clavier : pas d'aide de manette
+  pauseStdMaj();   // 2.0.128 : les boutons du menu de pause standard
   $('jdw-padpause').hidden = false; musicBaseLevel(0.4);
   setTimeout(() => { if (PADP.open) $('jdw-padpause-resume').focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); }, 40);
 }
 function padPauseClose(resume) {
   if (!PADP.open) return;
   PADP.open = false; $('jdw-padpause').hidden = true; musicBaseLevel(0.8);
-  if (resume && current && current.inst) { const inst = current.inst; try { if (current.pad) current.pad.flush(); } catch (e) {} try { if (inst.resume) inst.resume(); else padKey('p'); } catch (e) {} }
+  if (resume && current && current.inst) { const inst = current.inst; try { if (current.pad) current.pad.flush(); } catch (e) {} try { if (inst.resume) inst.resume(); else padKey('p'); } catch (e) {} try { if (current.pause && current.pause.reprendre) current.pause.reprendre(); } catch (e) {} }
   if (PADJ) PADJ.blur(true);
 }
 // jeu sans pause()/resume() : on lui envoie la touche P (sa pause à lui)
 function padKey(k) {
   for (const t of ['keydown', 'keyup']) { try { window.dispatchEvent(new KeyboardEvent(t, { key: k, code: k.length === 1 ? 'Key' + k.toUpperCase() : k, bubbles: true })); } catch (e) {} }
 }
+// ---- 2.0.128 (l'admin : « tous les jeux ont le même menu de pause, avec un bouton pour recommencer le jeu depuis le début ») : MENU DE PAUSE
+// STANDARD de la borne (CONTRACT.md Ajout 24) — Start (manette), Échap (clavier), ⏸ (barre du jeu) : ▶️ Reprendre · 🔁 Recommencer le niveau
+// (seulement si le jeu sait le faire : api.pause.onRecommencerNiveau) · 🔄 Recommencer le jeu depuis le début (confirmation ; le jeu remet sa
+// partie gardée à zéro dans api.pause.onRecommencerJeu, sinon la borne relance le jeu s'il ne garde rien) · 🎵 Musique · 🔊 Bruitages ·
+// 🎮 Commandes (« Comment jouer ») · ✖ Quitter. Un jeu qui garde SA pause déclare pauseJeu: true (et y met les 3 boutons).
+function pauseStdMk() {
+  const box = document.querySelector('#jdw-padpause .pad-pause-btns'); if (!box || box.dataset.std) return box; box.dataset.std = '1';
+  const mk = (id, cls, txt) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.id = id; b.type = 'button'; b.textContent = txt; return b; };
+  const res = $('jdw-padpause-resume'), quit = $('jdw-padpause-quit');
+  res.textContent = '▶️ Reprendre'; quit.textContent = '✖ Quitter';
+  const niv = mk('jdw-padpause-niveau', 'btn-ghost', '🔁 Recommencer le niveau'), deb = mk('jdw-padpause-debut', 'btn-ghost', '🔄 Recommencer le jeu depuis le début');
+  const mus = mk('jdw-padpause-mus', 'btn-ghost pp-tog', ''), sfx = mk('jdw-padpause-sfx', 'btn-ghost pp-tog', ''), cmd = mk('jdw-padpause-cmd', 'btn-ghost', '🎮 Commandes');
+  const ask = document.createElement('div'); ask.className = 'pp-ask'; ask.id = 'jdw-padpause-ask'; ask.hidden = true;
+  box.textContent = ''; box.append(res, niv, deb, ask, mus, sfx, cmd, quit);
+  niv.addEventListener('click', () => { const f = current && current.pause && current.pause.niveau; padPauseClose(true); if (f) setTimeout(() => { try { f(); } catch (e) { reportError('Recommencer le niveau : ' + e.message, e.stack); } }, 60); });
+  deb.addEventListener('click', () => {
+    ask.textContent = ''; const t = document.createElement('p'); t.textContent = 'Tu vas effacer ta progression dans ce jeu. Sûr ?';
+    const oui = mk('jdw-padpause-oui', 'btn-play', 'Oui, tout recommencer'), non = mk('jdw-padpause-non', 'btn-ghost', 'Non');
+    oui.addEventListener('click', () => { ask.hidden = true; pauseDepuisDebut(); }); non.addEventListener('click', () => { ask.hidden = true; deb.focus({ preventScroll: true }); });
+    ask.append(t, oui, non); ask.hidden = false; setTimeout(() => { non.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); }, 30);
+  });
+  const tog = (cb) => { const c = $(cb); if (c) { c.click(); } pauseStdMaj(); };
+  mus.addEventListener('click', () => tog('jdw-sm-music')); sfx.addEventListener('click', () => tog('jdw-sm-sfx'));
+  cmd.addEventListener('click', () => {   // la partie reste en pause pendant « Comment jouer », reprise à la fermeture
+    const g = current && current.game; if (!g) return;
+    PADP.open = false; $('jdw-padpause').hidden = true; musicBaseLevel(0.8);
+    howtoShow(g, $('jdw-play'), { reprendre: true, then: () => { if (!current || current.game !== g) return; const i2 = current.inst || {}; try { if (current.pad) current.pad.flush(); } catch (e) {} try { if (i2.resume) i2.resume(); else padKey('p'); } catch (e) {} } });
+  });
+  return box;
+}
+function pauseStdMaj() {
+  pauseStdMk(); const g = current && current.game, P = (current && current.pause) || {};
+  const niv = $('jdw-padpause-niveau'), deb = $('jdw-padpause-debut'), ask = $('jdw-padpause-ask'); if (ask) ask.hidden = true;
+  if (niv) niv.hidden = !P.niveau;
+  if (deb) deb.hidden = !(P.jeu || (g && !g.saves));   // une partie gardée sans onRecommencerJeu : la borne ne sait pas l'effacer proprement
+  const m = $('jdw-sm-music'), x = $('jdw-sm-sfx');
+  if ($('jdw-padpause-mus')) $('jdw-padpause-mus').textContent = '🎵 Musique : ' + (m && m.checked ? 'oui' : 'non');
+  if ($('jdw-padpause-sfx')) $('jdw-padpause-sfx').textContent = '🔊 Bruitages : ' + (x && x.checked ? 'oui' : 'non');
+  if ($('jdw-padpause-cmd')) $('jdw-padpause-cmd').hidden = !(g && (howtoAvoir(g) || padHelpOf(g)));
+}
+function howtoAvoir(g) { try { const cj = window.JDW_COMMENT_JOUER || {}; return !!(cj[g.id] || g.howto); } catch (e) { return false; } }
+function pauseDepuisDebut() {
+  const g = current && current.game; if (!g) return; const f = current.pause && current.pause.jeu;
+  padPauseClose(true);
+  if (f) { setTimeout(() => { try { f(); } catch (e) { reportError('Recommencer le jeu : ' + e.message, e.stack); } }, 60); return; }
+  current.over = true; unmountGame(); mountGame(g);   // un jeu sans partie gardée : on le relance, tout neuf
+}
+// la touche Échap pendant une partie = le menu de pause (avant le jeu)
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || e.repeat || !current || current.coop || current.over || PADP.open || QA.open || $('jdw-play').hidden || !$('jdw-end').hidden || PAD_DOM.has(current.game.id) || current.game.pauseJeu) return;
+  if (document.querySelector('.liv-mod, #jdw-howto:not([hidden])') || (typeof HOWTO !== 'undefined' && HOWTO.open)) return;
+  e.preventDefault(); e.stopImmediatePropagation(); padPauseOpen('clavier');
+}, true);
+// le bouton ⏸ de la barre du jeu (doigt, souris)
+(() => {
+  const hb = document.getElementById('jdw-howto-b'); if (!hb || document.getElementById('jdw-pause-b')) return;
+  const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.id = 'jdw-pause-b'; b.type = 'button'; b.hidden = true; b.textContent = '⏸'; b.title = 'Pause'; b.setAttribute('aria-label', 'Pause');
+  b.addEventListener('click', e => { e.stopPropagation(); padPauseOpen('bouton'); });
+  hb.parentNode.insertBefore(b, hb);
+  setInterval(() => { const g = current && current.game; b.hidden = !(g && !current.coop && !current.over && !g.pauseJeu && !PAD_DOM.has(g.id) && !$('jdw-play').hidden); }, 700);
+})();
 $('jdw-padpause-resume').addEventListener('click', () => padPauseClose(true));
 $('jdw-padpause-quit').addEventListener('click', () => { padPauseClose(false); quitGame(); });
 // ---------- commandes montrées au début d'une partie (3 premières fois par jeu, quand on joue à la manette) ----------
@@ -10541,7 +10605,9 @@ function mountGame(g) {
     save: g.saves ? saveApi(g) : undefined,                       // partie gardée à tout moment, appareil + serveur (Ajout 14)
     levelBest: g.saves ? levelBestApi(g) : undefined,             // meilleurs coups par niveau + classement de la salle (Ajout 14)
     reached: g.spots ? reachedApi(g) : undefined,
-    live: g.live ? liveApi(g, seq) : undefined,                   // Abracadabra : les autres joueurs de la salle en direct (Ajout 17)
+    live: g.live ? liveApi(g, seq) : undefined,
+    // 2.0.128 (CONTRACT.md Ajout 24) : le menu de pause standard — le jeu dit ce qu'il sait faire
+    pause: { onReprendre: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).reprendre = typeof fn === 'function' ? fn : null; }, onRecommencerNiveau: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).niveau = typeof fn === 'function' ? fn : null; }, onRecommencerJeu: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).jeu = typeof fn === 'function' ? fn : null; }, ouvrir: () => { if (current && current.seq === seq) padPauseOpen('jeu'); } },                   // Abracadabra : les autres joueurs de la salle en direct (Ajout 17)
     monde: g.monde ? mondeApi(g, seq) : undefined,                // 2.0.56 : le monde partagé de la salle (L'Explorateur de l'espace)
     // (2 nov., Sens Interdit : écran blanc sur un Redmi sans rien au journal) un jeu peut signaler lui-même un souci (3D arrêtée, écran vide, arrêt net) : discret, pas d'écran « Oups »
     report: (m, d) => { if (current && current.seq === seq) reportError(m, d, { quiet: true }); },

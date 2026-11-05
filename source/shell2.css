@@ -5105,3 +5105,8 @@ body.howto-on .fs-tip,body.howto-on #jdw-cheer,body:has(#jdw-howto) .atl-flot{vi
 .atl-segb.on{background:#ffd34d;border-color:#ffd34d;color:#1a1408}
 .atl-segb:disabled{opacity:.5;cursor:wait}
 .atl-padv{color:var(--muted);font:12px/1.35 var(--body)}
+/* 2.0.128 : le menu de pause standard (Start, Échap, ⏸) */
+#jdw-padpause .pad-pause-btns{display:grid;gap:8px}
+#jdw-padpause .pad-pause-btns .btn{width:100%;justify-content:center}
+#jdw-padpause .pp-tog{font-size:.92em}
+.pp-ask{display:grid;gap:8px;padding:10px;border-radius:12px;border:1px solid var(--alarm);background:rgba(255,77,94,.08)}.pp-ask[hidden]{display:none}.pp-ask p{margin:0;font:700 14px/1.4 var(--body)}

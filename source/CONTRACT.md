@@ -352,3 +352,21 @@ salon est ouvert. Salon ouvert = un joueur de la salle est dans ce jeu depuis mo
 voit arriver par `api.live` comme d'habitude. Salon fermé : « La partie est finie », jamais un lien mort. Pas de spam : une invitation par
 copain et par jeu toutes les 5 min, plus rien pendant 1 h après un « non ». Serveur : source/inviter.sql (SQL v136 : live_inviter,
 live_invitations, live_invitation_repondre, live_invites_envoyees, live_salon_vivant ; signal { t: 'invjeu' } du canal privé jdw-sms-<pseudo>).
+
+## Ajout 24 : le menu de pause STANDARD (api.pause, borne 2.0.128 ; règle de l'admin du 5 nov. 2026)
+Tous les jeux ont le même menu de pause, fourni par la borne : Start (manette), Échap (clavier), ⏸ (barre du haut, doigt / souris).
+Il contient : ▶️ Reprendre · 🔁 Recommencer le niveau · 🔄 Recommencer le jeu depuis le début (avec la confirmation « Tu vas effacer ta
+progression dans ce jeu. Sûr ? ») · 🎵 Musique · 🔊 Bruitages · 🎮 Commandes (« Comment jouer ») · ✖ Quitter. Tout se fait à la manette
+(focus doré, A valider, B = Reprendre).
+Le jeu dit ce qu'il sait faire (à appeler dans mount, vérifier `api.pause` d'abord : vieilles bornes) :
+- `api.pause.onRecommencerNiveau(fn)` : la borne ferme le menu, reprend le jeu, puis appelle `fn()` → le jeu remet le niveau en cours au début.
+  Sans cet appel, le bouton « Recommencer le niveau » n'apparaît pas (jeux sans niveaux).
+- `api.pause.onRecommencerJeu(fn)` : après la confirmation, la borne ferme le menu et appelle `fn()` → le jeu efface SA progression (sa partie
+  gardée : `api.save.put(<état de départ>)` puis `flush()`) et repart du tout début. Sans cet appel : un jeu SANS partie gardée (`saves`
+  absent) est simplement relancé par la borne ; un jeu AVEC partie gardée n'affiche pas le bouton (la borne ne connaît pas son format) :
+  **tout jeu qui garde sa progression doit fournir onRecommencerJeu**.
+- `api.pause.onReprendre(fn)` (facultatif) : appelé quand le joueur reprend. `api.pause.ouvrir()` : ouvrir le menu depuis le jeu.
+- La pause elle-même passe toujours par `pause()` / `resume()` de l'instance (sinon la touche P, comme avant).
+Un jeu qui garde SON propre menu de pause déclare `pauseJeu: true` dans son module : la borne n'affiche alors ni sa carte ni le bouton ⏸,
+Start / Échap vont au jeu. Son menu DOIT avoir les mêmes boutons : Reprendre, Recommencer le niveau (s'il a des niveaux), Recommencer le jeu
+depuis le début avec la même confirmation, Son, Commandes, Quitter (`api.quit` ou la croix de la borne).
