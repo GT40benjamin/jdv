@@ -5128,3 +5128,9 @@ body.howto-on .fs-tip,body.howto-on #jdw-cheer,body:has(#jdw-howto) .atl-flot{vi
 .atl-colc figcaption{font:700 13px/1.2 var(--body);text-align:center}.atl-coln{color:var(--muted);font:11.5px var(--body)}
 @media (max-width:600px){.atl-colst{flex-direction:column;gap:2px}.atl-colc{width:100%;max-width:240px}.atl-colv{width:140px;height:140px}.atl-colv img{max-width:134px;max-height:134px}.atl-colfl{line-height:1}}
 @media (prefers-reduced-motion:reduce){.atl-colc.joue .atl-colv img{animation:none}}
+/* 2.0.130 : boutique des créateurs (fenêtre d'achat, « Ma boutique ») */
+.bout-mod .liv-card{border-color:#ffd34d}
+.bout-img{justify-self:center;max-width:160px;max-height:160px;object-fit:contain}
+.bout-prix{margin:0;font:15px var(--body)}.bout-prix b{font:400 24px var(--display);color:#ffe9a8}
+.bout-sig{justify-self:start;border:0;background:none;color:var(--muted);font:12.5px var(--body);text-decoration:underline;cursor:pointer;padding:2px 0}
+.atl-bout{margin-top:8px}.atl-boutr{display:grid;padding:6px 0;border-bottom:1px solid var(--line)}.atl-boutr small{color:var(--muted)}.atl-boutn{display:block;margin-top:6px;color:var(--muted);font:12px/1.35 var(--body)}

@@ -370,3 +370,14 @@ Le jeu dit ce qu'il sait faire (à appeler dans mount, vérifier `api.pause` d'a
 Un jeu qui garde SON propre menu de pause déclare `pauseJeu: true` dans son module : la borne n'affiche alors ni sa carte ni le bouton ⏸,
 Start / Échap vont au jeu. Son menu DOIT avoir les mêmes boutons : Reprendre, Recommencer le niveau (s'il a des niveaux), Recommencer le jeu
 depuis le début avec la même confirmation, Son, Commandes, Quitter (`api.quit` ou la croix de la borne).
+
+## Ajout 25 : la boutique du créateur (api.boutique, borne 2.0.130 ; serveur source/boutique.sql, SQL v139)
+Un jeu de l'Atelier peut vendre des éléments EN CRÉDITS (apparence, contenu en plus : une couleur, un niveau bonus — jamais des points de
+score). Les articles sont posés par la mascotte avec le créateur (`at_boutique_poser`, clé `cle` propre au jeu) ; le jeu ne les invente pas.
+- `await api.boutique.liste()` → `[{ cle, nom, image, prix, euros, possede, mien }]` (vide hors ligne, en invité, ou sans article) ;
+- `await api.boutique.possede(cle)` → vrai si le joueur l'a (gardé à vie, même si l'article est retiré ensuite) : le jeu débloque l'élément ;
+- `await api.boutique.acheter(cle)` → la BORNE ouvre sa fenêtre « Acheter « X » ? » (prix en crédits et en euros, solde, plafond du mois,
+  « Signaler »), met le jeu en pause pendant la fenêtre (pause()/resume()), et rend vrai si c'est acheté. Le jeu ne touche JAMAIS aux crédits.
+Jamais d'achat en un seul toucher pendant la partie : appeler `acheter` depuis un écran calme (menu, boutique du jeu). Rien au hasard (pas de
+caisse mystère). Le créateur reçoit 70 % du prix en crédits (réglage boutique_part_createur), la borne garde 30 % ; jamais d'euros. Le
+créateur (et sa famille) ne peut pas acheter ses propres articles. Plafond de 300 crédits par mois et par joueur (boutique_plafond_mois).

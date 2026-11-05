@@ -10543,6 +10543,71 @@ setInterval(livBtnMaj, 1500);
   b.addEventListener('click', () => { const g = current && current.game; if (g && g.live && room) livInvFenetre(g); });
   mute.parentNode.insertBefore(b, mute);
 })();
+// ---- 2.0.130 : BOUTIQUE DES CRÉATEURS (fiche ~/jdv-tools/boutiques/BOUTIQUE-CREATEURS.md ; serveur source/boutique.sql, SQL v139) : un jeu
+// vend des éléments EN CRÉDITS (jamais d'euros) ; le créateur reçoit 70 %, la borne garde 30 % ; la BORNE confirme chaque achat (prix en crédits
+// et en euros, plafond du mois), le jeu ne touche jamais aux crédits ; rien au hasard ; un élément acheté reste au joueur ; « Signaler ».
+function boutiqueApi(g, seq) {
+  const ok = () => !!current && current.seq === seq && ONLINE && !netOff() && !isGuest() && !!profile.name;
+  let cache = null;
+  const lire = async () => { if (!ok()) return null; try { cache = await rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true }); } catch (e) { cache = null; } return cache; };
+  const art = a => ({ cle: a.cle, nom: a.nom, image: a.image ? atlIaUrl(a.image) || null : null, prix: a.prix | 0, euros: (+a.euros_cents || 0) / 100, possede: !!a.possede, mien: !!a.mien });
+  return {
+    info: () => ({ on: ok() }),
+    async liste() { const r = await lire(); return r && Array.isArray(r.articles) ? r.articles.map(art) : []; },
+    async possede(cle) { const r = cache || await lire(); return !!(r && Array.isArray(r.articles) && r.articles.some(a => a.cle === cle && a.possede)); },
+    async acheter(cle) {
+      if (!ok()) { toastCheer(isGuest() ? 'Crée ton compte pour la boutique 🛍️' : 'Connecte-toi pour la boutique 🛍️', null, true); return false; }
+      const r = await lire(), a = r && Array.isArray(r.articles) ? r.articles.find(x => x.cle === cle) : null; if (!a) return false; if (a.possede) return true;
+      return boutiqueConfirmer(g, a, r);
+    }
+  };
+}
+function boutiqueConfirmer(g, a, r) {
+  return new Promise(fin => {
+    const old = document.getElementById('jdw-boutmod'); if (old && old._fermer) old._fermer();
+    const inst = current && current.inst; let enPause = false; try { if (inst && inst.pause) { inst.pause(); enPause = true; } } catch (e) {}
+    const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+    const M = el('div', 'liv-mod bout-mod'); M.id = 'jdw-boutmod'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Acheter');
+    const C = el('div', 'liv-card'); M.appendChild(C);
+    const cr = atlCred(), solde = cr ? cr.solde | 0 : null, eur = ((+a.euros_cents || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+    C.append(el('h2', '', '🛍️ Acheter « ' + a.nom + ' » ?'));
+    if (a.image && atlIaUrl(a.image)) { const im = el('img', 'bout-img'); im.alt = a.nom; im.src = atlIaUrl(a.image); C.appendChild(im); }
+    const pr = el('p', 'bout-prix'); pr.append(el('b', '', (a.prix | 0).toLocaleString('fr-FR') + ' 💎'), ' (≈ ' + eur + ')' + (solde != null ? ' · tu as ' + solde.toLocaleString('fr-FR') + ' crédits' : '')); C.appendChild(pr);
+    C.appendChild(el('p', 'liv-sub', 'Dans « ' + (atlTitre(g) || g.title || g.id) + ' ». C’est à toi pour toujours. Le créateur du jeu reçoit une part de tes crédits. Ce mois-ci : ' + (r.depense_mois | 0) + ' / ' + (r.plafond_mois | 0) + ' crédits dépensés dans les boutiques.'));
+    const msg = el('p', 'liv-msg', ''); C.appendChild(msg);
+    const bt = el('div', 'liv-btns'), no = el('button', 'btn btn-ghost', 'Non'), go = el('button', 'btn btn-play', 'Oui, acheter · ' + (a.prix | 0) + ' 💎'); no.type = go.type = 'button'; bt.append(no, go); C.appendChild(bt);
+    const sig = el('button', 'bout-sig', '⚑ Signaler cet élément'); sig.type = 'button'; C.appendChild(sig);
+    let res = false;
+    const fermer = () => { M.remove(); document.removeEventListener('keydown', esc, true); try { if (enPause && inst && inst.resume && current && current.inst === inst) inst.resume(); } catch (e) {} fin(res); };
+    const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); fermer(); } };
+    M._fermer = fermer; document.addEventListener('keydown', esc, true); no.addEventListener('click', fermer); M.addEventListener('click', e => { if (e.target === M) fermer(); });
+    sig.addEventListener('click', async () => { sig.disabled = true; try { await rpc('at_boutique_signaler', { p_name: profile.name, p_article: a.id, p_motif: null }, { quiet: true }); sig.textContent = '✔ Signalé : l’admin va regarder'; } catch (e) { sig.disabled = false; } });
+    go.addEventListener('click', async () => {
+      if (solde != null && solde < (a.prix | 0)) { msg.textContent = 'Il te manque ' + ((a.prix | 0) - solde).toLocaleString('fr-FR') + ' crédits.'; return; }
+      go.disabled = true; msg.textContent = 'J’achète…';
+      try {
+        const x = await rpc('at_boutique_acheter', { p_name: profile.name, p_article: a.id }, { quiet: true });
+        if (x && Number.isFinite(+x.solde)) try { atlSolde(+x.solde); } catch (e) {}
+        a.possede = true; res = true; msg.textContent = '✅ C’est à toi !'; setTimeout(fermer, 900);
+      } catch (e) {
+        go.disabled = false; const m = String((e && e.message) || '');
+        msg.textContent = /credits insuffisants/.test(m) ? 'Il te manque des crédits.' : /plafond/.test(m) ? 'Tu as atteint ta limite de ' + (r.plafond_mois | 0) + ' crédits ce mois-ci dans les boutiques.' : /propre jeu/.test(m) ? 'C’est ton jeu : tu as déjà tout !' : /pas en vente/.test(m) ? 'Cet élément n’est plus en vente.' : 'Pas acheté : vérifie le réseau et réessaie.';
+      }
+    });
+    document.body.appendChild(M); setTimeout(() => { try { no.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40);
+  });
+}
+// « 🛍️ Ma boutique » (le créateur, sur la page de son projet) : ses éléments, ses ventes, ses crédits gagnés
+async function atlMaBoutique(box, f) {
+  if (!box || !f || atlAdminIci() || isGuest()) return;
+  let l = null; try { l = await rpc('at_boutique_mes_ventes', { p_name: profile.name }, { quiet: true, quiet404: true }); } catch (e) { l = null; }
+  const mine = Array.isArray(l) ? l.filter(x => x && x.fiche === f.id) : []; if (!mine.length || !box.isConnected) return;
+  const d = atlEl('details', 'atl-greg atl-bout'); d.open = !atlPetit(); const tot = mine.reduce((m, x) => m + (x.gagne | 0), 0), nv = mine.reduce((m, x) => m + (x.ventes | 0), 0);
+  d.appendChild(atlEl('summary', '', '🛍️ Ma boutique · ' + nv + ' vente' + (nv > 1 ? 's' : '') + ' · ' + tot.toLocaleString('fr-FR') + ' 💎 gagnés'));
+  for (const x of mine) { const r = atlEl('div', 'atl-boutr'); r.append(atlEl('b', '', x.nom), atlEl('small', '', (x.prix | 0) + ' 💎 · ' + (x.ventes | 0) + ' vendu' + ((x.ventes | 0) > 1 ? 's' : '') + ' · ' + (x.gagne | 0) + ' 💎 pour toi' + (x.en_vente ? '' : x.filtre_ok ? ' · pas en vente' : ' · en attente de vérification'))); d.appendChild(r); }
+  d.appendChild(atlEl('small', 'atl-boutn', 'Tu reçois 70 % de chaque vente, en crédits : pour créer d’autres jeux et acheter dans la borne. Les crédits ne se changent pas en euros.'));
+  box.appendChild(d);
+}
 // 2.0.56 (équipe de L'Explorateur de l'espace) : le MONDE PARTAGÉ DE LA SALLE d'un jeu qui déclare « monde: true » — des documents JSON
 // par jeu et par salle qui restent quand tout le monde est parti (at_monde_docs, SQL v87) et les échanges entre joueurs en 3 temps
 // (proposer → l'autre accepte → on reconfirme = « conclu », 5 min au plus). Promesses ; null pour un invité, hors ligne ou hors salle.
@@ -10606,6 +10671,7 @@ function mountGame(g) {
     levelBest: g.saves ? levelBestApi(g) : undefined,             // meilleurs coups par niveau + classement de la salle (Ajout 14)
     reached: g.spots ? reachedApi(g) : undefined,
     live: g.live ? liveApi(g, seq) : undefined,
+    boutique: boutiqueApi(g, seq),   // 2.0.130 : la boutique du créateur (CONTRACT.md Ajout 25, SQL v139)
     // 2.0.128 (CONTRACT.md Ajout 24) : le menu de pause standard — le jeu dit ce qu'il sait faire
     pause: { onReprendre: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).reprendre = typeof fn === 'function' ? fn : null; }, onRecommencerNiveau: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).niveau = typeof fn === 'function' ? fn : null; }, onRecommencerJeu: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).jeu = typeof fn === 'function' ? fn : null; }, ouvrir: () => { if (current && current.seq === seq) padPauseOpen('jeu'); } },                   // Abracadabra : les autres joueurs de la salle en direct (Ajout 17)
     monde: g.monde ? mondeApi(g, seq) : undefined,                // 2.0.56 : le monde partagé de la salle (L'Explorateur de l'espace)
@@ -14863,6 +14929,7 @@ addEventListener('popstate', () => { if (ATL_FEN_RETOUR) { ATL_FEN_RETOUR = fals
 document.addEventListener('keydown', e => { if (e.key !== 'Escape' || (typeof ATL_MIC !== 'undefined' && ATL_MIC)) return; try { if (atlFenOuverte()) { e.preventDefault(); e.stopPropagation(); atlFenFermer(); } } catch (x) {} }, true);
 function jdwBack() {
   if (PRIV.back && PRIV.back()) return true;   // espace privé (fenêtre ouverte par-dessus tout)
+  { const bm = document.getElementById('jdw-boutmod'); if (bm) { if (bm._fermer) bm._fermer(); else bm.remove(); return true; } }   // 2.0.130 : la fenêtre d'achat
   { const lm = document.getElementById('jdw-livmod'), li = document.getElementById('jdw-liveinv');   // 2.0.127 : « Inviter mes copains » et l'invitation reçue (B de la manette, retour d'Android)
     if (lm) { if (lm._fermer) lm._fermer(); else lm.remove(); return true; } if (li && !li.hidden) { li.hidden = true; clearTimeout(LIVINV.cur); return true; } }
   if (QA.open) { quitAskClose(false); return true; }   // « Quitter la partie ? » : retour = Continuer
@@ -16181,7 +16248,7 @@ function atlRenderProjet(W, f) {
     if (!atlAdminIci()) inf.appendChild(atlEl('small', 'atl-discsous', ATL_DISC_AIDE));
     { const rg = atlEl('details', 'atl-greg'); rg.open = !atlPetit(); rg.appendChild(atlEl('summary', '', '⚙️ Réglages du jeu'));   // 2.0.95 : les réglages rares, repliés sur téléphone
       const vb = atlEl('button', 'btn btn-sm btn-ghost', '🖼️ Modifier l’image de ta tuile'); vb.type = 'button'; vb.addEventListener('click', () => atlVignetteDem(f, vg));
-      rg.append(vb, atlOrientChoix(f, g), atlCreateurChamp(f)); inf.appendChild(rg); }
+      rg.append(vb, atlOrientChoix(f, g), atlCreateurChamp(f)); inf.appendChild(rg); atlMaBoutique(inf, f); }
     fr.appendChild(inf); p.appendChild(fr);
     const bar = atlEl('div', 'atl-gbar');
     const fs = atlEl('button', 'btn btn-ghost btn-sm', '⛶ Plein écran'); fs.type = 'button'; fs.disabled = !g;
