@@ -12,7 +12,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const ANIMS = {"chevalier":{"ko":[["chevalier.1c996e87",0.452,0]],"coup":[["chevalier.4e2ec534",0.576,0],["chevalier.549c1ac2",0.651,0]],"marche_dos":[["chevalier.6e176eee",0.414,2],["chevalier.b0fb6fc8",0.418,2]],"marche_face":[["chevalier.7e6a8f9c",0.582,0],["chevalier.4e2ec534",0.576,0],["chevalier.114663e2",0.578,0],["chevalier.4e2ec534",0.576,0]],"marche_profil":[["chevalier.0d69895f",0.585,2],["chevalier.00907991",0.562,2]],"repos_dos":[["chevalier.6e176eee",0.414,0],["chevalier.b0fb6fc8",0.418,0]],"repos_face":[["chevalier.4e2ec534",0.576,0],["chevalier.9630ecbe",0.558,0]],"repos_profil":[["chevalier.0d69895f",0.585,0],["chevalier.00907991",0.562,0]]},"monstre":{"ko":[["monstre.9ccd9391",0.512,0]],"coup":[["monstre.093ba1f1",0.525,0],["monstre.8dda9f88",0.531,0]],"marche_dos":[["monstre.b8bfee78",0.49,0],["monstre.2c68c115",0.494,0],["monstre.8a169e5a",0.472,0],["monstre.2c68c115",0.494,0]],"marche_face":[["monstre.aee63df1",0.539,0],["monstre.7fafd286",0.508,0],["monstre.2ab3f848",0.508,0],["monstre.7fafd286",0.508,0]],"marche_profil":[["monstre.7c4bc8cf",0.503,2],["monstre.10bc060a",0.517,2]],"repos_dos":[["monstre.2c68c115",0.494,0],["monstre.1510bd71",0.493,0]],"repos_face":[["monstre.7fafd286",0.508,0],["monstre.211014ce",0.508,0]],"repos_profil":[["monstre.10bc060a",0.517,0],["monstre.0f347886",0.518,0]]},"paysan":{"ko":[["paysan.d97bae08",0.446,0]],"fuite":[["paysan.69c7f09a",0.478,0],["paysan.69c7f09a~",0.514,0]],"marche_dos":[["paysan.fda9a86d",0.522,0],["paysan.12ac73be",0.522,0],["paysan.d471b857",0.513,0],["paysan.12ac73be",0.522,0]],"marche_face":[["paysan.82b07dd6",0.49,0],["paysan.b5e78d06",0.497,0],["paysan.0bc1763f",0.487,0],["paysan.b5e78d06",0.497,0]],"marche_profil":[["paysan.347e93c7~",0.53,0],["paysan.563cbb59",0.504,0],["paysan.d45db1ba~",0.48,0],["paysan.563cbb59",0.504,0]],"repos_dos":[["paysan.12ac73be",0.522,0],["paysan.24bba059",0.52,0]],"repos_face":[["paysan.b5e78d06",0.497,0],["paysan.0bc1763f",0.487,0]],"repos_profil":[["paysan.563cbb59",0.504,0],["paysan.5ab8033d",0.546,0]]},"roi":{"ko":[["roi.df1e668c",0.469,0]],"coup":[["roi.9c131693",0.453,0],["roi.2ea0b3a6",0.451,0]],"marche_dos":[["roi.6aec9673",0.478,0],["roi.9f671b9e",0.476,0],["roi.3699794e",0.478,0],["roi.9f671b9e",0.476,0]],"marche_face":[["roi.7eef871a",0.497,0],["roi.46502e6a",0.5,0],["roi.1ca3ade4",0.497,0],["roi.46502e6a",0.5,0]],"marche_profil":[["roi.a191ec6c",0.505,0],["roi.69bf991c",0.505,0],["roi.34a1fdb9",0.504,0],["roi.69bf991c",0.505,0]],"repos_dos":[["roi.9f671b9e",0.476,0],["roi.3699794e",0.478,0]],"repos_face":[["roi.46502e6a",0.5,0],["roi.2ef7ee76",0.496,0]],"repos_profil":[["roi.69bf991c",0.505,0],["roi.69115750",0.507,0]]},"sorcier":{"marche_dos":[["sorcier.a3245f5b",0.487,0],["sorcier.6a333008",0.472,0],["sorcier.b6377143",0.492,0],["sorcier.6a333008",0.472,0]],"marche_face":[["sorcier.48c76cf5",0.49,0],["sorcier.650003f1",0.508,0],["sorcier.810e04c9",0.508,0],["sorcier.650003f1",0.508,0]],"marche_profil":[["sorcier.7466efa9",0.433,0],["sorcier.9396817e",0.457,0],["sorcier.4d40d9bb",0.438,0],["sorcier.9396817e",0.457,0]],"repos_dos":[["sorcier.6a333008",0.472,0],["sorcier.f075a6e5",0.49,0]],"repos_face":[["sorcier.650003f1",0.508,0],["sorcier.78b938c6",0.503,0]],"repos_profil":[["sorcier.9396817e",0.457,0],["sorcier.45e20d31",0.472,0]],"sort":[["sorcier.dbb6413d",0.491,0],["sorcier.cc971a5b",0.495,0],["sorcier.1fe5d4ad",0.455,0]]}};
+const ANIMS = {"chevalier":{"ko":[["chevalier.1c996e87",0.452,0]],"coup":[["chevalier.4e2ec534",0.576,0],["chevalier.549c1ac2",0.651,0]],"marche_dos":[["chevalier.6e176eee",0.414,2],["chevalier.b0fb6fc8",0.418,2]],"marche_face":[["chevalier.7e6a8f9c",0.582,0],["chevalier.4e2ec534",0.576,0],["chevalier.114663e2",0.578,0],["chevalier.4e2ec534",0.576,0]],"marche_profil":[["chevalier.0d69895f",0.585,2]],"repos_dos":[["chevalier.6e176eee",0.414,0],["chevalier.b0fb6fc8",0.418,0]],"repos_face":[["chevalier.4e2ec534",0.576,0]],"repos_profil":[["chevalier.0d69895f",0.585,0]]},"monstre":{"ko":[["monstre.9ccd9391",0.512,0]],"coup":[["monstre.093ba1f1",0.525,0],["monstre.8dda9f88",0.531,0]],"marche_dos":[["monstre.b8bfee78",0.49,0],["monstre.2c68c115",0.494,0],["monstre.8a169e5a",0.472,0],["monstre.2c68c115",0.494,0]],"marche_face":[["monstre.aee63df1",0.539,0],["monstre.7fafd286",0.508,0],["monstre.2ab3f848",0.508,0],["monstre.7fafd286",0.508,0]],"marche_profil":[["monstre.7c4bc8cf",0.503,2],["monstre.10bc060a",0.517,2]],"repos_dos":[["monstre.2c68c115",0.494,0],["monstre.1510bd71",0.493,0]],"repos_face":[["monstre.7fafd286",0.508,0],["monstre.211014ce",0.508,0]],"repos_profil":[["monstre.10bc060a",0.517,0],["monstre.0f347886",0.518,0]]},"paysan":{"ko":[["paysan.d97bae08",0.446,0]],"fuite":[["paysan.69c7f09a",0.478,0],["paysan.69c7f09a~",0.514,0]],"marche_dos":[["paysan.fda9a86d",0.522,0],["paysan.12ac73be",0.522,0],["paysan.d471b857",0.513,0],["paysan.12ac73be",0.522,0]],"marche_face":[["paysan.82b07dd6",0.49,0],["paysan.b5e78d06",0.497,0],["paysan.0bc1763f",0.487,0],["paysan.b5e78d06",0.497,0]],"marche_profil":[["paysan.347e93c7~",0.53,0],["paysan.563cbb59",0.504,0],["paysan.d45db1ba~",0.48,0],["paysan.563cbb59",0.504,0]],"repos_dos":[["paysan.12ac73be",0.522,0],["paysan.24bba059",0.52,0]],"repos_face":[["paysan.b5e78d06",0.497,0],["paysan.0bc1763f",0.487,0]],"repos_profil":[["paysan.563cbb59",0.504,0],["paysan.5ab8033d",0.546,0]]},"roi":{"ko":[["roi.df1e668c",0.469,0]],"coup":[["roi.9c131693",0.453,0],["roi.2ea0b3a6",0.451,0]],"marche_dos":[["roi.6aec9673",0.478,0],["roi.9f671b9e",0.476,0],["roi.3699794e",0.478,0],["roi.9f671b9e",0.476,0]],"marche_face":[["roi.7eef871a",0.497,0],["roi.46502e6a",0.5,0],["roi.1ca3ade4",0.497,0],["roi.46502e6a",0.5,0]],"marche_profil":[["roi.a191ec6c",0.505,0],["roi.69bf991c",0.505,0],["roi.34a1fdb9",0.504,0],["roi.69bf991c",0.505,0]],"repos_dos":[["roi.9f671b9e",0.476,0],["roi.3699794e",0.478,0]],"repos_face":[["roi.46502e6a",0.5,0],["roi.2ef7ee76",0.496,0]],"repos_profil":[["roi.69bf991c",0.505,0],["roi.69115750",0.507,0]]},"sorcier":{"marche_dos":[["sorcier.a3245f5b",0.487,0],["sorcier.6a333008~",0.514,0],["sorcier.b6377143",0.492,0],["sorcier.6a333008~",0.514,0]],"marche_face":[["sorcier.810e04c9~",0.479,0],["sorcier.650003f1",0.508,0],["sorcier.810e04c9",0.508,0],["sorcier.650003f1",0.508,0]],"marche_profil":[["sorcier.7466efa9",0.433,0],["sorcier.9396817e",0.457,0],["sorcier.4d40d9bb",0.438,0],["sorcier.9396817e",0.457,0]],"repos_dos":[["sorcier.6a333008~",0.514,0],["sorcier.f075a6e5",0.49,0]],"repos_face":[["sorcier.650003f1",0.508,0],["sorcier.78b938c6",0.503,0]],"repos_profil":[["sorcier.9396817e",0.457,0],["sorcier.45e20d31",0.472,0]],"sort":[["sorcier.dbb6413d",0.491,0],["sorcier.cc971a5b",0.495,0],["sorcier.1fe5d4ad",0.455,0]]}};
 
 /* ---------- images (paquet NOI1 : en-tête JSON [nom, début, longueur, largeur, hauteur] + WebP) ---------- */
 const IMG = {};
@@ -1001,7 +1001,9 @@ function mount(root, api) {
       vitesse = marche ? 1 : 0.5;
     }
     const k = Math.floor(p.ph * vitesse) % liste.length, f = liste[(k + liste.length) % liste.length];
-    return { f, rb: f[2] ? Math.abs(Math.sin(p.ph * vitesse * Math.PI)) * f[2] : 0 };
+    // une seule image (chevalier au repos) : il respire par le code (le buste monte et descend doucement)
+    const sy = liste.length === 1 && vitesse < 1 ? 1 + 0.022 * Math.sin(p.ph * 1.6) : 1;
+    return { f, sy, rb: f[2] ? Math.abs(Math.sin(p.ph * vitesse * Math.PI)) * f[2] : 0 };
   }
   function ombre(x, y, r, a) { ctx.fillStyle = 'rgba(15,10,25,' + (a == null ? 0.32 : a) + ')'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.34, 0, 0, TAU); ctx.fill(); }
   function lueur(x, y, r, c, al) { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, c + al + ')'); g.addColorStop(1, c + '0)'); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); }
@@ -1024,6 +1026,7 @@ function mount(root, api) {
     if (p.sorte === 'monstre' && p.etat === 'ko') alpha = clamp(1.8 - p.koT, 0, 1);
     if (p.sorte === 'monstre' && p.vie < 3 && p.etat !== 'ko' && Math.floor(now * 8) % 2 === 0) alpha = 0.6;
     ctx.globalAlpha = alpha;
+    if (c.sy) sy *= c.sy;
     sprite(ctx, c.f[0], p.x, y - c.rb * 0.5, h, flip, PX(), c.f[1], 1, sy);
     if (p.choc > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = p.choc * 0.5; sprite(ctx, c.f[0], p.x, y - c.rb * 0.5, h, flip, PX(), c.f[1], 1, sy); ctx.globalCompositeOperation = 'source-over'; }
     ctx.globalAlpha = 1;
@@ -1229,21 +1232,22 @@ function mount(root, api) {
   function dessinerHUD(now) {
     const x0 = V.x + 14 + (!portrait && H <= 500 ? 100 / sc : 0), y0 = V.y + 12, s = possede(), r = rang();
     // le trésor : ce que tu possèdes
-    const bw = portrait ? 250 : 286;
+    ctx.font = '900 34px ' + DF; const lw = ctx.measureText(fmt(s)).width; ctx.font = '700 13px ' + RF; const lt = ctx.measureText('Ce que tu possèdes').width;
+    const bw = Math.max(64 + Math.max(lw, lt) + 18, 16 + G.pvMax * 32 + 8, 236);
     ctx.fillStyle = 'rgba(25,14,45,0.78)'; carte(x0, y0, bw, 96, 16); ctx.fill(); ctx.strokeStyle = 'rgba(200,160,255,0.55)'; ctx.lineWidth = 2; ctx.stroke();
     icone('pieces', x0 + 34, y0 + 32, 30);
     txt(fmt(s), x0 + 64, y0 + 44, 34, '#ffe08a', 'left', 900, 6, DF);
     txt('Ce que tu possèdes', x0 + 66, y0 + 62, 13, '#d8c8f0', 'left', 700);
     for (let i = 0; i < G.pvMax; i++) coeur(x0 + 16 + i * 32, y0 + 70, 3.4, i < G.pv);
     // le rang et le prochain sort
-    const nx = SORTS[r + 1], y1 = y0 + 104;
-    ctx.fillStyle = 'rgba(25,14,45,0.7)'; carte(x0, y1, bw, nx ? 46 : 28, 12); ctx.fill();
+    const nx = SORTS[r + 1], y1 = y0 + 104, bw2 = Math.max(bw, portrait ? 250 : 286);
+    ctx.fillStyle = 'rgba(25,14,45,0.7)'; carte(x0, y1, bw2, nx ? 46 : 28, 12); ctx.fill();
     txt('🧙 ' + SORTS[r].rang, x0 + 12, y1 + 19, 15, '#e0c8ff', 'left', 800);
     if (nx) {
       const k = clamp((s - SORTS[r].p) / (nx.p - SORTS[r].p), 0, 1);
-      ctx.fillStyle = 'rgba(255,255,255,0.15)'; carte(x0 + 12, y1 + 28, bw - 24, 9, 4.5); ctx.fill();
-      ctx.fillStyle = '#b78cff'; carte(x0 + 12, y1 + 28, Math.max(9, (bw - 24) * k), 9, 4.5); ctx.fill();
-      txt(nx.nom + ' à ' + fmt(nx.p), x0 + bw - 12, y1 + 19, 12, '#bfb0d8', 'right', 700);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)'; carte(x0 + 12, y1 + 28, bw2 - 24, 9, 4.5); ctx.fill();
+      ctx.fillStyle = '#b78cff'; carte(x0 + 12, y1 + 28, Math.max(9, (bw2 - 24) * k), 9, 4.5); ctx.fill();
+      txt(nx.nom + ' à ' + fmt(nx.p), x0 + bw2 - 12, y1 + 19, 12, '#bfb0d8', 'right', 700);
     }
     // grimoire (bouton) et la carte du royaume
     const gb = BTN_GRIM();
@@ -1264,7 +1268,7 @@ function mount(root, api) {
       ctx.globalAlpha = al; txt(msg.s, LW / 2, V.y + (portrait ? 300 : Math.max(200, V.h * 0.3)) - (1 - Math.min(1, msg.t * 3)) * 20, sz, msg.c, 'center', 900, 8, DF); ctx.globalAlpha = 1;
     }
     if (G.nouveau) nouveauSort(now);
-    if (auRepaire(G.sor) && G.t > 2) txt(G.pv < G.pvMax ? 'Ta tour te soigne ❤' : 'Ta tour : ici, personne n\'ose entrer', LW / 2, V.y + V.h - (modeDoigt ? 200 : 40), 18, '#e0c8ff', 'center', 800, 5);
+    if (auRepaire(G.sor) && G.t > 2) { const haut = modeDoigt ? Math.min(...BT.map(b => b.y - b.r)) - 22 : V.y + V.h - 40; txt(G.pv < G.pvMax ? 'Ta tour te soigne ❤' : 'Ta tour : personne n\'ose y entrer', LW / 2, Math.min(haut, V.y + V.h - 40), 18, '#e0c8ff', 'center', 800, 5); }
   }
   function iconeSort(k, x, y, R, verrou) {
     if (k === 'feu') { ctx.globalCompositeOperation = 'lighter'; lueur(x, y, R * 0.9, 'rgba(66,165,245,', 0.8); lueur(x, y, R * 0.4, 'rgba(230,248,255,', 1); ctx.globalCompositeOperation = 'source-over'; }
