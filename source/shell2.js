@@ -74,6 +74,11 @@ const ATL_JEUX = (() => {
 })();
 const laboOk = id => !LABO.has(id) || LABO_TEST || ATL_JEUX.has(id);
 // 2.0.74 : le titre d'un jeu de l'Atelier = celui de sa fiche (at_jeux), pas celui du module embarqué (« Seul sur la Lune » pour L'Explorateur V9)
+// 2.0.134 : titre et jaquette d'un jeu de l'Atelier d'après son id (at_jeux), pour les cartes et les annonces
+const atlTitreId = id => { try { const x = ATL_JEUX.get(String(id || '')); return x && x.titre ? String(x.titre) : ''; } catch (e) { return ''; } };
+const atlJaqId = id => { try { const x = ATL_JEUX.get(String(id || '')); return x && x.vignette ? atlIaUrl(x.vignette) : ''; } catch (e) { return ''; } };
+// 2.0.134 (l'admin) : un jeu de l'Atelier pas publié (pour tous, ou dans cette salle) ne s'annonce pas : le serveur ne crée plus rien (SQL v145), la borne cache le reste
+const atlAnnonceOk = id => { const b = String(id || '').split('@')[0]; if (!ATL_NES.has(b)) return true; const x = ATL_JEUX.get(b); return !!(x && /^publie_/.test(String(x.etat || ''))); };
 const atlTitre = g => { try { const x = g && ATL_NES.has(g.id) && ATL_JEUX.get(g.id); if (x && x.titre) return String(x.titre); } catch (e) {} return g ? g.title : ''; };
 // 2 nov. 17 h 30, Benjamin : un jeu NÉ À L'ATELIER n'a PAS de tuile sur la borne (ni en mode test, ni « ⭐ MON JEU ») tant qu'il n'est pas
 // publié : en alpha il se trouve et se joue UNIQUEMENT dans l'Atelier (page du projet, onglet 🎮 Jouer). Il arrive sur la borne avec
@@ -2226,8 +2231,8 @@ async function flushUnsent() {
 function recTag(tag) {
   const t = String(tag || ''), i = t.indexOf('@'), base = i > 0 ? t.slice(0, i) : t, lv = i > 0 ? t.slice(i + 1) : '';
   const sb = siBoard(base); if (sb) { const gs = gameById('sensinterdit'); return { g: gs, base, lv: sb.short, where: (gs ? gs.title : 'Sens Interdit') + ' · ' + sb.short, val: sb.val, word: 'ton record', ic: sb.ic }; }
-  const g = gameById(base) || null;
-  if (!lv) return { g, base, lv: '', where: g ? g.title : '', val: v => fmt(v) + unit(g), word: 'ton record', ic: '🏆' };
+  const g = gameById(base) || (ATL_NES.has(base) ? (window.JDW_GAMES || {})[base] || null : null);   // 2.0.134 : un jeu de l'Atelier pas encore dans la grille
+  if (!lv) return { g, base, lv: '', where: g ? atlTitre(g) : atlTitreId(base), val: v => fmt(v) + unit(g), word: 'ton record', ic: '🏆' };
   const msT = v => { const c = Math.round(v / 10), m = Math.floor(c / 6000), sec = Math.floor(c / 100) % 60; return m + ':' + String(sec).padStart(2, '0') + '.' + String(c % 100).padStart(2, '0'); };
   if (base === 'remparts') { const lvR = lv.replace(/-r\d+$/, ''), W = { prairie: 'La Forêt enchantée', dunes: 'Le Jardin maudit', neige: 'Les Grottes de glace', volcan: 'Les Forges ardentes', hante: 'La Crypte oubliée' }, inf = /^inf-/.test(lvR), CR = ['Cimetière des lanternes', 'Catacombes royales', 'Village englouti', 'Royaume des nuages'];   // Crypte oubliée (4 nov.) : c<monde>n<niveau>
     for (let a = 1; a <= 4; a++) for (let n = 1; n <= 5; n++) W['c' + a + 'n' + n] = 'Crypte · ' + CR[a - 1] + ' · niveau ' + n; return { g, base, lv: lvR, where: (g ? g.title : 'Remparts !') + ' · ' + (inf ? (W[lvR.slice(4)] || lvR.slice(4)) + ' sans fin' : W[lvR] || (/^defi-\d{8}$/.test(lvR) ? 'défi du ' + lvR.slice(11, 13) + '/' + lvR.slice(9, 11) : lvR)), val: v => fmt(Math.max(0, 100000 - v) * (inf ? 10 : 1)) + ' points', word: 'ton record', ic: '🏰' }; }   // Ajout 22 : coups = 100 000 − score ; « inf-<monde> » (Sans fin) rangé en points ÷ 10
@@ -2263,7 +2268,7 @@ async function loadNotifs() {
       notifsOk = true;
     } catch (e) { notifsOk = false; }              // fonction absente côté serveur : pas de cloche
   } else { notifs = localNotifs.filter(n => n.target === me); notifsOk = true; }
-  notifs = notifGroupes(notifs);
+  notifs = notifGroupes(notifs.filter(n => atlAnnonceOk(n.game)));   // 2.0.134 : jamais un jeu de l'Atelier pas publié
   refreshBell();
   const key = notifKey(), last = notifToasted[key] || 0, fresh = notifs.filter(n => n.id > last);
   if (fresh.length && $('jdw-play').hidden && last) {
@@ -2617,9 +2622,11 @@ function recContre(tag, v, b) {   // « 13 coups contre 28 », « 18 969 points 
   if (sfx && c.endsWith(sfx)) c = c.slice(0, -sfx.length); else { const s2 = sfx.replace(/s$/, ''); if (s2 && c.endsWith(s2)) c = c.slice(0, -s2.length); }
   return a + ' contre ' + c;
 }
-function recImage(g, heads) {   // l'image du jeu = l'aperçu de sa tuile (g.preview), dessiné une fois (et redessiné si ses images arrivent après)
+function recImage(g, heads, base) {   // l'image du jeu = l'aperçu de sa tuile (g.preview), dessiné une fois (et redessiné si ses images arrivent après)
   const box = document.createElement('div'); box.className = 'rc-img';
-  if (g && typeof g.preview === 'function') {
+  const jq = atlJaqId(base || (g && g.id));   // 2.0.134 : un jeu de l'Atelier = sa jaquette (la même que sa tuile), jamais un carré vide
+  if (jq) { const im = document.createElement('img'); im.alt = ''; im.src = jq; im.className = 'rc-jaq'; box.appendChild(im); }
+  else if (g && typeof g.preview === 'function') {
     const c = document.createElement('canvas'); c.setAttribute('aria-hidden', 'true'); box.appendChild(c);
     const draw = () => { const w = c.clientWidth || 96, h = c.clientHeight || 72, dpr = Math.min(window.devicePixelRatio || 1, 2); c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); const x = c.getContext('2d'); x.save(); x.setTransform(dpr, 0, 0, dpr, 0, 0); try { g.preview(x, w, h, 2.4); } catch (e) { x.fillStyle = COLORS.night; x.fillRect(0, 0, w, h); } x.restore(); };
     requestAnimationFrame(draw); setTimeout(draw, 700); setTimeout(draw, 2500);
@@ -2637,7 +2644,7 @@ function recordCard(m, grp) {
   heads.append(b, a);
   const tx = document.createElement('div'); tx.className = 'rc-txt';
   const eb = document.createElement('small'); eb.className = 'rc-eb'; eb.textContent = '🏆 Nouveau record';
-  const jeu = document.createElement('b'); jeu.className = 'rc-jeu'; jeu.textContent = g ? g.title : (recFam(m.game) || 'Record');
+  const jeu = document.createElement('b'); jeu.className = 'rc-jeu'; jeu.textContent = g ? atlTitre(g) : (atlTitreId(rt.base) || recFam(m.game) || 'Record');   // 2.0.134 : le vrai titre, jamais l'id
   tx.append(eb, jeu);
   if (m0 && (String(m0.g).includes('@') || siBoard(m0.g))) { const lv = document.createElement('span'); lv.className = 'rc-lv'; lv.textContent = recLabel(m0.g); tx.appendChild(lv); }
   const who = document.createElement('span'); who.className = 'rc-who'; who.textContent = dispName(m.name) + ' détrône ' + dispName(m.beaten) + ' !';
@@ -2650,7 +2657,7 @@ function recordCard(m, grp) {
     const sc = document.createElement('span'); sc.className = 'rc-sc'; sc.textContent = when;
     tx.append(ul, sc);
   }
-  el.append(recImage(g, heads), tx);
+  el.append(recImage(g, heads, rt.base), tx);
   if (grp) m = Object.assign({}, m, { id: grp.id });   // réactions : sur la carte la plus récente (le serveur y déplace celles de l'ancienne)
   if (m.id) { el.dataset.mid = m.id; const rx = reactPill(m.id); if (rx) { el.appendChild(rx); el.classList.add('has-rx'); } }
   if (g) {
@@ -2677,6 +2684,7 @@ function renderChat(fromPoll, quiet) {
     const day = dayLabel(m.at);
     if (day !== prevDay) { const d = document.createElement('div'); d.className = 'chat-day'; d.textContent = day; log.appendChild(d); prevDay = day; prev = null; }
     if (m.kind === 'coop' && m.meta) { log.appendChild(coopCard(m)); prev = null; continue; }   // sans meta (get_messages) : message ordinaire
+    if (m.kind === 'record' && !atlAnnonceOk(m.game)) continue;   // 2.0.134 : jamais un jeu de l'Atelier pas publié
     if (m.kind === 'record') { const gr = recG.get(m); if (gr !== null) log.appendChild(recordCard(m, gr)); prev = null; continue; }   // null = déjà dans la carte de son exploit
     const mine = m.name === me, grouped = prev && prev.name === m.name && m.at - prev.at < 5 * 60000;
     const row = document.createElement('div'); row.className = 'chat-msg' + (mine ? ' mine' : '') + (grouped ? ' grouped' : '') + (m.pending ? ' pending' : '') + (m.failed ? ' failed' : '');
