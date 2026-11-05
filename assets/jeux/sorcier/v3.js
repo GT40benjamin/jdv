@@ -197,7 +197,7 @@ function construireMonde() {
     { const L = c.roi && !c.foret && c.gardes >= 5 ? ['baton', 'grimoire'] : c.foret ? ['grimoire'] : ['baton'];
       c.socles = L.map((k, i) => poser('socle', c.cx + (L.length > 1 ? (i ? 80 : -80) : 0), y0 + (y1 - y0) * 0.42 + 104, { r: 22, col: { t: 'c', r: 18 }, objet: k, chateau: c })); }
     for (let i = 0; i < c.coffres; i++) {
-      const cote = i % 2 ? 1 : -1, x = c.cx + cote * (190 + Math.floor(i / 2) * 170), y = y0 + (y1 - y0) * 0.6 + (i % 2) * 50;   // jamais dans l'axe de la porte
+      const cote = i % 2 ? 1 : -1, hw = (x1 - x0) / 2 - 84, x = c.cx + cote * Math.min(i < 2 ? 190 : hw, hw), y = i < 2 ? y0 + (y1 - y0) * 0.6 + (i % 2) * 50 : y0 + (y1 - y0) * 0.27;   // V3 : toujours DANS la cour (le 3e au fond), jamais sur un mur   // jamais dans l'axe de la porte
       const k = poser('coffre', x, y, { r: 34, col: { t: 'r', w: 60, d: 24 }, coffre: true, pv: 2, ouvert: false, chateau: c, flip: i % 2 === 1 });
       coffres.push(k);
     }
@@ -654,7 +654,8 @@ function mount(root, api) {
   function ouvrirGrimoire() { if (state !== 'play' || !G) return; state = 'grimoire'; stT = 0; relache(); snd.clic(); }
   function fermerGrimoire() { state = 'play'; stT = 0; snd.clic(); viderManette(); }
   function dire(s, c, d) { msg = { s, c: c || '#ffffff', t: 0, d: d || 2.6 }; }
-  function texte(x, y, s, c, gros) { textes.push({ x, y, s, c, t: 0, gros }); if (textes.length > 40) textes.shift(); }
+  function texte(x, y, s, c, gros) { for (let n = 0; n < 6 && textes.some(t => t.t < 1.3 && Math.abs(t.x - x) < 260 && Math.abs((t.y - (t.t / 1.6) * 50) - y) < 30); n++) y -= 32;   // V3 : empilés, sans se toucher
+    textes.push({ x, y, s, c, t: 0, gros }); if (textes.length > 40) textes.shift(); }
 
   // ---------- déplacement avec glissement le long des obstacles ----------
   function bouger(p, dx, dy, r) {
@@ -665,7 +666,7 @@ function mount(root, api) {
   }
   function orienter(p, vx, vy) {
     if (vx * vx + vy * vy < 1e-6) return;
-    const kP = p.dir === 'profil' ? 0.7 : 1.05;   // V2 : hystérésis (en diagonale il ne clignote plus entre profil et face)
+    const kP = p.dir === 'profil' ? 0.6 : 1.2;   // V2 : hystérésis (en diagonale il ne clignote plus entre profil et face)
     if (Math.abs(vx) > Math.abs(vy) * kP) { p.dir = 'profil'; p.flip = (p.sorte === 'monstre' || p.sorte === 'sorcier') ? vx < 0 : vx > 0; }   // images de profil : sorcier et monstre regardent à droite, les autres à gauche
     else p.dir = vy > 0 ? 'face' : 'dos';
   }
@@ -873,6 +874,7 @@ function mount(root, api) {
     const S = G.sor, r = rang();
     const vitChev = 118 + r * 6;
     for (const g of G.gens) {
+      g.fx = g.x; g.fy = g.y;   // (V3 : où il était au début de l'image)
       const dS = Math.hypot(g.x - S.x, g.y - S.y);
       if (dS > 1700) continue;          // loin : le royaume dort
       g.t += dt; if (g.choc > 0) g.choc -= dt * 4; if (g.donne > 0) g.donne -= dt; if (g.crie > 0) g.crie -= dt;
@@ -941,6 +943,16 @@ function mount(root, api) {
         else { g.marche = false; g.ph += dt * 2.2; }
       } else { g.marche = false; g.ph += dt * 2.2; }
     }
+    // V3 : chacun garde sa place : deux personnages debout (du même métier) ne se tassent jamais à moins de 44 l'un de l'autre (ils se poussent doucement)
+    const D = 44, V2 = G.gens.filter(g => g.etat !== 'ko' && g.etat !== 'parti');
+    for (let i = 0; i < V2.length; i++) for (let j = i + 1; j < V2.length; j++) {
+      const a = V2[i], b = V2[j], dx = b.x - a.x, dy = (b.y - a.y) * 1.6; if (a.sorte !== b.sorte || Math.abs(dx) > D || Math.abs(dy) > D) continue;   // (entre gens du même métier : un paysan qui fuit se faufile entre les chevaliers)
+      const d = Math.hypot(dx, dy) || 0.01; if (d >= D) continue;
+      const k = (D - d) / 2, ux = dx / d, uy = dy / d / 1.6;   // (corrigé tout de suite : la poursuite ne les retasse que de quelques unités)
+      bouger(a, -ux * k, -uy * k, 12); bouger(b, ux * k, uy * k, 12);
+    }
+    // (repoussé par un voisin au point de ne presque pas avancer : il ne court pas sur place, il attend)
+    for (const g of V2) if (g.marche && g.fx != null && Math.hypot(g.x - g.fx, g.y - g.fy) < 0.6) g.marche = false;
   }
   function viaPorte(a, b) {
     for (const c of CHATEAUX) {
@@ -1428,6 +1440,18 @@ function mount(root, api) {
     const vg = ctx.createRadialGradient(LW / 2, LH / 2, Math.min(V.w, V.h) * 0.4, LW / 2, LH / 2, Math.max(V.w, V.h) * 0.75);
     vg.addColorStop(0, 'rgba(10,5,20,0)'); vg.addColorStop(1, 'rgba(10,5,20,0.45)'); ctx.fillStyle = vg; ctx.fillRect(V.x, V.y, V.w, V.h);
   }
+  // V3 : l'annonce du haut : TOUJOURS entière à l'écran (paysage : entre le panneau de gauche et la carte ; marge) : la police rapetisse,
+  // puis elle passe sur 2 lignes ; rend ses lignes, sa taille, sa 1re ligne et son bas (les textes flottants passent dessous)
+  function bandeau() {
+    if (!msg) return null;
+    const place = portrait ? V.w - 48 : Math.max(420, V.w - 700), larg = (t, z) => { ctx.font = '900 ' + z + 'px ' + DF; return ctx.measureText(t).width; };
+    let sz = portrait ? 30 : 34, L = [msg.s];
+    while (sz > 22 && larg(msg.s, sz) > place) sz -= 2;
+    if (larg(msg.s, sz) > place) { const m = msg.s.length / 2; let cut = -1; for (let d = 0; d < m; d++) { if (msg.s[Math.floor(m + d)] === ' ') { cut = Math.floor(m + d); break; } if (msg.s[Math.floor(m - d)] === ' ') { cut = Math.floor(m - d); break; } }
+      if (cut > 0) L = [msg.s.slice(0, cut), msg.s.slice(cut + 1)]; sz = portrait ? 28 : 32; while (sz > 16 && Math.max(...L.map(t => larg(t, sz))) > place) sz -= 2; }
+    const y0 = V.y + (portrait ? 250 : Math.max(150, V.h * 0.2)) - (1 - Math.min(1, msg.t * 3)) * 20;
+    return { L, sz, y0, bas: y0 + (L.length - 0.5) * sz * 1.15 + 6 };
+  }
   function txt(s, x, y, size, c, al, w, stroke, font) {
     ctx.font = (w || 800) + ' ' + size + 'px ' + (font || RF); ctx.textAlign = al || 'center';
     if (stroke) { ctx.lineWidth = stroke; ctx.strokeStyle = 'rgba(25,12,40,0.9)'; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
@@ -1475,8 +1499,8 @@ function mount(root, api) {
     // message
     const libre = state === 'play' && !paused;
     if (msg && !G.nouveau && libre) {
-      const k = msg.t / msg.d, al = clamp(Math.min(msg.t * 4, (1 - k) * 4), 0, 1), sz = portrait ? 30 : 34;
-      ctx.globalAlpha = al; txt(msg.s, LW / 2, V.y + (portrait ? 300 : Math.max(200, V.h * 0.3)) - (1 - Math.min(1, msg.t * 3)) * 20, sz, msg.c, 'center', 900, 8, DF); ctx.globalAlpha = 1;
+      const B = bandeau(), k = msg.t / msg.d, al = clamp(Math.min(msg.t * 4, (1 - k) * 4), 0, 1);
+      ctx.globalAlpha = al; B.L.forEach((t, i) => txt(t, LW / 2, B.y0 + i * B.sz * 1.15, B.sz, msg.c, 'center', 900, 8, DF)); ctx.globalAlpha = 1;
     }
     if (G.nouveau && libre) nouveauSort(now);
     if (libre && auRepaire(G.sor) && G.t > 2) { const haut = modeDoigt ? Math.min(...BT.map(b => b.y - b.r)) - 22 : V.y + V.h - 40; txt(G.pv < G.pvMax ? 'Ta tour te soigne ❤' : 'Ta tour : personne n\'ose y entrer', LW / 2, Math.min(haut, V.y + V.h - 40), 18, '#e0c8ff', 'center', 800, 5); }
@@ -1648,7 +1672,15 @@ function mount(root, api) {
     dessinerVoile(now, C.cx, C.cy);
     // textes flottants, au-dessus du voile de la forêt sombre
     ctx.save(); ctx.translate(-C.cx, -C.cy);
-    if (state === 'play' && !paused) for (const t of textes) { const k = t.t / 1.6; ctx.globalAlpha = 1 - k * k; txt(t.s, t.x, t.y - k * 50, t.gros ? 24 : 20, t.c, 'center', 900, 6); ctx.globalAlpha = 1; }
+    if (state === 'play' && !paused) {
+      // V3 : jamais coupés au bord de l'écran ; jamais sous l'annonce du haut (ils passent dessous, l'un sous l'autre)
+      const Bd = msg && !(G && G.nouveau) ? bandeau() : null, L = textes.map(t => ({ t, k: t.t / 1.6, y: t.y - (t.t / 1.6) * 50 })).sort((a, b) => a.y - b.y);
+      let bas = Bd ? C.cy + Bd.bas + 20 : -1e9;
+      for (const q of L) { const t = q.t, z = t.gros ? 24 : 20; ctx.font = '900 ' + z + 'px ' + RF; const hw = ctx.measureText(t.s).width / 2 + 14;
+        const x = clamp(t.x, C.cx + V.x + hw, C.cx + V.x + V.w - hw); let y = q.y;
+        if (Bd && Math.abs(x - (C.cx + LW / 2)) < hw + 300) { y = Math.max(y, bas); bas = y + 30; }
+        ctx.globalAlpha = 1 - q.k * q.k; txt(t.s, x, y, z, t.c, 'center', 900, 6); ctx.globalAlpha = 1; }
+    }
     ctx.restore();
     if (flash > 0) { ctx.fillStyle = 'rgba(220,235,255,' + flash * 0.35 + ')'; ctx.fillRect(V.x, V.y, V.w, V.h); }
     if (state === 'title') dessinerTitre(now);
@@ -1686,6 +1718,7 @@ function mount(root, api) {
       lieux: () => ({ tour: { x: M.dec[0].x, y: M.dec[0].y }, villages: VILLAGES.map(v => ({ nom: v.nom, x: v.x * T + 24, y: v.y * T + 24 })), chateaux: CHATEAUX.map(c => ({ nom: c.nom, x: c.cx, y: c.cy, porte: c.porte && { x: c.porte.x, y: c.porte.y } })) }),
       pieces: () => G ? G.pieces.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) })) : [], objetsSol: () => G ? G.objetsSol.map(o => ({ k: o.k, x: Math.round(o.x), y: Math.round(o.y), garde: o.garde ? CHATEAUX.indexOf(o.garde) : -1, libre: !!o.libre })) : [],
       gardiens: i => G ? G.gens.map((g, j) => ({ j, g })).filter(q => q.g.gardien === CHATEAUX[i]).map(q => ({ j: q.j, x: Math.round(q.g.x), y: Math.round(q.g.y), e: q.g.etat })) : [],
+      dire(t) { dire(t, '#ffe08a', 6); }, texte(t) { if (G) { texte(G.sor.x, G.sor.y - 120, t, '#e0c8ff', true); } },
       assommer(j) { const g = G && G.gens[j]; if (g) { g.etat = 'ko'; g.koT = 0; g.vx = g.vy = 0; } },
       valeurObjets: () => G ? G.valObjets : 0, objetsMonde: () => M.tresors.map(t => t.k).concat(CHATEAUX.flatMap(c => (c.socles || []).map(q => q.objet))),
       ecran: (x, y) => ({ x: (x - cam.x + LW / 2) * sc + ox, y: (y - cam.y + LH / 2) * sc + oy, sc }),
