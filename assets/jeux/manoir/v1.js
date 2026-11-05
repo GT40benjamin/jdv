@@ -106,7 +106,10 @@ function texteLignes(c, txt, maxW) {   // coupe un texte en lignes (respecte les
 // les symboles (coffre de la chambre) : dessinés, jamais d'émoji
 function symbole(c, nom, x, y, r, coul) {
   c.save(); c.translate(x, y); c.fillStyle = coul || '#3a2410'; c.strokeStyle = coul || '#3a2410'; c.lineWidth = r * 0.14; c.lineJoin = 'round';
-  if (nom === 'lune') { c.beginPath(); c.arc(0, 0, r * 0.8, 0, TAU); c.fill(); c.globalCompositeOperation = 'destination-out'; c.beginPath(); c.arc(r * 0.38, -r * 0.18, r * 0.66, 0, TAU); c.fill(); }
+  if (nom === 'lune') {   /* le croissant : un seul tracé entre les 2 points où les cercles se croisent (jamais de trou découpé) */
+    const R1 = r * 0.8, ax = r * 0.36, ay = -r * 0.2, R2 = r * 0.66, d = Math.hypot(ax, ay), a0 = Math.atan2(ay, ax), h = Math.acos((R1 * R1 + d * d - R2 * R2) / (2 * R1 * d));
+    const p1 = a0 - h, p2 = a0 + h, q1 = Math.atan2(R1 * Math.sin(p1) - ay, R1 * Math.cos(p1) - ax), q2 = Math.atan2(R1 * Math.sin(p2) - ay, R1 * Math.cos(p2) - ax);
+    c.beginPath(); c.arc(0, 0, R1, p2, p1 + TAU, false); c.arc(ax, ay, R2, q1, q2, true); c.closePath(); c.fill(); }
   else if (nom === 'etoile') { etoile5(c, 0, r * 0.06, r * 0.9); c.fill(); }
   else if (nom === 'coeur') { c.beginPath(); c.moveTo(0, r * 0.8); c.bezierCurveTo(-r * 1.1, 0, -r * 0.7, -r * 0.95, 0, -r * 0.4); c.bezierCurveTo(r * 0.7, -r * 0.95, r * 1.1, 0, 0, r * 0.8); c.fill(); }
   else if (nom === 'trefle') { for (const [a, b] of [[0, -0.42], [-0.4, 0.12], [0.4, 0.12]]) { c.beginPath(); c.arc(a * r, b * r, r * 0.36, 0, TAU); c.fill(); } c.fillRect(-r * 0.08, 0, r * 0.16, r * 0.85); }
@@ -1398,7 +1401,7 @@ function mount(root, api) {
           c.fillStyle = OR; c.font = '900 26px ' + TITRE; c.fillText(O.nom, 450 - 10, 30, 210);
           c.fillStyle = '#efe4d0'; c.font = '700 17px ' + TEXTE;
           const L = texteLignes(c, O.desc || (O.lire ? O.lire.texte : ''), 190); let y = 74; for (const l of L.slice(0, 13)) { c.fillText(l, 440, y); y += l ? 24 : 10; } }
-        else { c.fillStyle = '#efe4d0'; c.font = '700 22px ' + TEXTE; c.fillText('Ton sac est vide.', 440, 40); }
+        else { c.fillStyle = '#efe4d0'; c.font = '700 22px ' + TEXTE; c.textAlign = 'center'; c.fillText('Ton sac est vide.', 250, 372); c.textAlign = 'left'; }   /* sous la grille, centré */
         this.boutons().forEach((b, i, A) => { const x = 320 + (i - (A.length - 1) / 2) * 210; c.fillStyle = 'rgba(232,194,122,0.92)'; pill(c, x - 100, 443, 200, 54, 27); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke();
           c.fillStyle = '#2a1408'; c.font = '900 18px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(b[1], x, 471, 188); });
       }
@@ -1670,7 +1673,7 @@ function mount(root, api) {
     if (D.noir) { const lum = J.lumiere(), k = lum ? Math.min(1, (t - (R.lumT || 0)) * 1.5) : 0, E = R.E;
       c.save(); const g = c.createRadialGradient(E.x, D.sol - 140, 30, E.x, D.sol - 140, lerp(260, 1100, k)); g.addColorStop(0, 'rgba(5,8,20,' + lerp(0.45, 0, k) + ')'); g.addColorStop(1, 'rgba(2,4,12,' + lerp(0.9, 0.3, k) + ')'); c.fillStyle = g; c.fillRect(0, 0, 1344, 768); c.restore();
       if (lum) { c.save(); c.globalCompositeOperation = 'lighter'; const g2 = c.createRadialGradient(E.x + E.dir * 40, D.sol - 160, 5, E.x, D.sol - 160, 420); g2.addColorStop(0, 'rgba(255,190,90,' + (0.28 + 0.04 * Math.sin(t * 11)) + ')'); g2.addColorStop(1, 'rgba(255,150,60,0)'); c.fillStyle = g2; c.fillRect(0, 0, 1344, 768); c.restore();
-        if (k > 0.3) chiffresTonneaux(c, k); } }
+        if (k > 0.3) { chiffresTonneaux(c, k); explorateur(c); } } }   /* (les marques sont sur les tonneaux, DERRIÈRE l'explorateur) */
     if (R.n === 2) { const k = F.courant ? Math.max(0, 1 - (t - (F.courantT || t)) * 1.5) : 1; if (F.courant && !F.courantT) F.courantT = t; if (k > 0) { c.fillStyle = 'rgba(12,4,32,' + 0.55 * k + ')'; c.fillRect(0, 0, 1344, 768); } }
     // la poussière dans la lumière
     c.save(); c.globalCompositeOperation = 'lighter';
