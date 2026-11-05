@@ -34,6 +34,8 @@
 [borne] 💬 Quand une proposition attend ton choix, {g} ne dit plus « je travaille » : « J’attends ta réponse », et un bouton t’emmène jusqu’au choix.
 [borne] 👇 Tout ce qui attend ton choix est rassemblé dans une seule carte, toujours en bas de ta discussion, juste au-dessus de la zone pour écrire.
 [borne] 🔗 Une demande reprise dans une carte de ta discussion s’affiche « Regroupée dans ta discussion », sans compter ni en cours ni en faites.
+[borne] 🛡️ Une offre ne peut plus être choisie deux fois : une offre fermée, regroupée ou remplacée ne se choisit plus, et rien n’est jamais débité deux fois.
+[borne] ✨ En ouvrant ton projet, c’est bien la dernière réponse de {g} qui brille (ou la carte à choisir).
 [borne] ## 🛍️ La vitrine des boutiques (borne 2.0.135)
 [borne] 🛍️ Un jeu de l’Atelier qui a une boutique montre un bouton 🛍️ à côté de la pause (ou Select à la manette) : sa vitrine s’ouvre, aux couleurs du jeu, et la partie attend.
 [borne] 💎 Dans une boutique, tout ce que tu paies revient au créateur du jeu, et ce que tu achètes est à toi pour toujours.

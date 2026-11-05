@@ -16055,7 +16055,7 @@ function atlDemOuvert(x, vz) { const o = ATL.demOuv = ATL.demOuv || {}; if (o[x.
 function atlDemBasc(x, ouv) { (ATL.demOuv = ATL.demOuv || {})[x.id] = !ouv; }
 function atlDemSuivi(x, ouv, basc) {
   const ch = atlPropOuverte(x), q = atlQAttente(x), et = ch ? 'choisir' : q ? 'questions' : x.remplacee && !x.choix && !['faite', 'impossible', 'regroupee'].includes(x.etat) ? 'remplacee' : x.etat, r = atlEl('button', 'atl-dligne e-' + et + (ouv ? ' ouv' : '')); r.type = 'button'; r.dataset.id = x.id;
-  const EB = { envoyee: '📨 Envoyée', vue: '👀 Vue', choisir: '💬 À choisir', questions: '❓ À répondre', remplacee: '🔁 Remplacée', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard' };
+  const EB = { envoyee: '📨 Envoyée', vue: '👀 Vue', choisir: '💬 À choisir', questions: '❓ À répondre', remplacee: '🔁 Remplacée', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard', regroupee: '🔗 Regroupée' };
   const tx = String((x.choix && x.choix.libelle) || x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '').split('\n')[0].replace(/^💡 Idée de la discussion : /, '💡 ');
   const ld = Array.isArray(x.etapes) && x.etapes.length ? x.etapes[x.etapes.length - 1] : null, m = ld && String(ld.texte || ld.etape || '').match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i);
   const av = atlEl('span', 'atl-dlav');
@@ -16137,7 +16137,8 @@ function atlDiscFil(f) {
     if (f.design && f.design.f) { const da = f.design.at || f.created_at; add(da, 'dz' + f.design.f, true, () => atlDesignBulle(f, da)); }
   }
   const attIds0 = new Set(atlDiscDems(f).filter(x => x && !['faite', 'impossible', 'regroupee'].includes(x.etat) && (atlPropOuverte(x) || atlQAttente(x))).map(x => x.id));   // 2.0.136 : leurs offres vont dans la carte du bas
-  for (const m of atlDiscMsgs().concat((ATL.discPend || []).filter(m => m.fiche === f.id)))
+  const rgIds = new Set(atlDiscDems(f).filter(x => x && x.etat === 'regroupee').map(x => x.id));   // 2.0.136 (v147) : un ticket regroupé ne laisse que sa ligne « 🔗 Regroupée »
+  for (const m of atlDiscMsgs().concat((ATL.discPend || []).filter(m => m.fiche === f.id))) if (!(m.demande && rgIds.has(m.demande)))
     add(m.at, 'm' + (m.id || 'p') + (m.pending ? 'p' : '') + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : '') + (m.demande ? atlDiscSig(dem(m.demande)) : ''), !!m.atelier && !m.pending, () => atlBubble(m.demande && attIds0.has(m.demande) ? Object.assign({}, m, { sansOffre: true }) : m), !m.atelier && !m.pending);
   // 2.0.136 (l'admin) : plusieurs tickets livrés dans la même version = UNE bulle (« ✅ Livré dans la V2 : 4 corrections », liste dépliable)
   const livres = {}; for (const x of atlDiscDems(f)) if (x && x.etat === 'faite' && (x.version_livree | 0)) (livres[x.version_livree | 0] = livres[x.version_livree | 0] || []).push(x);
@@ -16156,6 +16157,7 @@ function atlDiscFil(f) {
   const groupe = x => x && x.etat === 'faite' && (livres[x.version_livree | 0] || []).length > 1;
   const attente = atlDiscDems(f).filter(x => x && !['faite', 'impossible', 'regroupee'].includes(x.etat) && (atlPropOuverte(x) || atlQAttente(x))), attIds = new Set(attente.map(x => x.id));
   for (const x of atlDiscDems(f)) {
+    if (!x || x.etat === 'regroupee') continue;   // 2.0.136 : seulement la ligne « 🔗 Regroupée dans ta discussion » (plus bas)
     const ne = atlDiscDe(x), hi = Array.isArray(x.historique) ? x.historique.filter(h => h && h.sorte) : [], et = Array.isArray(x.etapes) ? x.etapes : [], sd = atlDiscSig(x), env = x.etat === 'envoyee';
     const J = (tx, at, cls) => () => { const bl = atlBubble({ texte: tx, at }); bl.classList.add(cls || 'atl-fdem'); return bl; };
     if (!ne && !(av1 && /^🚀\s*Conception de ta V/.test(String(x.texte || '')))) {   // la demande écrite dans « Mes demandes » (ou en arrêt sur image) : elle se raconte ici aussi (2.0.124 : pas le ticket de conception, ouvert par la mascotte)
@@ -16244,18 +16246,29 @@ function atlDiscBloc(f) {
 // 2.0.135 : la discussion ouverte, défilée jusqu'à la dernière réponse de la mascotte, qui brille un instant ; une question ou une offre :
 // visible tout de suite, avec le focus (manette comprise)
 function atlAllerNonLu() {
+  // 2.0.136 (l'admin : « ça fait clignoter le MAUVAIS message ») : la cible = la carte « J'attends ta réponse » s'il y a un choix à faire,
+  // sinon la DERNIÈRE réponse de {g} (jamais une bulle remplacée, une question déjà répondue d'un vieux ticket, ni une bulle du joueur),
+  // choisie seulement quand la discussion a fini de se remplir (même nombre de bulles deux fois de suite, 5 s au plus)
   const W = ATL.root && ATL.root.querySelector('.atl-wiz'), f = atlFiche(); if (!W || !f || !ATL.open) return;
   atlDiscOuvrir(true, true);
-  setTimeout(() => {
-    const b = W.querySelector('.atl-disc'), lg = b && b.querySelector('.atl-disclog'); if (!lg) return;
-    const choix = [...lg.querySelectorAll('.atl-q, .atl-prop, .atl-props, .atl-pchoix')].filter(e => e.getClientRects().length).pop();
-    const cible = choix || [...lg.querySelectorAll('.atl-m.atl-a')].filter(e => e.getClientRects().length).pop(); if (!cible) return;
+  const cur = ATL.cur; let n0 = -1, essais = 0;
+  const viser = () => {
+    if (!ATL.open || ATL.cur !== cur) return;
+    const b = W.querySelector('.atl-disc'), lg = b && b.querySelector('.atl-disclog');
+    const n = lg ? lg.querySelectorAll('.atl-m').length : 0;
+    if (++essais < 20 && (!n || n !== n0)) { n0 = n; setTimeout(viser, 250); return; }
+    if (!lg) return;
+    const vis = e => e && e.getClientRects().length;
+    const carte = [...lg.querySelectorAll('.atl-attcarte')].filter(vis).pop();
+    const cible = carte || [...lg.querySelectorAll('.atl-m.atl-a')].filter(e => vis(e) && !e.classList.contains('atl-mremp') && !e.closest('.atl-attcarte, .atl-livres')).pop();
+    if (!cible) return;
     try { b.scrollIntoView({ block: 'start' }); } catch (e) {}
     lg.scrollTop = Math.max(0, cible.offsetTop - lg.offsetTop - 12);
-    try { cible.scrollIntoView({ block: choix ? 'center' : 'nearest' }); } catch (e) {}
+    try { cible.scrollIntoView({ block: carte ? 'center' : 'nearest' }); } catch (e) {}
     cible.classList.add('atl-brille'); setTimeout(() => cible.classList.remove('atl-brille'), 2600);
-    if (choix) { const x = choix.querySelector('button:not([disabled]), input, textarea'); if (x) try { x.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }
-  }, 350);
+    if (carte) { const x = carte.querySelector('.atl-ofgo:not([disabled]), button:not([disabled]), input, textarea'); if (x) try { x.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }
+  };
+  setTimeout(viser, 250);
 }
 function atlDiscOuvrir(on = true, ici) {
   const W = ATL.root && ATL.root.querySelector('.atl-wiz'), f = atlFiche(); if (!W || !f) return;
@@ -18067,7 +18080,7 @@ async function atlStripe(corps, b, er) {
 // ---- 23 h 15 (Benjamin : « un petit bouton pour suivre mes demandes ») : 📋 MES DEMANDES — toutes les demandes du joueur (arrêts sur
 // image, retouches, redessins, créations, sons, musiques, retraits, messages d'un projet jouable), la plus récente en haut, avec l'état
 // (📨 Envoyée → 👀 Vue → 🛠️ En cours → ✅ Faite / ❌ Pas possible) et la réponse ; une pastille quand un état change (at_mes_demandes)
-const ATL_DEM_ET = { envoyee: '📨 Envoyée', vue: '👀 Vue par ', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard' };
+const ATL_DEM_ET = { envoyee: '📨 Envoyée', vue: '👀 Vue par ', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard', regroupee: '🔗 Regroupée' };
 const ATL_DEM_SO = { vignette: '🖼️ Image de ta tuile', arret: '🎯 Arrêt sur image', retouche: '✂️ Retouche', redessin: '🎨 Élément refait', modifier: '🎨 Modification', retirer: '🗑️ Retrait', son: '🔊 Bruitage', musique: '🎵 Musique', creer: '＋ Création', get propose() { return '🎁 Proposé par ' + gN(); }, get correction() { return '🛠️ Correction de ' + gN(); }, message: '💬 Message' };
 // 2.0.9 : l'avancement d'une demande, étape par étape (at_demande_avancer) : « je prépare les images », « je construis », « je teste »…
 // 2.0.59 (Benjamin : « l'admin ne voit PAS la mascotte en train de travailler ») : la bulle d'un ticket en travail, identique chez le joueur
@@ -18468,7 +18481,7 @@ function atlDemCarte0(x) {
     const u = /^a\//.test(x.image || '') ? atlImgUrl(x.image) : atlIaUrl(x.image), vig = atlEl('div', 'atl-demv');
     if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; im.addEventListener('click', () => atlZoom(u)); vig.appendChild(im); } else vig.appendChild(atlEl('span', 'atl-demic', (ATL_DEM_SO[x.sorte] || '💬').split(' ')[0]));
     const t = atlEl('div', 'atl-demt'), d0 = new Date(x.at), hd = atlEl('div', 'atl-demh');
-    const EB = { envoyee: '📨 Envoyée', vue: '👀 Vue', choisir: '💬 À choisir', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard' };
+    const EB = { envoyee: '📨 Envoyée', vue: '👀 Vue', choisir: '💬 À choisir', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard', regroupee: '🔗 Regroupée' };
     hd.append(atlEl('span', 'atl-demb2 b-' + et, (EB[et] || et)), atlEl('b', 'atl-demj', x.projet || ''), atlEl('small', 'atl-demd', (isNaN(d0) ? '' : d0.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + (x.cout ? ' · ' + x.cout + ' 💎' : '')));
     t.appendChild(hd);
     const txt = String(x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, ''), tp = atlEl('p', 'atl-demtx', txt); t.appendChild(tp);
@@ -18714,7 +18727,7 @@ function atlPropEditeur(x, m) {
       setTimeout(() => { try { atlAdminDemandes(); } catch (e) {} try { atlLoad(true); } catch (e) {} }, 1200);
     } catch (e) {
       const t = String((e && e.message) || '');
-      msg.textContent = /insuffisants/.test(t) ? 'Pas assez de crédits chez ' + jn + ' : rien n’a été débité. Choisis « 🎁 Offrir ».' : /deja choisi/.test(t) ? jn + ' a déjà choisi.' : 'Pas possible : ' + t.slice(0, 60);
+      msg.textContent = /insuffisants/.test(t) ? 'Pas assez de crédits chez ' + jn + ' : rien n’a été débité. Choisis « 🎁 Offrir ».' : /option deja choisie/.test(t) ? 'Cette option est déjà choisie sur ce projet : rien n’a été débité une 2e fois.' : /demande fermee|offre remplacee/.test(t) ? 'Offre fermée, regroupée ou remplacée : rien n’a été débité.' : /deja choisi/.test(t) ? jn + ' a déjà choisi.' : 'Pas possible : ' + t.slice(0, 60);
     }
   };
   const dessine = () => {
@@ -18814,7 +18827,7 @@ async function atlAdminDemandes() {
     if (x.reponse) t.appendChild(atlEl('p', 'atl-demrep', '🤖 Réponse envoyée : ' + x.reponse));
     if (!['faite', 'impossible', 'regroupee'].includes(x.etat)) { const tb = atlTravBulle(x, dispName(((ATL.data && ATL.data.admin_voir) || {}).joueur || '') || 'le joueur'); if (tb) t.appendChild(tb); }   // 2.0.59
     if (Array.isArray(x.questions) && x.questions.length) t.appendChild(atlQuestions(x));   // 2.0.29 : les questions et les réponses du joueur
-    const se = atlEl('select', 'atl-tousf'); for (const k of ['envoyee', 'vue', 'en_cours', 'faite', 'impossible']) { const o = new Option((ATL_DEM_ET[k] || k) + (k === 'vue' ? gN() : ''), k); if (k === x.etat) o.selected = true; se.appendChild(o); }
+    const se = atlEl('select', 'atl-tousf'); for (const k of ['envoyee', 'vue', 'en_cours', 'faite', 'impossible', 'regroupee']) { const o = new Option((ATL_DEM_ET[k] || k) + (k === 'vue' ? gN() : ''), k); if (k === x.etat) o.selected = true; se.appendChild(o); }
     const ta = atlEl('textarea', 'atl-arin'); ta.rows = 2; ta.maxLength = 1000; ta.placeholder = x.reponse ? 'Nouvelle réponse (facultatif)' : 'Réponse au joueur (facultatif, elle arrive aussi dans la discussion)';
     // 0 h 40 (Benjamin : « je ne vois pas les boutons de choix ») : les options, comme chez le joueur, et leur éditeur
     const av = ATL.data && ATL.data.admin_voir, jn = av ? dispName(av.joueur) : 'le joueur';
@@ -18822,7 +18835,8 @@ async function atlAdminDemandes() {
       const dc = x.choix && x.choix.at ? new Date(x.choix.at) : null;
       t.appendChild(atlEl('p', 'atl-propst', x.choix ? (x.choix.par === 'admin' ? '✍️ Choisi par l’admin (' + dispName(x.choix.admin || '') + ') pour ' + jn + ' : ' : '✅ ' + jn + ' a choisi : ') + (x.choix.libelle || '') + ' · ' + (x.choix.credits | 0).toLocaleString('fr-FR') + ' 💎' + (dc && !isNaN(dc) ? ' le ' + fdt(dc) : '') : x.etat === 'plus_tard' ? '⏸️ ' + jn + ' a dit « plus tard »' : '⏳ En attente du choix de ' + jn));
     }
-    if (!x.choix && !['faite', 'impossible', 'regroupee'].includes(x.etat)) {
+    if (x.remplacee && !x.choix) t.appendChild(atlEl('p', 'atl-propst', '🔁 Offre remplacée par une nouvelle carte : on ne la choisit plus ici.'));   // 2.0.136 (v147) : jamais choisie deux fois
+    else if (!x.choix && !['faite', 'impossible', 'regroupee'].includes(x.etat)) {
       if (Array.isArray(x.propositions) && x.propositions.length) t.appendChild(atlPropEditeur(x, m));
       else { const eb = atlEl('button', 'btn btn-ghost btn-sm', '＋ Proposer des options'); eb.type = 'button'; eb.addEventListener('click', () => { eb.remove(); t.appendChild(atlPropEditeur(x, m)); }); t.appendChild(eb); }
       const qb = atlEl('button', 'btn btn-ghost btn-sm', '❓ Poser des questions'); qb.type = 'button'; qb.addEventListener('click', () => { qb.remove(); t.appendChild(atlQEditeur(x, m)); }); t.appendChild(qb);
@@ -19029,6 +19043,8 @@ function atlWhy(e) {
   if (/credits insuffisants/.test(m)) return 'Plus assez de crédits : passe à Atelier+ ou recharge tes crédits.';
   if (e && (e.acct || e.guest)) return 'Connecte-toi à ton compte pour créer ton jeu.';
   // 2.0.97 (l'admin : « afficher la VRAIE raison, jamais Oups… réessaie ») : chaque refus du filtre (pegase_int.at_filtre) dit pourquoi ; le texte reste dans la case
+  if (/option deja choisie/.test(m)) return 'Cette option est déjà choisie sur ce projet : rien n’a été débité une 2e fois.';   // 2.0.136 (SQL v147)
+  if (/demande fermee/.test(m)) return 'Cette demande est fermée ou regroupée : son choix se fait dans la carte de la discussion.';
   if (/offre remplacee/.test(m)) return 'Cette offre a été remplacée : ' + gNM() + ' te prépare la nouvelle, elle arrive dans la discussion.';
   if (/questions remplacees/.test(m)) return 'Ces questions ont été remplacées : ' + gNM() + ' te prépare la suite dans la discussion.';
   if (/filtre protege/.test(m)) return 'Je ne peux pas utiliser le nom d’un jeu, d’un film ou d’un personnage qui existe déjà : décris-moi ton idée avec tes mots 😊 (ton texte est resté dans la case)';
