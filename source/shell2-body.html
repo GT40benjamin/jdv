@@ -168,12 +168,14 @@
   <div class="topbar">
     <button class="btn btn-ghost btn-sm" id="jdw-back" type="button" aria-label="Quitter la partie">✕<span class="tb-word"> Quitter</span></button>
     <div class="gt-wrap"><h1 id="jdw-gtitle">Jeu</h1><span class="recline" id="jdw-recline" hidden></span></div>
+    <button class="btn btn-ghost btn-sm" id="jdw-howto-b" type="button" aria-label="Comment jouer" title="Comment jouer" hidden>?</button>
     <button class="btn btn-ghost btn-sm" id="jdw-mute" type="button" aria-label="Réglages du son" aria-haspopup="true" aria-expanded="false">🔊</button>
     <div class="soundmenu" id="jdw-soundmenu" role="menu" hidden>
       <label class="switch-row"><span>🎵 Musique</span><input type="checkbox" id="jdw-sm-music"></label>
       <label class="switch-row"><span>🔊 Bruitages</span><input type="checkbox" id="jdw-sm-sfx"></label>
       <label class="switch-row"><span>📣 Cris</span><input type="checkbox" id="jdw-sm-cris"></label>
       <label class="switch-row"><span>📈 Images/s (essai)</span><input type="checkbox" id="jdw-sm-fps"></label>
+      <button class="sm-howto" id="jdw-sm-howto" type="button" hidden>❓ Comment jouer</button>
     </div>
   </div>
   <div id="jdw-host">
@@ -394,6 +396,7 @@
         <div class="pad-helpbox" id="jdw-duo-pause-help" hidden></div>
         <div class="duo-pause-btns">
           <button class="btn btn-play" id="jdw-duo-resume" type="button">Reprendre</button>
+          <button class="btn btn-ghost" id="jdw-duo-howto" type="button">❓ Comment jouer</button>
           <button class="btn btn-ghost" id="jdw-duo-restart" type="button">Recommencer</button>
           <button class="btn btn-ghost" id="jdw-duo-quit" type="button">Quitter le duel</button>
         </div>

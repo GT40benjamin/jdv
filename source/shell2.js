@@ -431,6 +431,79 @@ function padIntro(g, where, ready) {
   padIntroT = setTimeout(padIntroHide, 5200);
 }
 function padIntroHide() { const el = $('jdw-padintro'); if (el.hidden) return; el.classList.add('out'); clearTimeout(padIntroT); padIntroT = setTimeout(() => { el.hidden = true; el.classList.remove('out'); }, 320); }
+// ---------- 2.0.112 : « Comment jouer » — UN écran commun à tous les jeux (solo et duels) : avant la 1re partie sur l'appareil, puis le bouton « ? »
+// (en jeu) et « ❓ Comment jouer » (pause du duel). Les commandes de chaque jeu : window.JDW_COMMENT_JOUER (source/comment-jouer.js),
+// { pc: [[touches, action]], touch: [[geste, action]], pad? } par id (« duo:<id> » pour un duel) ; un jeu peut déclarer g.howto (même forme) ;
+// la manette vient de g.pad.help. On le passe d'une touche, d'un toucher ou d'un bouton de la manette ; vu une fois (jdw.howto.<id>).
+const HOWTO = { open: false, then: null, keyH: null, pad: null, t0: 0 };
+function howtoOf(g, duo) {
+  if (!g || PAD_DOM.has(g.id)) return null;
+  const T = window.JDW_COMMENT_JOUER || {}, b = (g.howto && typeof g.howto === 'object' ? g.howto : null) || T[(duo ? 'duo:' : '') + g.id] || (duo ? null : T[g.id]) || {};
+  const ok = l => Array.isArray(l) ? l.filter(r => Array.isArray(r) && r[0] && r[1]).map(r => [String(r[0]).slice(0, 40), String(r[1]).slice(0, 80)]).slice(0, 6) : [];
+  const h = { pc: ok(b.pc), touch: ok(b.touch), pad: padHelpOf(g) || (Array.isArray(b.pad) && b.pad.length ? b.pad : null) };
+  return h.pc.length || h.touch.length || h.pad ? h : null;
+}
+const howtoCle = (g, duo) => 'jdw.howto.' + (duo ? 'duo-' : '') + g.id;
+function howtoShow(g, where, o) {
+  o = o || {}; const h = howtoOf(g, o.duo); if (!h) { if (o.then) o.then(); return false; }
+  howtoHide(false);
+  const el = document.createElement('div'); el.className = 'howto'; el.id = 'jdw-howto'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Comment jouer à ' + (g.title || 'ce jeu'));
+  el.style.setProperty('--acc', g.accent || COLORS.amber);
+  const card = document.createElement('div'); card.className = 'howto-card';
+  const k = document.createElement('p'); k.className = 'howto-k'; k.textContent = '🕹️ Comment jouer';
+  const t = document.createElement('h2'); t.className = 'howto-t'; t.textContent = g.title || '';
+  const cols = document.createElement('div'); cols.className = 'howto-cols';
+  const padOn = !!(PADJ && PADJ.active && PADJ.active()), ici = padOn ? 'pad' : TOUCH ? 'touch' : 'pc';
+  let petit = false; try { petit = matchMedia('(max-width:600px), (orientation:landscape) and (max-height:500px)').matches; } catch (e) {}   // téléphone : seulement la colonne de l'appareil, les autres d'un toucher
+  const col = (id, ic, nom, rows, dom) => {
+    if (!(rows && rows.length) && !dom) return;
+    const c = document.createElement('section'); c.className = 'howto-col' + (id === ici ? ' ici' : petit ? ' ferme' : ''); c.dataset.k = id;
+    const hh = document.createElement('h3'); hh.append(ic + ' ' + nom); if (id === ici) { const m = document.createElement('small'); m.textContent = 'ici'; hh.appendChild(m); } c.appendChild(hh);
+    if (dom) c.appendChild(dom);
+    else { const ul = document.createElement('ul'); for (const [a, b] of rows) { const li = document.createElement('li'), kb = document.createElement('kbd'), sp = document.createElement('span'); kb.textContent = a; sp.textContent = b; li.append(kb, sp); ul.appendChild(li); } c.appendChild(ul); }
+    cols.appendChild(c);
+  };
+  const L = { pc: () => col('pc', '⌨️', 'Clavier et souris', h.pc), touch: () => col('touch', '👆', 'Au toucher', h.touch),
+    pad: () => { if (!h.pad || !PADJ) return; let d = null; try { d = PADJ.helpList(h.pad, PADJ.kind ? PADJ.kind() : 'xbox'); } catch (e) {} if (d) col('pad', '🎮', 'Manette', null, d); } };
+  for (const id of [ici].concat(['pc', 'touch', 'pad'].filter(x => x !== ici))) L[id]();
+  const go = document.createElement('button'); go.type = 'button'; go.className = 'btn btn-play howto-go'; go.textContent = o.retour ? '↩️ Retour' : o.reprendre ? '▶️ Reprendre' : '▶️ C’est parti !';
+  const tip = document.createElement('small'); tip.className = 'howto-tip'; let couche = false; try { couche = matchMedia('(orientation:landscape) and (max-height:500px)').matches; } catch (e) {}
+  tip.textContent = (TOUCH ? 'Touche l’écran' : 'Appuie sur une touche') + (o.retour ? ' pour revenir' : o.reprendre ? ' pour reprendre' : ' pour commencer') + ' · tu le revois avec ' + (o.duo ? '« ❓ Comment jouer » dans la pause' : couche ? '« ❓ Comment jouer » dans le menu du son 🔊' : 'le bouton ?');
+  card.append(k, t, cols, go, tip); el.appendChild(card);
+  (where || document.body).appendChild(el);
+  HOWTO.open = true; HOWTO.then = o.then || null; HOWTO.t0 = performance.now();
+  const fin = () => { if (performance.now() - HOWTO.t0 > 350) howtoHide(true); };
+  go.addEventListener('click', e => { e.stopPropagation(); howtoHide(true); });
+  el.addEventListener('pointerdown', e => { if (e.target.closest('.howto-go')) return; const hc = e.target.closest('.howto-col:not(.ici) h3'); if (hc) { e.preventDefault(); hc.parentNode.classList.toggle('ferme'); return; } e.preventDefault(); fin(); });
+  HOWTO.keyH = e => { if (!HOWTO.open || /^(Shift|Control|Alt|Meta|Tab)$/.test(e.key)) return; e.preventDefault(); e.stopImmediatePropagation(); fin(); };
+  window.addEventListener('keydown', HOWTO.keyH, true);
+  if (PADJ) { try { HOWTO.pad = PADJ.gameApi({ slots: () => PADJ.pads() }); HOWTO.pad.on((b, p, down) => { if (down && /^(a|b|x|y|start)$/.test(b)) fin(); }); } catch (e) { HOWTO.pad = null; } }
+  setTimeout(() => { try { if (HOWTO.open) { go.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } } catch (e) {} }, 60);
+  try { Audio.tone(880, 0.06, 'sine', 0.02, 1320); } catch (e) {}
+  return true;
+}
+function howtoHide(suite) {
+  const el = $('jdw-howto'), then = HOWTO.then; HOWTO.then = null;
+  if (HOWTO.keyH) { window.removeEventListener('keydown', HOWTO.keyH, true); HOWTO.keyH = null; }
+  if (HOWTO.pad) { padClose(HOWTO.pad); HOWTO.pad = null; }
+  HOWTO.open = false;
+  if (el) { el.classList.add('out'); el.id = ''; setTimeout(() => el.remove(), 260); }
+  if (suite && then) { try { then(); } catch (e) { reportError('Comment jouer : ' + e.message, e.stack, { quiet: true }); } }
+}
+// avant la 1re partie : l'écran s'affiche, la partie démarre quand on le passe (true = la partie attend)
+function howtoAvant(g, where, go, duo) {
+  if (HOWTO.open) return true;
+  if (!howtoOf(g, duo) || store.get(howtoCle(g, duo), 0)) return false;
+  store.set(howtoCle(g, duo), 1);
+  return howtoShow(g, where, { duo, then: go });
+}
+// « ? » en jeu : la partie se met en pause le temps de relire
+function howtoEnJeu() {
+  if (!current || !current.game || current.coop || HOWTO.open) return;
+  const g = current.game, inst = current.inst || {};
+  try { if (inst.pause) inst.pause(); else padKey('p'); } catch (e) {}
+  howtoShow(g, $('jdw-play'), { reprendre: true, then: () => { if (!current || current.game !== g) return; const i2 = current.inst || {}; try { if (current.pad) current.pad.flush(); } catch (e) {} try { if (i2.resume) i2.resume(); else padKey('p'); } catch (e) {} } });
+}
 // ---------- manettes du duel : qui a quelle manette ----------
 function renderPadSeats() {
   const box = $('jdw-padseats'); if (!box) return;
@@ -7829,6 +7902,7 @@ function openDuo(d) {
 }
 function mountDuo() {
   const d = DUO.d; if (!d) return;
+  if (!NET.role && howtoAvant(d, $('jdw-duo'), () => mountDuo(), true)) return;   // 2.0.112 : « Comment jouer » avant le 1er duel
   unmountDuo();
   DUO.waitRot = false; $('jdw-duo-rotate').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-hud').hidden = false;
   $('jdw-duo').classList.remove('net-single', 'ai-single');
@@ -7945,6 +8019,7 @@ function duoPause() {
   if (!DUO.inst || DUO.over) return;
   if (NET.role === 'host') netCtl({ h: 'pause' });
   if (!DUO.paused) { DUO.paused = true; try { if (DUO.inst.pause) DUO.inst.pause(); } catch (e) {} musicBaseLevel(0.35); }
+  { const hb = $('jdw-duo-howto'); if (hb) hb.hidden = !howtoOf(DUO.d, true); }   // 2.0.112
   // les deux joueurs, leur tête et le score à leurs couleurs
   const sub = $('jdw-duo-pause-sub'); sub.textContent = '';
   const side = i => { const b = document.createElement('span'); b.className = 'dp-side'; b.style.setProperty('--pc', DUO_COLORS[i]);
@@ -7977,6 +8052,7 @@ $('jdw-duo-menu').addEventListener('click', duoPause);
 $('jdw-duo-resume').addEventListener('click', duoResume);
 $('jdw-duo-restart').addEventListener('click', () => { if (NET.role === 'guest') { netCtl({ h: 'rematch' }); $('jdw-duo-pause').hidden = true; } else mountDuo(); });
 $('jdw-duo-quit').addEventListener('click', duoLeave);
+{ const hb = $('jdw-duo-howto'); if (hb) hb.addEventListener('click', () => { if (DUO.d) howtoShow(DUO.d, $('jdw-duo'), { duo: true, retour: true }); }); }   // 2.0.112 : « ❓ Comment jouer » dans la pause du duel
 $('jdw-duo-rotate-skip').addEventListener('click', () => mountDuo());
 $('jdw-duo-rotate-back').addEventListener('click', closeDuo);
 addEventListener('resize', () => { if (DUO.waitRot && innerWidth > innerHeight) mountDuo(); });
@@ -10275,6 +10351,7 @@ function liveRecu(p) {
   for (const f of LIVE.fns) { try { f({ from: String(p.cid || ''), name: cleanName(p.n), d: p.d }); } catch (e) {} }
 }
 function mountGame(g) {
+  if (howtoAvant(g, $('jdw-play'), () => mountGame(g))) return;   // 2.0.112 : « Comment jouer » avant la 1re partie
   if (current) { try { unmountGame(); } catch (e) {} }   // 2.0.44 : jamais deux jeux l'un sur l'autre
   const seq = ++mountSeq;
   let root;
@@ -10392,6 +10469,7 @@ function openGame(g, web, vok, os) {
   // 2.0.37 : téléphone couché, les boutons flottants (✕, son) vont dans le coin que le jeu laisse libre (g.coinBoutons ou FLOT_COIN : 'tr' | 'bl' | 'br')
   { const pl = $('jdw-play'), fc = (g && /^(tr|bl|br|ml)$/.test(String(g.coinBoutons || '')) ? g.coinBoutons : '') || FLOT_COIN[g && g.id] || ''; pl.classList.remove('fl-tr', 'fl-bl', 'fl-br', 'fl-ml'); if (fc) pl.classList.add('fl-' + fc); }
   $('jdw-gtitle').textContent = g.title;
+  { const hb = $('jdw-howto-b'), hm = $('jdw-sm-howto'), on = !!howtoOf(g); if (hb) hb.hidden = !on; if (hm) hm.hidden = !on; }   // 2.0.112
   $('jdw-end').hidden = true;
   fsEnter(orientDe(g) === 'paysage');      // téléphone dans le navigateur : plein écran (dans le toucher même), à l'horizontale pour les jeux en paysage
   if (orientMauvaise(g) || (LANDSCAPE.has(g.id) && portraitMQ.matches)) {
@@ -10411,6 +10489,7 @@ portraitMQ.addEventListener ? portraitMQ.addEventListener('change', () => { if (
 $('jdw-rotate-skip').addEventListener('click', () => { startAfterRotate.force = true; startAfterRotate(); });
 try { paysageMQ.addEventListener('change', () => { if (waitRotate && !orientMauvaise(waitRotate)) startAfterRotate(); }); } catch (e) {}
 function backToLibrary() {
+  howtoHide(false);
   flushPending(); OPEN_SEQ++;   // 2.0.44 : un jeu encore en chargement ne s'ouvre plus une fois revenu à l'accueil
   if (CADRE_G) { try { unmountGame(); } catch (e) {} $('jdw-end').hidden = true; $('jdw-play').hidden = false; mountGame(CADRE_G); return; }   // page d'un projet : on rejoue
   waitRotate = null; $('jdw-rotate').hidden = true;
@@ -10520,6 +10599,8 @@ function syncMute() {
 function syncSoundMenu() {
   $('jdw-sm-music').checked = MUS.on; $('jdw-sm-sfx').checked = !muted; $('jdw-sm-cris').checked = criOn;
 }
+$('jdw-howto-b').addEventListener('click', e => { e.stopPropagation(); howtoEnJeu(); });   // 2.0.112 : « ? » = comment jouer (la partie attend)
+$('jdw-sm-howto').addEventListener('click', e => { e.stopPropagation(); $('jdw-soundmenu').hidden = true; $('jdw-mute').setAttribute('aria-expanded', 'false'); howtoEnJeu(); });   // téléphone couché : dans le menu du son
 $('jdw-mute').addEventListener('click', e => {
   e.stopPropagation(); Audio.ensure(); syncSoundMenu();
   const m = $('jdw-soundmenu'); m.hidden = !m.hidden; $('jdw-mute').setAttribute('aria-expanded', String(!m.hidden));

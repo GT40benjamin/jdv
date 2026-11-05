@@ -174,6 +174,8 @@ def page(config=None):
             '<script>\n' + open(J + 'manette.js', encoding='utf-8').read() + '\n</script>\n'
             # accessoires de la tête (dessins, onglets, miniatures) : avant la bibliothèque, qui s'en sert
             '<script>\n' + open(J + 'accessoires.js', encoding='utf-8').read() + '\n</script>\n'
+            # « Comment jouer » : les commandes de chaque jeu (2.0.112), lues par shell2.js
+            '<script>\n' + open(J + 'comment-jouer.js', encoding='utf-8').read() + '\n</script>\n'
             '<script>\n' + open(J + 'shell2.js').read() + '\n</script>\n')
 OG = {
     'borne': {
