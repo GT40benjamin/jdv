@@ -189,7 +189,7 @@ const store = {
 // les notifications ») : les états « vu » suivent le COMPTE — gardés au serveur (compte_vus), envoyés en direct aux autres appareils du compte,
 // relus à l'ouverture. Un invité garde tout sur son appareil. Restent locaux : jdw.localnotifs (notifications fabriquées par cet appareil) et
 // jdw.notesbase (version de la borne au tout premier lancement de cet appareil).
-const VUS_CLES = new Set(['jdw.notesv', 'jdw.updseen', 'jdw.tileseen', 'jdw.noteseen', 'jdw.notifseen', 'jdw.notiftoast', 'jdw.gamenotifseen', 'jdw.coopnotifseen', 'jdw.chatseen', 'jdw.seengames', 'jdw.atl.seen', 'jdw.atl.vvu', 'jdw.atl.vu', 'jdw.atl.elvu', 'jdw.atlmajvu', 'jdw.atlmajcl']);
+const VUS_CLES = new Set(['jdw.notesv', 'jdw.updseen', 'jdw.tileseen', 'jdw.noteseen', 'jdw.notifseen', 'jdw.notiftoast', 'jdw.gamenotifseen', 'jdw.coopnotifseen', 'jdw.chatseen', 'jdw.seengames', 'jdw.atl.seen', 'jdw.atl.vvu', 'jdw.atl.vu', 'jdw.atl.elvu', 'jdw.atlmajvu', 'jdw.atlmajcl', 'jdw.atl.essaye']);   // 2.0.134 : la version déjà essayée de chaque projet (bandeau « Ta Vn est sortie »)
 const VUS = { file: new Set(), t: 0, applique: false };
 const vusVer = x => typeof x === 'string' && /^\d+(\.\d+)*$/.test(x);
 function vusFusion(a, b) {   // la même fusion que le serveur (pegase_int.vus_fusion) : un « vu » ne redevient jamais « pas vu »
@@ -10813,6 +10813,7 @@ function mountGame(g) {
   musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);
   try { current.inst = g.mount(root, api) || {}; } catch (e) { current.inst = {}; reportError('Lancement de ' + g.id + ' : ' + e.message, e.stack); }
   setTimeout(() => { try { boutiqueSonde(g, seq); } catch (e) {} }, 800);   // 2.0.134 : le bouton 🛍️ si le jeu a une boutique
+  try { if (ATL_NES.has(g.id) && (g.__v | 0) > 0) { const x = ATL_JEUX.get(g.id), fid = (x && x.fiche) || ((atlProjets().find(q => q && q.jeu === g.id) || {}).id); if (fid && (atlEssaye({ id: fid }) | 0) < (g.__v | 0)) atlEssaye({ id: fid }, g.__v | 0); } } catch (e) {}   // 2.0.134 : lancée à la borne = essayée
   setWhere(g.id);
   if (LANDSCAPE.has(g.id)) fsTip();   // iPhone dans Safari : astuce « Sur l'écran d'accueil » (une seule fois)
   if (!PAD_DOM.has(g.id)) padIntro(g);
@@ -15510,6 +15511,7 @@ function atlOpen() {
 }
 function atlClose() {
   if (!ATL.root) return;
+  atlVSortieVue(null);
   atlBrFlush();
   atlMicStop(); atlLetterClose(true); if (ATL.choix === 'question') ATL.choix = null;
   atlFrameStop();
@@ -15523,6 +15525,7 @@ function atlClose() {
 function atlErr(t) { if (!ATL.root) return; const e = ATL.root.querySelector('.atl-err'); e.hidden = !t; e.textContent = t || ''; }
 function atlRender() {
   if (!ATL.root || !ATL.open) return;
+  atlVSortieVue(ATL.cur);   // 2.0.134 : on a quitté la page d'un projet dont le bandeau « Ta Vn est sortie » était à l'écran
   try { atlAdminBandeau(); } catch (e) {}
   setTimeout(() => { try { atlEnTete(ATL.root); } catch (e) {} }, 0);   // 3 nov. 2 h 20 : l'en-tête toujours complet
   const liste = !ATL.cur && !ATL.nouveau, R = ATL.root;
@@ -16245,6 +16248,10 @@ function atlEssaye(f, v) {
   const e = store.get('jdw.atl.essaye', {}) || {}; if (v === undefined) return e[f.id];
   e[f.id] = v; const k = Object.keys(e); if (k.length > 80) delete e[k[0]]; store.set('jdw.atl.essaye', e);
 }
+// 2.0.134 : « le 5 nov. à 14 h 12 »
+function atlQuand(iso) { const d = new Date(iso); if (isNaN(d)) return ''; return 'le ' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' à ' + d.getHours() + ' h ' + String(d.getMinutes()).padStart(2, '0'); }
+// le bandeau a été VU : on quitte la page du projet (autre projet, liste, fermeture de l'Atelier) → il ne revient plus, sur aucun appareil
+function atlVSortieVue(garder) { const x = ATL && ATL.vSortieVue; if (!x || x.id === garder) return; ATL.vSortieVue = null; try { if ((atlEssaye({ id: x.id }) | 0) < x.v) atlEssaye({ id: x.id }, x.v); } catch (e) {} }
 function atlVSortie(W, f) {
   const box = W && W.querySelector('.atl-pbox'); if (!box || !f) return;
   const jouable = !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(String(f.etat || '')), v = (f.version | 0) || 1;
@@ -16252,11 +16259,13 @@ function atlVSortie(W, f) {
   let e = atlEssaye(f);
   if (e == null) { e = v === 1 || (vh && Date.now() - (Date.parse(vh.at) || 0) < 864e5) ? v - 1 : v; atlEssaye(f, e); }   // premier passage : la V1 (2.0.110 : « Essayer » dès sa sortie), ou une version sortie depuis moins d'un jour
   let bn = box.querySelector('.atl-vsortie');
-  if (!jouable || atlAdminIci() || (e | 0) >= v) { if (bn) bn.remove(); return; }
+  if (!jouable || (e | 0) >= v) { if (bn) bn.remove(); if (ATL.vSortieVue && ATL.vSortieVue.id === f.id) ATL.vSortieVue = null; return; }   // 2.0.134 : en mode admin aussi (le même écran)
+  ATL.vSortieVue = { id: f.id, v };   // vu : il disparaîtra en quittant la page (atlVSortieVue)
   if (bn && bn.dataset.v === String(v)) return;
   if (bn) bn.remove();
   bn = atlEl('div', 'atl-vsortie'); bn.dataset.v = String(v);
-  const tx = atlEl('div'); tx.append(atlEl('b', '', '🎉 Ta V' + v + ' est sortie !'), atlEl('small', '', vh && vh.note ? String(vh.note) : 'Essaie-la tout de suite.'));
+  const quand = vh && Date.parse(vh.at) ? atlQuand(vh.at) : '';   // 2.0.134 (l'admin) : la date et l'heure de sortie, comme les autres messages
+  const tx = atlEl('div'); tx.append(atlEl('b', '', '🎉 Ta V' + v + ' est sortie' + (quand ? ' ' + quand : '') + ' !'), atlEl('small', '', vh && vh.note ? String(vh.note) : 'Essaie-la tout de suite.'));
   const go = atlEl('button', 'btn btn-play atl-essai', '▶️ Essayer ma V' + v); go.type = 'button'; go.addEventListener('click', () => atlJouerVrai(f));
   bn.append(atlGuideAv(), tx, go);
   const nav = box.querySelector('.atl-ptabs'), hd = box.querySelector('.atl-phd'); if (nav) nav.insertAdjacentElement('afterend', bn); else if (hd) hd.insertAdjacentElement('afterend', bn); else box.prepend(bn);
@@ -16551,7 +16560,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
 // partie) ; « Quitter » revient à la page du projet. Pendant la partie : le petit guide flottant (déplaçable) et la touche P → arrêt sur image.
 function atlJouerVrai(f, pret) {
   const vj = (f.version | 0) || 1;   // 2.0.9 : la dernière version chargée AVANT (la partie démarre tout de suite, sans attente)
-  if (!atlAdminIci()) try { if ((atlEssaye(f) | 0) < vj) atlEssaye(f, vj); } catch (e) {}   // 2.0.94
+  try { if ((atlEssaye(f) | 0) < vj) atlEssaye(f, vj); } catch (e) {}   // 2.0.94 ; 2.0.134 : en mode admin aussi
   if (!pret && f && atlNe(f.jeu) && !ATL_MODS_OK.has(f.jeu + '@' + vj)) { const os = ++OPEN_SEQ; atlModule(f.jeu, vj).then(() => { if (os === OPEN_SEQ) atlJouerVrai(f, true); }); return; }
   const g = ATL_MODS_OK.get(f.jeu + '@' + vj) || (window.JDW_GAMES || {})[f.jeu];   // 2.0.132 : la version chargée d'abord (jeu sans module embarqué)
   if (!g || g.id !== f.jeu || g.stub) { atlToast('Ton jeu arrive sur la borne très bientôt !'); return; }
@@ -18091,14 +18100,17 @@ async function atlDemCharger(force) {
   const avant = JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id)), tuAvant = atlTuileSig(), trAvant = atlTravSig();
   try { ATL.dem = await rpc('at_mes_demandes', { p_name: profile.name }, { quiet: true }); } catch (e) {}
   try { const cr0 = atlCred(); if (cr0 && cr0.tous_projets) { const l = await rpc('at_admin_valider_liste', { p_name: profile.name }, { quiet: true }); ATL.aValider = Array.isArray(l) ? l : []; } else ATL.aValider = []; } catch (e) {}   // 2.0.33 : « 🛡️ À valider »
-  if (ATL.root) atlDemBtn(ATL.root);
-  if (ATL.open && JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id)) !== avant) { ATL.pSig = ''; try { atlRender(); } catch (e) {} }   // les boutons d'une nouvelle proposition dans la discussion
-  else if (ATL.open && !ATL.cur && !ATL.nouveau && atlTuileSig() !== tuAvant) try { atlRenderProjets(); } catch (e) {}   // 2.0.16 : les pastilles des tuiles
-  else if (ATL.open && ATL.cur && atlTravSig() !== trAvant) { ATL.pSig = ''; try { atlRender(); } catch (e) {} atlLoad(true); }   // 2.0.19 : le guide a fini → les boutons de publication se rallument
-  try { atlTravailMaj(); } catch (e) {}
-  if (ATL.open && force && atlDemEnCours().length) try { atlSchedule(); } catch (e) {}   // une demande vient de partir : relue toutes les 8 s tout de suite
-  try { const W = ATL.root && ATL.root.querySelector('.atl-wiz'); atlProjDemListe(W); if (ATL.tab === 'demandes' && ATL.open) atlDemVues(); } catch (e) {}
-  if (ATL.open && JSON.stringify(atlDemEnCours().map(x => [x.id, (x.etapes || []).length])) !== etAvant && ATL.root && ATL.root.querySelector('.atl-zoom:not([hidden]) .atl-dems')) { try { atlMesDemandes(); } catch (e) {} }
+  const rendu = () => {   // 2.0.134 : en douceur (la vue ne bouge pas ; relecture automatique : après ~2 s de calme)
+    if (ATL.root) atlDemBtn(ATL.root);
+    if (ATL.open && JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id)) !== avant) { ATL.pSig = ''; try { atlRender(); } catch (e) {} }   // les boutons d'une nouvelle proposition dans la discussion
+    else if (ATL.open && !ATL.cur && !ATL.nouveau && atlTuileSig() !== tuAvant) try { atlRenderProjets(); } catch (e) {}   // 2.0.16 : les pastilles des tuiles
+    else if (ATL.open && ATL.cur && atlTravSig() !== trAvant) { ATL.pSig = ''; try { atlRender(); } catch (e) {} atlLoad(true); }   // 2.0.19 : le guide a fini → les boutons de publication se rallument
+    try { atlTravailMaj(); } catch (e) {}
+    if (ATL.open && force && atlDemEnCours().length) try { atlSchedule(); } catch (e) {}   // une demande vient de partir : relue toutes les 8 s tout de suite
+    try { const W = ATL.root && ATL.root.querySelector('.atl-wiz'); atlProjDemListe(W); if (ATL.tab === 'demandes' && ATL.open) atlDemVues(); } catch (e) {}
+    if (ATL.open && JSON.stringify(atlDemEnCours().map(x => [x.id, (x.etapes || []).length])) !== etAvant && ATL.root && ATL.root.querySelector('.atl-zoom:not([hidden]) .atl-dems')) { try { atlMesDemandes(); } catch (e) {} }
+  };
+  atlDoux(rendu, !force, 'dem');
   return ATL.dem;
 }
 const atlPetit = () => { try { return matchMedia('(max-width:600px)').matches; } catch (e) { return false; } };
@@ -18462,7 +18474,13 @@ function atlRentLong(r, j, nom) {
 async function atlTousProjets(box) {
   const sec = atlEl('section', 'atl-tous'); box.appendChild(sec);
   sec.append(atlEl('h2', 'atl-ph', '🗂️ Tous les projets (admin)'));
-  let l = ATL.tous && Date.now() - ATL.tous.at < 15000 ? ATL.tous.l : null;
+  // 2.0.134 (actualisation en douceur) : la liste déjà connue s'affiche TOUT DE SUITE (jamais de section vide pendant la relecture, la page
+  // ne raccourcit pas) ; la relecture se fait derrière, et ne redessine (en douceur) que si le serveur a changé quelque chose
+  let l = ATL.tous ? ATL.tous.l : null;
+  if (l && Date.now() - ATL.tous.at >= 15000 && !ATL.tousLit) {
+    ATL.tousLit = true;
+    rpc('at_tous_projets', { p_name: profile.name }, { quiet: true }).then(l2 => { const avant = JSON.stringify(ATL.tous && ATL.tous.l); ATL.tous = { at: Date.now(), l: l2 }; if (JSON.stringify(l2) !== avant && ATL.open && !ATL.cur && !ATL.nouveau && sec.isConnected) atlDoux(() => atlRenderProjets(), true, 'tous'); }).catch(() => {}).finally(() => { ATL.tousLit = false; });
+  }
   if (!l) { try { l = await rpc('at_tous_projets', { p_name: profile.name }, { quiet: true }); ATL.tous = { at: Date.now(), l }; } catch (e) { sec.appendChild(atlEl('p', 'atl-chv', 'Liste indisponible.')); return; } }
   if (!Array.isArray(l)) return;
   const fj = atlEl('select', 'atl-tousf'), fe = atlEl('select', 'atl-tousf'), g = atlEl('div', 'atl-pgrid');
@@ -18488,7 +18506,8 @@ async function atlTousProjets(box) {
     }
     if (!g.firstChild) g.appendChild(atlEl('p', 'atl-chv', 'Aucun projet.'));
   };
-  fj.addEventListener('change', show); fe.addEventListener('change', show);
+  ATL.tousF = ATL.tousF || { j: '', e: '' }; if ([...fj.options].some(o => o.value === ATL.tousF.j)) fj.value = ATL.tousF.j; if ([...fe.options].some(o => o.value === ATL.tousF.e)) fe.value = ATL.tousF.e;   // 2.0.134 : les filtres restent
+  fj.addEventListener('change', () => { ATL.tousF.j = fj.value; show(); }); fe.addEventListener('change', () => { ATL.tousF.e = fe.value; show(); });
   atlRent().then(() => { for (const e of sec.querySelectorAll('.atl-rent')) atlRentPeint(e, atlRentDe(e.dataset.f)); });   // 2.0.119
   const fl = atlEl('div', 'atl-tousfl'); fl.append(fj, fe); sec.append(fl, g); show();
 }
@@ -18792,6 +18811,99 @@ async function atlBienvenue() {
 }
 
 // ---------- serveur ----------
+// ---- 2.0.134 (l'admin : « une actualisation pénible qui fait sauter ce que l'on regarde… tu peux actualiser en douceur ? ») : les
+// relectures AUTOMATIQUES de l'Atelier (toutes les 8 / 20 s, demandes et étapes en direct) ne redessinent rien si rien n'a changé ;
+// sinon elles attendent ~2 s de calme (défilement, molette, doigt, frappe, survol, fenêtre d'image ouverte) puis gardent tout ce que
+// l'on regarde : défilement de la page et de chaque liste, panneaux ouverts, champ en cours, focus (manette compris), images déjà
+// chargées (les mêmes éléments, pas de clignotement) ; nouveau message plus bas qu'on ne regarde : pastille « ⬇ nouveau message ».
+const ATL_DOUX = { agit: 0, tape: 0, att: new Map(), t: 0 };
+['scroll', 'wheel', 'pointerdown', 'pointermove', 'touchmove', 'keydown', 'input'].forEach(ev => document.addEventListener(ev, e => {
+  try { if (!ATL || !ATL.open || !ATL.root) return; const t = e.target; if (ev !== 'scroll' && !(t && t.nodeType === 1 && ATL.root.contains(t))) return; if (ev === 'pointermove' && e.pointerType !== 'mouse') return;
+    ATL_DOUX.agit = Date.now(); if (ev === 'keydown' || ev === 'input') ATL_DOUX.tape = Date.now(); } catch (x) {}
+}, { capture: true, passive: true }));
+function atlOccupe() {
+  if (!ATL || !ATL.root || !ATL.open) return false;
+  if (Date.now() - ATL_DOUX.agit < 2000 || Date.now() - ATL_DOUX.tape < 4000) return true;
+  const z = ATL.root.querySelector('.atl-zoom:not([hidden])'); return !!(z && z.querySelector(':scope > img'));   // l'image en grand (atlZoom) ; « Mes demandes » (même cadre) reste en direct
+}
+const ATL_CLS_ETAT = /^(on|new|open|ouvert|actif|joue|sel|choix|rep|att|neuf|eu|vu|lu|bas|fini|desc|low)$/;
+function atlCle(el, R) {
+  const p = [];
+  for (let e = el; e && e !== R; e = e.parentElement) {
+    const par = e.parentElement; if (!par) break;
+    const s = x => x.tagName + '.' + [...x.classList].filter(c => !ATL_CLS_ETAT.test(c)).sort().join('.') + (x.dataset && (x.dataset.k || x.dataset.id) ? '#' + (x.dataset.k || x.dataset.id) : '');
+    const me = s(e); p.unshift(me + ':' + [...par.children].filter(x => s(x) === me).indexOf(e));
+  }
+  return p.join('>');
+}
+const ATL_LOGS = '.atl-log, .atl-pmsgs, .atl-dlog, .atl-disc .atl-dl';
+function atlVueGarder() {
+  const R = ATL.root, e = { y: window.scrollY, sc: [], det: [], val: [], foc: null, imgs: new Map(), logs: [] };
+  for (const el of [R, ...R.querySelectorAll('*')]) {
+    if (el.scrollTop > 0 || el.scrollLeft > 0) e.sc.push([atlCle(el, R), el.scrollTop, el.scrollLeft]);
+    if (el.tagName === 'DETAILS') e.det.push([atlCle(el, R), el.open]);
+    else if ((el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(text|search|number|)$/.test(el.type))) && el.value) e.val.push([atlCle(el, R), el.value]);
+    else if (el.tagName === 'IMG' && el.complete && el.naturalWidth && el.src) { const l = e.imgs.get(el.src) || []; l.push(el); e.imgs.set(el.src, l); }
+  }
+  for (const l of R.querySelectorAll(ATL_LOGS)) e.logs.push([atlCle(l, R), l.querySelectorAll(':scope > :not(.atl-pnouv)').length, l.scrollHeight - l.scrollTop - l.clientHeight < 80]);
+  const a = document.activeElement; if (a && a !== R && R.contains(a)) e.foc = [atlCle(a, R), a.selectionStart, a.selectionEnd];
+  // l'ANCRE : ce que l'on regarde (au tiers haut de l'écran) ; si quelque chose s'insère au-dessus, on recale le défilement pour qu'il ne bouge pas
+  try { let x = document.elementFromPoint(innerWidth / 2, innerHeight * 0.35);
+    while (x && x !== R && R.contains(x) && !(x.textContent && x.textContent.trim().length >= 4 && x.getBoundingClientRect().height < innerHeight * 0.5)) x = x.parentElement;
+    if (x && x !== R && R.contains(x)) e.anc = [atlCle(x, R), x.tagName, x.textContent.trim().slice(0, 120), x.getBoundingClientRect().top];
+  } catch (x) {}
+  return e;
+}
+function atlVueRemettre(e) {
+  const R = ATL.root; if (!R || !e) return;
+  const cles = new Map(); for (const el of [R, ...R.querySelectorAll('*')]) { const k = el === R ? '' : atlCle(el, R); if (!cles.has(k)) cles.set(k, el); }
+  // les images déjà chargées : on remet LES MÊMES éléments (pas de rechargement ni de clignotement)
+  for (const im of R.querySelectorAll('img')) {
+    const l = e.imgs.get(im.src); if (!l || !l.length || im.complete && im.naturalWidth && l[0] === im) continue;
+    const old = l.shift(); if (!old || old === im || old.isConnected) continue;
+    old.className = im.className; old.alt = im.alt; if (im.getAttribute('style') != null) old.setAttribute('style', im.getAttribute('style')); else old.removeAttribute('style');
+    im.replaceWith(old);
+  }
+  for (const [k, open] of e.det) { const d = cles.get(k); if (d && d.tagName === 'DETAILS' && d.open !== open) d.open = open; }
+  for (const [k, v] of e.val) { const f = cles.get(k); if (f && 'value' in f && !f.value) f.value = v; }
+  for (const [k, top, left] of e.sc) { const el = cles.get(k); if (el) { el.scrollTop = top; el.scrollLeft = left; } }
+  for (const [k, n, bas] of e.logs) {
+    const l = cles.get(k); if (!l) continue;
+    if (bas) { l.scrollTop = l.scrollHeight; continue; }
+    if (l.querySelectorAll(':scope > :not(.atl-pnouv)').length > n) atlPastilleNouveau(l);
+  }
+  if (Math.abs(window.scrollY - e.y) > 1) window.scrollTo(0, e.y);
+  if (e.anc) try {
+    const [k, tag, txt, top0] = e.anc; let x = cles.get(k);
+    if (!x || x.tagName !== tag || x.textContent.trim().slice(0, 120) !== txt) x = [...R.querySelectorAll(tag)].find(y => y.textContent.trim().slice(0, 120) === txt) || null;
+    if (x) { const d = x.getBoundingClientRect().top - top0; if (Math.abs(d) > 1) { let sc = x.parentElement; while (sc && sc !== document.body && !(sc.scrollHeight > sc.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement; if (sc && sc !== document.body) sc.scrollTop += d; else window.scrollBy(0, d); } }
+  } catch (x) {}
+  if (e.foc) { const f = cles.get(e.foc[0]); if (f && document.activeElement !== f) try { f.focus({ preventScroll: true }); if (e.foc[1] != null && f.setSelectionRange) f.setSelectionRange(e.foc[1], e.foc[2]); } catch (x) {} }
+}
+function atlPastilleNouveau(l) {
+  const par = l; if (par.querySelector(':scope > .atl-pnouv')) return;   // dans la liste même, collée en bas (position: sticky)
+  const b = atlEl('button', 'atl-pnouv', '⬇ nouveau message'); b.type = 'button';
+  const fin = () => { b.remove(); l.removeEventListener('scroll', vu); };
+  const vu = () => { if (l.scrollHeight - l.scrollTop - l.clientHeight < 80) fin(); };
+  b.addEventListener('click', () => { l.scrollTo({ top: l.scrollHeight, behavior: 'smooth' }); fin(); });
+  l.addEventListener('scroll', vu, { passive: true }); par.appendChild(b);
+}
+// redessiner en gardant la vue ; « auto » : attendre le calme, et rien si les données n'ont pas changé (sig)
+function atlDoux(fn, auto, nom, sig) {
+  if (!ATL || !ATL.root || !ATL.open) { fn(); return; }
+  if (auto && sig != null && ATL_DOUX.att.get('sig:' + nom) === sig) return;
+  if (auto && atlOccupe()) {
+    ATL_DOUX.att.set(nom, () => atlDoux(fn, true, nom, sig));
+    clearTimeout(ATL_DOUX.t); ATL_DOUX.t = setTimeout(atlDouxReprise, 700); return;
+  }
+  ATL_DOUX.att.delete(nom); if (sig != null) ATL_DOUX.att.set('sig:' + nom, sig);
+  const e = atlVueGarder(); try { fn(); } finally { atlVueRemettre(e); }
+}
+function atlDouxReprise() {
+  if (atlOccupe()) { ATL_DOUX.t = setTimeout(atlDouxReprise, 700); return; }
+  for (const [k, f] of [...ATL_DOUX.att]) if (!k.startsWith('sig:')) { ATL_DOUX.att.delete(k); try { f(); } catch (x) {} }
+}
+const atlSigVue = () => { try { return JSON.stringify([ATL.cur, ATL.nouveau, ATL.tab, ATL.demOngP, ATL.data, (ATL.dem || {}).demandes, ATL.aValider]); } catch (e) { return String(Math.random()); } };
 async function atlLoad(force) {
   if (!ATL || !ATL_ON() || !ONLINE || ATL.off) return;
   if (isGuest() || !profile.name || netOff()) { ATL.data = null; ATL.name = ''; atlTileState(); return; }
@@ -18810,7 +18922,7 @@ async function atlLoad(force) {
     if (after && after > before && before && ATL.root) { ATL.root.classList.add('atl-joie'); clearTimeout(ATL.joieT); ATL.joieT = setTimeout(() => ATL.root && ATL.root.classList.remove('atl-joie'), 2600); }   // la réponse arrive : il saute de joie
     if (ATL.open && !document.hidden) atlMarkSeen();
     else if (after && after > before && before && ATL.toastedFor !== after) { ATL.toastedFor = after; try { atlToast('✉️ ' + gNM() + ' t’a répondu !'); } catch (e) {} }
-    atlRender(); if (ATL.open) atlDemCharger(false);   // 3 nov. : demandes, réponses et versions en direct (toutes les 20 s)
+    atlDoux(atlRender, !force, 'load', atlSigVue()); if (ATL.open) atlDemCharger(false);   // 3 nov. : demandes, réponses et versions en direct (toutes les 20 s) ; 2.0.134 : en douceur
   } catch (e) { if (e && e.status === 404) ATL.off = true; ATL.err++; ATL.errMsg = String((e && e.message) || ''); if (!ATL.data && ATL.open) try { atlRender(); } catch (x) {} if (/projet inconnu/.test(String(e && e.message)) && ATL.cur) { ATL.cur = null; ATL.err = 0; atlRender(); } }
   finally { ATL.busy = false; atlTileState(); try { refreshBell(); } catch (e) {} atlSchedule(); }
 }
@@ -20061,7 +20173,7 @@ function vusAppliquer() {   // les copies en mémoire, puis tout ce qui affiche 
   try { seenGames = store.get('jdw.seengames', {}) || {}; } catch (e) {}
   try { if (typeof ATL !== 'undefined' && ATL) ATL.seen = store.get('jdw.atl.seen', {}) || {}; } catch (e) {}
   try { refreshNewBadges(); } catch (e) {} try { refreshBell(); } catch (e) {} try { refreshChatBtn(); } catch (e) {}
-  try { atlTileState(); } catch (e) {} try { if (typeof ATL !== 'undefined' && ATL && ATL.open) { atlDemBtn(ATL.root); atlRender(); } } catch (e) {}
+  try { atlTileState(); } catch (e) {} try { if (typeof ATL !== 'undefined' && ATL && ATL.open) { atlDemBtn(ATL.root); atlDoux(atlRender, true, 'vus'); } } catch (e) {}   // 2.0.134 : en douceur
 }
 setTimeout(() => { try { vusSync(); } catch (e) {} }, 2600);
 // 2.0.32 : le serveur dit si ce compte est admin ; sinon le mode test de l'appareil est effacé (et la borne repart sans les jeux en essai)
