@@ -6,6 +6,16 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🎮 Un même menu pour les jeux, et des boutons qui ne gênent plus (borne 2.0.139)
+[borne] 🎮 Empilo, Glouton et La Chasse aux mouches ouvrent sur le nouveau menu : ▶ Jouer, ❓ Touches et explications, 🔊 Son, ⚙️ Paramètres. Les autres jeux suivent.
+[borne] 🔊 Musique et bruitages se règlent pour chaque jeu, avec leur volume, et c’est retenu.
+[borne] 📱 Téléphone couché : les boutons ✕ ⏸ 🔊 sont plus petits et s’effacent au bout de 3 s ; touche le bord pour les faire revenir.
+[borne] 🧹 Sur ordinateur et téléphone droit, la barre du jeu garde tous ses boutons sur une ligne : plus rien ne déborde sur le jeu.
+[borne] 🎨 Page d’un projet de l’Atelier : l’étape 3 montre la version de ton jeu (« La V4 et les tests »), et plus aucun bouton n’apparaît coupé en haut quand tu fais défiler.
+[borne] ## 💬 Tout se passe dans la discussion (borne 2.0.138)
+[borne] 💬 La page de ton projet : 🎮 Jouer · 💬 Discussion avec {g} · 🧩 Éléments. Tes demandes, ses questions, ses offres, son travail et ses livraisons : tout est dans la discussion.
+[borne] 🎫 Le bouton « Mes demandes » en haut à droite montre la liste de tes tickets : touche-en un, la discussion s’ouvre pile à son endroit.
+[borne] 🎵 L’Atelier a ses 6 musiques à lui, douces, jouées au hasard : jamais en même temps que la musique de la borne ni que ton jeu, et 🔇 les coupe (c’est retenu).
 [borne] ## 📱 L’appli Android 1.14 se connecte toute seule au démarrage (borne 2.0.137)
 [borne] 📱 Plus de « Pas de connexion » à réessayer à chaque ouverture de l’appli : si le réseau du téléphone n’est pas encore prêt, l’appli affiche « Chargement… » et réessaie toute seule. « Pas de connexion » n’apparaît que s’il n’y a vraiment pas de réseau, et la borne revient toute seule dès qu’il revient. Pour l’avoir : touche le bandeau vert « Version 1.14 disponible ».
 [pigeon] ## 🐦 Pigeon Bombardier arrive dans l’Atelier (borne 2.0.132)
@@ -30,15 +40,6 @@
 [noisette] 🐿️ Sur la carte de la tuile, les arbres ne passent plus sur les mondes ni sur les titres, et les noisettes des mondes à venir restent bien claires.
 [jetporte] ## 🍑 Jet Porté arrive dans l’Atelier (borne 2.0.117)
 [jetporte] 🍑 Traite le rang de pêchers avant que le vent et la pluie s’en mêlent : 5 niveaux, du matin calme au coup de vent, avec la carte du verger sur la tuile et tes records par niveau.
-[borne] ## 🎮 Un même menu pour les jeux, et des boutons qui ne gênent plus (borne 2.0.138)
-[borne] 🎮 Empilo, Glouton et La Chasse aux mouches ouvrent sur le nouveau menu : ▶ Jouer, ❓ Touches et explications, 🔊 Son, ⚙️ Paramètres. Les autres jeux suivent.
-[borne] 🔊 Musique et bruitages se règlent pour chaque jeu, avec leur volume, et c’est retenu.
-[borne] 📱 Téléphone couché : les boutons ✕ ⏸ 🔊 sont plus petits et s’effacent au bout de 3 s ; touche le bord pour les faire revenir.
-[borne] 🧹 Sur ordinateur et téléphone droit, la barre du jeu garde tous ses boutons sur une ligne : plus rien ne déborde sur le jeu.
-[borne] ## 💬 Tout se passe dans la discussion (borne 2.0.137)
-[borne] 💬 La page de ton projet : 🎮 Jouer · 💬 Discussion avec {g} · 🧩 Éléments. Tes demandes, ses questions, ses offres, son travail et ses livraisons : tout est dans la discussion.
-[borne] 🎫 Le bouton « Mes demandes » en haut à droite montre la liste de tes tickets : touche-en un, la discussion s’ouvre pile à son endroit.
-[borne] 🎵 L’Atelier a ses 6 musiques à lui, douces, jouées au hasard : jamais en même temps que la musique de la borne ni que ton jeu, et 🔇 les coupe (c’est retenu).
 [borne] ## 🎫 Tes demandes plus claires (borne 2.0.136)
 [borne] ✅ Plusieurs corrections livrées dans la même version : une seule bulle « Livré dans la V… », avec la liste à déplier.
 [borne] 💡 « Tes demandes » a un onglet « À choisir » pour les propositions qui attendent ta réponse, et toutes tes demandes faites sont bien dans « Faites ».

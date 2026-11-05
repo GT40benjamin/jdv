@@ -439,7 +439,7 @@ function padPauseOpen(by) {
 }
 function padPauseClose(resume) {
   if (!PADP.open) return;
-  setTimeout(() => { try { dodoArme(); } catch (e) {} }, 50);   // 2.0.138
+  setTimeout(() => { try { dodoArme(); } catch (e) {} }, 50);   // 2.0.139
   PADP.open = false; $('jdw-padpause').hidden = true; musicBaseLevel(0.8);
   if (resume && current && current.inst) { const inst = current.inst; try { if (current.pad) current.pad.flush(); } catch (e) {} try { if (inst.resume) inst.resume(); else padKey('p'); } catch (e) {} try { if (current.pause && current.pause.reprendre) current.pause.reprendre(); } catch (e) {} }
   if (PADJ) PADJ.blur(true);
@@ -504,7 +504,7 @@ function pauseDepuisDebut() {
   if (f) { setTimeout(() => { try { f(); } catch (e) { reportError('Recommencer le jeu : ' + e.message, e.stack); } }, 60); return; }
   current.over = true; unmountGame(); mountGame(g);   // un jeu sans partie gardée : on le relance, tout neuf
 }
-// ---------- 2.0.138 (CONTRACT.md Ajout 27, l'admin : « les boutons de la borne couvrent la jauge » + « un même menu pour tous les jeux ») ----------
+// ---------- 2.0.139 (CONTRACT.md Ajout 27, l'admin : « les boutons de la borne couvrent la jauge » + « un même menu pour tous les jeux ») ----------
 // (1) son par jeu ; (2) ZONE SÛRE (ce que la borne couvre dans le cadre du jeu) ; (3) boutons flottants discrets qui s'endorment ; (4) MENU PRINCIPAL
 function sonJeuLire(id) { const d = (id && store.get('jdw.son.' + id, null)) || {}, v = x => Number.isFinite(+x) ? Math.min(1, Math.max(0, +x)) : 1; return { m: d.m !== false, mv: v(d.mv), b: d.b !== false, bv: v(d.bv) }; }
 function sonJeuEtat() { return { musique: { on: !!(SON_JEU.m && MUS.on), volume: SON_JEU.mv }, bruitages: { on: !!(SON_JEU.b && !muted), volume: SON_JEU.bv } }; }
@@ -569,7 +569,7 @@ for (const ev of ['touchstart', 'pointerdown', 'mousedown']) addEventListener(ev
 addEventListener('click', e => { if (Date.now() - DODO.reveil < 600 && e.target && e.target.closest && e.target.closest('#jdw-play .topbar')) { e.preventDefault(); e.stopPropagation(); } }, true);
 // MENU PRINCIPAL standard (avant la partie) : ▶ Jouer · ❓ Touches et explications · 🛍️ Boutique · 🔊 Son · ⚙️ Paramètres (le son,
 // « Recommencer l'aventure »). Pour les jeux qui le déclarent (menu: true, jeux de l'Atelier compris) et les jeux de la borne de MENU_BORNE.
-const MENU_BORNE = new Set(['empilo', 'glouton', 'mouches']);   // 2.0.138 : les 3 premiers jeux de la borne branchés (sans écran titre à eux)
+const MENU_BORNE = new Set(['empilo', 'glouton', 'mouches']);   // 2.0.139 : les 3 premiers jeux de la borne branchés (sans écran titre à eux)
 const MENU = { passe: '' };
 const menuAvoir = g => !!g && g.menu !== false && (g.menu === true || MENU_BORNE.has(g.id) || (navigator.webdriver && Array.isArray(window.JDW_MENU_ESSAI) && window.JDW_MENU_ESSAI.includes(g.id))) && !PAD_DOM.has(g.id) && !g.external && g.id !== 'pegase';   // jeux de l'Atelier : menu: true (leur équipe retire d'abord leur écran titre : jamais deux menus)
 function menuOuJouer(g) { if (menuAvoir(g) && MENU.passe !== g.id) menuMontrer(g); else mountGame(g); }
@@ -1952,7 +1952,7 @@ addEventListener('unhandledrejection', e => { const r = e.reason; reportError('P
 /* ================= Musique (assets/music/<morceau>.mp3) ================= */
 const MUS = { on: store.get('jdw.music', true) !== false, gain: null, buf: {}, order: [], cur: null, id: '', want: '', loopT: 0, seq: 0 };
 const MUSIC_VOL = 0.42, XFADE = 1.6;
-// 2.0.138 (CONTRACT.md Ajout 27) : musique et bruitages réglés À PART pour chaque jeu (oui / non + volume), retenus (jdw.son.<jeu>) ;
+// 2.0.139 (CONTRACT.md Ajout 27) : musique et bruitages réglés À PART pour chaque jeu (oui / non + volume), retenus (jdw.son.<jeu>) ;
 // ils s'ajoutent aux réglages généraux de la borne (menu 🔊)
 const SON_JEU = { id: '', m: true, mv: 1, b: true, bv: 1, fns: new Set() };
 // niveau de la musique selon l'écran (accueil 1, en jeu 0.8, fin de partie 0.5) et baisse momentanée pendant un cri
@@ -10943,7 +10943,7 @@ function mountGame(g) {
     reached: g.spots ? reachedApi(g) : undefined,
     live: g.live ? liveApi(g, seq) : undefined,
     boutique: boutiqueApi(g, seq),   // 2.0.130 : la boutique du créateur (CONTRACT.md Ajout 25, SQL v139)
-    // 2.0.138 (CONTRACT.md Ajout 27) : la zone sûre (ce que la borne couvre) et le son réglé pour ce jeu
+    // 2.0.139 (CONTRACT.md Ajout 27) : la zone sûre (ce que la borne couvre) et le son réglé pour ce jeu
     zoneSure: Object.assign(() => zoneSure(), { suivre: fn => { if (typeof fn !== 'function' || !current || current.seq !== seq) return () => {}; ZS.fns.add(fn); try { fn(zoneSure()); } catch (e) {} return () => ZS.fns.delete(fn); } }),
     son: { etat: () => sonJeuEtat(), suivre: fn => { if (typeof fn !== 'function' || !current || current.seq !== seq) return () => {}; SON_JEU.fns.add(fn); try { fn(sonJeuEtat()); } catch (e) {} return () => SON_JEU.fns.delete(fn); } },
     // 2.0.128 (CONTRACT.md Ajout 24) : le menu de pause standard — le jeu dit ce qu'il sait faire
@@ -10962,7 +10962,7 @@ function mountGame(g) {
     }
   };
   current = { game: g, root, seq, over: false, inst: null, lvBase: lvBest(profile.name, g.id), pad: api.pad };
-  menuFermer(); sonJeuActiver(g.id); ZS.fns.clear(); ZS.last = ''; zoneSureMaj();   // 2.0.138 : son de CE jeu, zone sûre posée sur son cadre (--zone-*)
+  menuFermer(); sonJeuActiver(g.id); ZS.fns.clear(); ZS.last = ''; zoneSureMaj();   // 2.0.139 : son de CE jeu, zone sûre posée sur son cadre (--zone-*)
   if (g.live) setTimeout(livSalonVivant, 1500);   // 2.0.126 : le salon de ce jeu est ouvert dans ma salle (les invitations restent valables)
   recReset(); setTimeout(recLine, 50);
   musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);
@@ -10972,7 +10972,7 @@ function mountGame(g) {
   setWhere(g.id);
   if (LANDSCAPE.has(g.id)) fsTip();   // iPhone dans Safari : astuce « Sur l'écran d'accueil » (une seule fois)
   if (!PAD_DOM.has(g.id)) padIntro(g);
-  setTimeout(() => { zoneSureMaj(); dodoArme(); }, 300);   // 2.0.138
+  setTimeout(() => { zoneSureMaj(); dodoArme(); }, 300);   // 2.0.139
 }
 function unmountGame() {
   if (!current) return;
@@ -10983,7 +10983,7 @@ function unmountGame() {
   if (RHY.src || RHY.t0 != null) rhythmStop(0.3);
   if (game.external) root.hidden = true; else root.remove();
   musicMuffle(0);   // un jeu qui étouffait la musique la rend normale en partant (aucun effet sinon)
-  current = null; ZS.fns.clear(); ZS.last = ''; sonJeuActiver(''); clearTimeout(DODO.t); $('jdw-play').classList.remove('btn-dodo');   // 2.0.138
+  current = null; ZS.fns.clear(); ZS.last = ''; sonJeuActiver(''); clearTimeout(DODO.t); $('jdw-play').classList.remove('btn-dodo');   // 2.0.139
   $('jdw-cheer').hidden = true; $('jdw-rescue').hidden = true;
 }
 // 2.0.37 : le coin des boutons flottants (téléphone couché) pour les jeux dont le coin haut-gauche porte un bouton ou une info utile
@@ -11041,19 +11041,19 @@ function openGame(g, web, vok, os) {
     waitRotate = g; $('jdw-rotate').hidden = false;
     return;
   }
-  MENU.passe = ''; menuOuJouer(g);   // 2.0.138 : le menu principal standard (jeux qui l'ont), puis la partie
+  MENU.passe = ''; menuOuJouer(g);   // 2.0.139 : le menu principal standard (jeux qui l'ont), puis la partie
 }
 function startAfterRotate() {
   if (!waitRotate) return;
   const g = waitRotate; if (g && orientMauvaise(g) && !startAfterRotate.force) return; startAfterRotate.force = false; waitRotate = null; $('jdw-rotate').hidden = true;
-  setTimeout(() => menuOuJouer(g), 250);            // laisse le temps à l'écran de se redimensionner (2.0.138 : le menu d'abord)
+  setTimeout(() => menuOuJouer(g), 250);            // laisse le temps à l'écran de se redimensionner (2.0.139 : le menu d'abord)
 }
 portraitMQ.addEventListener ? portraitMQ.addEventListener('change', () => { if (!portraitMQ.matches) startAfterRotate(); })
                             : portraitMQ.addListener(() => { if (!portraitMQ.matches) startAfterRotate(); });
 $('jdw-rotate-skip').addEventListener('click', () => { startAfterRotate.force = true; startAfterRotate(); });
 try { paysageMQ.addEventListener('change', () => { if (waitRotate && !orientMauvaise(waitRotate)) startAfterRotate(); }); } catch (e) {}
 function backToLibrary() {
-  howtoHide(false); menuFermer(); MENU.passe = '';   // 2.0.138
+  howtoHide(false); menuFermer(); MENU.passe = '';   // 2.0.139
   flushPending(); OPEN_SEQ++;   // 2.0.44 : un jeu encore en chargement ne s'ouvre plus une fois revenu à l'accueil
   if (CADRE_G) { try { unmountGame(); } catch (e) {} $('jdw-end').hidden = true; $('jdw-play').hidden = false; mountGame(CADRE_G); return; }   // page d'un projet : on rejoue
   waitRotate = null; $('jdw-rotate').hidden = true;
@@ -17190,7 +17190,7 @@ function atlRenderRoute(liste) {
   if (f) { const it = atlBiblioItems(f, fi), n = ATL_CATS.reduce((m, [c]) => m + it[c].filter(x => !x.vide).length, 0); ligne(s3, '🧩', 'Éléments', n ? String(n) : '…', null, !!n, ATL_CATS.filter(([c]) => it[c].length).map(([c, ic]) => ic + ' ' + it[c].filter(x => !x.vide).length).join(' · '), n && atlAvantV1(f) ? () => atlElemsVoir(f) : null); }
   ligne(s3, '🧩', 'Éléments créés', els.length ? faits + ' / ' + els.length + (att ? ' ⏳' : '') : '…', etape(5), !!els.length && faits === els.length);
   const s4 = sec('🚀 Où en est ton jeu');
-  { const n = atlEtapeNum(); s4.appendChild(atlEl('p', 'atl-rst', 'Étape ' + n + ' / 3 : ' + ATL_ETAPES[n - 1][1])); }
+  { const n = atlEtapeNum(); s4.appendChild(atlEl('p', 'atl-rst', 'Étape ' + n + ' / 3 : ' + atlEtapeLab(n - 1))); }
   const s5 = sec('💎 Crédits');
   s5.appendChild(atlEl('p', 'atl-rcr', cr ? Math.max(0, cr.solde | 0) + ' crédits' : '…'));
   // 2.0.30 : pendant le montage du projet (pas encore de fiche, brouillon, discussion), discuter est gratuit ; les prix arrivent avec le design
@@ -17367,6 +17367,10 @@ function atlSupprimerAsk(pj) {
 
 // ---- les 3 étapes d'un projet (21 h 05, Benjamin) : 1 Montage du projet · 2 Le design · 3 La V1 et les tests
 const ATL_ETAPES = [['🤝', 'Montage du projet'], ['🎨', 'Le design'], ['🎮', 'La V1 et les tests']];
+// 2.0.139 (chef) : l'étape 3 porte la version du jeu (« La V4 et les tests »), plus toujours « La V1 »
+function atlEtapeLab(i) { const f = atlFiche(), v = f ? (f.version | 0) : 0; return i === 2 && v > 1 ? 'La V' + v + ' et les tests' : ATL_ETAPES[i][1]; }
+// le haut de la zone qui défile se fond (plus de bouton coupé net sous « Feuille de route »)
+addEventListener('scroll', e => { const t = e.target; if (t && t.classList && t.classList.contains('atl-wiz')) t.classList.toggle('atl-defile', t.scrollTop > 4); }, true);
 function atlEtapeNum() {
   const f = atlFiche(); if (!f) return 1;
   const et = String(f.etat || '');
@@ -17379,7 +17383,7 @@ function atlFrise(liste) {
   const n = atlEtapeNum(); F.textContent = '';
   ATL_ETAPES.forEach(([ic, lab], i) => {
     const k = i + 1, e = atlEl('div', 'atl-fe' + (k < n ? ' fait' : k === n ? ' on' : ''));
-    e.append(atlEl('span', 'atl-fen', k < n ? '✔' : String(k)), atlEl('span', 'atl-fel', ic + ' ' + lab));
+    e.append(atlEl('span', 'atl-fen', k < n ? '✔' : String(k)), atlEl('span', 'atl-fel', ic + ' ' + atlEtapeLab(i)));
     F.appendChild(e); if (k < 3) F.appendChild(atlEl('span', 'atl-fsep', ''));
   });
 }

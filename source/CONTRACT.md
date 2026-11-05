@@ -405,7 +405,7 @@ comme aujourd'hui. Ce que la borne doit savoir, le MODULE le déclare lui-même 
 Le module de secours embarqué (`source/games/<id>.js`) n'est plus nécessaire pour un jeu en essai ; il ne sert qu'à un jeu publié pour
 tous qu'on veut jouable hors ligne dès l'installation. L'id ne peut pas être celui d'un jeu de la borne elle-même.
 
-## Ajout 27 : ZONE SÛRE, boutons discrets, UNE pause, MENU PRINCIPAL standard et son par jeu (borne 2.0.138 ; demandes de l'admin du 5 nov. 2026)
+## Ajout 27 : ZONE SÛRE, boutons discrets, UNE pause, MENU PRINCIPAL standard et son par jeu (borne 2.0.139 ; demandes de l'admin du 5 nov. 2026)
 Pour tous les jeux : ceux de la borne et ceux des créateurs de l'Atelier. La borne fournit tout ; aucun jeu n'est à refaire, chacun se branche.
 
 ### 1. La zone sûre (`api.zoneSure`)
@@ -450,7 +450,7 @@ Quand on ouvre le jeu, la borne montre son menu, aux couleurs du jeu (accent, ja
 - **⚙️ Paramètres** → le son, et **🔄 Recommencer l'aventure** avec la confirmation « Tu perds ta progression dans ce jeu. Tes achats et
   tes records restent. » → remise à zéro de la progression de CE jeu seulement.
 Qui a le menu : chaque jeu qui le déclare (`menu: true` dans son module, jeux de l'Atelier compris : l'équipe retire d'abord son écran titre
-à elle, jamais deux menus), et les jeux de la borne branchés par la borne (2.0.138 :
+à elle, jamais deux menus), et les jeux de la borne branchés par la borne (2.0.139 :
 Empilo, Glouton, La Chasse aux mouches). « Rejouer » à la fin d'une partie ne repasse pas par le menu. B / Échap : ← Retour, puis quitter.
 Un jeu qui a déjà son propre écran titre met `menu: false` ou retire de son écran ce que la borne fait déjà (pas de doublon : un seul son,
 une seule boutique, une seule pause).
