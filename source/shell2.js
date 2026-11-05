@@ -435,7 +435,7 @@ function padIntroHide() { const el = $('jdw-padintro'); if (el.hidden) return; e
 // (en jeu) et « ❓ Comment jouer » (pause du duel). Les commandes de chaque jeu : window.JDW_COMMENT_JOUER (source/comment-jouer.js),
 // { pc: [[touches, action]], touch: [[geste, action]], pad? } par id (« duo:<id> » pour un duel) ; un jeu peut déclarer g.howto (même forme) ;
 // la manette vient de g.pad.help. On le passe d'une touche, d'un toucher ou d'un bouton de la manette ; vu une fois (jdw.howto.<id>).
-const HOWTO = { open: false, then: null, keyH: null, pad: null, t0: 0 };
+const HOWTO = { open: false, then: null, keyH: null, pad: null, t0: 0, calmeT: 0 };   // calme : pas d'annonce par-dessus (body.howto-on), jusqu'à 2 s après la fermeture
 function howtoOf(g, duo) {
   if (!g || PAD_DOM.has(g.id)) return null;
   const T = window.JDW_COMMENT_JOUER || {}, b = (g.howto && typeof g.howto === 'object' ? g.howto : null) || T[(duo ? 'duo:' : '') + g.id] || (duo ? null : T[g.id]) || {};
@@ -471,7 +471,7 @@ function howtoShow(g, where, o) {
   tip.textContent = (TOUCH ? 'Touche l’écran' : 'Appuie sur une touche') + (o.retour ? ' pour revenir' : o.reprendre ? ' pour reprendre' : ' pour commencer') + ' · tu le revois avec ' + (o.duo ? '« ❓ Comment jouer » dans la pause' : couche ? '« ❓ Comment jouer » dans le menu du son 🔊' : 'le bouton ?');
   card.append(k, t, cols, go, tip); el.appendChild(card);
   (where || document.body).appendChild(el);
-  HOWTO.open = true; HOWTO.then = o.then || null; HOWTO.t0 = performance.now();
+  HOWTO.open = true; HOWTO.then = o.then || null; HOWTO.t0 = performance.now(); clearTimeout(HOWTO.calmeT); document.body.classList.add('howto-on');
   const fin = () => { if (performance.now() - HOWTO.t0 > 350) howtoHide(true); };
   go.addEventListener('click', e => { e.stopPropagation(); howtoHide(true); });
   el.addEventListener('pointerdown', e => { if (e.target.closest('.howto-go')) return; const hc = e.target.closest('.howto-col:not(.ici) h3'); if (hc) { e.preventDefault(); hc.parentNode.classList.toggle('ferme'); return; } e.preventDefault(); fin(); });
@@ -486,7 +486,7 @@ function howtoHide(suite) {
   const el = $('jdw-howto'), then = HOWTO.then; HOWTO.then = null;
   if (HOWTO.keyH) { window.removeEventListener('keydown', HOWTO.keyH, true); HOWTO.keyH = null; }
   if (HOWTO.pad) { padClose(HOWTO.pad); HOWTO.pad = null; }
-  HOWTO.open = false;
+  HOWTO.open = false; clearTimeout(HOWTO.calmeT); HOWTO.calmeT = setTimeout(() => { if (!HOWTO.open) document.body.classList.remove('howto-on'); }, 2000);
   if (el) { el.classList.add('out'); el.id = ''; setTimeout(() => el.remove(), 260); }
   if (suite && then) { try { then(); } catch (e) { reportError('Comment jouer : ' + e.message, e.stack, { quiet: true }); } }
 }
@@ -4205,7 +4205,7 @@ function loseTip() {
   if (!n || isGuest() || loseMissing || profile.lose || profile.loseDirty || !ONLINE || netOff()) return;
   const seen = store.get('jdw.losetip', {}) || {}; if (seen[n]) return;
   const busy = document.fullscreenElement || ['jdw-play', 'jdw-duo', 'jdw-net', 'jdw-watch', 'jdw-welcome', 'jdw-acct', 'jdw-profiles', 'jdw-photo', 'jdw-cri',
-    'jdw-settings', 'jdw-coopgo', 'jdw-end', 'jdw-chat', 'jdw-map', 'jdw-board'].some(id => $(id) && !$(id).hidden) || (typeof ATL !== 'undefined' && ATL && ATL.open);   // 2.0.63 : jamais par-dessus l'Atelier
+    'jdw-settings', 'jdw-coopgo', 'jdw-end', 'jdw-chat', 'jdw-map', 'jdw-board'].some(id => $(id) && !$(id).hidden) || (typeof ATL !== 'undefined' && ATL && ATL.open) || document.body.classList.contains('howto-on');   // 2.0.113 : jamais sur « Comment jouer »   // 2.0.63 : jamais par-dessus l'Atelier
   if (busy) { if (++LOSE.tries < 40) LOSE.tipT = setTimeout(loseTip, 15000); return; }
   seen[n] = 1; store.set('jdw.losetip', seen);
   const el = document.createElement('div'); el.id = 'jdw-losetip'; el.className = 'fs-tip lose-tip'; el.setAttribute('role', 'status');
