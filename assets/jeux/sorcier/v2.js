@@ -1194,6 +1194,56 @@ function mount(root, api) {
     }
     ctx.fillStyle = '#3c3745'; ctx.fillRect(x0, yb - 2, x1 - x0, 2);
   }
+  // V2 (l'admin : « la porte du château n'est pas droite aussi ») : la tour-porte de face, en code, dans l'angle des remparts,
+  // posée sur la ligne du mur, mêmes pierres et mêmes créneaux, arche droite avec la herse levée
+  function briques(x0, x1, yt, yb) {
+    const BH = 12, BW = 22;
+    for (let y = yt, row = 0; y < yb; y += BH, row++) {
+      const off = (row % 2) * (BW / 2);
+      for (let bx = Math.floor((x0 - off) / BW) * BW + off; bx < x1; bx += BW) {
+        const a = Math.max(x0, bx + 1), b = Math.min(x1, bx + BW - 1); if (b <= a) continue;
+        const hsh = hash(Math.floor(bx / BW) * 7 + row, row * 13 + 5);
+        ctx.fillStyle = hsh < 0.33 ? '#86808f' : hsh < 0.66 ? '#958f9e' : '#7a7484'; ctx.fillRect(a, y + 1, b - a, Math.min(BH, yb - y) - 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(a, y + 1, b - a, 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.fillRect(a, y + BH - 3, b - a, 2);
+      }
+    }
+  }
+  function porteFace(d) {
+    const cx = Math.round(d.x), yb = Math.round(d.y + 6), HW = 58, x0 = cx - HW, x1 = cx + HW, H = 116, yt = yb - H;
+    ctx.fillStyle = 'rgba(15,10,25,0.28)'; ctx.fillRect(x0 - 4, yb - 2, x1 - x0 + 8, 12);
+    ctx.fillStyle = '#4a4554'; ctx.fillRect(x0, yt, x1 - x0, H);
+    briques(x0, x1, yt + 12, yb);
+    // volume : les deux piliers de la tour (clair à gauche, ombre à droite) et l'ombre qui monte du sol
+    ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(x0, yt + 12, 10, H - 12);
+    ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(x1 - 10, yt + 12, 10, H - 12);
+    const gb = ctx.createLinearGradient(0, yt, 0, yb); gb.addColorStop(0, 'rgba(0,0,0,0)'); gb.addColorStop(1, 'rgba(20,10,40,0.28)'); ctx.fillStyle = gb; ctx.fillRect(x0, yt, x1 - x0, H);
+    // le chemin de ronde et les créneaux, comme les remparts
+    ctx.fillStyle = '#3c3745'; ctx.fillRect(x0 - 3, yt - 2, x1 - x0 + 6, 2); ctx.fillStyle = '#c4c0cb'; ctx.fillRect(x0 - 3, yt, x1 - x0 + 6, 9); ctx.fillStyle = '#2e2a37'; ctx.fillRect(x0 - 3, yt + 9, x1 - x0 + 6, 3);
+    const CW = 15, CH = 15, n = 4, pas = (x1 - x0 + 6 - CW) / (n - 1);
+    for (let i = 0; i < n; i++) {
+      const a = Math.round(x0 - 3 + i * pas), b = a + CW;
+      ctx.fillStyle = '#3c3745'; ctx.fillRect(a - 1, yt - CH - 1, CW + 2, CH + 2);
+      ctx.fillStyle = '#9a94a3'; ctx.fillRect(a, yt - CH, CW, CH); ctx.fillStyle = '#cdc9d3'; ctx.fillRect(a, yt - CH, CW, 4);
+      ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(b - 4, yt - CH + 4, 4, CH - 4);
+    }
+    // deux meurtrières au-dessus de l'arche
+    for (const dx of [-26, 26]) { ctx.fillStyle = '#1d1726'; ctx.fillRect(cx + dx - 3, yt + 22, 6, 18); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(cx + dx - 3, yt + 22, 1, 18); }
+    // l'arche : le passage sombre, l'arc en pierres claires, la herse levée en haut
+    const AW = 30, AY = yb - 74;
+    ctx.fillStyle = '#2e2a37'; ctx.beginPath(); ctx.moveTo(cx - AW - 6, yb); ctx.lineTo(cx - AW - 6, AY + AW); ctx.arc(cx, AY + AW, AW + 6, Math.PI, 0); ctx.lineTo(cx + AW + 6, yb); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#b9b5c0'; ctx.beginPath(); ctx.moveTo(cx - AW - 3, yb); ctx.lineTo(cx - AW - 3, AY + AW); ctx.arc(cx, AY + AW, AW + 3, Math.PI, 0); ctx.lineTo(cx + AW + 3, yb); ctx.closePath(); ctx.fill();
+    const gi = ctx.createLinearGradient(0, AY, 0, yb); gi.addColorStop(0, '#120c1a'); gi.addColorStop(1, '#2a2233');
+    ctx.fillStyle = gi; ctx.beginPath(); ctx.moveTo(cx - AW, yb); ctx.lineTo(cx - AW, AY + AW); ctx.arc(cx, AY + AW, AW, Math.PI, 0); ctx.lineTo(cx + AW, yb); ctx.closePath(); ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.moveTo(cx - AW, yb); ctx.lineTo(cx - AW, AY + AW); ctx.arc(cx, AY + AW, AW, Math.PI, 0); ctx.lineTo(cx + AW, yb); ctx.closePath(); ctx.clip();
+    const hb = AY + 26;   // le bas de la herse levée
+    for (let bx = cx - AW + 4; bx < cx + AW; bx += 9) { ctx.fillStyle = '#4a2f1a'; ctx.fillRect(bx - 1, AY - 2, 5, hb - AY + 2); ctx.fillStyle = '#8a5a30'; ctx.fillRect(bx, AY - 2, 3, hb - AY + 2); ctx.fillStyle = '#5a5662'; ctx.fillRect(bx, hb, 3, 5); }
+    for (const yy of [AY + 8, AY + 19]) { ctx.fillStyle = '#4a2f1a'; ctx.fillRect(cx - AW, yy - 1, AW * 2, 5); ctx.fillStyle = '#a7743f'; ctx.fillRect(cx - AW, yy, AW * 2, 3); }
+    ctx.restore();
+    // les clés de voûte (pierres de l'arc)
+    for (let k = 0; k <= 6; k++) { const an = Math.PI + k * Math.PI / 6, r = AW + 1.5; ctx.fillStyle = '#3c3745'; ctx.fillRect(Math.round(cx + Math.cos(an) * r) - 1, Math.round(AY + AW + Math.sin(an) * r) - 1, 2, 3); }
+    ctx.fillStyle = '#3c3745'; ctx.fillRect(x0 - 3, yb - 2, x1 - x0 + 6, 2);
+  }
   function murCote(m) {
     const x = m.x, w = 34, y0 = m.y0, y1 = m.y1;
     ctx.fillStyle = '#5d5a62'; ctx.fillRect(x - w / 2 - 3, y0 - 40, w + 6, y1 - y0 + 40);
@@ -1252,7 +1302,7 @@ function mount(root, api) {
       // quelqu'un passe sous la porte : elle devient transparente pour qu'on le voie
       const dedans = q => Math.abs(q.x - d.x) < 46 && q.y < d.y + 6 && q.y > d.y - 70;
       const passe = G && (dedans(G.sor) || G.allies.some(dedans) || G.gens.some(g => g.etat !== 'parti' && dedans(g)));
-      d.fondu = lerp(d.fondu || 1, passe ? 0.45 : 1, 0.2); ctx.globalAlpha = d.fondu; sprite(ctx, d.k, x, d.y + 4, h, d.flip, PX(), ax); ctx.globalAlpha = 1;
+      d.fondu = lerp(d.fondu || 1, passe ? 0.45 : 1, 0.2); ctx.globalAlpha = d.fondu; porteFace(d); ctx.globalAlpha = 1;
     }
     else sprite(ctx, d.k, x, d.y + dy, h, d.flip, PX(), ax);
     ctx.filter = 'none';
