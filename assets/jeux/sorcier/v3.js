@@ -588,7 +588,7 @@ function mount(root, api) {
   const PM = { sel: 0, conf: false, boutons: [], stick: false };
   function menuPauseChoisir(i) {
     snd.clic();
-    if (PM.conf) { if (i === 0) { PM.conf = false; viderManette(); nouvellePartie(); setPaused(false); dire('Pille le royaume !', '#ffe08a'); } else { PM.conf = false; PM.sel = 1; } return; }
+    if (PM.conf) { if (i === 0) { PM.conf = false; viderManette(); nouvellePartie(); setPaused(false); dire('Pille le royaume !', '#ffe08a', 1.3); } else { PM.conf = false; PM.sel = 1; } return; }
     if (i === 0) setPaused(false);
     else if (i === 1) { PM.conf = true; PM.sel = 1; }
     else quitter();
@@ -650,7 +650,7 @@ function mount(root, api) {
   const PADON = () => modePad || !!(pad && pad.active && pad.active());
   const GL = b => { try { return pad && pad.glyph ? pad.glyph(b) : b.toUpperCase(); } catch (e) { return b.toUpperCase(); } };
 
-  function lancer() { if (!LOADED) return; snd.clic(); viderManette(); nouvellePartie(); state = 'play'; stT = 0; pauseBtn.style.display = 'flex'; setPaused(false); dire('Pille le royaume !', '#ffe08a'); }
+  function lancer() { if (!LOADED) return; snd.clic(); viderManette(); nouvellePartie(); state = 'play'; stT = 0; pauseBtn.style.display = 'flex'; setPaused(false); dire('Pille le royaume !', '#ffe08a', 1.3); }
   function retourTitre() { state = 'title'; stT = 0; G = null; pauseBtn.style.display = 'none'; }
   function ouvrirGrimoire() { if (state !== 'play' || !G) return; state = 'grimoire'; stT = 0; relache(); snd.clic(); }
   function fermerGrimoire() { state = 'play'; stT = 0; snd.clic(); viderManette(); }
@@ -1509,7 +1509,7 @@ function mount(root, api) {
       ctx.globalAlpha = al; B.L.forEach((t, i) => txt(t, LW / 2, B.y0 + i * B.sz * 1.15, B.sz, msg.c, 'center', 900, 8, DF)); ctx.globalAlpha = 1;
     }
     if (G.nouveau && libre) nouveauSort(now);
-    if (libre && auRepaire(G.sor) && G.t > 2) { const haut = modeDoigt ? Math.min(...BT.map(b => b.y - b.r)) - 22 : V.y + V.h - 40; txt(G.pv < G.pvMax ? 'Ta tour te soigne ❤' : 'Ta tour : personne n\'ose y entrer', LW / 2, Math.min(haut, V.y + V.h - 40), 18, '#e0c8ff', 'center', 800, 5); }
+    if (libre && auRepaire(G.sor) && G.t > 2) { const haut = modeDoigt ? Math.min(...BT.map(b => b.y - b.r)) - 22 : V.y + V.h - 44 - 26 - 24; /* V3 : toujours au-dessus des boutons de sorts */ txt(G.pv < G.pvMax ? 'Ta tour te soigne ❤' : 'Ta tour : personne n\'ose y entrer', LW / 2, Math.min(haut, V.y + V.h - 40), 18, '#e0c8ff', 'center', 800, 5); }
   }
   function iconeSort(k, x, y, R, verrou) {
     if (k === 'feu') { ctx.globalCompositeOperation = 'lighter'; lueur(x, y, R * 0.9, 'rgba(66,165,245,', 0.8); lueur(x, y, R * 0.4, 'rgba(230,248,255,', 1); ctx.globalCompositeOperation = 'source-over'; }
@@ -1594,32 +1594,39 @@ function mount(root, api) {
     ctx.fillStyle = 'rgba(14,8,30,0.45)'; ctx.fillRect(V.x, V.y, V.w, V.h);
     const doigt = modeDoigt || (!modePad && (('ontouchstart' in window) || navigator.maxTouchPoints > 0) && !matchMedia('(pointer:fine)').matches);
     const P = modePad || (pad && pad.active && pad.active());
-    const L = P ? [['Stick ou croix', 'marcher dans le royaume'], [GL('a') + ' · ' + GL('b') + ' · ' + GL('x'), 'boule de feu · éclair · monstre'], [GL('y'), 'le grimoire des sorts'], [GL('start'), 'pause']]
-      : doigt ? [['Pouce gauche', 'marcher dans le royaume'], ['Boutons à droite', 'boule de feu · éclair · monstre'], ['📖', 'le grimoire des sorts']]
-      : [['Flèches  ou  ZQSD', 'marcher dans le royaume'], ['Espace · K · L', 'boule de feu · éclair · monstre (ou clic)'], ['G', 'le grimoire des sorts']];
-    const lignes = [...L, ['Pille !', 'maisons, coffres, paysans, chevaliers, rois'], ['Ton score', 'tout ce que tu possèdes : or, objets, châteaux'], ['Ta tour', 'te soigne : les chevaliers n\'y entrent pas']];
-    const top = portrait ? V.y + Math.max(40, (V.h - (V.h < 1000 ? 760 : 860)) / 2) : V.y + 26;
-    txt('Le Sorcier', cx, top + 58, portrait ? 58 : 62, '#e0c8ff', 'center', 900, 12, DF);
-    txt('du Royaume', cx, top + 118, portrait ? 48 : 50, '#ffe08a', 'center', 900, 12, DF);
-    const colB = portrait ? 0 : 210;
-    ctx.font = '600 17px ' + RF; const maxw = Math.max(...lignes.map(l => ctx.measureText(l[1]).width));
-    let bw = Math.min(portrait ? V.w - 28 : 720, Math.max(portrait ? 480 : 600, colB + maxw + 56));
-    const compact = portrait && V.h < 1000, RH = compact ? 48 : portrait ? 56 : 40, bh = 60 + lignes.length * RH;
-    const sorcierX = portrait ? cx : Math.max(V.x + 150, cx - bw / 2 - 30), bx = portrait ? cx - bw / 2 : Math.min(V.x + V.w - bw - 24, sorcierX + 120);
-    const by = portrait ? top + (compact ? 320 : 380) : top + 150;
+    // V3 : « Comment jouer » en tableau : clavier, manette et toucher (la manette est obligatoire : toujours là)
+    const T3 = [['Marcher', 'Flèches · ZQSD', 'Stick · croix', 'Pouce gauche'], ['Boule de feu', 'Espace (clic)', GL('a'), 'Bouton ●'], ['Éclair · monstre', 'K · L', GL('b') + ' · ' + GL('x'), 'Boutons ⚡ 👾'],
+      ['Grimoire des sorts', 'G', GL('y'), '📖'], ['Pause', 'P · Échap', GL('start'), '⏸']];
+    const C3 = [['Pille !', 'maisons, coffres, paysans, chevaliers, rois'], ['Ton score', 'tout ce que tu possèdes : or, objets, châteaux'], ['Ta tour', 'te soigne : les chevaliers n\'y entrent pas']];
+    const top = portrait ? V.y + Math.max(30, (V.h - (V.h < 1000 ? 820 : 900)) / 2) : V.y + 20;
+    const bas = !portrait && V.h < 660;   // (paysage peu haut : téléphone couché) tout se resserre pour tenir, « pour commencer » compris
+    txt('Le Sorcier', cx, top + (bas ? 40 : 58), portrait ? 58 : bas ? 42 : 62, '#e0c8ff', 'center', 900, 12, DF);
+    txt('du Royaume', cx, top + (bas ? 80 : 118), portrait ? 48 : bas ? 34 : 50, '#ffe08a', 'center', 900, 12, DF);
+    const compact = portrait && V.h < 1000, RH = compact ? 34 : portrait ? 38 : bas ? 27 : 34, RC = portrait ? (compact ? 44 : 50) : bas ? 23 : 30;
+    const bw = Math.min(V.w - 28, portrait ? 700 : 800), bh = 60 + 34 + T3.length * RH + 12 + C3.length * RC + 8;
+    const sorcierX = portrait ? cx : Math.max(V.x + 130, cx - bw / 2 - 20), bx = portrait ? cx - bw / 2 : Math.min(V.x + V.w - bw - 24, sorcierX + 110);
+    const by = portrait ? top + (compact ? 290 : 340) : top + (bas ? 98 : 140);
     // le sorcier en grand (lance un sort de temps en temps)
-    const sx = sorcierX, sy = portrait ? top + (compact ? 300 : 350) : by + 300;
+    const sx = sorcierX, sy = portrait ? top + (compact ? 270 : 320) : by + 300;
     const A = ANIMS.sorcier, cyc = t % 4, f = cyc > 3 ? A.sort[Math.min(2, Math.floor((cyc - 3) * 3))] : A.repos_face[Math.floor(t * 1.2) % 2];
     ombre(sx, sy, 60, 0.4);
-    sprite(ctx, f[0], sx, sy, compact ? 150 : portrait ? 200 : 230, false, PX(), f[1]);
+    sprite(ctx, f[0], sx, sy, compact ? 130 : portrait ? 180 : 230, false, PX(), f[1]);
     if (cyc > 3.4) { ctx.globalCompositeOperation = 'lighter'; lueur(sx - 52, sy - 120, 40, 'rgba(66,165,245,', 0.8); lueur(sx + 52, sy - 120, 40, 'rgba(66,165,245,', 0.8); ctx.globalCompositeOperation = 'source-over'; }
     ctx.fillStyle = 'rgba(28,16,50,0.9)'; carte(bx, by, bw, bh, 20); ctx.fill(); ctx.strokeStyle = '#b78cff'; ctx.lineWidth = 3; ctx.stroke();
     txt('Comment jouer', bx + bw / 2, by + 38, 24, '#ffe08a', 'center', 900);
-    const fsB = Math.min(17, 17 * (bw - colB - 48) / maxw);
-    lignes.forEach(([a1, b1], i) => { const y = by + 76 + i * RH; txt(a1, bx + 24, y, 17, '#e0c8ff', 'left', 900); if (portrait) txt(b1, bx + 24, y + 22, fsB, '#ffffff', 'left', 600); else txt(b1, bx + colB, y, fsB, '#ffffff', 'left', 600); });
+    // les colonnes : l'action, puis clavier / manette / toucher (l'appareil utilisé est en doré)
+    const c0 = bx + 18, cw0 = bw * 0.3, cw = (bw - 36 - cw0) / 3, colX = i => c0 + cw0 + cw * i + cw / 2, actif = P ? 1 : doigt ? 2 : 0;
+    const fit = (str, w, z) => { ctx.font = '700 ' + z + 'px ' + RF; while (z > 11 && ctx.measureText(str).width > w) { z -= 1; ctx.font = '700 ' + z + 'px ' + RF; } return z; };
+    ['⌨️ Clavier', '🎮 Manette', '👆 Toucher'].forEach((h, i) => { if (i === actif) { ctx.fillStyle = 'rgba(255,224,138,0.14)'; carte(colX(i) - cw / 2 + 3, by + 56, cw - 6, 34 + T3.length * RH, 10); ctx.fill(); }
+      txt(h, colX(i), by + 78, fit(h, cw - 10, 16), i === actif ? '#ffe08a' : '#d8c8f0', 'center', 900); });
+    T3.forEach((r, j) => { const y = by + 78 + 34 + j * RH; txt(r[0], c0, y, fit(r[0], cw0 - 8, 16), '#e0c8ff', 'left', 900);
+      for (let i = 0; i < 3; i++) txt(r[i + 1], colX(i), y, fit(r[i + 1], cw - 10, 16), i === actif ? '#ffffff' : '#cfc2e6', 'center', 700); });
+    const yc = by + 78 + 34 + T3.length * RH + 6;
+    ctx.strokeStyle = 'rgba(183,140,255,0.4)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(bx + 18, yc - 16); ctx.lineTo(bx + bw - 18, yc - 16); ctx.stroke();
+    C3.forEach(([a1, b1], i) => { const y = yc + 8 + i * RC; txt(a1, c0, y, 16, '#e0c8ff', 'left', 900); if (portrait) txt(b1, c0, y + 20, fit(b1, bw - 40, 15), '#ffffff', 'left', 600); else txt(b1, c0 + cw0, y, fit(b1, bw - cw0 - 40, 16), '#ffffff', 'left', 600); });
     if (record > 0) txt('Ton record : ' + fmt(record), bx + bw / 2, by + bh + 30, 18, '#ffe08a', 'center', 800, 5);
     const go = 0.75 + 0.25 * Math.sin(t * 4);
-    ctx.globalAlpha = go; txt(P ? 'Appuie sur ' + GL('a') + ' pour commencer !' : doigt ? 'Touche l\'écran pour commencer !' : 'Entrée, Espace ou clic pour commencer !', bx + bw / 2, by + bh + (record > 0 ? 66 : 44), 24, '#ffffff', 'center', 900, 7); ctx.globalAlpha = 1;
+    ctx.globalAlpha = go; txt(doigt && !P ? 'Touche l\'écran (ou ' + GL('a') + ') pour commencer !' : 'Entrée, Espace, clic ou ' + GL('a') + ' pour commencer !', bx + bw / 2, by + bh + (record > 0 ? 66 : 44), 24, '#ffffff', 'center', 900, 7); ctx.globalAlpha = 1;
   }
   function dessinerFin(now) {
     const k = clamp(stT * 2, 0, 1);
@@ -1748,6 +1755,8 @@ window.JDW_GAMES.sorcier = {
   fps: false,
   preview,
   mount,
-  pad: { help: [['ls/dpad', 'Marcher'], ['a', 'Boule de feu'], ['b', 'Éclair'], ['x', 'Monstre'], ['y', 'Grimoire']], intro: false }
+  pad: { help: [['ls/dpad', 'Marcher'], ['a', 'Boule de feu'], ['b', 'Éclair'], ['x', 'Monstre'], ['y', 'Grimoire'], ['start', 'Pause']], intro: false },
+  howto: { pc: [['Flèches  ou  ZQSD', 'Marcher dans le royaume'], ['Espace  (ou clic)', 'Boule de feu'], ['K · L', 'Éclair · monstre'], ['G', 'Le grimoire des sorts'], ['P  ou  Échap', 'Pause']],
+    touch: [['Pouce gauche', 'Marcher dans le royaume'], ['Boutons à droite', 'Boule de feu · éclair · monstre'], ['📖 en haut', 'Le grimoire des sorts']] }
 };
 })();
