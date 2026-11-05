@@ -4899,8 +4899,9 @@ body.atl-on .lose-tip{display:none}
 .gmap[data-theme=noisette] .gmap-node.far .gn-pin{filter:saturate(.75) brightness(.92);opacity:1}
 .gmap[data-theme=noisette] .gmap-node.far .gn-lab{opacity:.92;filter:none}
 .gmap[data-theme=noisette] .gmap-node.far .gn-lab b{color:#e6efe2}
+.gmap[data-theme=noisette] .gmap-cap{opacity:1}.gmap[data-theme=noisette] .gmap-cap b{color:#fff3d6;text-shadow:0 2px 0 rgba(10,30,40,.8),0 0 12px rgba(255,209,102,.45)}.gmap[data-theme=noisette] .gmap-cap small{color:#e2eef2;text-shadow:0 1px 0 rgba(0,0,0,.5)}
 .gmap[data-theme=noisette] .gmap-tier.far{opacity:1}.gmap[data-theme=noisette] .gt-plate b{color:#fff3d6;text-shadow:0 3px 0 rgba(30,20,6,.7),0 0 14px rgba(232,138,58,.45)}.gmap[data-theme=noisette] .gt-plate small{color:#ffd166}
-.gmap[data-theme=noisette] .gt-plate{padding:12px 22px 14px;border-radius:18px;background:linear-gradient(180deg,rgba(20,44,28,.94),rgba(14,32,20,.94));border:1px solid rgba(255,233,168,.28);box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.gmap[data-theme=noisette] .gt-plate{margin-top:-24px;padding:10px 22px 12px;border-radius:18px;background:linear-gradient(180deg,rgba(20,44,28,.94),rgba(14,32,20,.94));border:1px solid rgba(255,233,168,.28);box-shadow:0 10px 26px rgba(0,0,0,.35)}
 /* 2.0.74 (Benjamin : « il faut que l'on puisse voir tout ce que veut dire la mascotte ») : plus de phrase coupée par « … » dans les cadres de travail et les bulles : le texte passe à la ligne, le cadre grandit */
 .atl-travail ul{height:auto;overflow:visible}
 .atl-travail ul li{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
