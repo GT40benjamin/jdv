@@ -15575,7 +15575,6 @@ function atlRenderProjets() {
     else if (ch.length || rp.length) b.appendChild(atlEl('span', 'atl-patt ' + (ch.length ? 'atl-pch' : 'atl-pre') + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), ch.length ? '💡 Offre à choisir' + (ch.length > 1 ? ' (' + ch.length + ')' : '') : '✨ ' + rp.length + ' réponse' + (rp.length > 1 ? 's' : '')));
     else if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '✉️ Nouvelle réponse'));   // 2.0.91 : sous « 🛠️ en cours », plus par-dessus
     if (nqq || ch.length) b.classList.add('choix'); else if (rp.length) b.classList.add('rep');   // le contour de la tuile aussi
-    { const nm = (atlProjNew(pj) ? 1 : 0) + rp.length + ch.length + qq.length; if (nm > 1) b.appendChild(atlEl('span', 'atl-pmsg', '💬 ' + nm)); }   // un seul : « Nouvelle réponse » suffit (le chef)   // 2.0.135 : la mascotte a répondu
     b.addEventListener('click', () => { ATL.demVise = vise; atlOuvrir(pj.id); });
     // 20 h 50 (Benjamin) : la ROUE ⚙️ de chaque tuile (Renommer / Supprimer) ; à côté de la tuile, pour ne pas ouvrir le projet
     const w = atlEl('div', 'atl-pwrap'), rg = atlEl('button', 'atl-proue', '⚙️'); rg.type = 'button'; rg.setAttribute('aria-label', 'Réglages du projet « ' + (pj.titre || 'Mon jeu sans nom') + ' »');
