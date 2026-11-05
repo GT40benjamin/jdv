@@ -384,6 +384,17 @@ score). Les articles sont posés par la mascotte avec le créateur (`at_boutique
 Jamais d'achat en un seul toucher pendant la partie : appeler `acheter` depuis un écran calme (menu, boutique du jeu). Rien au hasard (pas de
 caisse mystère). Le créateur reçoit 70 % du prix en crédits (réglage boutique_part_createur), la borne garde 30 % ; jamais d'euros. Le
 créateur (et sa famille) ne peut pas acheter ses propres articles. Plafond de 300 crédits par mois et par joueur (boutique_plafond_mois).
-Borne 2.0.132 (SQL v141, source/credits-achetes.sql) : on n'achète QU'AVEC des crédits ACHETÉS (at_credits.achete), jamais les offerts ;
-la fenêtre montre « 💎 achetés · 🎁 offerts » et, s'il en manque, le dit gentiment avec « 💎 Voir les packs de crédits ». Les gains du
-créateur comptent comme achetés. Rien ne change pour le jeu.
+
+## Ajout 26 : un jeu de l'Atelier se livre SANS publier la borne (borne 2.0.132, demande de l'admin du 5 nov. 2026)
+La borne ne garde plus de liste des jeux nés à l'Atelier : elle apprend leur id par le SERVEUR (at_fiches.jeu, renvoyé par at_lire,
+at_jeux, at_admin_lire, at_tous_projets ; version, version_publiee, rayon, orientation, titre, vignette viennent aussi de la fiche).
+Livrer une V1 ou une V2 = déposer `assets/jeux/<id>/v<N>.js` (+ ses .bin, ses musiques) et pousser, puis `at_etat … p_jeu` / la version
+sur la fiche : le jeu se lance tout de suite chez son auteur et chez l'admin (page du projet), et sur la borne une fois publié
+(salle / partout), sans module embarqué ni publication de la borne. Le fichier vN.js range le module dans `window.JDW_GAMES[<id>]`,
+comme aujourd'hui. Ce que la borne doit savoir, le MODULE le déclare lui-même :
+- `id`, `title`, `accent`, `preview` (la jaquette animée), `orientation` (repli : celle de la fiche), `howto` (« Comment jouer ») ;
+- `music` : `'monjeu-1'` ou `['monjeu-1', 'monjeu-2', 'monjeu-x1']` → `assets/music/<nom>.mp3` (« -xN » = morceaux énergiques) ; le jeu
+  appelle ensuite `api.music(<id>)` comme les autres. Sans `music`, pas de musique (la borne ne devine aucun nom de fichier) ;
+- `pauseJeu`, `saves`, `live`, `spots`, `noScore`, `fps`, `scoreLabel`, `emoji` (icône des notifications), comme pour tout jeu.
+Le module de secours embarqué (`source/games/<id>.js`) n'est plus nécessaire pour un jeu en essai ; il ne sert qu'à un jeu publié pour
+tous qu'on veut jouable hors ligne dès l'installation. L'id ne peut pas être celui d'un jeu de la borne elle-même.

@@ -30,7 +30,6 @@
 [jetporte] 🍑 Traite le rang de pêchers avant que le vent et la pluie s’en mêlent : 5 niveaux, du matin calme au coup de vent, avec la carte du verger sur la tuile et tes records par niveau.
 [borne] ## ⏸️ Pause plus claire, Cosmodex dans l’ordre (borne 2.0.132)
 [borne] ⏸️ Dans la pause : « 🎵 Musique : activée / coupée » et « 🔊 Bruitages » avec un interrupteur bien visible, et les commandes ne s’affichent plus qu’une fois.
-[borne] 🛍️ Boutique d’un jeu : on y paie avec ses crédits achetés. La fenêtre te montre tes 💎 achetés et tes 🎁 offerts (les offerts servent à créer dans l’Atelier).
 [borne] 📖 Le Cosmodex commence au N° 1, dans l’ordre des numéros.
 [borne] ## 🛍️ La boutique des créateurs (borne 2.0.130)
 [borne] 🛍️ Les jeux créés à l’Atelier peuvent vendre des petits plus (une couleur, un niveau bonus) en crédits. Avant chaque achat, la borne te montre le prix et te demande si tu es sûr. Ce que tu achètes est à toi pour toujours.

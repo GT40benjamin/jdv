@@ -88,6 +88,21 @@ const ATL_NES = new Set(['licornes', 'lune', 'noisette', 'trone', 'jetporte', 's
 // 2.0.131 : jeux de l'Atelier qui gardent LEUR menu de pause (comme pauseJeu: true dans le module ; leur V1 était figée avant l'Ajout 24)
 const PAUSE_JEU_IDS = new Set(['sorcier']);
 const aPauseJeu = g => !!(g && (g.pauseJeu || PAUSE_JEU_IDS.has(g.id)));   // 2.0.117 : Jet Porté (EMPEREUR, fiche 6e7a838b) : assets/jeux/jetporte/vN.js, secours source/games/jetporte.js
+// 2.0.132 (l'admin : « mettre à jour la borne pour tout le monde juste pour un jeu en test… en dynamique, tout simplement ») : la liste
+// ci-dessus n'est plus qu'un point de départ. Tout jeu NÉ À L'ATELIER est connu par le SERVEUR (at_fiches.jeu : at_lire, at_jeux,
+// at_admin_lire, at_tous_projets) et se charge depuis assets/jeux/<id>/v<N>.js, sans module embarqué ni publication de la borne
+// (CONTRACT.md Ajout 26). Jamais l'id d'un jeu de la borne elle-même (ATL_BASE).
+const ATL_BASE = new Set(Object.keys(window.JDW_GAMES || {}).filter(id => !ATL_NES.has(id)));
+function atlNe(id) { id = String(id || ''); if (!/^[a-z0-9_-]{2,20}$/.test(id) || ATL_BASE.has(id)) return false; ATL_NES.add(id); return true; }
+for (const id of ATL_JEUX.keys()) atlNe(id);
+// la musique d'un jeu de l'Atelier : celle qu'il déclare (g.music = 'sorcier-1' ou ['x-1', 'x-x1'] → assets/music/<nom>.mp3), sans liste dans la borne
+function atlMusique(g) {
+  try { const M = window.JDW_MUSIC || (window.JDW_MUSIC = {}); if (!g || !g.music || M[g.id]) return;
+    const L = (Array.isArray(g.music) ? g.music : [g.music]).map(String).filter(n => /^[a-z0-9_-]{1,40}$/.test(n)).slice(0, 8); if (!L.length) return;
+    M[g.id] = { c: L.filter(n => !/-x\d+$/.test(n)), x: L.filter(n => /-x\d+$/.test(n)) }; } catch (e) {}
+}
+// page d'un projet dont le module n'est pas (encore) chargé : de quoi dessiner la tuile (titre, jaquette) en attendant la vraie version
+const atlStub = f => ({ id: f.jeu, title: f.titre || 'Mon jeu', accent: COLORS.amber, stub: true });
 // 2.0.74 : Trôn-e (REMS, fiche 9af84595) : assets/jeux/trone/vN.js, secours source/games/trone.js (live: true)
 // 2.0.20 (Benjamin : « ici au moins c'est clair ») : le sens choisi sur la page du projet (at_fiches.orientation), par id du jeu
 const ATL_ORIENT = new Map();
@@ -102,10 +117,10 @@ function atlModule(id, v) {
   const p = ATL_MOD_FILE.then(() => new Promise(res => {   // un fichier à la fois : chacun se range dans JDW_GAMES[id], on remet l'embarqué aussitôt
     const G = window.JDW_GAMES || (window.JDW_GAMES = {}), avant = G[id], sc = document.createElement('script');
     const fin = ok => {
-      const g = G[id]; G[id] = avant; sc.remove();
+      const g = G[id]; G[id] = avant; sc.remove();   // (2.0.132 : sans module embarqué, la 1re version chargée devient le jeu, plus bas)
       if (!ok || !g || g === avant) { ATL_MODS.delete(k); ATL_MODS_OK.set(k, null); res(null); return; }
       if (avant) for (const c of Object.keys(avant)) if (!(c in g)) g[c] = avant[c];
-      g.id = id; g.__v = v; ATL_MODS_OK.set(k, g); res(g);
+      g.id = id; g.__v = v; ATL_MODS_OK.set(k, g); atlMusique(g); if (!G[id]) G[id] = g; res(g);
     };
     sc.src = (window.JDW_ROOT || '') + 'assets/jeux/' + id + '/v' + v + '.js'; sc.onload = () => fin(true); sc.onerror = () => fin(false);
     document.head.appendChild(sc);
@@ -2308,7 +2323,7 @@ function notifRow(n, isNew) {
   }
   if (n.kind === 'atelier-maj') {   // 2.0.87 : nouvelle version publiée d'un jeu de l'Atelier (pour tout le monde)
     const g = gameById(n.game);
-    const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = ATL_EMO[n.game] || '🎮'; if (g) ic.style.background = g.accent;
+    const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = ATL_EMO[n.game] || (((window.JDW_GAMES || {})[n.game] || {}).emoji) || '🎮'; if (g) ic.style.background = g.accent;
     const b = document.createElement('b'); b.textContent = (n.titre || (g && g.title) || 'Un jeu de l’Atelier') + ' : V' + n.v + ' !';
     const sm = document.createElement('small'); sm.textContent = (n.note ? (n.note.length > 140 ? n.note.slice(0, 139) + '…' : n.note) + ' · ' : '') + 'touche pour y jouer';
     tx.append(b, sm); li.append(ic, tx); li.classList.add('click');
@@ -10582,39 +10597,28 @@ function boutiqueConfirmer(g, a, r) {
     const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
     const M = el('div', 'liv-mod bout-mod'); M.id = 'jdw-boutmod'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Acheter');
     const C = el('div', 'liv-card'); M.appendChild(C);
-    // 2.0.131 (décision du chef, 5 nov. 16 h 30 ; SQL v141) : la boutique ne prend QUE des crédits ACHETÉS (jamais les offerts)
-    const ach = Number.isFinite(+r.achetes) ? +r.achetes | 0 : null, off = Number.isFinite(+r.offerts) ? +r.offerts | 0 : null, eur = ((+a.euros_cents || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+    const cr = atlCred(), solde = cr ? cr.solde | 0 : null, eur = ((+a.euros_cents || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
     C.append(el('h2', '', '🛍️ Acheter « ' + a.nom + ' » ?'));
     if (a.image && atlIaUrl(a.image)) { const im = el('img', 'bout-img'); im.alt = a.nom; im.src = atlIaUrl(a.image); C.appendChild(im); }
-    const pr = el('p', 'bout-prix'); pr.append(el('b', '', (a.prix | 0).toLocaleString('fr-FR') + ' 💎'), ' (≈ ' + eur + ')'); C.appendChild(pr);
-    if (ach != null) { const sd = el('p', 'bout-solde'); sd.append('Tu as ', el('b', '', ach.toLocaleString('fr-FR') + ' 💎 achetés'), ' · ' + (off | 0).toLocaleString('fr-FR') + ' 🎁 offerts'); C.appendChild(sd); }
+    const pr = el('p', 'bout-prix'); pr.append(el('b', '', (a.prix | 0).toLocaleString('fr-FR') + ' 💎'), ' (≈ ' + eur + ')' + (solde != null ? ' · tu as ' + solde.toLocaleString('fr-FR') + ' crédits' : '')); C.appendChild(pr);
     C.appendChild(el('p', 'liv-sub', 'Dans « ' + (atlTitre(g) || g.title || g.id) + ' ». C’est à toi pour toujours. Le créateur du jeu reçoit une part de tes crédits. Ce mois-ci : ' + (r.depense_mois | 0) + ' / ' + (r.plafond_mois | 0) + ' crédits dépensés dans les boutiques.'));
     const msg = el('p', 'liv-msg', ''); C.appendChild(msg);
     const bt = el('div', 'liv-btns'), no = el('button', 'btn btn-ghost', 'Non'), go = el('button', 'btn btn-play', 'Oui, acheter · ' + (a.prix | 0) + ' 💎'); no.type = go.type = 'button'; bt.append(no, go); C.appendChild(bt);
-    const pk = el('button', 'btn btn-sm btn-ghost bout-packs', '💎 Voir les packs de crédits'); pk.type = 'button'; pk.hidden = true; C.appendChild(pk);
     const sig = el('button', 'bout-sig', '⚑ Signaler cet élément'); sig.type = 'button'; C.appendChild(sig);
-    // pas assez de crédits ACHETÉS : on le dit gentiment (13-17 ans : aucune honte, les offerts gardent leur usage) + le chemin vers les packs
-    const manque = () => { msg.textContent = 'Il te faut des crédits achetés pour la boutique d’un jeu. Tes crédits offerts 🎁 servent à créer dans l’Atelier.'; pk.hidden = false; try { if (PADJ) PADJ.autoFocus(); } catch (e) {} };
-    let pkSur = false;
-    pk.addEventListener('click', () => {
-      if (!pkSur && quitInGame()) { pkSur = true; msg.textContent = 'Les packs sont dans l’Atelier : ta partie va s’arrêter.'; pk.textContent = 'D’accord, voir les packs'; return; }
-      res = false; fermer(); try { backToLibrary(); } catch (e) {}
-      setTimeout(() => { try { atlOpen(); } catch (e) { return; } let n = 0; const t = setInterval(() => { if (++n > 30 || (ATL.open && atlCred())) { clearInterval(t); if (ATL.open) atlRecharger(); } }, 100); }, 120);
-    });
     let res = false;
     const fermer = () => { M.remove(); document.removeEventListener('keydown', esc, true); try { if (enPause && inst && inst.resume && current && current.inst === inst) inst.resume(); } catch (e) {} fin(res); };
     const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); fermer(); } };
     M._fermer = fermer; document.addEventListener('keydown', esc, true); no.addEventListener('click', fermer); M.addEventListener('click', e => { if (e.target === M) fermer(); });
     sig.addEventListener('click', async () => { sig.disabled = true; try { await rpc('at_boutique_signaler', { p_name: profile.name, p_article: a.id, p_motif: null }, { quiet: true }); sig.textContent = '✔ Signalé : l’admin va regarder'; } catch (e) { sig.disabled = false; } });
     go.addEventListener('click', async () => {
-      if (ach != null && ach < (a.prix | 0)) { manque(); return; }
+      if (solde != null && solde < (a.prix | 0)) { msg.textContent = 'Il te manque ' + ((a.prix | 0) - solde).toLocaleString('fr-FR') + ' crédits.'; return; }
       go.disabled = true; msg.textContent = 'J’achète…';
       try {
-        const x = await rpc('at_boutique_acheter', { p_name: profile.name, p_article: a.id }, { quiet: true }); if (x && Number.isFinite(+x.achetes)) r.achetes = +x.achetes;
+        const x = await rpc('at_boutique_acheter', { p_name: profile.name, p_article: a.id }, { quiet: true });
         if (x && Number.isFinite(+x.solde)) try { atlSolde(+x.solde); } catch (e) {}
         a.possede = true; res = true; msg.textContent = '✅ C’est à toi !'; setTimeout(fermer, 900);
       } catch (e) {
-        go.disabled = false; const m = String((e && e.message) || ''); if (/achetes insuffisants/.test(m)) { manque(); return; }
+        go.disabled = false; const m = String((e && e.message) || '');
         msg.textContent = /credits insuffisants/.test(m) ? 'Il te manque des crédits.' : /plafond/.test(m) ? 'Tu as atteint ta limite de ' + (r.plafond_mois | 0) + ' crédits ce mois-ci dans les boutiques.' : /propre jeu/.test(m) ? 'C’est ton jeu : tu as déjà tout !' : /pas en vente/.test(m) ? 'Cet élément n’est plus en vente.' : 'Pas acheté : vérifie le réseau et réessaie.';
       }
     });
@@ -15230,9 +15234,17 @@ async function atlJeuxLoad() {
   l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), vignette: /^i\/[0-9a-f-]{36}\.(png|jpg|webp)$/.test(String(x.vignette || '')) ? String(x.vignette) : '', titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien, version_publiee: x.version_publiee | 0, publie_at: /^\d{4}-\d\d-\d\dT[\d:.]+(Z|[+-]\d\d:?\d\d)?$/.test(String(x.publie_at || '')) ? String(x.publie_at) : '', publie_note: String(x.publie_note || '').slice(0, 300), version: x.version | 0, createur: String(x.createur || '').slice(0, 20), fiche: /^[0-9a-f-]{36}$/.test(String(x.fiche || '')) ? String(x.fiche) : '', orientation: /^(portrait|paysage|les2)$/.test(String(x.orientation || '')) ? String(x.orientation) : '' }));
   const all = store.get('jdw.atl.jeux', {}) || {}, was = JSON.stringify(all[me] || []);
   all[me] = l; store.set('jdw.atl.jeux', all);
-  if (was === JSON.stringify(l)) return;
-  // nouveauté pendant que la borne est ouverte : la tuile arrive tout de suite (un jeu retiré disparaît au prochain lancement)
-  ATL_JEUX.clear(); for (const x of l) ATL_JEUX.set(x.jeu, x);
+  for (const x of l) atlNe(x.jeu);   // 2.0.132 : le serveur dit quels jeux sont nés à l'Atelier
+  const pareil = was === JSON.stringify(l);
+  // 2.0.132 : un jeu PUBLIÉ sans module embarqué : sa version publiée se charge (assets/jeux/<id>/v<N>.js), puis sa tuile arrive
+  const aCharger = l.filter(x => /^publie_(salle|monde)$/.test(x.etat) && (x.version_publiee | 0) > 0 && !((window.JDW_GAMES || {})[x.jeu]) && !ATL_MODS_OK.has(x.jeu + '@' + (x.version_publiee | 0)));
+  if (aCharger.length) Promise.all(aCharger.map(x => atlModule(x.jeu, x.version_publiee | 0).catch(() => null))).then(r => { if (r.some(Boolean)) atlJeuxTuiles(l, true); });
+  if (pareil) { atlJeuxTuiles(l, true); return; }
+  atlJeuxTuiles(l);
+}
+// les tuiles des jeux de l'Atelier (publiés) : arrivent tout de suite, sans recharger la borne (un jeu retiré disparaît au prochain lancement)
+function atlJeuxTuiles(l, calme) {
+  if (!calme) { ATL_JEUX.clear(); for (const x of l) ATL_JEUX.set(x.jeu, x); }
   for (const t of tiles) if (ATL_NES.has(t.g.id) && t.el && t.el.parentNode) t.el.parentNode.hidden = !ATL_JEUX.has(t.g.id);   // 2.0.30 : autre salle → les jeux de ses membres seulement
   const grid = $('jdw-grid'); if (!grid) return;
   for (const x of l) {
@@ -16201,7 +16213,7 @@ function atlVerMaj(W, f) {
 }
 function atlRenderProjet(W, f) {
   const R = ATL.root, et = String(f.etat || ''), fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {};
-  const jouable = !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(et), g = jouable ? (window.JDW_GAMES || {})[f.jeu] : null;
+  const jouable = !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(et), g = jouable ? ((window.JDW_GAMES || {})[f.jeu] || (atlNe(f.jeu) ? atlStub(f) : null)) : null;   // 2.0.132 : jeu connu par le serveur
   R.querySelector('.atl-hs').textContent = atlHsTxt(f);
   const as = Array.isArray(f.assets) ? f.assets.filter(a => a && typeof a === 'object') : [];
   const sig = [f.id, et, f.jeu || '', f.rayon || '', f.version_publiee || '', (f.design && f.design.f) || '', JSON.stringify(fi).length, f.titre || '', f.salle || '', f.monde_demande_at || '', String(!!g)].join('|');
@@ -16252,7 +16264,7 @@ function atlRenderProjet(W, f) {
     ti.appendChild(atlEl('span', 'atl-gver', 'V' + ((f.version | 0) || 1)));
     const tm = atlEl('div', 'tile-meta'), tnm = atlEl('div', 'tile-name', f.titre || (g && g.title) || 'Mon jeu'); tm.appendChild(tnm); po.append(ti, tm); po.disabled = !g;
     // 2.0.74 : g = le module EMBARQUÉ (ex. « Seul sur la Lune ») ; la tuile prend le titre de la fiche et l'aperçu de la version à jouer, une fois chargée
-    if (g && ATL_NES.has(f.jeu) && (f.version | 0) > 0) atlModule(f.jeu, f.version | 0).then(g2 => { if (!g2) return; if (po._cv && typeof g2.preview === 'function') po._cv._g = g2; if (!f.titre && g2.title) tnm.textContent = g2.title; }).catch(() => {});
+    if (g && atlNe(f.jeu) && (f.version | 0) > 0) atlModule(f.jeu, f.version | 0).then(g2 => { if (!g2) return; if (po._cv && typeof g2.preview === 'function') po._cv._g = g2; if (!f.titre && g2.title) tnm.textContent = g2.title; }).catch(() => {});
     // 2.0.32 (Benjamin) : « exactement ce que voient les autres joueurs » — la ligne du record de la salle et « by <nom du créateur> »
     { const on = atlEl('div', 'tile-online'), sp = atlEl('span'); on.append(atlEl('i'), sp); let tb = null; try { tb = g ? top(g.id)[0] : null; } catch (e) { tb = null; }
       sp.textContent = tb ? 'Record ' + fmt(tb.score) + unit(g) + ' · ' + dispName(tb.name) : 'Pas encore de record'; tm.appendChild(on);
@@ -16445,9 +16457,9 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
 function atlJouerVrai(f, pret) {
   const vj = (f.version | 0) || 1;   // 2.0.9 : la dernière version chargée AVANT (la partie démarre tout de suite, sans attente)
   if (!atlAdminIci()) try { if ((atlEssaye(f) | 0) < vj) atlEssaye(f, vj); } catch (e) {}   // 2.0.94
-  if (!pret && f && ATL_NES.has(f.jeu) && !ATL_MODS_OK.has(f.jeu + '@' + vj)) { const os = ++OPEN_SEQ; atlModule(f.jeu, vj).then(() => { if (os === OPEN_SEQ) atlJouerVrai(f, true); }); return; }
-  const g = (window.JDW_GAMES || {})[f.jeu];
-  if (!g || g.id !== f.jeu) { atlToast('Ton jeu arrive sur la borne très bientôt !'); return; }
+  if (!pret && f && atlNe(f.jeu) && !ATL_MODS_OK.has(f.jeu + '@' + vj)) { const os = ++OPEN_SEQ; atlModule(f.jeu, vj).then(() => { if (os === OPEN_SEQ) atlJouerVrai(f, true); }); return; }
+  const g = ATL_MODS_OK.get(f.jeu + '@' + vj) || (window.JDW_GAMES || {})[f.jeu];   // 2.0.132 : la version chargée d'abord (jeu sans module embarqué)
+  if (!g || g.id !== f.jeu || g.stub) { atlToast('Ton jeu arrive sur la borne très bientôt !'); return; }
   if (/^(portrait|paysage|les2)$/.test(String(f.orientation || ''))) ATL_ORIENT.set(f.jeu, f.orientation);
   ATL.jeu = f.id; window.JDW_ATL_JEU = true;   // repère pour le jeu : la touche P est l'arrêt sur image du guide (pas sa pause)
   // les éléments retirés par l'équipe (assets[].actif = false) : le jeu ne les montre plus (window.JDW_ATL_OFF, message atl-off) ;
@@ -17441,7 +17453,7 @@ function atlJaquette(f, g, cls) {
   const u = atlJaqUrl(f), dz = (f && f.design && atlIaUrl(f.design.f)) || (f && atlIaUrl(f.vignette));
   if (u || !(g && typeof g.preview === 'function')) { if (!u && !dz) { const e = atlEl('span', cls || '', '🎮'); return e; } const im = atlEl('img', cls || ''); im.alt = ''; im.src = u || dz; return im; }
   const cv = document.createElement('canvas'); cv.className = cls || ''; cv.setAttribute('aria-hidden', 'true'); atlTuileVivante(cv, g);
-  if (ATL_NES.has(f.jeu) && (f.version | 0) > 0) atlModule(f.jeu, f.version | 0).then(g2 => { if (g2 && typeof g2.preview === 'function') cv._g = g2; }).catch(() => {});
+  if (atlNe(f.jeu) && (f.version | 0) > 0) atlModule(f.jeu, f.version | 0).then(g2 => { if (g2 && typeof g2.preview === 'function') cv._g = g2; }).catch(() => {});
   return cv;
 }
 // « 🖼️ Modifier l'image de ta tuile » : une demande au guide, image fixe (cout_image) ou ANIMÉE (cout_tuile_animee), image actuelle jointe
@@ -17847,7 +17859,7 @@ async function atlRecharger() {
   c.append(ren, rappel, ab, er0, atlEl('p', 'atl-aide', 'Ou choisis un pack :'));
   const gr = atlEl('div', 'atl-packs'); gr.appendChild(atlEl('p', 'atl-chv', 'Un instant…')); c.appendChild(gr);
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
-  c.appendChild(atlEl('p', 'atl-noremb', '🔒 Paiement sécurisé par Stripe · Les crédits ne sont pas remboursés · Les crédits achetés servent dans l’Atelier et dans les boutiques des jeux.'));
+  c.appendChild(atlEl('p', 'atl-noremb', '🔒 Paiement sécurisé par Stripe · Les crédits ne sont pas remboursés · Les crédits servent dans l’Atelier et dans les boutiques des jeux.'));
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Fermer'); no.type = 'button'; no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
   row.append(no); c.appendChild(row); M.appendChild(c); etat();
   let packs = [];
@@ -18444,7 +18456,7 @@ rpc = (rpc0 => async function (fn, a, o) {
 async function atlAnnoncer(m) {
   const f = atlFiche(); if (!f) return;
   const n1 = ((f.version | 0) || 1) + 1;
-  if (f.jeu && ATL_NES.has(f.jeu)) {
+  if (f.jeu && atlNe(f.jeu)) {
     let ok = false; try { const r = await fetch(ROOT + 'assets/jeux/' + f.jeu + '/v' + n1 + '.js?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' }); ok = r.ok; } catch (e) { ok = false; }
     if (!ok) { atlToast('Pas de V' + n1 + ' déposée : rien à annoncer'); return; }
   }
@@ -19901,8 +19913,8 @@ if (netOff()) { document.body.classList.add('net-off'); netBar(); }   // ouverte
 if (ONLINE && !isGuest() && !room && !netOff() && !invPending() && !INV.bad && !CADRE) openRooms();
 if (CADRE) {   // le jeu seul, dans la page du projet
   document.body.classList.add('cadre');
-  const g0 = (window.JDW_GAMES || {})[CADRE], g = g0 && g0.id === CADRE && laboOk(CADRE) ? g0 : null;   // un jeu de l'Atelier en alpha n'est pas dans GAMES (pas de tuile)
-  if (g) atlModule(CADRE, atlVoulue(CADRE)).then(g2 => { const g = g2 || g0; CADRE_G = g; setTimeout(() => { try { markGameSeen(g.id); Audio.ensure(); } catch (e) {} $('jdw-lib').hidden = true; $('jdw-play').style.setProperty('--acc', g.accent); $('jdw-gtitle').textContent = g.title; backToLibrary(); }, 200); });   // sans salle ni appli : le jeu, tout de suite
+  const g0 = (window.JDW_GAMES || {})[CADRE], g = g0 && g0.id === CADRE && laboOk(CADRE) ? g0 : (!g0 && atlNe(CADRE) ? atlStub({ jeu: CADRE }) : null);   // 2.0.132 : jeu connu par le serveur, sans module embarqué   // un jeu de l'Atelier en alpha n'est pas dans GAMES (pas de tuile)
+  if (g) atlModule(CADRE, atlVoulue(CADRE)).then(g2 => { const g = g2 || g0; if (!g) { const d = document.createElement('div'); d.className = 'cadre-vide'; d.textContent = 'Ce jeu arrive sur la borne très bientôt !'; document.body.appendChild(d); return; } CADRE_G = g; setTimeout(() => { try { markGameSeen(g.id); Audio.ensure(); } catch (e) {} $('jdw-lib').hidden = true; $('jdw-play').style.setProperty('--acc', g.accent); $('jdw-gtitle').textContent = g.title; backToLibrary(); }, 200); });   // sans salle ni appli : le jeu, tout de suite
   else { const d = document.createElement('div'); d.className = 'cadre-vide'; d.textContent = 'Ce jeu arrive sur la borne très bientôt !'; document.body.appendChild(d); }
   window.addEventListener('message', e => {
     if (e.origin !== location.origin || !e.data) return;
