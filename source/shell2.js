@@ -572,7 +572,8 @@ addEventListener('click', e => { if (Date.now() - DODO.reveil < 600 && e.target 
 const MENU_BORNE = new Set(['empilo', 'glouton', 'mouches']);   // 2.0.139 : les 3 premiers jeux de la borne branchés (sans écran titre à eux)
 const MENU = { passe: '' };
 const menuAvoir = g => !!g && g.menu !== false && (g.menu === true || MENU_BORNE.has(g.id) || (navigator.webdriver && Array.isArray(window.JDW_MENU_ESSAI) && window.JDW_MENU_ESSAI.includes(g.id))) && !PAD_DOM.has(g.id) && !g.external && g.id !== 'pegase';   // jeux de l'Atelier : menu: true (leur équipe retire d'abord leur écran titre : jamais deux menus)
-function menuOuJouer(g) { if (menuAvoir(g) && MENU.passe !== g.id) menuMontrer(g); else mountGame(g); }
+function menuPrecharger(g) { try { for (const f of [g.menuImage, g.menuImagePortrait, g.logo]) if (f && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp|svg)$/i.test(String(f))) { const i = new Image(); i.src = ROOT + (ATL_NES.has(g.id) ? 'assets/jeux/' + g.id + '/' : 'assets/') + f; } } catch (e) {} }
+function menuOuJouer(g) { if (menuAvoir(g) && MENU.passe !== g.id) { menuPrecharger(g); menuMontrer(g); } else mountGame(g); }
 function menuFermer() { const m = document.getElementById('jdw-gmenu'); if (m) { if (m._esc) document.removeEventListener('keydown', m._esc, true); if (m._demo && m._demo.destroy) try { m._demo.destroy(); } catch (e) {} m.remove(); } }
 // 2.0.142 (l'admin : « un vrai menu de jeu vidéo ») : l'ÉCRAN-TITRE d'un jeu (menu: true, CONTRACT.md Ajout 27 bis) — la scène du jeu qui vit
 // (g.demo, sinon sa belle image qui bouge doucement), le LOGO en grand (g.logo, sinon le titre dans la police de jeu) avec une entrée animée,
@@ -606,7 +607,12 @@ function menuMontrer(g, o) {
   // 2.0.142 : l'IMAGE DE MENU du jeu (g.menuImage 16:9, g.menuImagePortrait 9:16, dans son dossier) en plein écran, d'abord ; sinon sa démo ; sinon sa belle image
   const fic = x => x && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp)$/i.test(String(x)) ? ROOT + (ATL_NES.has(g.id) ? 'assets/jeux/' + g.id + '/' : 'assets/') + x : '';
   const mi = fic(g.menuImage), mp = fic(g.menuImagePortrait) || mi;
-  if (mi) { const im = el('div', 'tm-key'); im.style.setProperty('--k-l', 'url("' + mi + '")'); im.style.setProperty('--k-p', 'url("' + mp + '")'); scene.appendChild(im); }
+  if (mi) {   // pendant le chargement : la vignette de la tuile floutée, puis l'image de menu en fondu (jamais un écran vide)
+    let vg = ''; try { const x = ATL_JEUX.get(g.id); vg = x && x.vignette ? atlIaUrl(x.vignette) : ''; } catch (e) {} if (!vg && !ATL_NES.has(g.id)) vg = ROOT + 'accueil/' + g.id + '.webp';
+    if (vg) { const at = el('div', 'tm-attente'); at.style.backgroundImage = 'url("' + vg + '")'; scene.appendChild(at); }
+    const im = el('div', 'tm-key'); im.style.setProperty('--k-l', 'url("' + mi + '")'); im.style.setProperty('--k-p', 'url("' + mp + '")'); scene.appendChild(im);
+    const u = matchMedia('(max-aspect-ratio:1/1)').matches ? mp : mi, pre = new Image(); pre.onload = pre.onerror = () => im.classList.add('pret'); pre.src = u; if (pre.complete) im.classList.add('pret');
+  }
   let demo = null;
   if (!mi && typeof g.demo === 'function') { const dr = el('div', 'tm-demo'); scene.appendChild(dr);
     try { demo = g.demo(dr, { colors: COLORS, fonts: FONTS, assets: () => window.JDW_ASSETS.load(g.id), zoneSure: () => zoneSure(), appareil: appareilApi(), demo: true }) || null; } catch (e) { demo = null; reportError('Démo du menu (' + g.id + ') : ' + e.message, e.stack, { quiet: true }); dr.remove(); } }
@@ -11260,6 +11266,8 @@ for (const t of ['keydown', 'keyup']) addEventListener(t, e => {
   else if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') quitAskClose(onGo);
 }, true);
 $('jdw-tolib').addEventListener('click', backToLibrary);
+{ const mb = document.createElement('button'); mb.className = 'btn btn-ghost'; mb.id = 'jdw-tomenu'; mb.type = 'button'; mb.textContent = '☰ Menu'; mb.hidden = true; $('jdw-again').insertAdjacentElement('afterend', mb);   // 2.0.142 (l'admin)
+  mb.addEventListener('click', () => { flushPending(); if (!current || current.coop) return; const g = current.game; unmountGame(); $('jdw-end').hidden = true; menuMontrer(g, { direct: true }); }); }
 $('jdw-again').addEventListener('click', () => { flushPending(); if (!current || current.coop) return; const g = current.game; unmountGame(); $('jdw-end').hidden = true; Audio.ensure(); mountGame(g); });
 function syncMute() {
   const silent = muted && !MUS.on && !criOn;
@@ -11448,8 +11456,9 @@ async function commitScore(name) {
   const res = await saveScore(p.game, p.score, name);
   p.saved = { name, prev, res };
   if (!live()) return;
-  st.textContent = (prev ? 'Nouveau record pour ' + name + ' ! ' : 'Premier score de ' + name + ' ici ! ') +
-    (res === 'shared' ? 'Enregistré en ligne dans le classement de la salle.' : (ONLINE ? "Pas de connexion : gardé sur cet appareil, il partira au retour du réseau." : 'Enregistré sur cet appareil.'));
+  const qui = (typeof ENDBY !== 'undefined' && ENDBY.name) || name;   // 2.0.142 : toujours le joueur de « Joué par »
+  st.textContent = res === 'shared' ? (prev ? 'Nouveau record pour ' + dispName(qui) + ' !' : '') :   // 2.0.142 (l'admin) : plus de « Premier score… Enregistré en ligne »
+    (prev ? 'Nouveau record pour ' + dispName(qui) + ' ! ' : '') + (ONLINE ? "Pas de connexion : gardé sur cet appareil, il partira au retour du réseau." : 'Enregistré sur cet appareil.');
   if (res === 'shared') loadChat();
   if (g) renderEndBoard(g, ENDBY.name || cleanName(profile.name));
 }
@@ -11660,6 +11669,7 @@ async function showEnd(score) {
   }, 1600);
 }
 async function showEndInner(score) {
+  try { const mb = $('jdw-tomenu'); if (mb) mb.hidden = !(current && !current.coop && menuAvoir(current.game) && !CADRE_G); } catch (e) {}   // 2.0.142 : ☰ Menu sous Rejouer
   try { if (current && menuAvoir(current.game)) { MUS.override = false; setMusic(menuMusique(current.game)); } } catch (e) {}   // 2.0.142 : fin de partie = musique de menu
   quitAskHide();
   castEndAll(score);   // les spectateurs voient le score final
@@ -16234,7 +16244,7 @@ function atlFrameStart() {
   fr.classList.add('on'); fr.appendChild(i);
   if (MUS.want === 'atelier') { ATL.musJeu = true; setMusic(''); }   // 2.0.137 : jamais deux musiques (le jeu a la sienne)
 }
-try { if (navigator.webdriver) window.JDW_ESSAI_ATL = { mus: () => ({ want: MUS.want, id: MUS.id, track: MUS.track || '', joue: !!MUS.cur }), frameStart: () => atlFrameStart(), frameStop: () => atlFrameStop(), close: () => atlClose() }; } catch (e) {}   // 2.0.137 : bancs seulement (navigateur piloté)
+try { if (navigator.webdriver) window.JDW_ESSAI_ATL = { mus: () => ({ want: MUS.want, id: MUS.id, track: MUS.track || '', joue: !!MUS.cur }), frameStart: () => atlFrameStart(), frameStop: () => atlFrameStop(), close: () => atlClose(), fin: sc => { if (current) { current.over = true; showEnd(sc); } } }; } catch (e) {}   // 2.0.137 : bancs seulement (navigateur piloté)
 // 2.0.10 (Benjamin : « Mes demandes et Améliorer : une seule fenêtre, comme un ticket bien fait ») : écrire une demande (prix d'une demande),
 // la suivre (étapes en direct), lire la réponse du guide ; la discussion du début (feuille de route) reste lisible, repliée
 function atlProjDem(p, f) {

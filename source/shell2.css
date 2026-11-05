@@ -5377,3 +5377,7 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 @media (orientation:landscape) and (max-height:500px){#jdw-play .tm-cartoon .tm-it.tm-go{font-size:30px;padding:12px 24px 16px}}
 #jdw-play .tmenu .tm-key{position:absolute;inset:0;background:var(--k-l) center/cover no-repeat;animation:tmKen2 24s ease-in-out infinite alternate;transform-origin:50% 0}   /* 2.0.142 : l'image de menu dédiée, plein écran */
 @media (max-aspect-ratio:1/1){#jdw-play .tmenu .tm-key{background-image:var(--k-p)}}
+@media (max-width:600px){#jdw-play .tm-cartoon .tm-bas{width:calc(100% - 32px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px))}#jdw-play .tm-cartoon .tm-liste{gap:22px}#jdw-play .tm-cartoon .tm-go{width:calc(100% - 22px)}}   /* 2.0.142 (chef) : marges et vrai écart au téléphone */
+#jdw-play .tmenu .tm-attente{position:absolute;inset:-4%;background:center/cover no-repeat;filter:blur(18px) brightness(.8);animation:tmNet 1.2s ease-out .3s forwards}   /* 2.0.142 : en attendant l'image de menu */
+@keyframes tmNet{to{filter:blur(4px) brightness(.85)}}
+#jdw-play .tmenu .tm-key{opacity:0;transition:opacity .6s}#jdw-play .tmenu .tm-key.pret{opacity:1}
