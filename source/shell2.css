@@ -5417,3 +5417,4 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
   #jdw-play .tm-cartoon[data-vue="liste"] .tm-liste > .tm-go{width:37vw!important;max-width:37vw;max-height:12vh;min-height:0;font-size:min(26px,7vh)!important;padding:0 18px!important;height:12vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
   #jdw-play .tm-cartoon[data-vue="liste"] .tm-liste > .tm-it:not(.tm-go){height:9.5vh;min-height:0;padding:0 14px!important;font-size:min(15px,4.4vh)!important;display:flex;align-items:center}
 }
+#jdw-play .tm-cartoon .tm-liste > .tm-go.tm-long{font-size:min(clamp(22px,2.8vw,40px),calc((100vh - var(--sh0)) * .055),6.4vw)!important;white-space:nowrap}   /* 2.0.146 : « DÉFIER UN COPAIN » sur une ligne */

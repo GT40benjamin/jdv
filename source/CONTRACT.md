@@ -564,6 +564,6 @@ L'admin : « on uniformise tout » — chaque jeu passe en `menu: true` (l'équi
 | strike | Atelier V3 | ✅ | cartoon | — | — | ✅ | ✅ | ✅ |
 | trone | Atelier V3 | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
 
-**Duels** : l'écran-titre n'existe pas encore pour eux (`menu: true` dans un duel est IGNORÉ : la mise en relation n'est pas touchée). Mise en page prévue :
+**Duels** (borne 2.0.146) : chaque duel a l'écran-titre (sauf `menu: false`), mêmes champs que les jeux (logo, menuImage, musicMenu, menuStyle…) :
 en LOCAL (même écran, contre l'IA), la tuile ouvre l'écran-titre et ▶ JOUER ouvre le duel ; EN LIGNE, jamais d'écran-titre après la mise en relation
 (les deux appareils démarrent ensemble) — l'écran-titre se montre avant l'invitation, et ▶ JOUER = « Défier un copain ».

@@ -575,6 +575,12 @@ const MENU = { passe: '' };
 function menuZones() { const debout = matchMedia('(max-aspect-ratio:1/1)').matches; return debout ? { orientation: 'debout', logo: [0, 22], heros: [22, 66], boutons: [66, 100] } : { orientation: 'large', logo: [0, 28], heros: [28, 70], boutons: [70, 100] }; }
 const menuAvoir = g => !!g && g.menu !== false && (g.menu === true || MENU_BORNE.has(g.id) || (navigator.webdriver && Array.isArray(window.JDW_MENU_ESSAI) && window.JDW_MENU_ESSAI.includes(g.id))) && !PAD_DOM.has(g.id) && !g.external && g.id !== 'pegase';   // jeux de l'Atelier : menu: true (leur équipe retire d'abord leur écran titre : jamais deux menus)
 function menuPrecharger(g) { try { for (const f of [g.menuImage, g.menuImagePortrait, g.logo]) if (f && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp|svg)$/i.test(String(f))) { const i = new Image(); i.src = ROOT + (ATL_NES.has(g.id) ? 'assets/jeux/' + g.id + '/' : 'assets/') + f; } } catch (e) {} }
+function menuDuel(d, lancer, enLigne) {
+  if (!d || d.menu === false) { lancer(); return; }
+  $('jdw-lib').hidden = true; $('jdw-play').hidden = false; $('jdw-play').style.setProperty('--acc', d.accent || COLORS.amber); $('jdw-gtitle').textContent = d.title || '';
+  for (const id of ['jdw-howto-b', 'jdw-sm-howto']) { const x = $(id); if (x) x.hidden = true; }
+  menuMontrer(d, { lancer, duo: true, enLigne: !!enLigne });
+}
 function menuOuJouer(g) { if (menuAvoir(g) && MENU.passe !== g.id) { menuPrecharger(g); menuMontrer(g); } else mountGame(g); }
 function menuFermer() { const m = document.getElementById('jdw-gmenu'); if (m) { if (m._esc) document.removeEventListener('keydown', m._esc, true); if (m._demo && m._demo.destroy) try { m._demo.destroy(); } catch (e) {} m.remove(); } }
 // 2.0.142 (l'admin : « un vrai menu de jeu vidéo ») : l'ÉCRAN-TITRE d'un jeu (menu: true, CONTRACT.md Ajout 27 bis) — la scène du jeu qui vit
@@ -629,7 +635,9 @@ function menuMontrer(g, o) {
   haut.appendChild(logo);
   sonJeuActiver(g.id); musicBaseLevel(0.8); MUS.override = false; setMusic(menuMusique(g));   // la musique de MENU, au volume de ce jeu
   let boutique = 0;
-  const jouer = () => { menuBip('ok'); MENU.passe = g.id; menuFermer(); mountGame(g); };
+  const jouer = () => { menuBip('ok'); MENU.passe = g.id; menuFermer();
+    if (o.lancer) { $('jdw-play').hidden = true; $('jdw-lib').hidden = false; try { o.lancer(); } catch (e) { reportError('Duel (' + g.id + ') : ' + e.message, e.stack); } return; }   // 2.0.146 : duel
+    mountGame(g); };
   const it = (txt, fn, cls) => { const b = el('button', 'tm-it' + (cls ? ' ' + cls : ''), txt); b.type = 'button';
     b.addEventListener('click', () => { if (!b.classList.contains('tm-go')) menuBip('ok'); fn(); });
     b.addEventListener('focus', () => menuBip()); b.addEventListener('mouseenter', () => { try { b.focus({ preventScroll: true }); } catch (e) {} }); return b; };
@@ -639,14 +647,14 @@ function menuMontrer(g, o) {
     if (quoi === 'touche') {
       const ap = appareilApi()(), t = it(ap === 'toucher' ? 'Touche l’écran' : ap === 'manette' ? 'Appuie sur A' : 'Appuie sur une touche', () => vue(''), 'tm-touche'); L.appendChild(t);   // 2.0.143 : selon l'appareil
     } else if (!quoi) {
-      L.appendChild(it('▶ JOUER', jouer, 'tm-go'));
+      L.appendChild(it(o.enLigne ? '▶ DÉFIER UN COPAIN' : '▶ JOUER', jouer, 'tm-go' + (o.enLigne ? ' tm-long' : '')));
       for (const x of M.querySelectorAll(':scope > .tm-icos')) x.remove();
       const ico = style === 'cartoon' ? el('div', 'tm-icos') : null; if (ico) (atlPetit() ? bas : M).appendChild(ico);   // PC / couché : sur le côté de l'écran ; téléphone droit : sous les boutons
       const petit = (txt, nom, fn) => { if (!ico) { L.appendChild(it(txt, fn)); return; } const b = it(txt.split(' ')[0], fn, 'tm-ico'); b.setAttribute('aria-label', nom); b.title = nom; b.appendChild(el('small', '', nom)); ico.appendChild(b); };
-      if (howtoOf(g)) L.appendChild(it('❓ COMMANDES', () => howtoShow(g, $('jdw-play'), { then: () => { const b = M.querySelector('.tm-it'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} } })));
+      if (howtoOf(g, !!o.duo)) L.appendChild(it('❓ COMMANDES', () => howtoShow(g, $('jdw-play'), { duo: !!o.duo, then: () => { const b = M.querySelector('.tm-it'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} } })));
       L.appendChild(it('🔊 SON', () => vue('son')));
       if (boutique) petit('🛍️ BOUTIQUE', 'Boutique', () => { MENU.passe = g.id; menuFermer(); mountGame(g); setTimeout(() => { try { if (current && current.game.id === g.id) boutiqueOuvrir(); } catch (e) {} }, 1200); });
-      if (!g.noScore && !isGuest()) petit('🏆 RECORDS', 'Records', () => { try { openBoardFor(g.id); } catch (e) {} });
+      if (!o.duo && !g.noScore && !isGuest()) petit('🏆 RECORDS', 'Records', () => { try { openBoardFor(g.id); } catch (e) {} });
       petit('⚙️ OPTIONS', 'Options', () => vue('param'));
     } else if (quoi === 'son') {
       L.appendChild(el('p', 'tm-k', '🔊 Le son de ce jeu'));
@@ -8185,10 +8193,10 @@ function buildDuoLibrary() {
     tileBy(b, d.id);   // 2.0.83
     b.addEventListener('click', () => {
       markGameSeen(d.id);   // clic sur la tuile : l'étiquette « Nouveau » / « Mis à jour » s'en va (même si le duel demande d'abord un compte)
-      if (DUEL_WHERE === 'online') { if (guestBlocks()) { guestAsk('Duel en ligne'); return; } if (netOff()) { netNeed('Le duel en ligne'); return; } if (netBlocks(d)) { b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; } netCreate(d); return; }
+      if (DUEL_WHERE === 'online') { if (guestBlocks()) { guestAsk('Duel en ligne'); return; } if (netOff()) { netNeed('Le duel en ligne'); return; } if (netBlocks(d)) { b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; } menuDuel(d, () => netCreate(d), true); return; }   // 2.0.146 : l'écran-titre avant l'invitation
       duoAiOnly = d.local === false; if (duoAiOnly) ensureAiPlayer();   // pas à deux sur le même écran : contre l'IA
       if (aiBlocks(d)) { duoAiOnly = false; ensureAiPlayer(); toastCheer('Je ne sais pas encore jouer à ce jeu !', AI_NAME, true); return; }
-      openDuo(d);
+      menuDuel(d, () => openDuo(d));   // 2.0.146 : l'écran-titre, puis le duel
     });
     const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', d.accent || COLORS.amber);
     wrap.appendChild(b); grid.appendChild(wrap);
