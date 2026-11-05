@@ -16809,8 +16809,10 @@ function atlBiblio(host, f, fi, lecture) {
   }
   const lib = atlEl('div', 'atl-lib' + (lecture ? ' lecture' : ''));
   let cat = store.get('jdw.atl.libcat', 'personnage'); if (!ATL_CATS.some(c => c[0] === cat)) cat = 'personnage';
-  const nav = atlEl('div', 'atl-libnav'); nav.setAttribute('role', 'tablist');
-  for (const [k, ic, lab] of ATL_CATS) { const nn = items[k].filter(x => x.neuf).length, b = atlEl('button', 'atl-libt' + (k === cat ? ' on' : '') + (nn ? ' neuf' : ''), ic + ' ' + lab + ' · ' + items[k].length + (nn ? ' · ✨' + nn : '')); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(k === cat)); b.addEventListener('click', () => { store.set('jdw.atl.libcat', k); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
+  const pleines = ATL_CATS.filter(([c]) => items[c].length);   // 2.0.125 (chef) : pas d'onglet vide
+  if (pleines.length && !items[cat].length) cat = pleines[0][0];
+  const nav = atlEl('div', 'atl-libnav'); nav.setAttribute('role', 'tablist'); nav.hidden = !pleines.length;
+  for (const [k, ic, lab] of ATL_CATS) { if (!items[k].length) continue; const nn = items[k].filter(x => x.neuf).length, b = atlEl('button', 'atl-libt' + (k === cat ? ' on' : '') + (nn ? ' neuf' : ''), ic + ' ' + lab + ' · ' + items[k].length + (nn ? ' · ✨' + nn : '')); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(k === cat)); b.addEventListener('click', () => { store.set('jdw.atl.libcat', k); atlLibVider(host); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
   lib.appendChild(nav);
   const [, ic, lab, k] = ATL_CATS.find(c => c[0] === cat), l = items[cat], visuel = !['son', 'musique'].includes(cat);
   let vue = store.get('jdw.atl.libvue', 'planche'); if (vue !== 'cartes') vue = 'planche';
@@ -16822,7 +16824,7 @@ function atlBiblio(host, f, fi, lecture) {
   const avec = l.filter(it => it.url && !it.son);
   if (visuel && avec.length) {
     const vb = atlEl('button', 'btn btn-ghost btn-sm', vue === 'planche' ? '🗂️ Vue cartes' : '🧩 Vue planche'); vb.type = 'button';
-    vb.addEventListener('click', () => { store.set('jdw.atl.libvue', vue === 'planche' ? 'cartes' : 'planche'); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); });
+    vb.addEventListener('click', () => { store.set('jdw.atl.libvue', vue === 'planche' ? 'cartes' : 'planche'); atlLibVider(host); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); });
     const dl = atlEl('button', 'btn btn-ghost btn-sm', '⬇ Télécharger la planche'); dl.type = 'button';
     dl.addEventListener('click', () => atlPlanchePng(f, cat, lab, l, dl));
     bar.append(vb, dl);
@@ -16830,22 +16832,50 @@ function atlBiblio(host, f, fi, lecture) {
   lib.appendChild(bar);
   const sec = atlEl('section', 'atl-libc');
   if (!l.length) sec.appendChild(atlEl('p', 'atl-libvide', lecture ? (cat === 'musique' ? 'Pas encore de musique : demande-la à ' + gNM() + ' dans la discussion.' : cat === 'son' ? 'Pas encore de bruitage : demande-le à ' + gNM() + ' dans la discussion.' : 'Rien pour l’instant.') : cat === 'musique' ? 'Pas encore de musique : « ＋ Créer une musique » pour en demander une.' : cat === 'son' ? '« ＋ Créer un bruitage » pour en ajouter un, quand tu veux.' : 'Rien pour l’instant.'));
-  if (lecture) lib.appendChild(atlEl('p', 'atl-libmasc', '💬 Un nouveau personnage, un objet, un décor, une musique ? Dis-le à ' + gNM() + ' dans la discussion : il te pose ses questions, puis te propose une offre.'));
-  if (cat === 'personnage') {   // 2.0.124 : en lecture aussi (2.0.123 n'affichait plus que le message, sans les éléments)
+  // 2.0.125 (l'admin : « Objets · 954 », un cadre vide) : PAR PAQUETS (les premiers tout de suite, la suite en défilant ou « Voir plus »),
+  // images en chargement paresseux, et un vrai chargement visible (la mascotte + « Je charge tes éléments… x / N ») ; jamais un cadre vide
+  const tel = atlPetit(), ch = atlLibCharge(lib, l.filter(it => it.url && !it.son).length);
+  if (!pleines.length) { sec.textContent = ''; sec.appendChild(atlEl('p', 'atl-libvide', 'Rien pour l’instant : ' + gNM() + ' ajoute ici les éléments de ton jeu au fur et à mesure.')); }
+  else if (cat === 'personnage') {   // 2.0.124 : en lecture aussi (2.0.123 n'affichait plus que le message, sans les éléments)
     const grp = new Map(); for (const it of l) { const g = it.parent || it.nom; if (!grp.has(g)) grp.set(g, []); grp.get(g).push(it); }
     const rang = xs => Math.min(1e9, ...xs.map(x => x.asset ? x.ix : 1e9));   // l'ordre du jeu (le héros d'abord), les noms « à dessiner » après
-    for (const [g, xs] of [...grp].sort((a, b) => rang(a[1]) - rang(b[1]))) {
-      const poses = xs.filter(x => x.asset).length;
-      sec.appendChild(atlEl('h5', 'atl-libsub', g + (poses ? ' · ' + poses + ' pose' + (poses > 1 ? 's' : '') : '')));
-      if (vue === 'planche' && xs.some(x => x.url && !x.case)) sec.appendChild(atlTileset(xs, f, fi, libre, lecture));
-      else { const gr = atlEl('div', 'atl-libg'); for (const it of xs) gr.appendChild(atlEncart(it, f, fi, libre, lecture)); sec.appendChild(gr); }
-    }
+    atlPager(sec, [...grp].sort((p, q) => rang(p[1]) - rang(q[1])), tel ? 4 : 8, ([g, xs]) => {
+      const poses = xs.filter(x => x.asset).length, frag = atlEl('div', 'atl-libgrp');
+      frag.appendChild(atlEl('h5', 'atl-libsub', g + (poses ? ' · ' + poses + ' image' + (poses > 1 ? 's' : '') : '')));
+      if (vue === 'planche' && xs.some(x => x.url && !x.case)) frag.appendChild(atlTileset(xs, f, fi, libre, lecture));
+      else { const gr = atlEl('div', 'atl-libg'); for (const it of xs) gr.appendChild(atlEncart(it, f, fi, libre, lecture)); frag.appendChild(gr); }
+      ch.suivre(frag); return frag;
+    }, n => n + ' personnage' + (n > 1 ? 's' : ''));
   } else if (visuel && vue === 'planche' && avec.length) {
-    sec.appendChild(atlPlancheCat(l, f, fi, libre, lecture));
-  } else { const gr = atlEl('div', 'atl-libg'); for (const it of l) gr.appendChild(atlEncart(it, f, fi, libre, lecture)); sec.appendChild(gr); }
+    const W = atlPlancheCat([], f, fi, libre, lecture); sec.appendChild(W);
+    atlPager(sec, l, tel ? 48 : 120, it => { ch.suivre(W._ajoute(it)); return null; }, n => n + ' élément' + (n > 1 ? 's' : ''));
+  } else { const gr = atlEl('div', 'atl-libg'); sec.appendChild(gr); atlPager(sec, l, tel ? 40 : 100, it => { const e = atlEncart(it, f, fi, libre, lecture); gr.appendChild(e); ch.suivre(e); return null; }, n => n + ' élément' + (n > 1 ? 's' : '')); }
   lib.appendChild(sec);
+  if (lecture) lib.appendChild(atlEl('p', 'atl-libmasc', '💬 Un nouveau personnage, un objet, un décor, une musique ? Dis-le à ' + gNM() + ' dans la discussion : il te pose ses questions, puis te propose une offre.'));   // 2.0.125 : sous les éléments (ils arrivent plus haut à l'écran)
   host.appendChild(lib);
   if (ATL.tab === 'elements') setTimeout(() => { try { if (ATL.tab === 'elements' && host.isConnected && !host.closest('[hidden]')) atlElVus(f); } catch (e) {} }, 2500);   // 2.0.61
+}
+// 2.0.125 : les images d'un onglet quitté s'arrêtent (sinon des centaines de téléchargements bouchent les suivants)
+function atlLibVider(host) { for (const im of host.querySelectorAll('img')) { if (!im.complete) im.removeAttribute('src'); } }
+// paquets : « ajoute » pose une unité (dans sec si elle la rend, sinon elle se range elle-même) ; la suite arrive quand on approche du bas, ou par « Voir plus »
+function atlPager(sec, units, pas, ajoute, txt) {
+  let i = 0, io = null; const pied = atlEl('div', 'atl-libplus'), bt = atlEl('button', 'btn btn-ghost btn-sm', ''); bt.type = 'button'; pied.appendChild(bt);
+  const suite = () => {
+    const fin = Math.min(units.length, i + pas);
+    for (; i < fin; i++) { const e = ajoute(units[i]); if (e) sec.insertBefore(e, pied); }
+    const reste = units.length - i; pied.hidden = !reste; bt.textContent = '⬇ Voir plus · encore ' + txt(reste);
+    if (!reste && io) { io.disconnect(); io = null; }
+  };
+  bt.addEventListener('click', suite); sec.appendChild(pied); suite();
+  if (units.length > i && 'IntersectionObserver' in window) { io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting) && sec.isConnected) suite(); }, { rootMargin: '500px 0px' }); io.observe(pied); }
+}
+// « Je charge tes éléments… x / N » avec la mascotte, tant que des images du paquet affiché arrivent ; disparaît tout seul
+function atlLibCharge(lib, total) {
+  const b = atlEl('div', 'atl-libload'), tx = atlEl('b', '', ''), barre = atlEl('div', 'atl-travbar'), i = atlEl('i'); barre.appendChild(i);
+  const col = atlEl('div'); col.append(tx, barre); b.append(atlGuideAv('atl-wav'), col); b.hidden = true; lib.appendChild(b);
+  let vus = 0, faits = 0;
+  const maj = () => { b.hidden = !vus || faits >= vus; tx.textContent = 'Je charge tes éléments… ' + faits.toLocaleString('fr-FR') + ' / ' + vus.toLocaleString('fr-FR') + (total > vus ? ' (sur ' + total.toLocaleString('fr-FR') + ')' : ''); i.style.width = Math.round(faits / Math.max(1, vus) * 100) + '%'; };
+  return { suivre(el) { if (!el) return; const ims = (el.tagName === 'IMG' ? [el] : [...el.querySelectorAll('img')]).filter(im => im.loading !== 'lazy'); for (const im of ims) { vus++; if (im.complete && im.naturalWidth) faits++; else { const ok = () => { faits++; maj(); }; im.addEventListener('load', ok, { once: true }); im.addEventListener('error', ok, { once: true }); } } maj(); } };
 }
 // 2.0.61 : l'onglet Éléments suit la conception EN DIRECT — redessiné sur place quand la liste change (jamais pendant qu'on y écrit)
 function atlElMaj(W, f) {
@@ -16897,30 +16927,33 @@ function atlTileset(xs, f, fi, libre, lecture) {
   const W = atlEl('div', 'atl-ts'), all = [];
   for (const r of atlAnims(xs)) {
     const row = atlEl('div', 'atl-tsr');
-    const pv = atlEl('div', 'atl-tsprev'); if (r.frames.length > 1) { pv.dataset.n = String(r.frames.length); pv.dataset.fps = String(r.fps); }
-    for (const it of r.frames) { const im = atlEl('img'); im.alt = ''; im.src = it.url; pv.appendChild(im); all.push(im); }
-    const lb = atlEl('div', 'atl-tsl'); lb.append(pv, atlEl('small', '', r.anim + (r.frames.length > 1 ? ' · ' + r.frames.length + ' images' : '')));
+    // 2.0.125 (chef : « la même image en double ») : l'aperçu animé seulement quand il y a une animation (2 images ou plus)
+    const pv = atlEl('div', 'atl-tsprev'), anim = r.frames.length > 1;
+    if (anim) { pv.dataset.n = String(r.frames.length); pv.dataset.fps = String(r.fps); for (const it of r.frames) { const im = atlEl('img'); im.alt = ''; im.src = it.url; pv.appendChild(im); all.push(im); } }
+    const lb = atlEl('div', 'atl-tsl'); if (anim) lb.appendChild(pv); else row.classList.add('seule'); lb.appendChild(atlEl('small', '', r.anim + (anim ? ' · ' + r.frames.length + ' images' : '')));
     const fr = atlEl('div', 'atl-tsf');
-    r.frames.forEach((it, n) => { const b = atlNeufMark(atlEl('button', 'atl-tsc'), it); b.type = 'button'; b.title = it.pose || it.nom; const im = atlEl('img'); im.alt = it.pose || it.nom; im.src = it.url; all.push(im); b.append(im, atlEl('span', '', String(n + 1))); b.addEventListener('click', () => atlFicheElem(it, f, fi, libre, lecture)); fr.appendChild(b); });
+    r.frames.forEach((it, n) => { const b = atlNeufMark(atlEl('button', 'atl-tsc'), it); b.type = 'button'; b.title = it.pose || it.nom; const im = atlEl('img'); im.alt = it.pose || it.nom; im.src = it.url; all.push(im); b.append(im, atlEl('span', '', anim ? String(n + 1) : '')); b.addEventListener('click', () => atlFicheElem(it, f, fi, libre, lecture)); fr.appendChild(b); });
     row.append(lb, fr); W.appendChild(row);
   }
   atlEchelle(all, 92); atlTsTick();
   return W;
 }
 function atlPlancheCat(l, f, fi, libre, lecture) {
-  const W = atlEl('div', 'atl-pl'), imgs = [];
-  for (const it of l) {
+  const W = atlEl('div', 'atl-pl'), imgs = []; let md = 1;
+  // même échelle relative : la plus grande dimension de la catégorie remplit la case (2.0.125 : tout recalculer seulement si elle grandit)
+  const taille = i => { const k = 110 / md; i.style.width = Math.max(14, Math.round(i.naturalWidth * k)) + 'px'; i.style.height = Math.max(14, Math.round(i.naturalHeight * k)) + 'px'; };
+  const charge = i => { const m = Math.max(i.naturalWidth || 0, i.naturalHeight || 0); if (!m) return; if (m > md) { md = m; for (const j of imgs) if (j.naturalWidth) taille(j); } else taille(i); };
+  W._ajoute = it => {
     const b = atlNeufMark(atlEl('button', 'atl-plc'), it); b.type = 'button';
     const v = atlEl('span', 'atl-plv');
     if (it.url && it.case && Array.isArray(it.grille)) v.appendChild(atlCrop(it.url, it.case, it.grille, it.nom, it.nb));
-    else if (it.url) { const im = atlEl('img'); im.alt = it.nom; im.src = it.url; v.appendChild(im); imgs.push(im); }
+    else if (it.url) { const im = atlEl('img'); im.alt = it.nom; im.decoding = 'async'; im.src = it.url; v.appendChild(im); imgs.push(im); if (im.complete) charge(im); else im.addEventListener('load', () => charge(im), { once: true }); }
     else v.appendChild(atlEl('span', 'atl-encx', it.attente ? '⏳' : '✏️'));
     b.append(v, atlEl('small', '', it.nom)); b.addEventListener('click', () => atlFicheElem(it, f, fi, libre, lecture)); W.appendChild(b);
-  }
-  // même échelle relative : la plus grande dimension de la catégorie remplit la case
-  const go = () => { const md = Math.max(1, ...imgs.map(i => Math.max(i.naturalWidth || 0, i.naturalHeight || 0))); for (const i of imgs) if (i.naturalWidth) { const k = 110 / md; i.style.width = Math.max(14, Math.round(i.naturalWidth * k)) + 'px'; i.style.height = Math.max(14, Math.round(i.naturalHeight * k)) + 'px'; } };
-  for (const i of imgs) if (!i.complete) i.addEventListener('load', go, { once: true });
-  go(); return W;
+    return b;
+  };
+  for (const it of l) W._ajoute(it);
+  return W;
 }
 // ⬇ la planche en PNG (images rechargées avec CORS pour pouvoir les assembler)
 async function atlPlanchePng(f, cat, lab, l, btn) {

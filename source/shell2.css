@@ -5073,3 +5073,10 @@ body.howto-on .fs-tip,body.howto-on #jdw-cheer,body:has(#jdw-howto) .atl-flot{vi
 .atl-mcard.atl-elvoir{width:min(980px,100%)}
 .atl-elvoir .atl-arch{border:0}
 .atl-elvoir .atl-libbar{display:none}
+/* 2.0.125 : les éléments par paquets (« Voir plus »), le chargement visible, une pose seule sans aperçu en double */
+.atl-libplus{display:flex;justify-content:center;padding:10px 0 2px}.atl-libplus[hidden]{display:none}
+.atl-libload{display:flex;align-items:center;gap:10px;margin:0 0 8px;padding:8px 12px;border-radius:14px;background:rgba(122,76,255,.14);border:1px solid rgba(122,76,255,.4)}
+.atl-libload[hidden]{display:none}.atl-libload>div{flex:1 1 auto;display:grid;gap:6px;min-width:0}.atl-libload b{font:700 14px var(--body);color:#e6dcff}
+.atl-libload .atl-wav{width:40px;height:40px;flex:0 0 40px}
+.atl-libgrp{display:block}
+.atl-tsr.seule{grid-template-columns:auto 1fr;align-items:center}.atl-tsr.seule .atl-tsl small{white-space:nowrap}
