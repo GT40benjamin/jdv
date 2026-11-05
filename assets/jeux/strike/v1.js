@@ -521,6 +521,7 @@ function mount(root, api) {
     const lg = portrait ? GOUT + 0.55 : GOUT + 0.15, l = proj(-lg, ZH + 3 * ROW + 0.3), r = proj(lg, ZH + 3 * ROW + 0.3), hy = l.y - 0.07 * V.h;
     const basTableau = V.y + (portrait ? Math.max(64, 62 / sc) + 74 + 26 : 10 + (H <= 500 ? 56 : 66) + 24);
     const hh = portrait ? Math.max(60, hy - basTableau - 6) : 0.16 * V.h, hx = l.x, hw = r.x - l.x, ht = hy - hh;
+    P.basMachine = hy;   // l'écran titre en portrait place sa carte sous l'enseigne (jamais par-dessus)
     const gh = g.createLinearGradient(0, ht, 0, hy); gh.addColorStop(0, '#3a1470'); gh.addColorStop(0.55, '#24094a'); gh.addColorStop(1, '#14052c');
     g.fillStyle = gh; carte(hx, ht, hw, hh, 14, g); g.fill();
     // panneaux en relief (bandes plus claires en haut, plus sombres en bas) et rivets
@@ -534,8 +535,8 @@ function mount(root, api) {
     const ts = Math.round(clamp(hw * 0.085, 14, 42));
     g.save(); g.font = '900 ' + ts + 'px ' + DF; g.textAlign = 'center'; g.shadowColor = '#ffe066'; g.shadowBlur = ts * 0.6; g.fillStyle = '#ffe066';
     const ty = hy - Math.max(hh * 0.32, ts * 0.9);
-    if (ty - ts > basTableau) { g.fillText('STRIKE MONSTRES', hx + hw / 2, ty); g.shadowBlur = ts * 0.15; g.fillStyle = '#fff6c8'; g.fillText('STRIKE MONSTRES', hx + hw / 2, ty); }
     g.restore();
+    P.enseigne = ty - ts > basTableau ? { x: hx + hw / 2, y: ty, ts } : null;
     if (hh > ts * 3.2 && ht + hh * 0.3 > basTableau) { for (const k of [0.22, 0.5, 0.78]) etoileNeon(g, hx + hw * k, ht + hh * 0.3, Math.min(14, hh * 0.08), k === 0.5 ? '#ff3fd0' : '#33e6ff'); }
     // les spots qui éclairent les monstres : cônes de lumière douce du capot vers le triangle
     for (const k of [0.25, 0.5, 0.75]) {
@@ -657,7 +658,9 @@ function mount(root, api) {
     if (!fond) preparerFond(); if (!piste) preparerPiste();
     const sx = secousse > 0 ? rnd(-1, 1) * secousse * 6 : 0, sy = secousse > 0 ? rnd(-1, 1) * secousse * 6 : 0;
     ctx.save(); ctx.translate(sx, sy);
-    ctx.drawImage(fond, V.x, V.y, V.w, V.h); ctx.drawImage(piste, V.x, V.y, V.w, V.h);
+    ctx.drawImage(fond, V.x, V.y, V.w, V.h);
+    if (P.enseigne && state !== 'title') { const E = P.enseigne; ctx.save(); ctx.font = '900 ' + E.ts + 'px ' + DF; ctx.textAlign = 'center'; ctx.shadowColor = '#ffe066'; ctx.shadowBlur = E.ts * 0.6; ctx.fillStyle = '#ffe066'; ctx.fillText('STRIKE MONSTRES', E.x, E.y); ctx.shadowBlur = E.ts * 0.15; ctx.fillStyle = '#fff6c8'; ctx.fillText('STRIKE MONSTRES', E.x, E.y); ctx.restore(); }
+    ctx.drawImage(piste, V.x, V.y, V.w, V.h);
     const Q = G ? G.q : quilles(true);
     // reflets des monstres sur le bois, puis ombres, puis les monstres (du fond vers l'avant)
     const ordre = Q.slice().sort((a, b) => b.z - a.z);
@@ -748,7 +751,7 @@ function mount(root, api) {
       : doigt ? [['Glisse ◀ ▶', 'placer la boule'], ['Geste vers le haut', 'lancer : vite = fort, en courbe = effet']]
       : [['← →  ·  ↑ ↓', 'placer la boule · viser'], ['Espace tenu', 'la force, lâche pour lancer (← → = effet)'], ['Souris', 'ou lance d\'un geste vers le haut']];
     const lignes = [...L, ['6 manches', 'strike = 10 + 2 boules · spare = 10 + 1 boule'], ['Le classement', 'bats le record de tes copains !']];
-    const bw = Math.min(V.w - 28, 640), colB = portrait ? 0 : 200, RH = portrait ? 50 : 38, bh = 56 + lignes.length * RH, bx = cx - bw / 2, by = top + (portrait ? 170 : 160);
+    const bw = Math.min(V.w - 28, 640), colB = portrait ? 0 : 200, RH = portrait ? 50 : 38, bh = 56 + lignes.length * RH, bx = cx - bw / 2, by = portrait ? Math.max(top + 170, (P.basMachine || 0) + 14) : top + 160;
     ctx.fillStyle = 'rgba(14,4,34,0.9)'; carte(bx, by, bw, bh, 18); ctx.fill(); ctx.save(); ctx.shadowColor = '#a64dff'; ctx.shadowBlur = 14; ctx.strokeStyle = '#a64dff'; ctx.lineWidth = 2.5; carte(bx, by, bw, bh, 18); ctx.stroke(); ctx.restore();
     txt('Comment jouer', cx, by + 34, 22, '#ffe066', 'center', 900);
     ctx.font = '600 16px ' + RF; const maxw = Math.max(...lignes.map(l => ctx.measureText(l[1]).width)), fs = Math.min(16, 16 * (bw - colB - 44) / maxw);
