@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['noisette', 'lune', 'licornes', 'trone', 'jetporte', 'remparts', 'abracadabra', 'flechettes', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['noisette', 'lune', 'licornes', 'trone', 'jetporte', 'sorcier', 'remparts', 'abracadabra', 'flechettes', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
@@ -41,7 +41,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Sur l'appareil (et dans l'appli Android) : 5 touches rapides sur le titre « Borne d'arcade » = vue admin ⇄ vue joueur.
-const LABO = new Set(['noisette', 'lune', 'trone', 'jetporte']);   // 3 nov. 2026 (Benjamin : « mettre en production maintenant ! ») : l'Atelier des jeux (« CRÉE TON JEU ») est SORTI POUR TOUS ; en essai : Seul sur la Lune (2e jeu de l'Atelier, alpha de PATOU, 2 nov. 2026 au soir) ; sortie le 2026-11-03 à 15 h 17 en publication mondiale (2.0.45 : plus en essai, son nom permis dans les notes) : La Maison des Licornes (1er jeu de l'Atelier, de PATOU ; sa tuile vient de at_jeux / at_jeux_monde, comme tout jeu de l'Atelier) ; l'Atelier des jeux (tuile « CRÉE TON JEU », …/jouer/?labo=atelier, 2 nov. 2026) ; sorti pour tous le 2026-11-02 : Remparts ! (tower defense magique 3D, « Oui, public » de Benjamin) ; sorti pour tous le 2026-11-01 : Abracadabra (la voix fait apparaître les objets, borne 1.63, « Tu peux publier à tous abracadabra » de Benjamin) ; sorti pour tous le 2026-10-31 : Tête de Cible (fléchettes, borne 1.62, « Ok publier le jeu de fléchettes » de Benjamin) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
+const LABO = new Set(['noisette', 'lune', 'trone', 'jetporte', 'sorcier', 'strike', 'pigeon']);   // 3 nov. 2026 (Benjamin : « mettre en production maintenant ! ») : l'Atelier des jeux (« CRÉE TON JEU ») est SORTI POUR TOUS ; en essai : Seul sur la Lune (2e jeu de l'Atelier, alpha de PATOU, 2 nov. 2026 au soir) ; sortie le 2026-11-03 à 15 h 17 en publication mondiale (2.0.45 : plus en essai, son nom permis dans les notes) : La Maison des Licornes (1er jeu de l'Atelier, de PATOU ; sa tuile vient de at_jeux / at_jeux_monde, comme tout jeu de l'Atelier) ; l'Atelier des jeux (tuile « CRÉE TON JEU », …/jouer/?labo=atelier, 2 nov. 2026) ; sorti pour tous le 2026-11-02 : Remparts ! (tower defense magique 3D, « Oui, public » de Benjamin) ; sorti pour tous le 2026-11-01 : Abracadabra (la voix fait apparaître les objets, borne 1.63, « Tu peux publier à tous abracadabra » de Benjamin) ; sorti pour tous le 2026-10-31 : Tête de Cible (fléchettes, borne 1.62, « Ok publier le jeu de fléchettes » de Benjamin) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -84,7 +84,10 @@ const ATL_DEFI = new Set(['trone']);   // repli seulement (borne sans réponse d
 // 2.0.127 : l'onglet de la borne (🎮 Classique / ⚔️ Duel / 🤝 Coop) d'un jeu de l'Atelier = sa fiche (rayon), choisi par l'admin
 const atlRayon = id => { let x = null; try { x = ATL_JEUX.get(id); } catch (e) { x = null; } const r = x && x.rayon; return r === 'duel' || r === 'coop' || r === 'classique' ? r : ATL_DEFI.has(id) ? 'duel' : 'classique'; };
 const atlGrilleDe = (id, grid) => { const r = atlRayon(id); return r === 'duel' ? ($('jdw-duo-grid') || grid) : r === 'coop' ? ($('jdw-coop-grid') || grid) : grid; };
-const ATL_NES = new Set(['licornes', 'lune', 'noisette', 'trone', 'jetporte']);   // 2.0.117 : Jet Porté (EMPEREUR, fiche 6e7a838b) : assets/jeux/jetporte/vN.js, secours source/games/jetporte.js
+const ATL_NES = new Set(['licornes', 'lune', 'noisette', 'trone', 'jetporte', 'sorcier', 'strike', 'pigeon']);   // 2.0.131 : Le Sorcier du Royaume (J2B, fiche 897a42e8, secours source/games/sorcier.js) ; Strike Monstres (COCOMOUTARDE) et Pigeon Bombardier (LOU) d'avance
+// 2.0.131 : jeux de l'Atelier qui gardent LEUR menu de pause (comme pauseJeu: true dans le module ; leur V1 était figée avant l'Ajout 24)
+const PAUSE_JEU_IDS = new Set(['sorcier']);
+const aPauseJeu = g => !!(g && (g.pauseJeu || PAUSE_JEU_IDS.has(g.id)));   // 2.0.117 : Jet Porté (EMPEREUR, fiche 6e7a838b) : assets/jeux/jetporte/vN.js, secours source/games/jetporte.js
 // 2.0.74 : Trôn-e (REMS, fiche 9af84595) : assets/jeux/trone/vN.js, secours source/games/trone.js (live: true)
 // 2.0.20 (Benjamin : « ici au moins c'est clair ») : le sens choisi sur la page du projet (at_fiches.orientation), par id du jeu
 const ATL_ORIENT = new Map();
@@ -244,7 +247,7 @@ function atlMajNews(id) {
   if (!t || t <= base || !(Date.now() - t < NEWS_DAYS * 86400e3)) return '';
   return ((((store.get('jdw.atlmajvu', {}) || {})[seenKey()] || {})[id]) | 0) >= x.version_publiee ? '' : 'maj';
 }
-const ATL_EMO = { licornes: '🦄', lune: '🚀', noisette: '🐿️', trone: '👑', jetporte: '🍑' };
+const ATL_EMO = { licornes: '🦄', lune: '🚀', noisette: '🐿️', trone: '👑', jetporte: '🍑', sorcier: '🧙', strike: '🎳', pigeon: '🐦' };
 const atlMajNote = t => String(t || '').replace(/^\s*(V\d+\s*)?(\(?cadeau[^:)]*\)?)?\s*:\s*/i, '').trim();
 function atlMajNotifs() {
   const me = seenKey(), cl = (store.get('jdw.atlmajcl', {}) || {})[me] || {}, out = [];
@@ -402,7 +405,7 @@ function padHelpInto(box, g) {
 function padPauseOpen(by) {
   if (!current || current.coop || PADP.open) return;
   const inst = current.inst || {};
-  if (current.game.pauseJeu) { try { if (inst.pause) inst.pause(); else padKey('p'); } catch (e) {} return; }   // 2.0.128 : le jeu a son propre menu (avec les 3 boutons du contrat)
+  if (aPauseJeu(current.game)) { try { if (inst.pause) inst.pause(); else padKey('p'); } catch (e) {} return; }   // 2.0.128 : le jeu a son propre menu (avec les 3 boutons du contrat)
   PADP.open = true; PADP.g = current.game; PADP.by = by || '';
   try { if (inst.pause) inst.pause(); else padKey('p'); } catch (e) {}
   $('jdw-padpause').style.setProperty('--acc', current.game.accent || COLORS.amber);
@@ -472,7 +475,7 @@ function pauseDepuisDebut() {
 }
 // la touche Échap pendant une partie = le menu de pause (avant le jeu)
 addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || e.repeat || !current || current.coop || current.over || PADP.open || QA.open || $('jdw-play').hidden || !$('jdw-end').hidden || PAD_DOM.has(current.game.id) || current.game.pauseJeu) return;
+  if (e.key !== 'Escape' || e.repeat || !current || current.coop || current.over || PADP.open || QA.open || $('jdw-play').hidden || !$('jdw-end').hidden || PAD_DOM.has(current.game.id) || aPauseJeu(current.game)) return;
   if (document.querySelector('.liv-mod, #jdw-howto:not([hidden])') || (typeof HOWTO !== 'undefined' && HOWTO.open)) return;
   e.preventDefault(); e.stopImmediatePropagation(); padPauseOpen('clavier');
 }, true);
@@ -482,7 +485,7 @@ addEventListener('keydown', e => {
   const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.id = 'jdw-pause-b'; b.type = 'button'; b.hidden = true; b.textContent = '⏸'; b.title = 'Pause'; b.setAttribute('aria-label', 'Pause');
   b.addEventListener('click', e => { e.stopPropagation(); padPauseOpen('bouton'); });
   hb.parentNode.insertBefore(b, hb);
-  setInterval(() => { const g = current && current.game; b.hidden = !(g && !current.coop && !current.over && !g.pauseJeu && !PAD_DOM.has(g.id) && !$('jdw-play').hidden); }, 700);
+  setInterval(() => { const g = current && current.game; b.hidden = !(g && !current.coop && !current.over && !aPauseJeu(g) && !PAD_DOM.has(g.id) && !$('jdw-play').hidden); }, 700);
 })();
 $('jdw-padpause-resume').addEventListener('click', () => padPauseClose(true));
 $('jdw-padpause-quit').addEventListener('click', () => { padPauseClose(false); quitGame(); });
@@ -2381,7 +2384,7 @@ function notifRow(n, isNew) {
 }
 // NOTES rangées par JEU : un bloc par jeu (icône + nom + dernière version), ses versions de la plus récente à la plus ancienne ; les jeux
 // dans l'ordre de leur dernière nouveauté. Ce qui est déjà vu : replié dans « Avant » (ou tout replié si on rouvre l'historique).
-const NOTE_IC = { noisette: '🐿️', lune: '🌕', trone: '🚽', licornes: '🦄', jetporte: '🍑', atelier: '✏️', remparts: '🏰', abracadabra: '🪄', flechettes: '🎯', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
+const NOTE_IC = { noisette: '🐿️', lune: '🌕', trone: '🚽', licornes: '🦄', jetporte: '🍑', sorcier: '🧙', strike: '🎳', pigeon: '🐦', atelier: '✏️', remparts: '🏰', abracadabra: '🪄', flechettes: '🎯', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
 const noteName = (id) => { const g = id === 'pegase' || id === 'borne' ? null : (gameById(id) || duoById(id)); return id === 'pegase' ? 'Pégase' : id === 'borne' ? 'La borne' : id === 'atelier' ? 'L’Atelier des jeux' : g ? atlTitre(g) : id; };
 function notesByGame(blocks) {
   const G = new Map(); for (const b of blocks) { if (!G.has(b.id)) G.set(b.id, []); G.get(b.id).push(b); }
