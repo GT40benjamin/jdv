@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 📱 L’appli Android 1.14 se connecte toute seule au démarrage (borne 2.0.137)
+[borne] 📱 Plus de « Pas de connexion » à réessayer à chaque ouverture de l’appli : si le réseau du téléphone n’est pas encore prêt, l’appli affiche « Chargement… » et réessaie toute seule. « Pas de connexion » n’apparaît que s’il n’y a vraiment pas de réseau, et la borne revient toute seule dès qu’il revient. Pour l’avoir : touche le bandeau vert « Version 1.14 disponible ».
 [pigeon] ## 🐦 Pigeon Bombardier arrive dans l’Atelier (borne 2.0.132)
 [pigeon] 🐦 Survole la ville en profondeur et vise les passants et les voitures avec tes fientes ; évite les lampadaires, les câbles, les oiseaux et les ballons. Ta distance, ta meilleure série et les records de tes copains (petits drapeaux sur le trottoir) sont là.
 [abracadabra] ## 🎮 Abracadabra : les vraies commandes de la manette (borne 2.0.113)
