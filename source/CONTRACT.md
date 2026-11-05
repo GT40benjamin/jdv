@@ -370,6 +370,9 @@ Le jeu dit ce qu'il sait faire (à appeler dans mount, vérifier `api.pause` d'a
 Un jeu qui garde SON propre menu de pause déclare `pauseJeu: true` dans son module : la borne n'affiche alors ni sa carte ni le bouton ⏸,
 Start / Échap vont au jeu. Son menu DOIT avoir les mêmes boutons : Reprendre, Recommencer le niveau (s'il a des niveaux), Recommencer le jeu
 depuis le début avec la même confirmation, Son, Commandes, Quitter (`api.quit` ou la croix de la borne).
+- `api.pause.ajouter([{ id, texte, fn }])` (borne 2.0.132, demande de Noisette) : jusqu'à 4 boutons du JEU dans le menu standard, placés
+  après « 🔁 Recommencer le niveau », même style et même focus doré. Au clic, la borne ferme le menu, fait reprendre le jeu, puis appelle `fn`.
+  Un nouvel appel remplace la liste ; `[]` = aucun (ex. sur la carte). Le jeu teste `api.pause && api.pause.ajouter` avant de s'en servir.
 
 ## Ajout 25 : la boutique du créateur (api.boutique, borne 2.0.130 ; serveur source/boutique.sql, SQL v139)
 Un jeu de l'Atelier peut vendre des éléments EN CRÉDITS (apparence, contenu en plus : une couleur, un niveau bonus — jamais des points de
@@ -381,6 +384,6 @@ score). Les articles sont posés par la mascotte avec le créateur (`at_boutique
 Jamais d'achat en un seul toucher pendant la partie : appeler `acheter` depuis un écran calme (menu, boutique du jeu). Rien au hasard (pas de
 caisse mystère). Le créateur reçoit 70 % du prix en crédits (réglage boutique_part_createur), la borne garde 30 % ; jamais d'euros. Le
 créateur (et sa famille) ne peut pas acheter ses propres articles. Plafond de 300 crédits par mois et par joueur (boutique_plafond_mois).
-Borne 2.0.131 (SQL v141, source/credits-achetes.sql) : on n'achète QU'AVEC des crédits ACHETÉS (at_credits.achete), jamais les offerts ;
+Borne 2.0.132 (SQL v141, source/credits-achetes.sql) : on n'achète QU'AVEC des crédits ACHETÉS (at_credits.achete), jamais les offerts ;
 la fenêtre montre « 💎 achetés · 🎁 offerts » et, s'il en manque, le dit gentiment avec « 💎 Voir les packs de crédits ». Les gains du
 créateur comptent comme achetés. Rien ne change pour le jeu.

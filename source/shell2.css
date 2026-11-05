@@ -5143,3 +5143,5 @@ body:has(#jdw-padpause:not([hidden])) .fs-tip{display:none!important}
 /* 2.0.131 : boutique = crédits achetés seulement */
 .bout-solde{margin:0;font:14px var(--body);color:var(--muted)}.bout-solde b{color:#ffe9a8}
 .bout-packs{justify-self:center}.bout-packs[hidden]{display:none}
+/* 2.0.131 : boutons du jeu dans le menu de pause (api.pause.ajouter) */
+.pp-extra{display:contents}.pp-extra[hidden]{display:none}

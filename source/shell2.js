@@ -440,7 +440,8 @@ function pauseStdMk() {
   const niv = mk('jdw-padpause-niveau', 'btn-ghost', '🔁 Recommencer le niveau'), deb = mk('jdw-padpause-debut', 'btn-ghost', '🔄 Recommencer le jeu depuis le début');
   const mus = mk('jdw-padpause-mus', 'btn-ghost pp-tog', ''), sfx = mk('jdw-padpause-sfx', 'btn-ghost pp-tog', ''), cmd = mk('jdw-padpause-cmd', 'btn-ghost', '🎮 Commandes');
   const ask = document.createElement('div'); ask.className = 'pp-ask'; ask.id = 'jdw-padpause-ask'; ask.hidden = true;
-  box.textContent = ''; box.append(res, niv, deb, ask, mus, sfx, cmd, quit);
+  const ext = document.createElement('div'); ext.className = 'pp-extra'; ext.id = 'jdw-padpause-extra';   // 2.0.131 : les boutons du jeu (api.pause.ajouter)
+  box.textContent = ''; box.append(res, niv, ext, deb, ask, mus, sfx, cmd, quit);
   niv.addEventListener('click', () => { const f = current && current.pause && current.pause.niveau; padPauseClose(true); if (f) setTimeout(() => { try { f(); } catch (e) { reportError('Recommencer le niveau : ' + e.message, e.stack); } }, 60); });
   deb.addEventListener('click', () => {
     ask.textContent = ''; const t = document.createElement('p'); t.textContent = 'Tu vas effacer ta progression dans ce jeu. Sûr ?';
@@ -462,6 +463,11 @@ function pauseStdMaj() {
   pauseStdMk(); const g = current && current.game, P = (current && current.pause) || {};
   const niv = $('jdw-padpause-niveau'), deb = $('jdw-padpause-debut'), ask = $('jdw-padpause-ask'); if (ask) ask.hidden = true;
   if (niv) niv.hidden = !P.niveau;
+  const ext = $('jdw-padpause-extra');
+  if (ext) { ext.textContent = ''; for (const a of (Array.isArray(P.extra) ? P.extra : [])) {   // 2.0.131 (Noisette) : après « Recommencer le niveau », même style
+    const b = document.createElement('button'); b.className = 'btn btn-ghost'; b.type = 'button'; b.dataset.id = a.id; b.textContent = a.texte;
+    b.addEventListener('click', () => { const f = a.fn; padPauseClose(true); setTimeout(() => { try { f(); } catch (e) { reportError('Pause (' + a.id + ') : ' + e.message, e.stack); } }, 60); });
+    ext.appendChild(b); } ext.hidden = !ext.children.length; }
   if (deb) deb.hidden = !(P.jeu || (g && !g.saves));   // une partie gardée sans onRecommencerJeu : la borne ne sait pas l'effacer proprement
   const m = $('jdw-sm-music'), x = $('jdw-sm-sfx');
   const sw = (id, ic, nom, on) => { const b = $(id); if (!b) return; b.textContent = ''; b.setAttribute('role', 'switch'); b.setAttribute('aria-checked', String(!!on)); b.classList.toggle('on', !!on);
@@ -10692,7 +10698,7 @@ function mountGame(g) {
     live: g.live ? liveApi(g, seq) : undefined,
     boutique: boutiqueApi(g, seq),   // 2.0.130 : la boutique du créateur (CONTRACT.md Ajout 25, SQL v139)
     // 2.0.128 (CONTRACT.md Ajout 24) : le menu de pause standard — le jeu dit ce qu'il sait faire
-    pause: { onReprendre: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).reprendre = typeof fn === 'function' ? fn : null; }, onRecommencerNiveau: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).niveau = typeof fn === 'function' ? fn : null; }, onRecommencerJeu: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).jeu = typeof fn === 'function' ? fn : null; }, ouvrir: () => { if (current && current.seq === seq) padPauseOpen('jeu'); } },                   // Abracadabra : les autres joueurs de la salle en direct (Ajout 17)
+    pause: { onReprendre: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).reprendre = typeof fn === 'function' ? fn : null; }, onRecommencerNiveau: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).niveau = typeof fn === 'function' ? fn : null; }, onRecommencerJeu: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).jeu = typeof fn === 'function' ? fn : null; }, ajouter: l => { if (!current || current.seq !== seq) return; (current.pause = current.pause || {}).extra = (Array.isArray(l) ? l : []).filter(a => a && typeof a.fn === 'function' && a.texte).slice(0, 4).map((a, i) => ({ id: String(a.id || 'b' + i).slice(0, 30), texte: String(a.texte).slice(0, 48), fn: a.fn })); if (PADP.open) pauseStdMaj(); }, ouvrir: () => { if (current && current.seq === seq) padPauseOpen('jeu'); } },                   // Abracadabra : les autres joueurs de la salle en direct (Ajout 17)
     monde: g.monde ? mondeApi(g, seq) : undefined,                // 2.0.56 : le monde partagé de la salle (L'Explorateur de l'espace)
     // (2 nov., Sens Interdit : écran blanc sur un Redmi sans rien au journal) un jeu peut signaler lui-même un souci (3D arrêtée, écran vide, arrêt net) : discret, pas d'écran « Oups »
     report: (m, d) => { if (current && current.seq === seq) reportError(m, d, { quiet: true }); },
