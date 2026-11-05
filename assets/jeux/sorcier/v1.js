@@ -192,7 +192,7 @@ function construireMonde() {
     for (const [x, y] of [[x0, y0 + 12], [x1, y0 + 12], [x0, y1 + 10], [x1, y1 + 10]]) poser('tourc', x, y, { r: 44, col: { t: 'c', r: 40 } });
     c.donjon = poser('tourc', c.cx, y0 + (y1 - y0) * 0.42, { h: 260, r: 56, col: { t: 'c', r: 50 }, donjon: true });
     for (let i = 0; i < c.coffres; i++) {
-      const x = lerp(x0 + 120, x1 - 120, (i + 0.5) / c.coffres), y = y0 + (y1 - y0) * 0.62 + (i % 2) * 60;
+      const cote = i % 2 ? 1 : -1, x = c.cx + cote * (190 + Math.floor(i / 2) * 170), y = y0 + (y1 - y0) * 0.6 + (i % 2) * 50;   // jamais dans l'axe de la porte
       const k = poser('coffre', x, y, { r: 34, col: { t: 'r', w: 60, d: 24 }, coffre: true, pv: 2, ouvert: false, chateau: c, flip: i % 2 === 1 });
       coffres.push(k);
     }
@@ -229,8 +229,8 @@ function construireMonde() {
   for (const d of dec) {
     const c = d.col; if (!c) continue;
     if (c.t === 'c') remplir(d.x - c.r, d.y - c.r * 0.6, d.x + c.r, d.y + c.r * 0.3);
-    else if (c.t === 'r') remplir(d.x - c.w / 2, d.y - c.d, d.x + c.w / 2, d.y);
-    else if (c.t === 'porte') { remplir(d.x - c.w / 2, d.y - c.d, d.x - 30, d.y); remplir(d.x + 30, d.y - c.d, d.x + c.w / 2, d.y); }
+    else if (c.t === 'r') remplir(d.x - c.w / 2, d.y - c.d, d.x + c.w / 2, d.y + (d.k === 'muraille' ? 10 : 0));
+    else if (c.t === 'porte') { remplir(d.x - c.w / 2, d.y - c.d, d.x - 32, d.y + 10); remplir(d.x + 32, d.y - c.d, d.x + c.w / 2, d.y + 10); }
   }
   for (const m of murs) remplir(m.x - 18, m.y0, m.x + 18, m.y1);
   return { sol, at, dec, maisons, coffres, tresors, murs, bloc, G2, champs };
@@ -355,6 +355,13 @@ function mount(root, api) {
         const P = t === HERBE ? PAL.herbe : t === FORET ? PAL.foret : PAL.repaire;
         let i = n < 0.33 ? 2 : n < 0.66 ? 0 : 1; if (h < 0.12) i = (i + 1) % 3; if (h > 0.985) i = 3 % P.length;
         col = P[i];
+        if (t !== REPAIRE) {
+          // relief : grandes bosses éclairées d'en haut à gauche (jamais d'aplat)
+          const b1 = bruit(px * 0.022 + 7, py * 0.022 + 3), b2 = bruit((px - 5) * 0.022 + 7, (py - 5) * 0.022 + 3), m = bruit(px * 0.009 + 1, py * 0.009 + 9);
+          const k = 0.9 + m * 0.2 + (b2 - b1) * 2.2; col = [col[0] * k, col[1] * k, col[2] * k];
+          // bord du chemin : l'herbe fait une petite lèvre sombre au-dessus de la terre
+          const tb = typeJ(px, py + 2); if (tb === CHEMIN) col = [col[0] * 0.72, col[1] * 0.74, col[2] * 0.72];
+        }
         if (t === HERBE) {
           // touffes (un pixel clair au-dessus d'un sombre) et fleurs
           const hb = hash(px, py + 1);
@@ -369,6 +376,11 @@ function mount(root, api) {
       } else if (t === CHEMIN) {
         const P = PAL.chemin; col = P[n < 0.4 ? 1 : n < 0.75 ? 0 : 2];
         if (h < 0.025) col = [196, 162, 122]; else if (h > 0.975) col = [120, 90, 58];
+        // la terre est un peu plus basse que l'herbe : ombre sous le bord du haut, herbe qui déborde en franges irrégulières
+        const th = typeJ(px, py - 2), tb2 = typeJ(px, py + 1);
+        if ((th === HERBE || th === FORET) && hash(px, 7) < 0.55) col = th === HERBE ? [92, 150, 64] : [44, 74, 46];
+        else if (th === HERBE || th === FORET || typeJ(px, py - 4) === HERBE) col = [col[0] * 0.78, col[1] * 0.76, col[2] * 0.74];
+        else if (tb2 === HERBE && hash(px, 3) < 0.4) col = [110, 168, 74];
       } else if (t === PAVE) {
         const row = Math.floor(py / 5), off = (row % 2) * 4, cxp = Math.floor((px + off) / 8);
         const bordP = (py % 5 === 0) || ((px + off) % 8 === 0);
@@ -393,7 +405,46 @@ function mount(root, api) {
       const o = (y * CHP + x) * 4; d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
     }
     g.putImageData(id, 0, 0);
+    detailsSol(g, cx, cy);
     return c;
+  }
+  function detailsSol(g, cx, cy) {
+    const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x, y, 1, 1); };
+    const x0 = cx * CH, y0 = cy * CH;
+    for (let ty = y0; ty < y0 + CH; ty++) for (let tx = x0; tx < x0 + CH; tx++) {
+      const v = at(tx, ty); if (v !== HERBE && v !== FORET) continue;
+      const lx = (tx - x0) * 16, ly = (ty - y0) * 16;
+      for (let k = 0; k < 3; k++) {
+        const r = hash(tx * 3 + k, ty * 7 + k * 13), ax = lx + 2 + Math.floor(hash(tx + k * 5, ty) * 12), ay = ly + 2 + Math.floor(hash(tx, ty + k * 9) * 12);
+        if (v === HERBE) {
+          if (r < 0.34) { // touffe d'herbe haute (3 à 5 brins)
+            const n = 3 + Math.floor(hash(ax, ay) * 3);
+            for (let i = 0; i < n; i++) { const bx = ax + i - 1, hh = 2 + ((i * 7 + ax) % 3); for (let j = 0; j < hh; j++) px(bx, ay - j, j === hh - 1 ? '#8fd068' : j === 0 ? '#3f7a32' : '#5fa848'); }
+            px(ax - 1, ay + 1, 'rgba(20,40,15,0.35)'); px(ax, ay + 1, 'rgba(20,40,15,0.35)'); px(ax + 1, ay + 1, 'rgba(20,40,15,0.35)');
+          } else if (r < 0.40) { // un groupe de fleurs de la même couleur
+            const coul = ['#fbfbf0', '#ffd84a', '#f58cb4', '#a98cf0', '#ff7a5a'][Math.floor(hash(tx, ty * 3) * 5)];
+            const n = 3 + Math.floor(hash(ax, ay + 2) * 4);
+            for (let i = 0; i < n; i++) { const fx = ax + Math.floor((hash(i, ax) - 0.5) * 9), fy = ay + Math.floor((hash(ay, i) - 0.5) * 6); px(fx, fy + 1, '#3f7a32'); px(fx - 1, fy, coul); px(fx + 1, fy, coul); px(fx, fy - 1, coul); px(fx, fy, i % 2 ? '#ffe680' : '#ffffff'); }
+          } else if (r < 0.45) { // cailloux
+            for (let i = 0; i < 2 + (r * 100 | 0) % 2; i++) { const cxp = ax + i * 3 - 2, cyp = ay + (i % 2); g.fillStyle = 'rgba(20,30,15,0.35)'; g.fillRect(cxp, cyp + 1, 3, 1); g.fillStyle = '#8c8a86'; g.fillRect(cxp, cyp - 1, 3, 2); px(cxp, cyp - 1, '#c9c6bf'); }
+          } else if (r < 0.452 && k === 0) { // une souche
+            g.fillStyle = 'rgba(20,30,15,0.35)'; g.fillRect(ax - 4, ay + 2, 10, 2);
+            g.fillStyle = '#6a4426'; g.fillRect(ax - 4, ay - 2, 9, 4); g.fillStyle = '#4f311b'; g.fillRect(ax - 4, ay + 1, 9, 1); px(ax - 5, ay + 1, '#6a4426'); px(ax + 5, ay + 1, '#6a4426');
+            g.fillStyle = '#c9a06a'; g.fillRect(ax - 3, ay - 4, 7, 2); g.fillStyle = '#a77d4c'; g.fillRect(ax - 2, ay - 4, 5, 1); px(ax, ay - 3, '#7a5530');
+          } else if (r < 0.456 && k === 1) { // une petite flaque
+            const L = [5, 8, 9, 9, 8, 5];   // demi-largeurs : une flaque ronde, bord de terre, reflet du ciel
+            L.forEach((w, j) => { g.fillStyle = '#6b4a2e'; g.fillRect(ax - w - 1, ay - 3 + j, w * 2 + 2, 1); });
+            L.forEach((w, j) => { g.fillStyle = j < 2 ? '#7fb2e2' : j < 4 ? '#4a82bf' : '#3a6aa2'; g.fillRect(ax - w, ay - 3 + j, w * 2, 1); });
+            g.fillStyle = '#e4f2ff'; g.fillRect(ax - 4, ay - 2, 3, 1); g.fillRect(ax + 2, ay, 2, 1);
+          }
+        } else if (r < 0.22) { // forêt : feuilles mortes, racines, petits champignons
+          const q = hash(ax, ay * 3);
+          if (q < 0.5) { px(ax, ay, '#6b4a2a'); px(ax + 1, ay, '#8a5e32'); px(ax + 3, ay + 1, '#5a3c22'); px(ax - 2, ay + 2, '#7a5a30'); }
+          else if (q < 0.8) { px(ax, ay, '#5a7a4a'); px(ax, ay - 1, '#6f9a5a'); px(ax + 1, ay - 2, '#7fae66'); px(ax - 1, ay - 2, '#7fae66'); }
+          else { px(ax, ay, '#e8dcc0'); px(ax - 1, ay - 1, '#d04a3a'); px(ax, ay - 1, '#d04a3a'); px(ax + 1, ay - 1, '#d04a3a'); px(ax, ay - 2, '#f06a5a'); px(ax, ay + 1, 'rgba(0,0,0,0.3)'); }
+        }
+      }
+    }
   }
   function cuireUnPeu() {
     const t0 = performance.now(), ccx = Math.floor(cam.x / CHW), ccy = Math.floor(cam.y / CHW);
@@ -641,7 +692,7 @@ function mount(root, api) {
     const d = dirSorcier();
     let x = S.x + d.x * 80 + rnd(-20, 20), y = S.y + d.y * 60 + 30;
     if (bloque(x, y)) { x = S.x; y = S.y + 40; }
-    const m = personnage('monstre', x, y, { pv: 5, vie: 30, nait: 0, etat: 'suit' });
+    const m = personnage('monstre', x, y, { pv: 10, vie: 30, nait: 0, etat: 'suit' });
     G.allies.push(m);
     for (let i = 0; i < 26; i++) { const an = Math.random() * TAU; parts.push({ x: x + Math.cos(an) * 50, y: y + Math.sin(an) * 18, z: rnd(0, 40), vx: -Math.cos(an) * 60, vy: -Math.sin(an) * 20, vz: rnd(40, 160), t: 0, d: rnd(0.6, 1.1), k: 'magie', c: pick(['#b78cff', '#7a3cff', '#e0c8ff']), r: rnd(3, 6) }); }
     G.cd.monstre = 14; G.castT = 0.6; G.castK = 'monstre'; snd.invoque();
@@ -798,7 +849,7 @@ function mount(root, api) {
           g.etat = 'chasse';
           if (g.pause > 0) g.pause -= dt;
           else if (dC < 62) { g.etat = 'coup'; g.coupT = 0; g.frappe = false; orienter(g, cible.x - g.x, cible.y - g.y); }
-          else { vx = cible.x - g.x; vy = cible.y - g.y; sp = vitChev; }
+          else { const w = viaPorte(g, cible); vx = w.x - g.x; vy = w.y - g.y; sp = vitChev; }
           // ne jamais entrer dans le repaire du sorcier
           if (Math.hypot(g.x + vx * 0.01 - M.dec[0].x, g.y + vy * 0.01 - M.dec[0].y) < 330) { vx = g.x - M.dec[0].x; vy = g.y - M.dec[0].y; sp = vitChev * 0.6; }
         } else { g.etat = 'erre'; [vx, vy, sp] = errer(g, dt, 60); }
@@ -825,11 +876,22 @@ function mount(root, api) {
       } else { g.marche = false; g.ph += dt * 2.2; }
     }
   }
+  function viaPorte(a, b) {
+    for (const c of CHATEAUX) {
+      const B = c.box, dans = p => p.x > B.x0 - 10 && p.x < B.x1 + 10 && p.y > B.y0 - 30 && p.y < B.y1 + 4;
+      const da = dans(a), db = dans(b); if (da === db) continue;
+      const P = c.porte, dx = Math.abs(a.x - P.x);
+      if (da) return dx < 22 && a.y > B.y1 - 70 ? { x: P.x, y: B.y1 + 60 } : { x: P.x, y: B.y1 - 50 };   // sortir : d'abord devant la porte, côté cour
+      if (Math.abs(a.y - B.y1) < 120 && dx < 22) return { x: P.x, y: B.y1 - 60 };                        // entrer : dans l'axe de la porte, on avance
+      return { x: P.x, y: B.y1 + 50 };
+    }
+    return b;
+  }
   function errer(g, dt, sp) {
     if (g.attente > 0) { g.attente -= dt; return [0, 0, 0]; }
     if (!g.cible) { const R = g.rayon || 260, an = Math.random() * TAU, d = Math.random() * R; g.cible = { x: g.home.x + Math.cos(an) * d, y: g.home.y + Math.sin(an) * d * 0.8 }; }
-    const dx = g.cible.x - g.x, dy = g.cible.y - g.y;
-    if (Math.hypot(dx, dy) < 12) { g.cible = null; g.attente = rnd(1, 4); return [0, 0, 0]; }
+    const w = viaPorte(g, g.cible), dx = w.x - g.x, dy = w.y - g.y;
+    if (Math.hypot(g.cible.x - g.x, g.cible.y - g.y) < 12) { g.cible = null; g.attente = rnd(1, 4); return [0, 0, 0]; }
     return [dx, dy, sp];
   }
   // ---------- les monstres du sorcier ----------
@@ -852,8 +914,8 @@ function mount(root, api) {
       } else if (best) {
         const portee = best.maison ? 100 : best.coffre ? 70 : 60;
         if (dist(best, m) < portee) { m.etat = 'coup'; m.cible = best; m.coupT = 0; m.frappe = false; orienter(m, best.x - m.x, best.y - m.y); }
-        else { vx = best.x - m.x; vy = best.y - m.y; sp = 150; }
-      } else { const cote = m.cote || (m.cote = Math.random() < 0.5 ? -1 : 1), px = S.x + cote * 80, py = S.y - 10; if (Math.hypot(px - m.x, py - m.y) > 40) { vx = px - m.x; vy = py - m.y; sp = dist(S, m) > 400 ? 230 : 160; } }
+        else { const w = viaPorte(m, best); vx = w.x - m.x; vy = w.y - m.y; sp = 150; }
+      } else { const cote = m.cote || (m.cote = Math.random() < 0.5 ? -1 : 1), w0 = viaPorte(m, { x: S.x + cote * 80, y: S.y - 10 }), px = w0.x, py = w0.y; if (Math.hypot(px - m.x, py - m.y) > 40) { vx = px - m.x; vy = py - m.y; sp = dist(S, m) > 400 ? 230 : 160; } }
       if (sp > 0) { const l = Math.hypot(vx, vy) || 1, mx = vx / l * sp * dt, my = vy / l * sp * dt; bouger(m, mx, my, 16); orienter(m, mx, my); m.ph += dt * 8; m.marche = true; if (dist(S, m) > 900) { m.x = S.x + rnd(-60, 60); m.y = S.y + 50; } }
       else { m.marche = false; m.ph += dt * 2.2; }
     }
@@ -1077,9 +1139,10 @@ function mount(root, api) {
     if (d.donjon) { ombre(d.x, d.y, 80, 0.3); }
     else if (d.k === 'muraille' || d.k === 'porte' || d.k === 'cloture') { ctx.fillStyle = 'rgba(15,10,25,0.22)'; ctx.fillRect(d.x - (d.w || 80) / 2, d.y - 6, d.w || 80, 14); }
     else if (d.k === 'etendard') ombre(d.x, d.y, 14, 0.25);
+    else if (d.k === 'chene' || d.k === 'sombre' || d.k.startsWith('sapin')) { ctx.fillStyle = 'rgba(15,10,25,0.2)'; ctx.beginPath(); ctx.ellipse(d.x + d.h * 0.16, d.y + 4, d.h * 0.36, d.h * 0.12, 0, 0, TAU); ctx.fill(); ombre(d.x, d.y + 2, d.k === 'chene' || d.k === 'sombre' ? 40 : 30, 0.35); }
     else ombre(d.x, d.y + 2, d.k === 'toursorcier' ? 90 : d.maison ? 78 : d.k === 'chene' || d.k === 'sombre' ? 56 : d.k.startsWith('sapin') ? 42 : (d.r || 20) * 0.9, d.sombre ? 0.4 : 0.3);
     let h = d.h, ax = 0.5, x = d.x, dy = 0;
-    if (d.k === 'muraille') { const im = IMG.muraille; if (im) { const w = d.w; ctx.drawImage(reduite('muraille', w * PX(), h * PX()) || im, x - w / 2, d.y - h + 18, w, h); } return; }
+    if (d.k === 'muraille') { const im = IMG.muraille; if (im) { const w = d.w; ctx.drawImage(reduite('muraille', w * PX(), h * PX()) || im, x - w / 2, d.y - h + 4, w, h); } return; }
     if (d.maison && d.choc > 0) x += Math.sin(now * 60) * 4 * d.choc;
     if (d.coffre && d.choc > 0) x += Math.sin(now * 60) * 3 * d.choc;
     if (d.k === 'chene' || d.k === 'sombre' || d.k.startsWith('sapin')) { dy = 0; }
@@ -1087,7 +1150,13 @@ function mount(root, api) {
     if (d.maison && d.pille) ctx.filter = 'brightness(0.55) saturate(0.6)';
     if (d.coffre && d.ouvert) ctx.filter = 'brightness(0.6) saturate(0.5)';
     if (d.ondule) { ctx.save(); ctx.translate(x, d.y); ctx.scale(sw, 1); sprite(ctx, d.k, 0, 0, h, d.flip, PX(), ax); ctx.restore(); }
-    else sprite(ctx, d.k, x, d.y + dy + (d.k === 'porte' ? 18 : 0), h, d.flip, PX(), ax);
+    else if (d.k === 'porte') {
+      // quelqu'un passe sous la porte : elle devient transparente pour qu'on le voie
+      const dedans = q => Math.abs(q.x - d.x) < 46 && q.y < d.y + 6 && q.y > d.y - 70;
+      const passe = G && (dedans(G.sor) || G.allies.some(dedans) || G.gens.some(g => g.etat !== 'parti' && dedans(g)));
+      d.fondu = lerp(d.fondu || 1, passe ? 0.45 : 1, 0.2); ctx.globalAlpha = d.fondu; sprite(ctx, d.k, x, d.y + 4, h, d.flip, PX(), ax); ctx.globalAlpha = 1;
+    }
+    else sprite(ctx, d.k, x, d.y + dy, h, d.flip, PX(), ax);
     ctx.filter = 'none';
     if (d.coffre && !d.ouvert) { ctx.globalCompositeOperation = 'lighter'; lueur(d.x, d.y - 34, 46, 'rgba(255,210,90,', 0.22 + 0.1 * Math.sin(now * 3 + d.x)); ctx.globalCompositeOperation = 'source-over'; if (Math.sin(now * 2 + d.x) > 0.96) etoile(d.x + 14, d.y - 50, 5, '#fff6c0'); }
     if (d.donjon && d.k === 'tourc' && G) { const ch = CHATEAUX.find(c => c.donjon === d); if (ch && ch.conquis) { ctx.save(); ctx.translate(d.x + 30, d.y - h + 40); ctx.scale(1 + Math.sin(now * 2.4) * 0.05, 1); sprite(ctx, 'etendard', 0, 0, 110, false, PX()); ctx.restore(); } }
@@ -1376,6 +1445,7 @@ function mount(root, api) {
       pieces: () => G ? G.pieces.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) })) : [], objetsSol: () => G ? G.objetsSol.map(o => ({ k: o.k, x: Math.round(o.x), y: Math.round(o.y) })) : [],
       ecran: (x, y) => ({ x: (x - cam.x + LW / 2) * sc + ox, y: (y - cam.y + LH / 2) * sc + oy, sc }),
       suivre(i) { if (!G) return null; const g = G.gens[i]; return g && { s: g.sorte, x: g.x, y: g.y, e: g.etat, d: g.dir }; },
+      allie: i => G && G.allies[i] && { x: G.allies[i].x, y: G.allies[i].y, e: G.allies[i].etat, d: G.allies[i].dir },
       grimoire: ouvrirGrimoire, modes: () => ({ doigt: modeDoigt, pad: modePad }), sons: () => sonsPrets
     }
   };
