@@ -4,7 +4,12 @@ import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.provider.MediaStore;
@@ -16,6 +21,8 @@ import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -46,17 +53,27 @@ public class MainActivity extends Activity {
         + "try{BorneApp.garde(JSON.stringify(localStorage))}catch(e){}location.replace('" + BORNE + "')</script>";
     static final int VERSION = __VC__;
     static final String VNAME = "__VN__";   // même numéro que le site (ex. 1.5)
-    // sans réseau au tout premier lancement (rien de gardé) : jolie page plutôt que l'erreur d'Android ; Réessayer = recharger la borne
-    static final String OFFLINE_PAGE = "<!doctype html><html lang=fr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
+    // 1.14 : au démarrage à froid, le réseau de l'appli n'est parfois pas encore prêt (Android ne l'ouvre qu'un instant après le lancement :
+    // économie de batterie, appli « en veille ») : la 1.13 montrait alors tout de suite « Pas de connexion » et il fallait toucher Réessayer.
+    // Maintenant : page « Chargement » et 3 nouveaux essais (1 s, 2 s, 3 s) ; « Pas de connexion » seulement après, et seulement s'il n'y a
+    // vraiment pas de réseau (sinon « La borne ne répond pas ») ; ces pages réessaient toutes seules (toutes les 5 s, et tout de suite quand
+    // Android annonce le retour du réseau) et disparaissent dès que la borne répond.
+    static final String STYLE = "<!doctype html><html lang=fr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
         + "<style>html,body{margin:0;height:100%;background:#0b141c;color:#e9f0f3;font:16px/1.45 sans-serif}"
         + "main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;box-sizing:border-box}"
-        + ".orb{width:92px;height:92px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#22394a,#111d27);box-shadow:0 0 0 2px #22394a,0 0 40px rgba(255,166,48,.2);font-size:42px}"
+        + ".orb{width:92px;height:92px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#22394a,#111d27);box-shadow:0 0 0 2px #22394a,0 0 40px rgba(255,166,48,.2);font-size:42px;position:relative}"
+        + ".tour{position:absolute;top:-8px;left:-8px;right:-8px;bottom:-8px;border-radius:50%;border:4px solid transparent;border-top-color:#ffa630;animation:t 1s linear infinite}@keyframes t{to{transform:rotate(360deg)}}"
         + "h1{font:800 26px/1.15 sans-serif;letter-spacing:.04em;margin:22px 0 8px;color:#ffd34d}p{margin:0 0 22px;color:#8aa0ae;max-width:320px}"
         + "a{display:inline-block;font:700 17px sans-serif;color:#0b141c;background:#ffa630;border-radius:14px;padding:14px 30px;text-decoration:none;box-shadow:0 6px 0 #b86d10}"
-        + "a:active{transform:translateY(3px);box-shadow:0 3px 0 #b86d10}</style></head><body><main><div class=orb>📡</div><h1>Pas de connexion</h1>"
-        + "<p>La borne a besoin d'internet la première fois. Vérifie le Wi-Fi ou les données mobiles, puis réessaie.</p>"
-        + "<a id=r href='" + "https://elixirgamestudio.com/jouer/" + "'>Réessayer</a></main>"
-        + "<script>addEventListener('online',function(){setTimeout(function(){location.href=document.getElementById('r').href},800)})</script></body></html>";
+        + "a:active{transform:translateY(3px);box-shadow:0 3px 0 #b86d10}small{position:fixed;bottom:10px;left:0;right:0;text-align:center;color:#3d5566;font-size:11px}</style></head><body><main>";
+    static final String LOADING_PAGE = STYLE + "<div class=orb><div class=tour></div>🕹️</div><h1>Chargement…</h1><p>La borne arrive.</p></main></body></html>";
+    static String offlinePage(boolean reseau, String detail) {
+        return STYLE + "<div class=orb>" + (reseau ? "⏳" : "📡") + "</div>"
+            + (reseau ? "<h1>La borne ne répond pas</h1><p>Le réseau est là, mais la borne ne répond pas encore. On réessaie tout seul toutes les 5 secondes.</p>"
+                      : "<h1>Pas de connexion</h1><p>Vérifie le Wi-Fi ou les données mobiles. La borne revient toute seule dès que le réseau revient.</p>")
+            + "<a href='" + BORNE + "'>Réessayer</a></main><small>" + html(detail) + "</small></body></html>";
+    }
+    static String html(String t) { return t == null ? "" : t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("'", "&#39;"); }
     // 1.13 : « Continuer avec Google ». Google refuse de connecter dans une WebView (« disallowed_useragent ») : la page de Google
     // s'ouvre dans un onglet Chrome (Custom Tab : simple intent avec l'extra de session, sans bibliothèque), puis Supabase renvoie sur
     // connexion/ du site, qui rend le code à l'appli par fr.bornearcade.app://auth?code=… (intent-filter du manifeste) ; l'appli le donne
@@ -80,6 +97,15 @@ public class MainActivity extends Activity {
     WebView web;
     ValueCallback<Uri[]> fileCb;
     Uri cameraUri;
+    // 1.14 : état de la connexion (0 = la borne est là, 1 = page « Chargement », 2 = page « Pas de connexion » / « ne répond pas »,
+    // 3 = la borne répond, rechargement en cours)
+    int etat = 0, essais = 0;
+    boolean erreurPage;
+    boolean variante;   // page 2 : true = « ne répond pas » (réseau présent)
+    final Handler main = new Handler(Looper.getMainLooper());
+    ConnectivityManager.NetworkCallback netCb;
+    long dernierOnline;
+    final Runnable tester = new Runnable() { public void run() { tester(); } };
     Natif natif;   // 1.8 : applis natives (Pégase) téléchargées, installées et ouvertes depuis la borne (Natif.java)
 
     @Override
@@ -139,6 +165,7 @@ public class MainActivity extends Activity {
 
     void start() {
         try { getWindow().addFlags(0x80); } catch (Throwable ignore) { }
+        if (VNAME.indexOf("essai") >= 0) { try { WebView.setWebContentsDebuggingEnabled(true); } catch (Throwable ignore) { } }   // essais seulement
         web = new WebView(this);
         web.setBackgroundColor(0xff0b141c);
         setContentView(web);
@@ -160,18 +187,33 @@ public class MainActivity extends Activity {
                 try { startActivity(new Intent("android.intent.action.VIEW", Uri.parse(url))); } catch (Throwable ignore) { }
                 return true;
             }
-            // La borne ne vient pas (pas de réseau ET pas encore gardée par son service worker, jouer/sw.js) : page « Pas de connexion »
-            // avec un bouton Réessayer, plutôt que la page d'erreur d'Android. (Appelée seulement pour la page principale.)
+            // La borne ne vient pas (réseau pas encore prêt, ou vraiment pas de réseau ET borne pas encore gardée par son service worker) :
+            // 1.14 : on attend et on réessaie avant toute page d'erreur (echec). Page principale seulement.
+            // une page commence : on oublie l'erreur de la précédente
             @Override
-            public void onReceivedError(WebView v, int code, String desc, String failingUrl) {
-                try { v.loadDataWithBaseURL(null, OFFLINE_PAGE, "text/html", "utf-8", null); } catch (Throwable ignore) { }
+            public void onPageStarted(WebView v, String url, android.graphics.Bitmap icon) { erreurPage = false; }
+            @Override
+            public void onReceivedError(WebView v, WebResourceRequest req, WebResourceError err) {
+                try { if (req != null && !req.isForMainFrame()) return; } catch (Throwable ignore) { }
+                erreurPage = true;   // son onPageFinished ne doit pas compter comme « borne là »
+                String d = "";
+                try { d = err.getErrorCode() + " " + err.getDescription(); } catch (Throwable ignore) { }
+                echec(d, true);
             }
             // la nouvelle adresse a répondu : les prochaines fois, on l'ouvre directement (plus de détour par l'ancienne)
             @Override
-            public void onPageFinished(WebView v, String url) {
+            public void onPageFinished(final WebView v, String url) {
                 if (url != null && (url.startsWith(NEUF) || url.startsWith(NEUF_WWW)) && !prefs().getBoolean("neuf", false)) {
                     try { prefs().edit().putBoolean("neuf", true).apply(); } catch (Throwable ignore) { }
                 }
+                if (erreurPage || !site(url)) return;   // page en erreur, ou nos pages « Chargement » / « Pas de connexion » (adresse vide)
+                verifier(v);
+            }
+            // la borne s'affiche (premier dessin) : elle est là, même si ses images finissent de charger (onPageFinished vient bien plus tard)
+            @Override
+            public void onPageCommitVisible(WebView v, String url) {
+                if (erreurPage || !site(url) || etat == 0) return;
+                verifier(v);
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
@@ -207,8 +249,104 @@ public class MainActivity extends Activity {
             try { web.loadDataWithBaseURL(HOME + "jouer/", CAPTURE_PAGE, "text/html", "utf-8", null); } catch (Throwable e) { web.loadUrl(borne()); }
         } else web.loadUrl(q != null && q.length() > 0 ? BORNE + "?" + q : borne());
         fresh = false;
+        if (netCb == null) ecouteReseau();
         immersive();
         fitKeyboard();
+    }
+
+    // ---- 1.14 : connexion au démarrage ------------------------------------------------------------------------------------------
+    void log(String m) { try { android.util.Log.i("BorneNet", m); } catch (Throwable ignore) { } }
+    // la borne n'est pas venue : « Chargement » pour les 3 premiers essais (1 s, 2 s, 3 s), puis la page hors ligne (réessai toutes les 5 s)
+    // 1.14 : la page de secours du site (service worker, jouer/sw.js : réseau en panne et borne pas encore gardée) a le titre
+    // « Pas de connexion » : on la traite comme un échec (chargement + nouveaux essais) ; sinon la borne est bien là.
+    // (On vérifie aussi que la page affichée est encore celle du site : une de nos pages a pu la remplacer entre-temps.)
+    void verifier(WebView v) {
+        try {
+            v.evaluateJavascript("/^https:[/][/](www[.])?(elixirgamestudio[.]com|gt40benjamin[.]github[.]io)[/]/.test(location.href)?document.title:'@ailleurs'", new ValueCallback<String>() {
+                public void onReceiveValue(String t) {
+                    if (t == null || t.indexOf("@ailleurs") >= 0) return;
+                    if (t.indexOf("Pas de connexion") >= 0) echec("page de secours du site", true); else succes();
+                }
+            });
+        } catch (Throwable e) { succes(); }
+    }
+    // navigation = une page vient de s'afficher à la place de la nôtre (erreur d'Android, page de secours du site) : on remet la nôtre
+    void echec(final String detail, final boolean navigation) {
+        if (Looper.myLooper() != Looper.getMainLooper()) { main.post(new Runnable() { public void run() { echec(detail, navigation); } }); return; }
+        essais++;
+        int nouvel = essais <= 3 ? 1 : 2;
+        boolean reseau = reseauOk();
+        log("échec n°" + essais + " (" + detail + ") réseau=" + reseau);
+        if (navigation || nouvel != etat || (nouvel == 2 && reseau != variante)) {
+            etat = nouvel; variante = reseau;
+            try { web.loadDataWithBaseURL(null, nouvel == 1 ? LOADING_PAGE : offlinePage(reseau, detail), "text/html", "utf-8", null); } catch (Throwable ignore) { }
+        }
+        main.removeCallbacks(tester);
+        main.postDelayed(tester, nouvel == 1 ? essais * 1000L : 5000L);
+    }
+    void succes() {
+        if (etat != 0 || essais > 0) log("borne là après " + essais + " essai(s)");
+        etat = 0; essais = 0; main.removeCallbacks(tester);
+    }
+    // nouvel essai : on vérifie d'abord (en arrière-plan) que la borne répond, pour ne pas faire clignoter la page d'erreur d'Android
+    void tester() {
+        if (etat == 0) return;
+        if (etat == 3) { echec("la borne met trop longtemps à venir", false); return; }
+        new Thread(new Runnable() { public void run() {
+            final boolean ok = joignable();
+            main.post(new Runnable() { public void run() {
+                if (etat != 1 && etat != 2) return;   // borne déjà là, ou un autre essai la recharge déjà
+                if (ok) {
+                    log("la borne répond : on la recharge");
+                    etat = 3; main.removeCallbacks(tester); main.postDelayed(tester, 45000);   // garde-fou : 45 s sans rien → nouvel échec
+                    try { web.loadUrl(borne()); } catch (Throwable ignore) { }
+                }
+                else echec(reseauOk() ? "la borne ne répond pas" : "pas de réseau", false);
+            } });
+        } }).start();
+    }
+    boolean joignable() {
+        java.net.HttpURLConnection c = null;
+        try {
+            c = (java.net.HttpURLConnection) new java.net.URL(BORNE).openConnection();
+            c.setConnectTimeout(4000); c.setReadTimeout(4000); c.setRequestMethod("HEAD"); c.setUseCaches(false);
+            int code = c.getResponseCode();
+            return code > 0 && code < 500;
+        } catch (Throwable e) { return false; }
+        finally { if (c != null) try { c.disconnect(); } catch (Throwable ignore) { } }
+    }
+    boolean reseauOk() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService("connectivity");
+            Network n = cm.getActiveNetwork();
+            NetworkCapabilities nc = n == null ? null : cm.getNetworkCapabilities(n);
+            return nc != null && nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        } catch (Throwable e) { return true; }
+    }
+    // Android annonce le réseau (retour du Wi-Fi / des données, fin du blocage au lancement) : nouvel essai tout de suite ;
+    // la borne déjà là reçoit l'évènement « online » (dans la WebView, navigator.onLine ne change presque jamais)
+    void ecouteReseau() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService("connectivity");
+            netCb = new ConnectivityManager.NetworkCallback() {
+                @Override public void onAvailable(Network n) { retour("réseau disponible"); }
+                @Override public void onCapabilitiesChanged(Network n, NetworkCapabilities nc) {
+                    try { if (nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) retour("réseau validé"); } catch (Throwable ignore) { }
+                }
+                @Override public void onBlockedStatusChanged(Network n, boolean bloque) { if (!bloque) retour("réseau débloqué"); }
+            };
+            cm.registerDefaultNetworkCallback(netCb);
+        } catch (Throwable e) { netCb = null; }
+    }
+    void retour(final String pourquoi) {
+        main.post(new Runnable() { public void run() {
+            if (etat == 3) return;   // rechargement déjà en cours
+            if (etat != 0) { log(pourquoi + " : nouvel essai"); main.removeCallbacks(tester); main.postDelayed(tester, 300); return; }
+            long t = android.os.SystemClock.elapsedRealtime();
+            if (t - dernierOnline < 2000 || web == null) return;
+            dernierOnline = t;
+            try { web.evaluateJavascript("try{dispatchEvent(new Event('online'))}catch(e){}", null); } catch (Throwable ignore) { }
+        } });
     }
 
     // Plein écran (immersif) + clavier : Android ne réduit pas la page, il la pousse vers le haut.
@@ -348,7 +486,7 @@ public class MainActivity extends Activity {
         startActivity(i);
     }
     @Override protected void onPause() { super.onPause(); if (natif != null) natif.onPause(); if (web != null) web.onPause(); }
-    @Override protected void onDestroy() { if (natif != null) { try { natif.onDestroy(); } catch (Throwable ignore) { } if (Natif.live == natif) Natif.live = null; } super.onDestroy(); }
+    @Override protected void onDestroy() { main.removeCallbacks(tester); if (netCb != null) { try { ((ConnectivityManager) getSystemService("connectivity")).unregisterNetworkCallback(netCb); } catch (Throwable ignore) { } netCb = null; } if (natif != null) { try { natif.onDestroy(); } catch (Throwable ignore) { } if (Natif.live == natif) Natif.live = null; } super.onDestroy(); }
 
     @Override
     public void onBackPressed() {

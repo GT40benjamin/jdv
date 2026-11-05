@@ -452,6 +452,14 @@ iPhone/iPad (pas d'API) : astuce « Partager puis Sur l'écran d'accueil » une 
   refreshEverything (flushUnsent, progFlush, rtConnect, jeton). Files : `jdw.unsent` (un seul envoi par salle/joueur/jeu, le meilleur ;
   add_score est sans doublon côté serveur), `jdw.progq`. Pas d'erreur remontée ni d'écran « Oups » pour une coupure réseau ; la session
   gardée suffit (un rafraîchissement du jeton qui échoue faute de réseau ne déconnecte pas, il est refait au retour).
+- **Appli Android 1.14 (versionCode 16, 5 nov. 2026)** : au démarrage à froid, Android n'ouvre le réseau de l'appli qu'un instant après le
+  lancement → la 1.13 montrait « Pas de connexion » à CHAQUE ouverture (Réessayer suffisait). Maintenant : page « Chargement… » + 3 essais
+  (1 s, 2 s, 3 s ; HEAD en arrière-plan avant chaque essai, pas de clignotement), puis « Pas de connexion » (vraiment pas de réseau) ou
+  « La borne ne répond pas » (réseau là), qui réessaient seules toutes les 5 s ; `registerDefaultNetworkCallback` → essai tout de suite (et
+  évènement `online` à la borne déjà ouverte) ; la borne compte comme là dès `onPageCommitVisible` ; état 3 = rechargement en cours (pas de
+  double rechargement, 45 s au plus) ; la page de secours du service worker (titre « Pas de connexion ») suit le même chemin ; ligne grise
+  en bas = la raison (code d'erreur). versionName avec « essai » = inspection Chrome. Essai : couper le réseau de l'appli seule
+  (`cmd connectivity set-chain3-enabled true` + `set-package-networking-enabled false fr.bornearcade.app`). Notes : ~/jdv-tools/android-114/PUBLIER.md.
 - **Appli Android** : `onReceivedError` (page principale) → page « Pas de connexion » + Réessayer intégrée à l'appli (premier lancement sans
   réseau, rien de gardé). Les service workers marchent dans la WebView sans réglage de plus (setDomStorageEnabled déjà là). Changement dans
   MainActivity.java (même 1.7 / versionCode 8) : il ne sert qu'après reconstruction de l'APK.
