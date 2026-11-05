@@ -5172,3 +5172,8 @@ body:has(.sheet:not([hidden])) .fs-tip,body:has([role=menu]:not([hidden])) .fs-t
 .atl-livres{margin:6px 0 2px}.atl-livres summary{cursor:pointer;font:700 13px var(--body);color:#ffd34d}.atl-livres ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}.atl-livres li{font:13px/1.35 var(--body)}.atl-livres li small{display:block;color:var(--muted)}
 /* 2.0.136 : la page du projet ne déborde jamais en largeur (un texte ou une liste longue ne pousse plus la colonne : plus de décalage à gauche) */
 .atl-pbox,.atl-pane,.atl-dlist{grid-template-columns:minmax(0,1fr)}.atl-pbox>*,.atl-pane>*,.atl-dlist>*{min-width:0}.atl-pane{overflow-wrap:anywhere}
+/* 2.0.136 : « J'attends ta réponse » (bloc du haut et carte du bas de la discussion), tickets regroupés */
+.atl-attend{border-color:rgba(255,211,77,.55)!important}.atl-attend p{margin:4px 0 8px}
+.atl-attcarte{margin:10px 0 4px;padding:10px 10px 4px;border-radius:18px;border:2px solid #ffd34d;background:linear-gradient(180deg,rgba(255,211,77,.12),rgba(255,211,77,.03))}
+.atl-atth{margin:0 0 6px;font:800 14px var(--body);color:#ffd34d}
+.atl-rgp{color:var(--muted);font:13px var(--body)}.atl-lien{border:0;background:none;color:#ffd34d;text-decoration:underline;cursor:pointer;font:inherit;padding:0}

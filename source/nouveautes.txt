@@ -31,6 +31,9 @@
 [borne] ## 🎫 Tes demandes plus claires (borne 2.0.136)
 [borne] ✅ Plusieurs corrections livrées dans la même version : une seule bulle « Livré dans la V… », avec la liste à déplier.
 [borne] 💡 « Tes demandes » a un onglet « À choisir » pour les propositions qui attendent ta réponse, et toutes tes demandes faites sont bien dans « Faites ».
+[borne] 💬 Quand une proposition attend ton choix, {g} ne dit plus « je travaille » : « J’attends ta réponse », et un bouton t’emmène jusqu’au choix.
+[borne] 👇 Tout ce qui attend ton choix est rassemblé dans une seule carte, toujours en bas de ta discussion, juste au-dessus de la zone pour écrire.
+[borne] 🔗 Une demande reprise dans une carte de ta discussion s’affiche « Regroupée dans ta discussion », sans compter ni en cours ni en faites.
 [borne] ## 🛍️ La vitrine des boutiques (borne 2.0.135)
 [borne] 🛍️ Un jeu de l’Atelier qui a une boutique montre un bouton 🛍️ à côté de la pause (ou Select à la manette) : sa vitrine s’ouvre, aux couleurs du jeu, et la partie attend.
 [borne] 💎 Dans une boutique, tout ce que tu paies revient au créateur du jeu, et ce que tu achètes est à toi pour toujours.
