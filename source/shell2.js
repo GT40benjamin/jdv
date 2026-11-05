@@ -15470,7 +15470,7 @@ function atlRenderWiz() {
   if (dv0) {   // l'encart du jeu élément par élément, en grand, puis 🚀 juste dessous
     box.appendChild(atlDevisEncart(f, fi, false));
     const go0 = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (dv0.total > 0 ? ' · ' + dv0.total + ' 💎' : '')); go0.type = 'button'; go0.addEventListener('click', () => atlLancer(go0));
-    box.append(atlEl('p', 'atl-goavant', '✨ Rien n’est à préparer avant : les éléments, les dessins et les retouches viennent APRÈS, sur ta V1 que tu essaies.'), go0, atlEl('p', 'atl-gonote', 'Je construis ta V1 : tu pourras l’essayer tout de suite, puis me demander des changements et ajouter tes éléments quand tu veux. Les crédits utilisés ne sont pas remboursés.'), atlEl('p', 'atl-gobug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'), atlEl('p', 'atl-werr atl-werr0'));
+    box.append(atlEl('p', 'atl-goavant', '✨ Rien à préparer : je crée tous les éléments de ta V1. Tu l’essaies, puis tu me dis dans la discussion ce que tu veux changer ou ajouter.'), go0, atlEl('p', 'atl-gonote', 'Je construis ta V1 : tu pourras l’essayer tout de suite, puis me demander des changements quand tu veux. Les crédits utilisés ne sont pas remboursés.'), atlEl('p', 'atl-gobug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'), atlEl('p', 'atl-werr atl-werr0'));
     box.lastChild.hidden = true;
   }
   const [k, ic, lab, aide] = ATL_STEPS[st], page = atlEl('section', 'atl-page' + (dv0 ? ' petit' : ''));
@@ -15503,7 +15503,7 @@ function atlRenderWiz() {
     const dv = null;
     const cc = dv ? dv.total : cr ? cr.conception | 0 : 0, go = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (cc > 0 ? ' · ' + cc + ' 💎' : '')); go.type = 'button';
     go.addEventListener('click', () => atlLancer(go));
-    box.append(atlEl('p', 'atl-goavant', '✨ Rien n’est à préparer avant : les éléments, les dessins et les retouches viennent APRÈS, sur ta V1 que tu essaies.'), go, atlEl('p', 'atl-gonote', 'Je construis ta V1 : tu pourras l’essayer tout de suite, puis me demander des changements et ajouter tes éléments quand tu veux. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous. Les crédits utilisés ne sont pas remboursés.'), atlEl('p', 'atl-gobug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'));
+    box.append(atlEl('p', 'atl-goavant', '✨ Rien à préparer : je crée tous les éléments de ta V1. Tu l’essaies, puis tu me dis dans la discussion ce que tu veux changer ou ajouter.'), go, atlEl('p', 'atl-gonote', 'Je construis ta V1 : tu pourras l’essayer tout de suite, puis me demander des changements quand tu veux. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous. Les crédits utilisés ne sont pas remboursés.'), atlEl('p', 'atl-gobug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'));
   }
   const w = atlEl('button', 'atl-wchat', '✏️ Retravailler mon idée ou ajouter du style (' + (cr ? cr.message | 0 : 2) + ' 💎 le message)'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); });
   box.append(w);   // 2.0.16 (Benjamin) : plus de mention « créé avec l’aide de l’IA »
@@ -16391,6 +16391,7 @@ function atlDessinDe(f, fi, nom) {
 function atlWizDessins(page, f, fi) {
   const els = atlElemsFiche(fi);
   const sec = atlEl('div', 'atl-wds'); sec.appendChild(atlEl('h3', '', '🧩 Les éléments de ton jeu'));
+  if (!atlAdminIci()) { sec.appendChild(atlEl('p', 'atl-wdmain', '✨ Rien à préparer : ' + gN() + ' crée tous les éléments de ta V1. Une idée en plus ? Dis-la-lui dans la discussion.')); atlBiblio(sec, f, fi); page.appendChild(sec); return; }   // 2.0.123
   sec.appendChild(atlEl('p', 'atl-wdmain', '⭐ Facultatif : crée tes éléments principaux, ' + gN() + ' fera tout le reste pendant la construction.'));
   const faits = els.filter(e => { const d = atlDessinDe(f, fi, e.nom); return d && !d.attente; }).length;
   atlBiblio(sec, f, fi);
@@ -16488,8 +16489,9 @@ function atlRenderRoute(liste) {
   const f = atlFiche(), fi = f && f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, b = atlBasesVal(), cr = atlCred(), et = f ? String(f.etat || '') : '', lance = f && (ATL_AFTER.has(et) || et === 'refusee');
   const B = D.querySelector('.atl-rbody'); B.textContent = '';
   const sec = (t) => { const s = atlEl('section', 'atl-rsec'); s.appendChild(atlEl('h4', '', t)); B.appendChild(s); return s; };
-  const ligne = (s, ic, lab, val, fn, ok, resume) => { const r = atlEl(fn ? 'button' : 'div', 'atl-rl' + (ok ? ' ok' : '') + (resume ? ' res' : '')); if (fn) { r.type = 'button'; r.addEventListener('click', fn); } r.append(atlEl('span', 'atl-ric', ic), atlEl('span', 'atl-rlab', lab), atlEl('b', '', val)); if (resume) r.appendChild(atlEl('small', 'atl-rres', resume)); s.appendChild(r); };
+  const ligne = (s, ic, lab, val, fn, ok, resume) => { if (!atlAdminIci()) fn = null; const r = atlEl(fn ? 'button' : 'div', 'atl-rl' + (ok ? ' ok' : '') + (resume ? ' res' : '')); if (fn) { r.type = 'button'; r.addEventListener('click', fn); } r.append(atlEl('span', 'atl-ric', ic), atlEl('span', 'atl-rlab', lab), atlEl('b', '', val)); if (resume) r.appendChild(atlEl('small', 'atl-rres', resume)); s.appendChild(r); };
   if (!lance && !(f && atlRempli(f))) B.appendChild(atlEl('p', 'atl-rvide', '🤖 ' + gNM() + ' la remplira dès que tu lui auras raconté ton jeu.'));
+  if (!atlAdminIci()) B.appendChild(atlEl('p', 'atl-rmasc', '✏️ ' + gNM() + ' la remplit et la tient à jour. Tu veux changer quelque chose ? Écris-le-lui.'));   // 2.0.123
   const s1 = sec('🧱 Les bases');
   ATL_BASES.forEach(([k, ic, , court], i) => ligne(s1, ic, court, b[k] || 'à préciser', lance ? null : () => { ATL.basesOn = true; ATL.basesUne = !!(f && f.id && atlRempli(f)); ATL.bq = i; atlRender(); }, !!b[k]));
   const s2 = sec('📋 Ta fiche');
@@ -16535,7 +16537,7 @@ function atlIntro(on) {
   if (I.dataset.on === '1' && I.firstChild) return; I.dataset.on = '1'; I.textContent = '';
   // 21 h (Benjamin) : la DISCUSSION avec le guide dès « + Nouveau projet » ; les bases en petites cartes facultatives
   const bub = atlEl('div', 'atl-ibub'), tx = atlEl('div');
-  tx.append(atlEl('b', '', gNM()), atlEl('p', 'atl-ibq', 'Raconte-moi ton jeu ! 🎮'), atlEl('p', 'atl-is', 'Écris ou dicte ton idée 🎤 : le héros, ce qu’on fait, le monde, les objets… Je monte tout ton projet, puis tu crées tes éléments principaux.'));
+  tx.append(atlEl('b', '', gNM()), atlEl('p', 'atl-ibq', 'Raconte-moi ton jeu ! 🎮'), atlEl('p', 'atl-is', 'Écris ou dicte ton idée 🎤 : le héros, ce qu’on fait, le monde, les objets… Je monte tout ton projet et je crée tous ses éléments : tu n’as rien à préparer.'));
   bub.append(atlGuideAv('atl-wav'), tx); I.appendChild(bub);
   // 23 h 40 (Benjamin : « c'est pas intuitif ») : plus de bases à choisir ici ; le guide les remplit d'après l'idée (2D par défaut)
   I.append(atlEl('p', 'atl-inote', '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais.'));
@@ -16795,6 +16797,7 @@ function atlArchiveBloc(f) {
   return d;
 }
 function atlBiblio(host, f, fi, lecture) {
+  if (!atlAdminIci()) lecture = true;   // 2.0.123 (l'admin : « le bouton créer mes éléments, ça les embrouille ») : le joueur regarde ; un nouvel élément, il le demande à la mascotte
   const et = String(f.etat || ''), libre = !lecture && ['brouillon', 'en_discussion', 'complete'].includes(et), items = atlBiblioItems(f, fi);
   for (const cat in items) {   // un nom de la fiche « à dessiner » alors que ses poses existent déjà : retiré
     const pleins = items[cat].filter(it => it.asset);
@@ -16822,7 +16825,8 @@ function atlBiblio(host, f, fi, lecture) {
   }
   lib.appendChild(bar);
   const sec = atlEl('section', 'atl-libc');
-  if (!l.length) sec.appendChild(atlEl('p', 'atl-libvide', cat === 'musique' ? 'Pas encore de musique : « ＋ Créer une musique » pour en demander une.' : cat === 'son' ? '« ＋ Créer un bruitage » pour en ajouter un, quand tu veux.' : 'Rien pour l’instant.'));
+  if (!l.length) sec.appendChild(atlEl('p', 'atl-libvide', lecture && !atlAdminIci() ? (cat === 'musique' ? 'Pas encore de musique : demande-la à ' + gNM() + ' dans « Discuter du jeu ».' : cat === 'son' ? 'Pas encore de bruitage : demande-le à ' + gNM() + ' dans « Discuter du jeu ».' : 'Rien pour l’instant.') : cat === 'musique' ? 'Pas encore de musique : « ＋ Créer une musique » pour en demander une.' : cat === 'son' ? '« ＋ Créer un bruitage » pour en ajouter un, quand tu veux.' : 'Rien pour l’instant.'));
+  if (lecture && !atlAdminIci()) lib.appendChild(atlEl('p', 'atl-libmasc', '💬 Un nouveau personnage, un objet, un décor, une musique ? Dis-le à ' + gNM() + ' dans « Discuter du jeu » : il te pose ses questions, puis te propose une offre.'));
   else if (cat === 'personnage') {
     const grp = new Map(); for (const it of l) { const g = it.parent || it.nom; if (!grp.has(g)) grp.set(g, []); grp.get(g).push(it); }
     const rang = xs => Math.min(1e9, ...xs.map(x => x.asset ? x.ix : 1e9));   // l'ordre du jeu (le héros d'abord), les noms « à dessiner » après
@@ -18300,6 +18304,7 @@ function atlWhy(e) {
   const m = String((e && e.message) || '');
   if (e && e.offline) return 'Pas de réseau : ton message est resté dans la case, réessaie dans un moment.';
   if (/projet pas monte/.test(m)) return 'Ton projet est encore en montage : ' + gN() + ' prépare tout, les éléments viendront juste après.';
+  if (/dis le dans la discussion/.test(m)) return 'Dis-le à ' + gNM() + ' dans la discussion 😊 il s’en occupe pour toi.';   // 2.0.123 (SQL v133)
   if (/mode admin/.test(m)) return '🛡️ Mode admin : cette action est réservée au joueur. Écris-lui dans la discussion, ou fais avancer ses demandes.';
   if (/trop d essais/.test(m)) return 'Doucement 😄 Beaucoup de messages en une heure : réessaie un peu plus tard.';
   if (/deja envoye/.test(m)) return 'Ton projet est déjà lancé : il est en construction.';
@@ -18555,6 +18560,7 @@ function atlPlAjout(pl, idx, txt) {
   }
 }
 function atlPropCard() {
+  if (!atlAdminIci()) return null;   // 2.0.123 : le joueur ne crée plus ses éléments lui-même (il le demande à la mascotte ; SQL v133)
   const f = atlFiche(), et = atlEtat();
   if (!f || atlChoix() || !['en_discussion', 'complete', 'acceptee', 'alpha', 'publie_salle', 'publie_monde'].includes(et)) return null;
   const pl = atlPlModel(); if (!pl.length && !ATL.drawing) return null;

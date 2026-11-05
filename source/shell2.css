@@ -5056,3 +5056,4 @@ body.howto-on .fs-tip,body.howto-on #jdw-cheer,body:has(#jdw-howto) .atl-flot{vi
 .atl-rentb small:first-child{font-weight:800;color:#b8f5c8}
 .atl-adminb.pt .atl-rentb small{font-size:11px}
 #jdw-atelier .atl-envoi{opacity:.6;cursor:progress}   /* 2.0.121 : bouton grisé le temps de l'envoi */
+.atl-libmasc,.atl-rmasc{margin:10px 0 0;padding:8px 12px;border-radius:12px;background:rgba(255,211,77,.08);border:1px solid rgba(255,211,77,.25);color:#ffe9a8;font:600 13.5px/1.4 var(--body)}   /* 2.0.123 */
