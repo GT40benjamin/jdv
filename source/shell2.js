@@ -597,20 +597,25 @@ function menuMontrer(g, o) {
   o = o || {}; menuFermer(); MENU.passe = ''; { const lt = document.getElementById('jdw-losetip'); if (lt) lt.remove(); }
   const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
   let titre = g.title || ''; try { if (ATL_NES.has(g.id)) titre = atlTitre(g) || titre; } catch (e) {}
-  const M = el('div', 'gmenu tmenu'); M.id = 'jdw-gmenu'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', titre);
+  const style = (g.menuStyle || (navigator.webdriver && window.JDW_MENU_STYLE && window.JDW_MENU_STYLE[g.id])) === 'aventure' ? 'aventure' : 'cartoon';   // 2.0.142 (chef) : gros boutons « cartoon » par défaut, liste élégante « aventure »
+  const M = el('div', 'gmenu tmenu tm-' + style); M.id = 'jdw-gmenu'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', titre);
   M.style.setProperty('--acc', g.accent || COLORS.amber); M.style.setProperty('--acc2', g.accent2 || '#ffffff');
   const scene = el('div', 'tm-scene'), voile = el('div', 'tm-voile'), haut = el('div', 'tm-haut'), bas = el('div', 'tm-bas');
   M.append(scene, voile, haut, bas); $('jdw-play').appendChild(M);
   // la scène : la démo du jeu (g.demo), sinon sa belle image qui bouge doucement
+  // 2.0.142 : l'IMAGE DE MENU du jeu (g.menuImage 16:9, g.menuImagePortrait 9:16, dans son dossier) en plein écran, d'abord ; sinon sa démo ; sinon sa belle image
+  const fic = x => x && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp)$/i.test(String(x)) ? ROOT + (ATL_NES.has(g.id) ? 'assets/jeux/' + g.id + '/' : 'assets/') + x : '';
+  const mi = fic(g.menuImage), mp = fic(g.menuImagePortrait) || mi;
+  if (mi) { const im = el('div', 'tm-key'); im.style.setProperty('--k-l', 'url("' + mi + '")'); im.style.setProperty('--k-p', 'url("' + mp + '")'); scene.appendChild(im); }
   let demo = null;
-  if (typeof g.demo === 'function') { const dr = el('div', 'tm-demo'); scene.appendChild(dr);
+  if (!mi && typeof g.demo === 'function') { const dr = el('div', 'tm-demo'); scene.appendChild(dr);
     try { demo = g.demo(dr, { colors: COLORS, fonts: FONTS, assets: () => window.JDW_ASSETS.load(g.id), zoneSure: () => zoneSure(), appareil: appareilApi(), demo: true }) || null; } catch (e) { demo = null; reportError('Démo du menu (' + g.id + ') : ' + e.message, e.stack, { quiet: true }); dr.remove(); } }
-  M._demo = demo; if (!demo) { scene.classList.add('tm-bouge'); menuImage(g, M, scene); }
+  M._demo = demo; if (!demo && !mi) { scene.classList.add('tm-bouge'); menuImage(g, M, scene); }
   // le logo (g.logo : une image du jeu) ou le titre en grand, avec son entrée animée
   const logo = el('div', 'tm-logo');
   const lu = g.logo && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|webp|svg)$/i.test(String(g.logo)) ? ROOT + (ATL_NES.has(g.id) ? 'assets/jeux/' + g.id + '/' : 'assets/') + g.logo : '';
   if (lu) { const i = el('img'); i.alt = titre; i.src = lu; i.onerror = () => { i.remove(); logo.appendChild(el('h2', 'tm-titre', titre)); }; logo.appendChild(i); }
-  else if (!ATL_NES.has(g.id) || g.titreTexte === true) logo.appendChild(el('h2', 'tm-titre', titre));   // un jeu de l'Atelier : son image porte déjà son titre (sinon : logo, ou titreTexte: true)
+  else if (!(g.imageATitre === true || (navigator.webdriver && Array.isArray(window.JDW_IMAGE_A_TITRE) && window.JDW_IMAGE_A_TITRE.includes(g.id)))) logo.appendChild(el('h2', 'tm-titre', titre));   // 2.0.142 : jamais sans titre (sauf logo, ou image qui le porte : imageATitre: true)
   haut.appendChild(logo);
   sonJeuActiver(g.id); musicBaseLevel(0.8); MUS.override = false; setMusic(menuMusique(g));   // la musique de MENU, au volume de ce jeu
   let boutique = 0;
@@ -619,16 +624,20 @@ function menuMontrer(g, o) {
     b.addEventListener('click', () => { if (!b.classList.contains('tm-go')) menuBip('ok'); fn(); });
     b.addEventListener('focus', () => menuBip()); b.addEventListener('mouseenter', () => { try { b.focus({ preventScroll: true }); } catch (e) {} }); return b; };
   const vue = (quoi) => {
-    bas.textContent = ''; M.dataset.vue = quoi || 'liste';
+    bas.textContent = ''; M.dataset.vue = quoi || 'liste'; for (const x of M.querySelectorAll(':scope > .tm-icos')) x.remove();
     const L = el('div', 'tm-liste'); bas.appendChild(L);
     if (quoi === 'touche') {
       const t = it('Appuie sur une touche', () => vue(''), 'tm-touche'); L.appendChild(t);
     } else if (!quoi) {
       L.appendChild(it('▶ JOUER', jouer, 'tm-go'));
+      for (const x of M.querySelectorAll(':scope > .tm-icos')) x.remove();
+      const ico = style === 'cartoon' ? el('div', 'tm-icos') : null; if (ico) (atlPetit() ? bas : M).appendChild(ico);   // PC / couché : sur le côté de l'écran ; téléphone droit : sous les boutons
+      const petit = (txt, nom, fn) => { if (!ico) { L.appendChild(it(txt, fn)); return; } const b = it(txt.split(' ')[0], fn, 'tm-ico'); b.setAttribute('aria-label', nom); b.title = nom; b.appendChild(el('small', '', nom)); ico.appendChild(b); };
       if (howtoOf(g)) L.appendChild(it('❓ COMMANDES', () => howtoShow(g, $('jdw-play'), { then: () => { const b = M.querySelector('.tm-it'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} } })));
-      if (boutique) L.appendChild(it('🛍️ BOUTIQUE', () => { MENU.passe = g.id; menuFermer(); mountGame(g); setTimeout(() => { try { if (current && current.game.id === g.id) boutiqueOuvrir(); } catch (e) {} }, 1200); }));
       L.appendChild(it('🔊 SON', () => vue('son')));
-      L.appendChild(it('⚙️ OPTIONS', () => vue('param')));
+      if (boutique) petit('🛍️ BOUTIQUE', 'Boutique', () => { MENU.passe = g.id; menuFermer(); mountGame(g); setTimeout(() => { try { if (current && current.game.id === g.id) boutiqueOuvrir(); } catch (e) {} }, 1200); });
+      if (!g.noScore && !isGuest()) petit('🏆 RECORDS', 'Records', () => { try { openBoardFor(g.id); } catch (e) {} });
+      petit('⚙️ OPTIONS', 'Options', () => vue('param'));
     } else if (quoi === 'son') {
       L.appendChild(el('p', 'tm-k', '🔊 Le son de ce jeu'));
       const ligne = (k, kv, ic, nom) => {
@@ -664,7 +673,7 @@ function menuMontrer(g, o) {
     if (M.dataset.vue === 'touche') { if (['Shift', 'Control', 'Alt', 'Meta', 'Tab'].includes(e.key)) return; e.preventDefault(); e.stopImmediatePropagation(); if (e.key === 'Escape') backToLibrary(); else vue(''); return; }
     if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); e.stopImmediatePropagation(); if (M.dataset.vue !== 'liste') vue(''); else backToLibrary(); return; }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 's' || e.key === 'z' || e.key === 'w') {
-      const l = [...bas.querySelectorAll('.tm-it:not([hidden])')].filter(x => x.getClientRects().length); if (!l.length) return;
+      const l = [...bas.querySelectorAll('.tm-it:not([hidden])')].filter(x => x.getClientRects().length); if (!l.length) return;   // (icônes comprises)
       const i = l.indexOf(document.activeElement), d = (e.key === 'ArrowDown' || e.key === 's') ? 1 : -1;
       e.preventDefault(); e.stopImmediatePropagation(); try { l[(i + d + l.length) % l.length].focus({ preventScroll: true }); } catch (x) {}
     }
@@ -701,7 +710,7 @@ function menuImage(g, M, scene) {
       const cs = getComputedStyle(cadre), aw = Math.max(40, cadre.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)), ah = Math.max(30, cadre.clientHeight);
       let cw = aw, ch = aw * 3 / 4; if (ch > ah) { ch = ah; cw = ah * 4 / 3; }
       if (ah > aw * 1.05) { cw = aw; ch = Math.min(ah, aw * 4 / 3); }   // portrait : à la largeur de l'écran, plus haute que large
-      if (M.classList.contains('tmenu')) { cw = aw; ch = ah; }   // 2.0.142 : l'écran-titre, la scène remplit tout
+      if (M.classList.contains('tmenu')) { cw = aw; ch = ah; }   // 2.0.142 : l'écran-titre, l'aperçu est dessiné à la taille de l'écran
       const d = Math.min(2, devicePixelRatio || 1), w = Math.max(1, Math.round(cw * d)), h = Math.max(1, Math.round(ch * d));
       if (c.width !== w || c.height !== h) { c.width = w; c.height = h; c.style.width = Math.round(cw) + 'px'; c.style.height = Math.round(ch) + 'px'; }
       const k = w + 'x' + h; if (k === taille && n > 3) { requestAnimationFrame(tic); return; } taille = k;

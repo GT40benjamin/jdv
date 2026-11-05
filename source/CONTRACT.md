@@ -488,6 +488,11 @@ grossit et brille, un petit son à chaque choix ; flèches / stick / croix, A ou
 « Comment jouer » ouvert tout seul : seulement par ❓ COMMANDES.
 Champs du module (tous facultatifs) :
 - `accent` : couleur principale (liste, curseur, lueurs) ; `accent2` : couleur secondaire (curseur, reflets).
+- `menuStyle: 'cartoon' | 'aventure'` (défaut : 'cartoon') : 'cartoon' = un GROS bouton ▶ JOUER arrondi, brillant, en relief, qui respire, les autres choix
+  en petits boutons du même style, et Boutique / Records / Options en icônes rondes sur le côté ; 'aventure' = une liste élégante à gauche sur la scène.
+- `menuImage: 'menu.jpg'` (16:9) et `menuImagePortrait: 'menu-portrait.jpg'` (9:16) : l'IMAGE DE MENU du jeu (key art, faite à la fin de la conception,
+  SANS AUCUN TEXTE), dans le dossier du jeu, en plein écran (prioritaire sur la démo). Sans elle : la démo, sinon la belle image du jeu, jamais coupée en haut.
+- `imageATitre: true` : la belle image du jeu porte déjà son titre (pas de titre en texte). Sans logo ni `imageATitre`, la borne écrit toujours le titre.
 - `musicMenu: '<nom>'` : la musique de MENU, courte (20-40 s en boucle) et TOUJOURS différente de la musique du jeu. Jeu de l'Atelier : la borne
   cherche `assets/jeux/<id>/<nom>.mp3`, puis `assets/music/<nom>.mp3` (ou `.bin`) ; jeu de la borne : `assets/music/<nom>`. Elle joue sur le
   menu et l'écran Commandes ; au ▶ JOUER, fondu vers la musique du jeu (`music`) ; au retour au menu (✕ Quitter, fin de partie) elle revient.
