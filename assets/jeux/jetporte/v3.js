@@ -212,6 +212,7 @@ function mount(root, api) {
   const GANT_L = { w: 39, h: 31, y: 0.37, d: 26 };
   // V3 : le corps pivote sur ses PIEDS (milieu des deux bottes de chaque dessin, mesuré sur les images) ; la visée libre autour de lui
   const ANCRE = { debout: 0.495, marche1: 0.439, marche2: 0.482 }, VISE_RX = 380;
+  const larg = () => (P.dirVis < 0 ? -1 : 1) * (0.6 + 0.4 * Math.abs(P.dirVis));   // le demi-tour : 100 % → 60 %, il bascule, 60 % → 100 % (jamais une « lame »)
   const decal = nm => (0.5 - (ANCRE[nm] || 0.5)) * H_CULT * ratio(nm);   // de combien le dessin glisse pour avoir ses pieds au point x
   const MASQUES = {};
   function masque(nom) {
@@ -255,8 +256,8 @@ function mount(root, api) {
   }
   // V3 : les animaux à épargner : abeilles et papillons qui butinent la couronne, un oiseau posé en haut, un hérisson au pied ;
   // une goutte sur eux = des points en moins, un message, et l'animal s'enfuit (un seul malus par animal)
-  const BETE = { abeille: { r: 30, dy: 0, nom: '🐝 Attention aux abeilles !' }, papillon: { r: 36, dy: 0, nom: '🦋 Attention au papillon !' },
-    oiseau: { r: 36, dy: -22, nom: '🐦 Attention à l’oiseau !' }, herisson: { r: 38, dy: -20, nom: '🦔 Attention au hérisson !' } };
+  const BETE = { abeille: { r: 22, dy: 0, nom: '🐝 Attention aux abeilles !' }, papillon: { r: 26, dy: 0, nom: '🦋 Attention au papillon !' },
+    oiseau: { r: 28, dy: -22, nom: '🐦 Attention à l’oiseau !' }, herisson: { r: 30, dy: -20, nom: '🦔 Attention au hérisson !' } };
   function creerBetes(n, arbres, cocc) {
     const L = [], nb = [2, 3, 4, 5, 6][n] || 3, sortes = ['papillon', 'abeille', 'oiseau', 'herisson', 'abeille', 'papillon'];
     for (let k = 0; k < nb && arbres.length; k++) {
@@ -270,6 +271,10 @@ function mount(root, api) {
       L.push(b);
     }
     return L;
+  }
+  function punir(b, p, B) {
+    b.fuit = 0.01; b.sens = p.x >= P.x ? 1 : -1; P.nBetes++; snd.bete(); dire(B.nom + '  −' + PTS.animal);
+    texte(p.x, p.y + B.dy - 36, '−' + PTS.animal, '#ff7a6a'); try { pad && pad.rumble && pad.rumble(0.4, 160); } catch (e) { /* rien */ }
   }
   function betePos(b) {
     const A = b.a, w = A.M.w * A.s, h = A.M.h * A.s;
@@ -602,13 +607,13 @@ function mount(root, api) {
     if (veutJet && P.bouillie <= 0 && !P.videDit) { P.videDit = true; dire('🧪 Cuve vide : refais une bouillie au hangar'); snd.non(); }
     if (P.bouillie > 0.05) P.videDit = false;
     // le bras : il vise un point de la couronne, un peu devant lui
-    const ep = { x: P.x + P.dirVis * (BRAS.ex + decal(poseDe())), y: PIED_Y + BRAS.ey };   // la main qui tient la lance
+    const ep = { x: P.x + larg() * (BRAS.ex + decal(poseDe())), y: PIED_Y + BRAS.ey };   // la main qui tient la lance
     P.vise = vise;
     const cy = lerp(RANG_Y - ARBRE_H * 0.98, RANG_Y - ARBRE_H * 0.2, vise), cx = P.x + P.aimDx;
     P.cible.x = cx; P.cible.y = cy;
     P.ang = clamp(Math.atan2(cy - ep.y, Math.abs(cx - ep.x) + 60) * 0.62, -0.72, 0.3);
     const LB = BRAS.l - 8;
-    P.buse.x = ep.x + P.dirVis * Math.cos(P.ang) * LB; P.buse.y = ep.y + Math.sin(P.ang) * LB;
+    P.buse.x = ep.x + larg() * Math.cos(P.ang) * LB; P.buse.y = ep.y + Math.sin(P.ang) * LB;
     if (P.jet) {
       const conso = (N.conso || 0.026) * dt; P.bouillie = Math.max(0, P.bouillie - conso); P.utilisee += conso;
       // les gouttes : ~110 par seconde, elles volent du bout de la lance vers la couronne, le vent les pousse
@@ -620,6 +625,13 @@ function mount(root, api) {
         P.gouttes.push({ x: P.buse.x, y: P.buse.y, x0: P.buse.x, y0: P.buse.y, tx, ty, t: 0, d: vol, pluie: P.pluie });
       }
     }
+    // V3 : les animaux : le centre du jet (là où il retombe, vent compris) reste 0,25 s sur l'un d'eux = malus, et il s'enfuit
+    // (le passer en balayant, ou traiter juste à côté de lui, ne coûte rien)
+    const chute = P.chute = { x: cx + vent * 26, y: cy + 8 };
+    for (const b of P.betes) { if (b.fuit || b.face !== P.face) continue; const p = betePos(b), B = BETE[b.sorte];
+      // (le hérisson, au pied : c'est arroser tout le bas de la couronne juste au-dessus de lui qui le trempe)
+      if (P.jet && Math.hypot(p.x - chute.x, Math.min(p.y + B.dy, vB + 8) - chute.y) < B.r + 6) b.vise = (b.vise || 0) + dt; else b.vise = Math.max(0, (b.vise || 0) - dt * 2);
+      if (b.vise > 0.25) punir(b, p, B); }
     // les gouttes en vol, puis là où elles tombent
     for (const g of P.gouttes) {
       g.t += dt; const k = Math.min(1, g.t / g.d);
@@ -639,7 +651,7 @@ function mount(root, api) {
     for (const p of P.pastilles) p.t += dt; P.pastilles = P.pastilles.filter(p => p.t < p.d && !p.prise && p.face === P.face);
     if (N.etoile) { P.etoileT -= dt; if (P.etoileT <= 0 && !P.etoile) { P.etoile = { x: P.x + (P.face === 0 ? 1 : -1) * (LW * 0.7), y: RANG_Y - ARBRE_H * 0.95, t: 0 }; P.etoileT = 22 + Math.random() * 10; }
       if (P.etoile) { const e = P.etoile; e.t += dt; e.x -= (P.face === 0 ? 1 : -1) * 120 * dt; e.y = RANG_Y - ARBRE_H * (0.78 + 0.15 * Math.sin(e.t * 2.2)); if (e.t > 12) P.etoile = null; } }
-    for (const b of P.betes) { b.ph += dt; if (b.fuit) b.fuit += dt; }
+    for (const b of P.betes) { b.ph += dt; if (b.fuit) b.fuit += dt; b.sursaut = Math.max(0, (b.sursaut || 0) - dt); }
     if (P.coccinelle) { const c = P.coccinelle; c.ph += dt; if (!c.vole) { c.u += c.du * dt; if (c.u > 0.7 || c.u < 0.3) c.du = -c.du; c.v = 0.38 + Math.sin(c.ph * 0.7) * 0.08; } else { c.vole += dt; } }
     // la caméra : le cultivateur au premier tiers, devant lui la rangée
     const cible = P.x - (P.face === 0 ? LW * 0.36 : LW * 0.64);
@@ -656,10 +668,8 @@ function mount(root, api) {
   function poser(x, y, q) {
     for (const b of P.betes) if (!b.fuit && b.face === P.face) {
       const p = betePos(b), B = BETE[b.sorte];
-      if (Math.hypot(p.x - x, p.y + B.dy - y) < B.r) {
-        b.fuit = 0.01; b.sens = p.x >= P.x ? 1 : -1; P.nBetes++; snd.bete(); dire(B.nom + '  −' + PTS.animal);
-        texte(p.x, p.y + B.dy - 36, '−' + PTS.animal, '#ff7a6a'); try { pad && pad.rumble && pad.rumble(0.4, 160); } catch (e) { /* rien */ }
-      }
+      // une goutte égarée (on traite la pêche d'à côté) : il sursaute, sans malus ; le malus, c'est le jet DIRIGÉ sur lui (update)
+      if (Math.hypot(p.x - x, p.y + B.dy - y) < B.r) b.sursaut = 0.35;
     }
     for (const A of P.arbres) {
       const M = A.M, w = M.w * A.s, h = M.h * A.s, x0 = A.x - w / 2, y0 = RANG_Y - h;
@@ -873,7 +883,7 @@ function mount(root, api) {
     // l'ombre au sol ; la flaque de la fuite
     ctx.fillStyle = 'rgba(30,50,15,0.32)'; ctx.beginPath(); ctx.ellipse(x + 10, y - 2, w * 0.4, 12, 0, 0, TAU); ctx.fill();
     if (P.flaque > 0.02) { const k = P.flaque; ctx.fillStyle = 'rgba(150,100,235,' + (0.55 * Math.min(1, k * 3)).toFixed(3) + ')'; ctx.beginPath(); ctx.ellipse(x - P.dir * 36, y + 2, 18 + k * 30, 6 + k * 7, 0, 0, TAU); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(x - P.dir * 30, y, 6 + k * 9, 2 + k * 2, 0, 0, TAU); ctx.fill(); }
-    ctx.save(); ctx.translate(x, y - bob); ctx.scale(Math.abs(P.dirVis) < 0.4 ? 0.4 * (P.dirVis < 0 ? -1 : 1) : P.dirVis, 1);
+    ctx.save(); ctx.translate(x, y - bob); ctx.scale(larg(), 1);
     // la lance est tenue par sa main GAUCHE, côté caché, à la taille : elle passe derrière le corps et ressort devant le ventre ;
     // le seul bras visible est le bras droit du dessin (jamais deux bras droits)
     // (la lance commence DANS le poing : sa poignée, derrière, ne dépasse jamais sous la main, quelle que soit la visée)
@@ -950,12 +960,12 @@ function mount(root, api) {
   function dessinBete(b) {
     const p = betePos(b), B = BETE[b.sorte], x = SX(p.x), y = MY + p.y, t = b.ph, f = b.fuit, O = '#241a12';
     if (x < V.x - 80 || x > V.x + V.w + 80) return;
-    const pres = !f && P.cible && Math.hypot(P.cible.x - p.x, P.cible.y - (p.y + B.dy)) < 110;
+    const vc = P.chute || P.cible, pres = !f && vc && Math.hypot(vc.x - p.x, Math.min(p.y + B.dy, RANG_Y - ARBRE_H * 0.2 + 8) - vc.y) < 110;   // le « ! » : là où le jet va retomber (vent compris)
     ctx.save();
     ctx.globalAlpha = f > 1.8 ? Math.max(0, (2.6 - f) / 0.8) : 1;
     if (!f) { ctx.fillStyle = 'rgba(255,255,240,0.32)'; ctx.beginPath(); ctx.arc(x, y + B.dy, B.r * 0.95, 0, TAU); ctx.fill(); }
     if (pres) { const k = 0.5 + 0.5 * Math.sin(stT * 12); ctx.strokeStyle = 'rgba(230,50,40,' + (0.55 + 0.4 * k).toFixed(2) + ')'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y + B.dy, B.r + 6 + k * 4, 0, TAU); ctx.stroke(); }
-    ctx.translate(x, y); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = O; ctx.lineWidth = 2;
+    ctx.translate(x + (b.sursaut ? Math.sin(stT * 70) * 3 * b.sursaut / 0.35 : 0), y - (b.sursaut ? 4 * b.sursaut / 0.35 : 0)); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = O; ctx.lineWidth = 2;
     const trait = c => { ctx.fillStyle = c; ctx.fill(); ctx.stroke(); };
     if (b.sorte === 'abeille') {
       const sens = f ? b.sens : (-Math.sin(t * 2.2) >= 0 ? 1 : -1); ctx.scale(sens * 2, 2);
@@ -1344,8 +1354,9 @@ function mount(root, api) {
       coccinelle: () => P && P.coccinelle && { x: coccPos(P.coccinelle).x, y: coccPos(P.coccinelle).y, vole: P.coccinelle.vole, arbre: P.arbres.indexOf(P.coccinelle.a), face: P.coccinelle.face },
       pose(nm) { if (P) P.poseForcee = nm || null; }, calques(o) { for (const k in CALQUES) delete CALQUES[k]; Object.assign(CALQUES, o || {}); },
       sons: () => sonsPrets, modes: () => ({ doigt: modeDoigt, pad: modePad }),
-      boutons: () => { const B = boutons(), r = b => ({ x: ox + b.x * sc, y: oy + b.y * sc, r: b.r * sc }); return { g: r(B.g), d: r(B.d), rep: r(B.rep), joy: r(B.joy) }; }, cible: () => P && { x: Math.round(P.cible.x), y: Math.round(P.cible.y), aimDx: Math.round(P.aimDx), dir: P.dir, dirVis: +P.dirVis.toFixed(2), vx: Math.round(P.vx), mainX: Math.round(P.x + P.dirVis * BRAS.ex), mainY: Math.round(PIED_Y + BRAS.ey) },
-      betes: () => P ? P.betes.map(b => { const p = betePos(b); return { sorte: b.sorte, face: b.face, x: Math.round(p.x), y: Math.round(p.y + BETE[b.sorte].dy), fuit: b.fuit, arbre: P.arbres.indexOf(b.a) }; }) : [],
+      boutons: () => { const B = boutons(), r = b => ({ x: ox + b.x * sc, y: oy + b.y * sc, r: b.r * sc }); return { g: r(B.g), d: r(B.d), rep: r(B.rep), joy: r(B.joy) }; }, cible: () => P && { x: Math.round(P.cible.x), y: Math.round(P.cible.y), aimDx: Math.round(P.aimDx), dir: P.dir, dirVis: +P.dirVis.toFixed(2), vx: Math.round(P.vx), mainX: Math.round(P.x + larg() * BRAS.ex), mainY: Math.round(PIED_Y + BRAS.ey) },
+      betes: () => P ? P.betes.map(b => { const p = betePos(b); return { sorte: b.sorte, face: b.face, x: Math.round(p.x), y: Math.round(p.y + BETE[b.sorte].dy), fuit: b.fuit, vise: +(b.vise || 0).toFixed(2), r: BETE[b.sorte].r, arbre: P.arbres.indexOf(b.a) }; }) : [],
+      calme() { if (P) { P.N = Object.assign({}, P.N, { vent: 0, rafales: 0 }); P.rafale = 0; } },
       nBetes: () => P && P.nBetes, figer(on) { if (P) for (const b of P.betes) b.ph = on ? 0 : b.ph; }
     }
   };
