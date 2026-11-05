@@ -17905,7 +17905,7 @@ function atlRentLong(r, j, nom) {
   if (!r) return [];
   const c = r.cout || {}, parts = [['images', c.image], ['musiques', c.musique], ['sons', c.son], ['autres', c.autre]].filter(x => +x[1] > 0).map(x => x[0] + ' ' + atlEur(x[1]));
   const m = +r.marge_cents || 0, l1 = '💶 Payé ' + (+r.credits || 0).toLocaleString('fr-FR') + ' 💎 ≈ ' + atlEur(r.euros_cents) + ' · coût réel ' + atlEur(r.cout_cents) + (parts.length ? ' (' + parts.join(' · ') + ')' : '') + ' · ' + (m >= 0 ? 'marge +' : 'perte −') + atlEur(Math.abs(m));
-  const l1b = (+r.generations || 0) + ' générations' + ((+r.ratees || 0) ? ', dont ' + r.ratees + ' ratée' + (+r.ratees > 1 ? 's' : '') : '') + ((+r.sans_prix || 0) ? ' · ' + r.sans_prix + ' sans prix connu' : '');
+  const l1b = (+r.generations || 0) + ' générations' + ((+r.ratees || 0) ? ', dont ' + r.ratees + ' ratée' + (+r.ratees > 1 ? 's' : '') : '') + ((+r.sans_prix || 0) ? ' · ' + r.sans_prix + ' sans prix connu' : '') + ((+r.offertes || 0) ? ' · offert : ' + atlEur(r.offert_cents) + ' (' + r.offertes + ' génération' + (+r.offertes > 1 ? 's' : '') + ' pour un ticket offert)' : '');   // v128
   if (!j) return [l1, l1b];
   const of = [((+j.bienvenue || 0) ? 'bienvenue ' + (+j.bienvenue).toLocaleString('fr-FR') : ''), ((+j.admin || 0) ? 'cadeaux de l’admin ' + (+j.admin).toLocaleString('fr-FR') : '')].filter(Boolean);
   const l2 = 'Crédits de ' + dispName(nom) + ' : achetés ' + (+j.achats_credits || 0).toLocaleString('fr-FR') + ' 💎 (' + atlEur(j.achats_cents) + ')' + ((+j.abo_credits || 0) ? ' · abonnement ' + (+j.abo_credits).toLocaleString('fr-FR') + ' 💎 (' + atlEur(j.abo_cents) + ')' : '')
