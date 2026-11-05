@@ -15265,7 +15265,12 @@ function atlBubble(m, wel) {
     if (x && atlPropOuverte(x) && der && der.id === m.id) col.appendChild(atlPropBoutons(x));
     else if (x && x.remplacee && !x.choix && der && der.id === m.id) { col.appendChild(atlRemplacee(false)); li.classList.add('atl-mremp'); }
   }
-  if (at && !wel && m.bouton && !atlAdminIci()) {   // 2.0.94 : « ＋ Nouveau projet » (une idée pour un autre jeu) ou « ▶️ Jouer »
+  const mPj = /^projet:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(String(m.bouton || ''));   // 2.0.122 (SQL v132) : « 📂 Ouvrir ce projet »
+  if (at && !wel && mPj && !atlAdminIci()) {
+    const bt = atlEl('button', 'btn btn-play btn-sm atl-mbouton', '📂 Ouvrir ce projet'), pj = atlProjets().find(x => x.id === mPj[1]); bt.type = 'button';
+    if (pj && pj.titre) bt.textContent = '📂 Ouvrir « ' + pj.titre + ' »';
+    bt.addEventListener('click', () => { atlOuvrir(mPj[1]); atlLoad(true); }); col.appendChild(bt);
+  } else if (at && !wel && m.bouton && !atlAdminIci()) {   // 2.0.94 : « ＋ Nouveau projet » (une idée pour un autre jeu) ou « ▶️ Jouer »
     const f0 = atlFiche(), bt = atlEl('button', 'btn btn-play btn-sm atl-mbouton', m.bouton === 'nouveau_projet' ? '＋ Nouveau projet' : '▶️ Jouer à ma V' + (((f0 && f0.version) | 0) || 1)); bt.type = 'button';
     bt.addEventListener('click', () => { if (m.bouton === 'nouveau_projet') atlNouveau(); else if (f0) atlJouerVrai(f0); }); col.appendChild(bt);
   }
@@ -18284,6 +18289,7 @@ async function atlSend() {
   try {
     const r = await rpc('at_dire', { p_name: profile.name, p_texte: t, p_micro: micro, p_image: false, p_fiche: ATL.cur || null, p_nouveau: !ATL.cur }, { quiet: true });
     if (r && r.fiche && !ATL.cur) { ATL.cur = r.fiche; ATL.nouveau = false; atlBasesEnvoyer(r.fiche); }
+    else if (r && r.doublon && r.fiche && r.fiche !== ATL.cur) { atlOuvrir(r.fiche); atlToast('📂 Ton idée était déjà partie : voici ton projet'); }   // 2.0.122 : le serveur a rendu le projet existant
     if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
     if (inp.value.trim() === t) inp.value = ''; ATL.micUsed = false;
     ATL.pend = []; ATL.stick = true; await atlLoad(true);
