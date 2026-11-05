@@ -4137,7 +4137,7 @@ function mount(root, api) {
           if (!ok) { c.pense = 0; c.but = 'repos'; nx = c.x; ny = c.y; clip = 'repos'; }
         }
         const dist = Math.hypot(nx - c.x, ny - c.y); c.x = nx; c.y = ny;
-        const M = P.meta.clips[clip]; if (M) c.ph += dist / Math.max(1, P === PSEUDO ? fouleePantin(Object.assign({}, c, { clip })) : vitesse(c, P, clip) * M.duree);
+        const M = P.meta.clips[clip]; if (M) { if (P === PSEUDO) avancerPas(c, dist, dt, clip); else c.ph += dist / Math.max(1, vitesse(c, P, clip) * M.duree); }
       }
     }
     // le boss en rage appelle des renforts (une fois)
@@ -4664,7 +4664,7 @@ function mount(root, api) {
   const PANTINS = {
     renard: { H: 1.0, corps: 0.62,
       tete: { at: [0.86, 0.18], piv: [0.28, 0.78], k: 0.62 }, queue: { at: [0.05, 0.3], piv: [0.08, 0.85], k: 0.66, miroir: true, ang: -0.15 },
-      av: { at: [0.76, 0.78], piv: [0.5, 0.06], k: 0.5 }, ar: { at: [0.2, 0.76], piv: [0.5, 0.06], k: 0.52 },
+      av: { at: [0.76, 0.78], piv: [0.5, 0.06], k: 0.5, miroir: true }, ar: { at: [0.2, 0.76], piv: [0.5, 0.06], k: 0.52 },
       face: { k: 0.62, coupe: 1, piedsY: 0.95, pattes: [0.32, 0.68] }, dos: { k: 0.6, coupe: 1, piedsY: 0.92, pattes: [0.32, 0.68] }, patteFace: { k: 0.42 }, amp: 0.5 },
     // rex : la planche a la grande patte en 3 (orteils vers la gauche, donc miroir) et le petit bras en 4 ; le bras du côté près est déjà
     // dessiné sur le corps. De face et de dos, l'image entière (avec ses pattes) est coupée aux hanches : chaque moitié du bas se replie tour à tour.
@@ -4731,7 +4731,7 @@ function mount(root, api) {
     { const rx = hJeu * 0.55, ry = rx * 0.28; ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(1, ry / rx); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, 'rgba(10,6,20,0.5)'); g.addColorStop(0.7, 'rgba(10,6,20,0.3)'); g.addColorStop(1, 'rgba(10,6,20,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.fill(); ctx.restore(); }
     if (c.prep > 0) { zoneDanger(c, t); }
     if (R.auto) { dessinerAuto(c, t, p, R, filtre, a); if (mort) koEtoiles(c, t, R, x, y, hJeu, a); return; }
-    ctx.save(); ctx.globalAlpha = a;
+    ctx.save(); ctx.globalAlpha = a; { const hb = hauteurBond(c, hJeu); if (hb) ctx.translate(0, -hb); }
     let d = Math.round(((c.th % TAU) + TAU) % TAU / (Math.PI / 4)) % 8;
     const vue = d === 0 ? 'face' : d === 4 ? 'dos' : 'profil', droite = d >= 1 && d <= 3;
     const resp = Math.sin(t * 2.4 + c.id) * 0.012;                         // respiration au repos
@@ -4798,12 +4798,57 @@ function mount(root, api) {
     const d = g.getImageData(0, 0, w, h).data, A = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) A[i] = d[i * 4 + 3] > 80 ? 1 : 0;
     const morceaux = (y) => { let r = 0, l = 0; for (let x = 0; x < w; x++) { if (A[y * w + x]) l++; else { if (l >= 3) r++; l = 0; } } return r + (l >= 3 ? 1 : 0); };
     let yb = h - 1; while (yb > 0 && morceaux(yb) === 0) yb--;
-    let yh = yb; while (yh > h * 0.45 && morceaux(yh - 1) >= 2) yh--;
+    // V16.1 : un sabot levé (patte pliée) ne touche pas le bas : on remonte d'abord jusqu'à la première ligne où l'on voit 2 pattes séparées
+    let y0 = yb; const ymin = yb - Math.round((yb - h * 0.45) * 0.4); while (y0 > ymin && morceaux(y0) < 2) y0--; if (morceaux(y0) < 2) y0 = yb;
+    let yh = y0; while (yh > h * 0.45 && morceaux(yh - 1) >= 2) yh--;
     return { cv, A, w, h, yb, yh };
+  }
+  // V16.1 : les pattes trouvées PAR LE BAS. Une patte = un groupe de colonnes qui touchent le sol ; la hanche = le dessous du ventre entre deux groupes.
+  // Rend { yh, yb, lab, ids } (lab : étiquette de chaque pixel sous la hanche ; ids : les étiquettes gardées comme pattes), ou null.
+  function pattesParLeBas(A, w, h) {
+    const low = new Int32Array(w).fill(-1);
+    for (let x = 0; x < w; x++) for (let y = h - 1; y >= 0; y--) if (A[y * w + x]) { low[x] = y; break; }
+    let yb = -1; for (let x = 0; x < w; x++) if (low[x] > yb) yb = low[x]; if (yb < 4) return null;
+    const tol = Math.max(3, Math.round(h * 0.06)), sol = x => low[x] >= yb - tol, G = [];
+    for (let x = 0; x < w; x++) if (sol(x)) { const x0 = x; while (x < w && (sol(x) || (x + 1 < w && sol(x + 1)))) x++; G.push([x0, x - 1]); }
+    if (G.length < 2) return null;
+    const ventre = [];
+    for (let i = 0; i + 1 < G.length; i++) { const m = []; for (let x = G[i][1] + 1; x < G[i + 1][0]; x++) if (low[x] >= 0) m.push(low[x]); if (m.length) { m.sort((a, b) => a - b); ventre.push(m[m.length >> 1]); } }
+    if (!ventre.length) return null;
+    const yh = Math.min(Math.min(...ventre), yb - Math.round(yb * 0.08)); if (yb - yh < 6) return null;
+    const lab = new Int32Array(w * h); let nl = 0; const info = [0];
+    for (let y = yh; y <= yb; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x; if (!A[i] || lab[i]) continue; nl++; const pile = [i]; lab[i] = nl; let x0 = x, x1 = x, n = 0;
+      while (pile.length) { const j = pile.pop(), jx = j % w, jy = (j / w) | 0; n++; if (jx < x0) x0 = jx; if (jx > x1) x1 = jx;
+        if (jx > 0 && A[j - 1] && !lab[j - 1]) { lab[j - 1] = nl; pile.push(j - 1); } if (jx < w - 1 && A[j + 1] && !lab[j + 1]) { lab[j + 1] = nl; pile.push(j + 1); }
+        if (jy > yh && A[j - w] && !lab[j - w]) { lab[j - w] = nl; pile.push(j - w); } if (jy < yb && A[j + w] && !lab[j + w]) { lab[j + w] = nl; pile.push(j + w); } }
+      info.push({ x0, x1, n });
+    }
+    const ids = new Set(), hb = yb - yh + 1;
+    for (const [g0, g1] of G) for (let y = yb - tol; y <= yb; y++) for (let x = g0; x <= g1; x++) { const l = lab[y * w + x]; if (l && info[l].n >= 30 && (info[l].x1 - info[l].x0) < Math.max(2.2 * hb, w * 0.4)) ids.add(l); }
+    if (ids.size < 2) return null;
+    return { yh, yb, lab, ids: [...ids].sort((a, b) => info[a].x0 - info[b].x0), info };
   }
   function rig(nom, im) {
     if (RIG.has(nom)) return RIG.get(nom);
-    const H0 = hanches(im), { A, w, h, yb, cv } = H0, sans = (PANTINS[nom.split(':')[0]] || {}).sansPattes, yh = sans ? yb : H0.yh;
+    const H0 = hanches(im), { A, w, h, cv } = H0, sans = (PANTINS[nom.split(':')[0]] || {}).sansPattes;
+    const PB = !sans && nom.endsWith(':0') ? pattesParLeBas(A, w, h) : null;
+    if (PB) {   // V16.1 : la méthode par le bas a trouvé au moins 2 pattes
+      const { yh, yb, lab, ids, info } = PB, ov = Math.max(4, Math.round((yb - yh) * 0.12));
+      const legs = ids.map(id => {
+        let sx = 0, sn = 0; for (let x = 0; x < w; x++) for (let y = yh; y <= yh + 2; y++) if (lab[y * w + x] === id) { sx += x; sn++; }
+        const q = info[id], x0 = Math.max(0, q.x0 - 2), x1 = Math.min(w - 1, q.x1 + 2), y0 = Math.max(0, yh - ov), lw = x1 - x0 + 1, lh = yb - y0 + 1;
+        const c2 = document.createElement('canvas'); c2.width = lw; c2.height = lh; const g2 = c2.getContext('2d'); g2.drawImage(cv, x0, y0, lw, lh, 0, 0, lw, lh);
+        const id2 = g2.getImageData(0, 0, lw, lh); for (let y = yh; y <= yb; y++) for (let x = x0; x <= x1; x++) if (lab[y * w + x] !== id) id2.data[((y - y0) * lw + (x - x0)) * 4 + 3] = 0;
+        g2.putImageData(id2, 0, 0); return { cv: c2, x0, y0, px: sn ? sx / sn : (q.x0 + q.x1) / 2, py: yh };
+      });
+      const corps = document.createElement('canvas'); corps.width = w; corps.height = yb + 1; const gc = corps.getContext('2d'); gc.drawImage(cv, 0, 0);
+      const idc = gc.getImageData(0, 0, w, yb + 1), garde = new Set(ids);
+      for (let i = yh * w; i < (yb + 1) * w; i++) if (garde.has(lab[i])) idc.data[i * 4 + 3] = 0;
+      gc.putImageData(idc, 0, 0);
+      const R = { corps, legs, w, h, yh, yb, parLeBas: true }; RIG.set(nom, R); return R;
+    }
+    const yb = H0.yb, yh = sans ? yb : H0.yh;
     // les pattes : morceaux reliés sous la ligne des hanches
     const lab = new Int32Array(w * h), pattes = [];
     for (let y = yh; y <= yb; y++) for (let x = 0; x < w; x++) {
@@ -4815,7 +4860,7 @@ function mount(root, api) {
     }
     for (const q of pattes) { q.y1 = yh; } for (let i = yh * w; i < (yb + 1) * w; i++) if (lab[i]) { const q = pattes[lab[i] - 1], y = (i / w) | 0; if (y > q.y1) q.y1 = y; }
     // une patte touche presque le sol et n'est pas couchée (une queue posée par terre reste sur le corps)
-    const grandes = pattes.filter(q => q.n > 40 && q.y1 > yb - (yb - yh) * 0.25 && (q.x1 - q.x0) < 1.5 * (q.y1 - yh + 1)).sort((a, b) => a.px - b.px);
+    const grandes = pattes.filter(q => q.n > 40 && q.y1 > yb - (yb - yh) * 0.5 && (q.x1 - q.x0) < 1.5 * (q.y1 - yh + 1)).sort((a, b) => a.px - b.px);
     const ov = Math.max(4, Math.round((yb - yh) * 0.12));
     const legs = grandes.map(q => {
       const x0 = Math.max(0, q.x0 - 2), x1 = Math.min(w - 1, q.x1 + 2), y0 = Math.max(0, yh - ov), lw = x1 - x0 + 1, lh = yb - y0 + 1;
@@ -4839,6 +4884,7 @@ function mount(root, api) {
     let vue = d === 0 ? 'face' : d === 4 ? 'dos' : 'profil', droite = d >= 1 && d <= 3;
     if (vue !== 'profil' && !piece(p, vue === 'face' ? 1 : 2)) { vue = 'profil'; droite = c.cote !== false; } else if (vue === 'profil') c.cote = droite;
     ctx.save(); ctx.globalAlpha = a; if (filtre) ctx.filter = filtre;
+    { const hb = hauteurBond(c, hJeu); if (hb) ctx.translate(0, -hb); }
     if (c.mort) koPose(c, R, x, y, hJeu, droite);
     // pose d'attaque dessinée : elle s'affiche pendant l'élan (le joueur voit venir le coup) ; tremblement pour l'annoncer
     const imA = piece(p, 3);
@@ -4894,6 +4940,20 @@ function mount(root, api) {
     ctx.restore();
   }
   // foulée du pantin (distance parcourue par cycle de marche), pour que le pied posé ne glisse pas
+  // V16.1 : avancer le cycle de marche SANS glisser. Le pied posé recule exactement à la vitesse du corps (foulée réelle) ;
+  // si la bête va plus vite que ses pattes ne le permettent à une cadence naturelle (petite bête qui suit l'explorateur),
+  // elle fait de petits bonds : la foulée s'allonge et le corps quitte le sol pendant la partie « en trop » (c.saut, 0..1).
+  function avancerPas(c, st, dt, clip) {
+    const f = Math.max(1, fouleePantin(Object.assign({}, c, { clip: clip || c.clip }))), v = st / Math.max(1e-3, dt), cad = (clip || c.clip) === 'course' ? 4.2 : 3.6;
+    let fe = Math.max(f, v / cad), but;
+    // une bête qui marche mais dont le dessin n'a pas 2 pattes séparées (pieds collés, fourrure jusqu'au sol, phoque) : de vrais petits bonds, jamais de glissement
+    const pp = PANT_DE[c.esp], RR = PANTINS[pp]; let bondit = false;
+    if (RR && RR.auto && !RR.ailes && !RR.sansPattes) { const im = piece(pp, 0); if (im && rig(pp + ':0', im).legs.length < 2) bondit = true; }
+    if (bondit) { fe = Math.max(fe, v / 2.6, 30); but = st > 0 ? 1 : 0; } else but = st > 0 ? 1 - f / fe : 0;
+    c.ph = (c.ph || 0) + st / fe; c.saut = (c.saut || 0) + (but - (c.saut || 0)) * Math.min(1, dt * 8);
+  }
+  // la hauteur du bond à cet instant (une courbe par cycle : posé au début, en l'air au milieu)
+  const hauteurBond = (c, hJeu) => (c.saut || 0) > 0.02 && !c.mort ? Math.sin(((((c.ph % 1) + 1) % 1)) * Math.PI) * hJeu * 0.26 * Math.min(1, c.saut * 1.4) : 0;
   function fouleePantin(c) {
     const p = PANT_DE[c.esp], R = PANTINS[p];
     if (R.auto) { const im = piece(p, 0); if (!im) return 60; const G = rig(p + ':0', im), hJ = ESPECES[c.esp].taille * (c.echelle || 1), fj = Math.max(0.22, (G.yb - G.yh) / (G.yb + 1)); return 4 * hJ * fj * 0.9 * Math.sin(Math.max(0.3, R.amp || 0.42) * (c.clip === 'course' ? 1.25 : 1)); }   // pattes mal repérées (ou ver) : foulée de secours, jamais 0
@@ -6118,15 +6178,22 @@ function mount(root, api) {
 
   // ---------------------------------------------------------------- les tours
   const vitF = F => F.vit * (1 + 0.25 * F.buf.vit) * (F.etat === 'gel' ? 0.5 : 1);
+  // V16.1 : les camps jouent CHACUN SON TOUR (un coup de notre équipe, puis la riposte d'en face, et ainsi de suite) ; dans un camp, la vitesse choisit qui joue
+  // V16.1 : les camps jouent CHACUN SON TOUR (un coup de notre équipe, puis la riposte d'en face…) ; dans un camp, chacun joue à son tour (le plus rapide commence)
+  function ordreCamp(tous, camp) { return tous.filter(F => F.camp === camp).sort((a, b) => vitF(b) - vitF(a) || ((a.gid || '') < (b.gid || '') ? -1 : 1)); }
+  function suivantDe(tous, camp, dernierGid) { const L = ordreCamp(tous, camp); if (!L.length) return null; const i = L.findIndex(F => F.gid === dernierGid); return L[(i + 1) % L.length]; }
   function prochain() {
-    const tous = CB.moi.concat(CB.ennemis).filter(F => !F.ko).sort((a, b) => (a.gid || '') < (b.gid || '') ? -1 : 1);
-    // la jauge de chacun se remplit selon sa vitesse ; le premier à 100 joue
-    let best = null, bt = 1e9; for (const F of tous) { const t = (100 - F.jauge) / Math.max(1, vitF(F)); if (t < bt) { bt = t; best = F; } }
-    for (const F of tous) F.jauge += bt * vitF(F); best.jauge = 0; return best;
+    const tous = CB.moi.concat(CB.ennemis).filter(F => !F.ko);
+    if (!CB.dernierDe) CB.dernierDe = {};
+    // le premier tour : le camp du plus rapide ; ensuite, toujours l'autre camp (s'il reste quelqu'un debout)
+    let camp = CB.dernierCamp == null ? tous.slice().sort((a, b) => vitF(b) - vitF(a))[0].camp : 1 - CB.dernierCamp;
+    if (!tous.some(F => F.camp === camp)) camp = 1 - camp;
+    const best = suivantDe(tous, camp, CB.dernierDe[camp]); CB.dernierDe[camp] = best.gid; CB.dernierCamp = camp; return best;
   }
   function apercuFile(n) {
-    const tous = CB.moi.concat(CB.ennemis).filter(F => !F.ko).sort((a, b) => (a.gid || '') < (b.gid || '') ? -1 : 1), j = new Map(tous.map(F => [F, F.jauge])), out = [];
-    for (let k = 0; k < n && tous.length; k++) { let best = null, bt = 1e9; for (const F of tous) { const t = (100 - j.get(F)) / Math.max(1, vitF(F)); if (t < bt) { bt = t; best = F; } } for (const F of tous) j.set(F, j.get(F) + bt * vitF(F)); j.set(best, 0); out.push(best); }
+    const tous = CB.moi.concat(CB.ennemis).filter(F => !F.ko), out = [], dd = Object.assign({}, CB.dernierDe || {});
+    let camp = CB.dernierCamp == null ? 0 : CB.dernierCamp;
+    for (let k = 0; k < n && tous.length; k++) { camp = tous.some(F => F.camp === 1 - camp) ? 1 - camp : camp; const F = suivantDe(tous, camp, dd[camp]); if (!F) break; dd[camp] = F.gid; out.push(F); }
     return out;
   }
   function tourSuivant() {
@@ -6190,7 +6257,7 @@ function mount(root, api) {
     const A = CB.anim; if (!A) return; A.t += dt; if (A.qte) A.qte.t += dt;
     const F = A.F, c = F.c, cible = A.vise[0];
     // la ruée (Clair Obscur) : la bête court vers sa cible, frappe, revient
-    if (c && cible && A.a.p > 0 && F.sorte === 'bete') { const k = A.t < A.tF ? lisse(A.tF * 0.35, A.tF, A.t) : 1 - lisse(A.tF + 0.06, A.d, A.t), tx = cible.x + (F.camp ? 90 : -90), ty = cible.y; c.x = c.x0 + (tx - c.x0) * k * 0.85; c.y = c.y0 + (ty - c.y0) * k * 0.85; c.clip = k > 0.05 && k < 0.95 ? 'course' : 'attaque'; c.ph += dt * 2; }
+    if (c && cible && A.a.p > 0 && F.sorte === 'bete') { const k = A.t < A.tF ? lisse(A.tF * 0.35, A.tF, A.t) : 1 - lisse(A.tF + 0.06, A.d, A.t), tx = cible.x + (F.camp ? 90 : -90), ty = cible.y; c.x = c.x0 + (tx - c.x0) * k * 0.85; c.y = c.y0 + (ty - c.y0) * k * 0.85; c.clip = k > 0.05 && k < 0.95 ? 'course' : 'attaque'; { const st = Math.hypot(c.x - (A.px == null ? c.x : A.px), c.y - (A.py == null ? c.y : A.py)); A.px = c.x; A.py = c.y; if (c.clip === 'course') { c.th = A.t < A.tF ? Math.atan2(tx - c.x, ty - c.y) : Math.atan2(c.x0 - c.x, c.y0 - c.y); avancerPas(c, st, dt, 'course'); } } }
     if (!A.frappe && A.t >= A.tF) { A.frappe = true; frapper(A); }
     if (A.t >= A.d) { CB.anim = null; CB.qte = null; if (c) { c.x = c.x0; c.y = c.y0; c.clip = 'repos'; c.th = F.camp ? -Math.PI / 2 : Math.PI / 2; } planifier(0.45, tourSuivant); }
   }
@@ -6359,8 +6426,17 @@ function mount(root, api) {
     if (!CB) return; CB.t += dt; CB.msgT += dt;
     for (const q of CB.nums) q.t += dt; CB.nums = CB.nums.filter(q => q.t < 0.8);
     // la caméra : un peu plus près, centrée sur l'arène
-    const zt = portrait ? Math.min(1, W / (600 * Z0)) : 1.12; zf += (zt - zf) * Math.min(1, dt * 3); Z = Z0 * zf;
-    camX += (CB.mx - camX) * Math.min(1, dt * 4); camY += (CB.my - (portrait ? 10 : 40) - camY) * Math.min(1, dt * 4);
+    // V16.1 : la caméra s'approche des deux camps (×1,5 à ×2) : on voit bien l'attaque, la riposte et l'impact ; le menu (à droite sur PC, en bas en portrait) reste libre
+    let zt = portrait ? Math.min(1, W / (600 * Z0)) : 1.12, tx = CB.mx, ty = CB.my - (portrait ? 10 : 40);
+    { const L = CB.moi.concat(CB.ennemis).filter(F => F && F.x != null && !F.ko);
+      if (L.length) { let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+        for (const F of L) { const hh = F.sorte === 'bete' && ESPECES[F.e] ? ESPECES[F.e].taille * (F.boss ? 1.7 : 1) : 140; x0 = Math.min(x0, F.x); x1 = Math.max(x1, F.x); y0 = Math.min(y0, F.y - hh); y1 = Math.max(y1, F.y); }
+        const libreW = W - (portrait ? 0 : 290 * U), libreH = H - (portrait ? menuHaut() + 130 * U : 150 * U);
+        const zb = Math.min(libreW / ((x1 - x0 + 140) * Z0), libreH / ((y1 - y0 + 130) * Z0)) / zt;
+        zt *= clamp(zb, 1, 2);
+        tx = (x0 + x1) / 2 + (portrait ? 0 : 145 * U / (Z0 * zt)); ty = (y0 + y1) / 2 + (portrait ? (menuHaut() * 0.5 - 20 * U) / (Z0 * zt) : -15 * U / (Z0 * zt)); } }
+    zf += (zt - zf) * Math.min(1, dt * 3); Z = Z0 * zf;
+    camX += (tx - camX) * Math.min(1, dt * 4); camY += (ty - camY) * Math.min(1, dt * 4);
     majParts(dt); majRobotCombat(dt); J.tirPose = Math.max(0, (J.tirPose || 0) - dt); J.mode = 'repos'; J.th = Math.PI / 2;
     for (const c of CR) { c.tc += dt; c.flash = Math.max(0, (c.flash || 0) - dt * 4); if (c.mort) c.tm += dt; }
     if (majDemo(dt)) return;
@@ -6448,12 +6524,33 @@ function mount(root, api) {
   }
 
   // ---------------------------------------------------------------- le dessin du combat
+  // V16.1 : on VOIT le tir partir : un projectile lumineux file de l'explorateur (ou du robot, ou d'une bête qui tire de loin) jusqu'à la cible, puis l'impact
+  function dessinerTir(t) {
+    const A = CB.anim; if (!A || !(A.a.p > 0)) return;
+    const F = A.F, cible = A.vise[0]; if (!cible) return;
+    const deLoin = F.sorte === 'hero' || F.sorte === 'robot' || /tir|rayon|laser|jet|balle|souffle|onde|eclair|éclair|boule/i.test(A.a.nom || '');
+    if (!deLoin || (F.sorte === 'bete' && F.c && Math.hypot(F.c.x - F.c.x0, F.c.y - F.c.y0) > 30)) return;
+    const d = Math.min(0.42, A.tF), t0 = A.tF - d, k = (A.t - t0) / d;
+    const hF = F.sorte === 'hero' ? 70 : F.sorte === 'robot' ? 35 : (ESPECES[F.e] ? ESPECES[F.e].taille * 0.55 : 40), hC = cible.sorte === 'bete' && ESPECES[cible.e] ? ESPECES[cible.e].taille * 0.5 : 50;
+    const x0 = sx(F.x + (F.camp ? -30 : 30)), y0 = sy(F.y - hF), x1 = sx(cible.x), y1 = sy(cible.y - hC), coul = (TYPES[A.a.type] && TYPES[A.a.type].c) || '#9affef';
+    ctx.save();
+    if (k >= 0 && k <= 1) {
+      const x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * 18 * Z, r = 15 * Z;
+      for (let i = 9; i >= 1; i--) { const kk = Math.max(0, k - i * 0.04); ctx.globalAlpha = 0.09 * (10 - i); ctx.fillStyle = coul; ctx.beginPath(); ctx.arc(x0 + (x1 - x0) * kk, y0 + (y1 - y0) * kk - Math.sin(kk * Math.PI) * 18 * Z, r * (1 - i * 0.1), 0, TAU); ctx.fill(); }
+      ctx.globalAlpha = 1; ctx.shadowColor = coul; ctx.shadowBlur = 18 * Z; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x, y, r * 0.55, 0, TAU); ctx.fill(); ctx.fillStyle = coul; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.globalAlpha = 0.6; ctx.fill();
+    } else if (k > 1 && k < 1.6) {   // l'impact : un anneau qui s'ouvre sur la cible
+      const q = (k - 1) / 0.6; ctx.globalAlpha = 1 - q; ctx.strokeStyle = coul; ctx.lineWidth = 5 * Z * (1 - q) + 1; ctx.shadowColor = coul; ctx.shadowBlur = 14 * Z; ctx.beginPath(); ctx.arc(x1, y1, (12 + 46 * q) * Z, 0, TAU); ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.globalAlpha = (1 - q) * 0.8; ctx.beginPath(); ctx.arc(x1, y1, 14 * Z * (1 - q), 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+  }
   function drawCombat(t, dt) {
     tapBtns = []; if (CB.opt.arene) { drawSolArene(t); acteursArene(t); } else { drawMonde(t); drawBrouillard(t); } drawNetActeurs(t);
     // l'arène : le reste du monde s'assombrit doucement, un cercle de lumière au sol
     ctx.save(); const cx = sx(CB.mx), cy = sy(CB.my + 20), R = 420 * Z;
     const g = ctx.createRadialGradient(cx, cy, R * 0.35, cx, cy, Math.max(W, H)); g.addColorStop(0, 'rgba(0,0,10,0)'); g.addColorStop(0.5, 'rgba(0,0,12,0.35)'); g.addColorStop(1, 'rgba(0,0,12,0.65)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
     if (CB.cap) dessinerBalle(t);
+    dessinerTir(t);
     if (CB.qte && !CB.qte.res) dessinerQte(t);
     // nombres et mots qui montent
     for (const q of CB.nums) { const a = q.t < 0.55 ? 1 : 1 - lisse(0.55, 0.8, q.t), y = sy(q.y) - q.t * 55 * U; ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.font = (q.mot ? '800 ' + Math.round(15 * U) : '900 ' + Math.round((q.gros ? 30 : 24) * U)) + 'px ' + (q.mot ? FB : FT); ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(10,8,30,0.9)'; ctx.fillStyle = q.c; const x = sx(q.x); ctx.strokeText(q.s, x, y); ctx.fillText(q.s, x, y); ctx.restore(); }
@@ -6474,18 +6571,20 @@ function mount(root, api) {
     // le message du moment
     if (CB.msg && CB.phase !== 'fin') bandeauTexte(CB.msg, 22 * U + r * 2 + 12 * U, Math.min(1, CB.msgT * 4 + 0.3));
     // les bêtes adverses : nom, niveau, PV, état (au-dessus de chacune)
-    for (const G of CB.ennemis) { if (G.ko && !G.c) continue; if (G.ko) continue; const h = ESPECES[G.e] ? ESPECES[G.e].taille * (G.c.echelle || 1) * (G.boss ? 1.7 : 1) : 100, bx = sx(G.x), by = sy(G.y) - h * Z - 26 * U; etiquetteF(G, bx, by); }
+    for (const G of CB.ennemis) { if (G.ko && !G.c) continue; if (G.ko) continue; const h = ESPECES[G.e] ? ESPECES[G.e].taille * (G.c.echelle || 1) * (G.boss ? 1.7 : 1) : 100, gx = G.c ? G.c.x : G.x, gy = G.c ? G.c.y : G.y, bx = sx(gx), by = sy(gy) - h * Z * 1.18 - 40 * U; etiquetteF(G, bx, by); }   // V16.1 : bien au-dessus de la tête, jamais sur la bête
     // nos combattants : des cartes en bas à gauche
-    const cw = portrait ? (W - 24 * U) / 3 : 168 * U, ch = 46 * U, y0 = H - ch - 10 * U - (portrait ? 0 : 0);
-    CB.moi.filter(F => !F.own || F.sorte === 'hero').forEach((F, i) => { const x0 = portrait ? 8 * U + i * (cw + 4 * U) : 10 * U + i * (cw + 6 * U), yy = portrait ? H - menuHaut() - ch - 14 * U : y0; carteF(F, x0, yy, cw, ch); });
+    const cw = portrait ? (W - 24 * U) / 3 : 168 * U, ch = 46 * U, y0 = H - ch - 10 * U - basPad();
+    CB.moi.filter(F => !F.own || F.sorte === 'hero').forEach((F, i) => { const x0 = portrait ? 8 * U + i * (cw + 4 * U) : 10 * U + i * (cw + 6 * U), yy = portrait ? H - menuHaut() - ch - 14 * U - basPad() : y0; carteF(F, x0, yy, cw, ch); });
     // le menu d'actions
     const L = menuCombat(); if (L.length) dessinerMenu(L);
     if (CB.phase === 'fin') dessinerFin(t);
   }
+  // V16.1 : une ligne réservée en bas pour l'aide de la manette (A Valider · B Retour…), sous les cartes et le menu
+  function basPad() { return typeof padVu !== 'undefined' && padVu > 0 ? 30 * U : 0; }
   function menuHaut() { const L = CB ? menuCombat() : []; const n = L.length, col = portrait ? 2 : 1, bh = 40 * U; return Math.ceil(n / col) * (bh + 6 * U) + 10 * U; }
   function dessinerMenu(L) {
     const bh = 40 * U, col = portrait ? 2 : 1, bw = portrait ? (W - 24 * U) / 2 : 250 * U, n = L.length, rows = Math.ceil(n / col);
-    const x0 = portrait ? 8 * U : W - bw - 14 * U, y0 = H - rows * (bh + 6 * U) - 8 * U;
+    const x0 = portrait ? 8 * U : W - bw - 14 * U, y0 = H - rows * (bh + 6 * U) - 8 * U - basPad();
     L.forEach((b, i) => {
       const cxx = x0 + (i % col) * (bw + 8 * U), cyy = y0 + Math.floor(i / col) * (bh + 6 * U);
       ctx.save(); if (b.off) ctx.globalAlpha = 0.45;
@@ -6534,7 +6633,8 @@ function mount(root, api) {
     ctx.save(); ctx.lineWidth = 4 * U; ctx.strokeStyle = 'rgba(255,233,168,0.95)'; ctx.beginPath(); ctx.arc(x, y, r0, 0, TAU); ctx.stroke();
     ctx.strokeStyle = q.sorte === 'esquive' ? 'rgba(255,120,120,0.9)' : 'rgba(130,255,235,0.9)'; ctx.lineWidth = 3 * U; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
     ctx.font = '800 ' + Math.round(13 * U) + 'px ' + FB; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(10,8,30,0.9)';
-    const s = (q.sorte === 'esquive' ? '🛡️ Esquive' : '🎯 Tir parfait') + (auDoigt ? ' : touche maintenant' : ' : Espace maintenant'); ctx.strokeText(s, x, y + r0 + 22 * U); ctx.fillText(s, x, y + r0 + 22 * U);
+    const s = (q.sorte === 'esquive' ? '🛡️ Esquive' : '🎯 Tir parfait') + (auDoigt ? ' : touche maintenant' : ' : Espace maintenant'); const ys = 22 * U + 34 * U + 12 * U + 56 * U, lw = ctx.measureText(s).width / 2 + 14 * U, xs = W / 2;   // V16.1 : en haut, sous le message du tour : il ne cache jamais personne
+    ctx.fillStyle = 'rgba(12,10,40,0.82)'; ctx.beginPath(); ctx.roundRect(xs - lw, ys - 16 * U, lw * 2, 26 * U, 13 * U); ctx.fill(); ctx.fillStyle = '#fff'; ctx.strokeText(s, xs, ys); ctx.fillText(s, xs, ys);   // V16.1 : sous les pattes
     ctx.restore();
     tapBtns.push({ x: 0, y: 0, w: W, h: H, f: appuiQte });
   }
@@ -6821,8 +6921,9 @@ function mount(root, api) {
       let clip = 'repos';
       if (tx != null) { const dx = tx - c.x, dy = ty - c.y, d = Math.hypot(dx, dy);
         if (d > 16) { clip = c.suit && d > 260 ? 'course' : 'marche'; const v = c.suit ? Math.max(vitesse(c, P, clip) || 0, d > 220 ? 360 : 170) : (vitesse(c, P, clip) || 80); c.th += angDiff(c.th, Math.atan2(dx, dy)) * Math.min(1, dt * 6); const st = Math.min(d, v * dt); const nx = c.x + Math.sin(c.th) * st, ny = c.y + Math.cos(c.th) * st;
-          if (!TER.info(nx, ny).liq && !solideBase(nx, ny)) { c.x = nx; c.y = ny; } else if (c.suit && d > 400) { c.x = tx; c.y = ty; } c.ph += st / Math.max(1, fouleePantin(Object.assign({}, c, { clip }))); }
+          if (!TER.info(nx, ny).liq && !solideBase(nx, ny)) { c.x = nx; c.y = ny; } else if (c.suit && d > 400) { c.x = tx; c.y = ty; } avancerPas(c, st, dt, clip); }
         else if (!c.suit) c.but = null; }
+      if (clip === 'repos') c.saut = (c.saut || 0) * Math.max(0, 1 - dt * 8);
       if (clip !== c.clip) { c.clip = clip; c.tc = 0; }
     }
   }
@@ -7604,7 +7705,7 @@ function mount(root, api) {
       else if (state === 'carte' && carte && carte.vue !== 'ici') { const k = Math.min(W, H) / 2200 * carte.z; carte.cx += d[0] * 160 / k; carte.cy += d[1] * 160 / k; }   // la galaxie glisse
     }
     padF = padC(B); padF.b = B;
-    if (padP('a') && B.f) { try { B.f(); } catch (e) { /* rien */ } }
+    if (padP('a') && B.f) { try { B.f(); } catch (e) { /* rien */ } padF = null; }   // V16.1 : le cadre s'efface dans la même image que le bouton validé
   }
   // le cadre doré autour du bouton choisi + l'aide des boutons en bas de l'écran
   function padGlyphe(b, x, y, r) {
@@ -7623,6 +7724,7 @@ function mount(root, api) {
     if (pad && padVu > 0 && state === 'creation') { padAide([['dpad', 'Choisir'], ['y', 'Au hasard'], ['a', 'C’est moi !']]); return; }   // la création a ses propres touches
     if (pad && padVu > 0 && state === 'cine') { padAide([['a', 'Passer']]); return; }
     if (!pad || padVu <= 0 || !padMenu() || !padF || !padF.b) return;
+    if (!padF.b.pin && !tapBtns.some(q => Math.abs(q.x + q.w / 2 - padF[0]) < 6 && Math.abs(q.y + q.h / 2 - padF[1]) < 6)) return;   // le bouton n'est plus à l'écran : pas de cadre vide
     const B = padF.b, p = 4 * U + Math.sin(t * 6) * 1.5 * U;
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.strokeStyle = '#ffd23a'; ctx.lineWidth = 3.5 * U; ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 12 * U;
     ctx.beginPath(); ctx.roundRect ? ctx.roundRect(B.x - p, B.y - p, B.w + p * 2, B.h + p * 2, Math.min(B.h, B.w) / 2 + p) : ctx.rect(B.x - p, B.y - p, B.w + p * 2, B.h + p * 2); ctx.stroke(); ctx.restore();
@@ -7720,6 +7822,7 @@ function mount(root, api) {
       tp(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, setLook(l) { look = Object.assign({}, EXPL_PANTIN.DEF, l); }, cat(i) { creaCat = i; },
       trouver(bid) { for (const S of GAL.sys) { if (!S.proche) continue; for (let k = 0; k < S.nbp; k++) if (MONDE.planete(S.i, k).bid === bid) return { sys: S.i, k }; } return null; }, trouverLoin(bid) { for (const S of GAL.sys) for (let k = 0; k < S.nbp; k++) if (MONDE.planete(S.i, k).bid === bid) return { sys: S.i, k }; return null; },
       poser(t, m, gx, gy) { bSel = t; bMat = m; poser(gx, gy); }, construire(v) { construire = v; if (v && !bMat) bMat = matDefaut(); }, nbBases: () => BASES.size,
+      rigDe: (p) => { const im = IMG['p-' + p + '-0']; if (!im) return null; const G = rig(p + ':0', im); return { w: G.w, h: G.h, yh: G.yh, yb: G.yb, legs: G.legs.map(l => ({ x0: l.x0, y0: l.y0, w: l.cv.width, h: l.cv.height, px: l.px, py: l.py, url: l.cv.toDataURL() })), corps: G.corps.toDataURL(), image: (() => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); return c.toDataURL(); })() }; },
       CR: () => CR, tapBtns: () => tapBtns, ARSOL: () => ARSOL, actionAreneSol, sortirArene, FRUITS, decorsProches: (R) => decorsAutour(J.x, J.y, R || 1500).map(o => ({ t: o.d.type, x: o.x, y: o.y })), fruitsIci: (R) => { const out = {}; for (const o of decorsAutour(J.x, J.y, R || 3000)) { const id = fruitDe(o.d, o.x, o.y); if (id) out[id] = (out[id] || 0) + 1; } return out; }, PL: () => PL, COMBAT, tirer, rouler, CB: () => CB, RIV: () => RIV, jouerCine, CIN: () => CIN, suiteCine, INV: () => INV, defier, accepterDefi, rejoindre, snapEquipe, recevoirNet, defiEnregistre, setEquipesAmis(L) { EQUIPES_AMIS = L; }, AR: () => AR, ARENES, LIEUX, entrerArene, posArene: () => { placeArene(); return POS_ARENE; }, sortirArene, LIEU: () => LIEU, peuplerLieu, ouvrirTresor, rivalIci(i) { const R = RIVAUX[i || 0]; RIV = { R, x: J.x + 300, y: J.y, th: 0, bulle: 0, defi: false }; }, choisirDepart, ouvrirCosmo, actionFruit, fruitsSol: () => fruitsSol, actionBtn: () => actionBtn, ouCache: () => ouCache(tG), nappes: () => nappes(tG), surprise: () => surprise, setCacheT(v) { cacheT = v; }, decors(x, y, r) { return decorsAutour(x, y, r).map(o => ({ t: o.d.type, x: o.x, y: o.y })); }, ongletC(o) { ongletC = o; }, pageC: () => pageC, img: k => IMG[k], pantDe: id => PANT_DE[id], selC(i) { selC = i; }, AF, AF_LISTE, AFX, ATT, FAMILLES, lancerCombat, combatContact, menuCombat, appuiQte, quitterCombat, donnerBete, stats, EVO: () => EVO, lancerEvolution, peutEvoluer, chanceCapture, BALLES, FAM_DESSINEES, chargerFamille, renardTest(x, y, th, clip, esp) { CR = [nouvelle(99, esp || 'renard', x, y, Math.random, { th, test: true, testClip: clip || 'marche' })]; paquet(esp || 'renard'); },
       creature(esp, x, y, opt) { const c = nouvelle(500 + CR.length, esp, x, y, Math.random, opt || {}); if (opt && opt.vieMax) c.vie = opt.vieMax; CR.push(c); paquet(esp); return c.id; },
       EN: () => EN, VS, tirerEspace, missile, sortirEVA, EVA: () => EVA, chapitre, lieuArchive, ARCHIVE: () => ARCHIVE, recit: () => recit, journal(v) { journalOuvert = v; }, finirRecit() { recit = null; },
