@@ -8,6 +8,7 @@ const ORDER = ['noisette', 'lune', 'licornes', 'trone', 'jetporte', 'remparts', 
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
+  trone: { kind: 'maj', at: '2026-11-05 13:00' },   // Trôn-e (borne 2.0.126) : « 📣 Inviter mes copains » dans le salon (bouton de la barre du jeu, api.live.inviter)
   remparts: { kind: 'maj', at: '2026-11-04 13:56' },   // Remparts ! (borne 2.0.85 : écran des mondes en accordéon ; borne 2.0.79 : 20 niveaux par monde = 4 régions × 5 ; borne 2.0.69 : la Crypte oubliée = 4 mondes cachés × 5 niveaux ; borne 2.0.27 : progression par salle — mondes ouverts, étoiles, défi ; 2.0.25 : records de la salle aussitôt sur les boutons ; 2.0.24) : records PAR SALLE (« Toi dans la salle », tableau, 👑) et 🌍 Mondial à part ; à la sortie : (tower defense magique 3D) : SORTI POUR TOUS (« Oui, public », Benjamin) ; heure = celle de la sortie ; en essai derrière la porte labo jusqu'à la 1.63.104
   noisette: { kind: 'maj', at: '2026-11-05 02:18' },   // Noisette et ses amis V7 (borne 2.0.115) : 6 mondes, 30 niveaux, carte de la tuile en 6 mondes
   licornes: { kind: 'new', at: '2026-11-02 17:30' },   // La Maison des Licornes (1er jeu né à l'Atelier, projet de PATOU, version alpha, en essai derrière la porte labo : …/jouer/?labo=licornes)
@@ -3005,6 +3006,7 @@ function onPoke(topic, event, p) {
   if (event === 'ile' && p.k === 'ile_demande') { if (typeof islOnDemande === 'function') islOnDemande(p.ile); return; }
   if (p.from === clientId) return;
   if (p.t === 'sms') { if (topic === smsTopicOn) for (const f of [...SMS_SUBS]) { try { f(); } catch (e) {} } return; }
+  if (p.t === 'invjeu') { if (topic === smsTopicOn) livInvPoll(); return; }   // 2.0.126 : un copain m'invite dans son jeu (SQL v136)
   if (p.t === 'px') { if (topic === smsTopicOn) for (const f of [...PRIV.subs]) { try { f(p); } catch (e) {} } return; }   // espace privé
   if (p.t === 'appel') {   // appel : relire pg_appel_attente (le hub de Pégase s'il est ouvert, sinon la borne elle-même)
     if (topic === smsTopicOn) { if (APPEL_SUBS.size) for (const f of [...APPEL_SUBS]) { try { f(); } catch (e) {} } else { CALLG.at = 0; callgPoll(); } }
@@ -10328,8 +10330,152 @@ function liveApi(g, seq) {
       return { token: String(j.token), url: String(j.url), room: String(j.room || ''), identity: String(j.identity || '') };
     },
     livekit: () => livekitLoad(),
+    // 2.0.126 (CONTRACT.md Ajout 23) : « 📣 Inviter mes copains » — la fenêtre de la borne (membres de la salle, cases à cocher) ; promesse :
+    // { envoyees: [pseudos], refus: [{ a, raison }] } ou null si fermée sans envoyer. peutInviter() = compte, en ligne, dans une salle
+    peutInviter: () => ok() && livInvOk(),
+    inviter: o => ok() && livInvOk() ? livInvFenetre(g, o) : Promise.resolve(null),
   };
 }
+// ---- 2.0.126 (l'admin, 5 nov. : remplir les 8 places du salon de Trôn-e) : « 📣 INVITER MES COPAINS » dans un jeu à plusieurs (api.live).
+// Serveur source/inviter.sql (SQL v136). L'invitation arrive a) tout de suite (signal { t: 'invjeu' } du canal privé → live_invitations →
+// fenêtre « X t'invite à … » : Rejoindre / Pas maintenant), b) dans la conversation avec lui (hub de Pégase, onglet Amis : carte « ▶️ Rejoindre »
+// → jouer/?rejoindre=<id>), c) quand il ouvre la borne plus tard, tant que le salon est ouvert (un joueur de la salle dans ce jeu depuis moins
+// de 3 min : live_salon_vivant toutes les 60 s). Rejoindre = la même salle (on y passe si besoin), le même jeu. Pas de spam : 1 invitation par
+// copain toutes les 5 min, plus rien pendant 1 h après un « non ». Jeu général : le bouton 📣 de la barre du jeu, ou api.live.inviter() du jeu.
+const LIVINV = { list: [], shown: new Set(), busy: false, cur: null, t: 0 };
+const livInvOk = () => ONLINE && !netOff() && !isGuest() && !!profile.name;
+function livSalonVivant() {
+  if (!current || !current.game || !current.game.live || !room || !livInvOk()) return;
+  rpc('live_salon_vivant', { p_name: profile.name, p_jeu: current.game.id, p_salle: room.id }, { quiet: true }).catch(() => {});
+}
+setInterval(livSalonVivant, 60000);
+async function livInvPoll() {
+  if (!livInvOk() || LIVINV.busy) return; LIVINV.busy = true;
+  try { const l = await rpc('live_invitations', { p_name: profile.name }, { quiet: true }); LIVINV.list = Array.isArray(l) ? l : []; livInvMontre(); }
+  catch (e) {} finally { LIVINV.busy = false; }
+}
+setTimeout(livInvPoll, 5000);   // c) en ouvrant la borne
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - LIVINV.t > 20000) { LIVINV.t = Date.now(); livInvPoll(); } });
+function livInvEl() {
+  let b = document.getElementById('jdw-liveinv'); if (b) return b;
+  b = document.createElement('div'); b.id = 'jdw-liveinv'; b.className = 'netinv coop liv-inv'; b.setAttribute('role', 'alertdialog'); b.hidden = true;
+  b.innerHTML = '<span class="netinv-head"></span><span class="netinv-t"></span><span class="netinv-btns"><button class="btn btn-play btn-sm liv-ok" type="button">▶️ Rejoindre</button><button class="btn btn-ghost btn-sm liv-no" type="button">Pas maintenant</button></span>';
+  document.body.appendChild(b); return b;
+}
+function livInvMontre() {
+  const b = livInvEl(); if (!b.hidden) return;
+  for (const x of LIVINV.list) {
+    if (LIVINV.shown.has(x.id)) continue; LIVINV.shown.add(x.id);
+    if (current && current.game && current.game.id === x.jeu && room && +room.id === +x.salle) { rpc('live_invitation_repondre', { p_name: profile.name, p_id: x.id, p_oui: true }, { quiet: true }).catch(() => {}); continue; }   // déjà dans ce salon
+    const hd = b.querySelector('.netinv-head'); hd.textContent = ''; hd.appendChild(chatHead(cleanName(x.de), { passive: true }));
+    const t = b.querySelector('.netinv-t'); t.textContent = dispName(x.de) + ' t’invite à jouer à ' + (x.titre || x.jeu) + ' !';
+    const sm = document.createElement('small'); sm.className = 'liv-sous'; sm.textContent = 'Dans la salle ' + (x.salle_nom || '') + (current && !$('jdw-play').hidden ? ' · ta partie s’arrête' : ''); t.appendChild(sm);
+    const ok = b.querySelector('.liv-ok'), no = b.querySelector('.liv-no');
+    ok.onclick = () => { b.hidden = true; clearTimeout(LIVINV.cur); livInvRejoindre(x.id); };
+    no.onclick = () => { b.hidden = true; clearTimeout(LIVINV.cur); rpc('live_invitation_repondre', { p_name: profile.name, p_id: x.id, p_oui: false }, { quiet: true }).catch(() => {}); setTimeout(livInvMontre, 400); };
+    b.hidden = false; try { Audio.tone(784, 0.1, 'square', 0.05, 1046); } catch (e) {}
+    clearTimeout(LIVINV.cur); LIVINV.cur = setTimeout(() => { b.hidden = true; setTimeout(livInvMontre, 400); }, 60000);
+    return;
+  }
+}
+// une information qui reste jusqu'au « OK » (la partie est finie…), dans la même fenêtre que l'invitation
+function livInvInfo(de, texte, sous) {
+  const b = livInvEl(), hd = b.querySelector('.netinv-head'), t = b.querySelector('.netinv-t'), ok = b.querySelector('.liv-ok'), no = b.querySelector('.liv-no');
+  hd.textContent = ''; if (de) hd.appendChild(chatHead(cleanName(de), { passive: true })); else hd.textContent = '🎮';
+  t.textContent = texte; if (sous) { const sm = document.createElement('small'); sm.className = 'liv-sous'; sm.textContent = sous; t.appendChild(sm); }
+  ok.textContent = 'OK'; no.hidden = true; clearTimeout(LIVINV.cur);
+  ok.onclick = () => { b.hidden = true; ok.textContent = '▶️ Rejoindre'; no.hidden = false; setTimeout(livInvMontre, 400); };
+  b.hidden = false;
+}
+async function livInvRejoindre(id) {
+  if (!livInvOk()) { if (isGuest()) guestAsk('Rejoindre un copain'); return; }
+  let r = null; try { r = await rpc('live_invitation_repondre', { p_name: profile.name, p_id: id, p_oui: true }, { quiet: true }); } catch (e) { r = null; }
+  if (!r) { toastCheer('Cette invitation n’est plus valable.', null, true); return; }
+  if (r.fini) { livInvInfo(r.de, 'La partie de ' + dispName(r.de || '') + (r.titre ? ' à ' + r.titre : '') + ' est finie 😕', 'Envie d’y jouer ? Ouvre le jeu et touche « 📣 Inviter » : à ton tour d’inviter les copains !'); return; }
+  const g = gameById(r.jeu); if (!g) { toastCheer('Ce jeu n’est pas encore sur ta borne : mets-la à jour.', r.de, true); return; }
+  if (!$('jdw-play').hidden) backToLibrary();
+  if (!room || +room.id !== +r.salle) {   // on passe dans la salle de l'invitation (j'en suis membre : le serveur l'a vérifié)
+    let rm = null; try { rm = ((await rpc('list_rooms', { p_code: CODE(), p_name: profile.name || '' })) || []).find(z => +z.r_id === +r.salle) || null; } catch (e) { rm = null; }
+    enterRoom({ id: r.salle, name: rm ? rm.r_name : (r.salle_nom || ''), priv: !!(rm && rm.r_private), owner: (rm && rm.r_owner) || null });
+    await new Promise(ok => setTimeout(ok, 1200));
+  }
+  toastCheer('Je te rejoins à ' + (r.titre || g.title) + ' !', r.de, true);
+  setTimeout(() => openGame(g), 300);
+}
+// b) le lien du message « ▶️ Rejoindre » (hub de Pégase) : jouer/?rejoindre=<id>
+(() => {
+  let id = ''; try { id = new URLSearchParams(location.search).get('rejoindre') || ''; } catch (e) {}
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) return;
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  setTimeout(() => livInvRejoindre(id), 1500);
+})();
+// la fenêtre « 📣 Inviter mes copains » : les membres de la salle (sauf moi), cochés d'avance sauf ceux qui sont déjà dans le jeu, invités il y a
+// moins de 5 min ou qui ont dit non ; « Tout le monde » / « Personne » ; Inviter (n) → live_inviter
+function livInvFenetre(g, o) {
+  return new Promise(fin => {
+    const old = document.getElementById('jdw-livmod'); if (old) old.remove();
+    const me = cleanName(profile.name), titre = String((o && o.titre) || g.title || g.id).slice(0, 40);
+    const M = document.createElement('div'); M.id = 'jdw-livmod'; M.className = 'liv-mod'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Inviter mes copains');
+    const C = document.createElement('div'); C.className = 'liv-card'; M.appendChild(C);
+    const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+    C.append(el('h2', '', '📣 Inviter mes copains'));
+    const sous = el('p', 'liv-sub'); sous.append('À ', el('b', '', titre), ' avec toi, dans la salle ', el('b', '', room ? room.name : ''), '. Ils le voient tout de suite, dans leurs messages, et en ouvrant la borne.'); C.append(sous);
+    const tous = el('div', 'liv-tous'), bAll = el('button', 'btn btn-ghost btn-sm', 'Tout le monde'), bNone = el('button', 'btn btn-ghost btn-sm', 'Personne'); bAll.type = bNone.type = 'button'; tous.append(bAll, bNone); C.append(tous);
+    const L = el('div', 'liv-l'); C.append(L);
+    const msg = el('p', 'liv-msg', ''); C.append(msg);
+    const bt = el('div', 'liv-btns'), no = el('button', 'btn btn-ghost', 'Fermer'), go = el('button', 'btn btn-play', '📣 Inviter'); no.type = go.type = 'button'; bt.append(no, go); C.append(bt);
+    let res = null; const fermer = () => { M.remove(); document.removeEventListener('keydown', esc, true); fin(res); };
+    const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); fermer(); } };
+    document.addEventListener('keydown', esc, true); no.addEventListener('click', fermer); M.addEventListener('click', e => { if (e.target === M) fermer(); });
+    const gens = [...players.values()].filter(p => p.member && p.name !== me && p.name !== AI_NAME).sort((a, b) => (b.live ? 1 : 0) - (a.live ? 1 : 0) || dispName(a.name).localeCompare(dispName(b.name), 'fr'));
+    const rows = [];
+    const maj = () => { const n = rows.filter(r => r.cb.checked && !r.cb.disabled).length; go.textContent = '📣 Inviter' + (n ? ' (' + n + ')' : ''); go.disabled = !n; };
+    const peint = env => {
+      L.textContent = ''; rows.length = 0;
+      if (!gens.length) L.appendChild(el('p', 'liv-vide', 'Personne d’autre dans cette salle pour l’instant. Invite des copains dans la salle avec le bouton « Inviter » de l’accueil.'));
+      for (const p of gens) {
+        const e = env[p.name] || null, ago = e ? (Date.now() - Date.parse(e.at)) / 60000 : 1e9, dedans = p.live && p.game === g.id;
+        const non = e && e.etat === 'refusee' && (Date.now() - Date.parse(e.repondu_at || e.at)) / 60000 < 60, recent = e && ago < 5;
+        const r = el('label', 'liv-r'), cb = document.createElement('input'); cb.type = 'checkbox';
+        cb.disabled = dedans || non || recent || (e && e.etat === 'acceptee' && ago < 120); cb.checked = !cb.disabled;
+        const st = dedans ? '🎮 déjà dans le jeu' : e && e.etat === 'acceptee' && ago < 120 ? '✅ a accepté' : non ? '🙅 a dit non (on n’insiste pas)' : recent ? '⏳ invité il y a ' + Math.max(1, Math.round(ago)) + ' min' : p.live ? '🟢 en ligne' : 'hors ligne · il le verra en ouvrant la borne';
+        const tx = el('span', 'liv-n'); tx.append(el('b', '', dispName(p.name)), el('small', '', st));
+        r.append(cb, chatHead(p.name, { passive: true }), tx); if (cb.disabled) r.classList.add('off');
+        cb.addEventListener('change', maj); L.appendChild(r); rows.push({ p, cb });
+      }
+      maj();
+    };
+    bAll.addEventListener('click', () => { for (const r of rows) if (!r.cb.disabled) r.cb.checked = true; maj(); });
+    bNone.addEventListener('click', () => { for (const r of rows) r.cb.checked = false; maj(); });
+    peint({}); document.body.appendChild(M);
+    rpc('live_invites_envoyees', { p_name: profile.name, p_jeu: g.id, p_salle: room.id }, { quiet: true }).then(env => { if (M.isConnected) peint(env && typeof env === 'object' ? env : {}); }).catch(() => {});
+    go.addEventListener('click', async () => {
+      const a = rows.filter(r => r.cb.checked && !r.cb.disabled).map(r => r.p.name); if (!a.length) return;
+      go.disabled = true; msg.textContent = 'J’envoie…';
+      try {
+        const out = await rpc('live_inviter', { p_name: profile.name, p_jeu: g.id, p_salle: room.id, p_titre: titre, p_a: a }, { quiet: true }) || [];
+        const ok = out.filter(x => x && x.ok).map(x => x.a), ref = out.filter(x => x && !x.ok);
+        res = { envoyees: ok, refus: ref.map(x => ({ a: x.a, raison: x.raison })) };
+        msg.textContent = (ok.length ? '✅ Invitation envoyée à ' + ok.map(dispName).join(', ') + '.' : '') + (ref.length ? ' ' + ref.map(x => dispName(x.a) + (x.raison === 'refuse' ? ' a déjà dit non' : ' vient d’être invité')).join(', ') + '.' : '');
+        livSalonVivant();
+        setTimeout(() => { if (M.isConnected) fermer(); }, 2200);
+      } catch (e) { go.disabled = false; msg.textContent = /trop|rate/.test(String(e && e.message)) ? 'Beaucoup d’invitations d’un coup : attends un peu.' : 'Pas envoyé : vérifie le réseau et réessaie.'; }
+    });
+  });
+}
+// le bouton 📣 de la barre du jeu, pour tout jeu « live » quand on peut inviter
+function livBtnMaj() {
+  const b = document.getElementById('jdw-liv-b'); if (!b) return;
+  const g = current && current.game; b.hidden = !(g && g.live && room && livInvOk() && !$('jdw-play').hidden);
+}
+setInterval(livBtnMaj, 1500);
+(() => {
+  const mute = document.getElementById('jdw-mute'); if (!mute || document.getElementById('jdw-liv-b')) return;
+  const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.id = 'jdw-liv-b'; b.type = 'button'; b.hidden = true;
+  b.title = 'Inviter mes copains'; b.setAttribute('aria-label', 'Inviter mes copains'); b.innerHTML = '📣<span class="tb-word"> Inviter</span>';
+  b.addEventListener('click', () => { const g = current && current.game; if (g && g.live && room) livInvFenetre(g); });
+  mute.parentNode.insertBefore(b, mute);
+})();
 // 2.0.56 (équipe de L'Explorateur de l'espace) : le MONDE PARTAGÉ DE LA SALLE d'un jeu qui déclare « monde: true » — des documents JSON
 // par jeu et par salle qui restent quand tout le monde est parti (at_monde_docs, SQL v87) et les échanges entre joueurs en 3 temps
 // (proposer → l'autre accepte → on reconfirme = « conclu », 5 min au plus). Promesses ; null pour un invité, hors ligne ou hors salle.
@@ -10407,6 +10553,7 @@ function mountGame(g) {
     }
   };
   current = { game: g, root, seq, over: false, inst: null, lvBase: lvBest(profile.name, g.id), pad: api.pad };
+  if (g.live) setTimeout(livSalonVivant, 1500);   // 2.0.126 : le salon de ce jeu est ouvert dans ma salle (les invitations restent valables)
   recReset(); setTimeout(recLine, 50);
   musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);
   try { current.inst = g.mount(root, api) || {}; } catch (e) { current.inst = {}; reportError('Lancement de ' + g.id + ' : ' + e.message, e.stack); }

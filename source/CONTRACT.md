@@ -337,3 +337,18 @@ Pour un jeu à points où chaque niveau / monde a son meilleur score (le plus GR
 Côté serveur RIEN ne change : c'est la table `level_bests` (« moins de coups = mieux ») avec coups = 100 000 − score et temps 0 ;
 les notifications « X a battu ton record » marchent telles quelles (recTag de shell2.js les relit en points pour `remparts`).
 Un nouveau jeu qui s'en sert : l'ajouter à recTag (nom des niveaux, « points »).
+
+## Ajout 23 : inviter ses copains dans un jeu à plusieurs (api.live.inviter, borne 2.0.126, Trôn-e)
+Pour remplir un salon (Trôn-e : jusqu'à 8 joueurs), un jeu `live: true` peut ouvrir la fenêtre « 📣 Inviter mes copains » de la borne :
+`api.live.peutInviter()` → vrai si le joueur a un compte, est en ligne et dans une salle ; `await api.live.inviter({ titre? })` → ouvre la
+fenêtre (les membres de la salle, cochés d'avance, sauf ceux déjà dans le jeu, invités il y a moins de 5 min ou qui ont dit non) et rend
+`{ envoyees: [pseudos], refus: [{ a, raison: 'deja' | 'refuse' }] }`, ou `null` si le joueur ferme sans envoyer. Sans rien faire, la borne
+montre aussi un bouton « 📣 Inviter » dans la barre du haut pendant tout jeu `live: true` (même fenêtre) ; le jeu peut en plus mettre son
+propre bouton dans son salon (vérifier `api.live.inviter` avant de s'en servir : vieilles bornes).
+L'invitation arrive chez le copain : tout de suite s'il est en ligne (fenêtre « X t'invite à … » : Rejoindre / Pas maintenant), dans sa
+conversation avec l'invitant (onglet Amis du hub de Pégase : carte « ▶️ Rejoindre »), et quand il ouvre la borne plus tard, tant que le
+salon est ouvert. Salon ouvert = un joueur de la salle est dans ce jeu depuis moins de 3 min (la borne le signale toute seule toutes les
+60 s : rien à faire dans le jeu). « Rejoindre » ouvre le MÊME jeu dans la MÊME salle (le copain y passe s'il était ailleurs) : le jeu le
+voit arriver par `api.live` comme d'habitude. Salon fermé : « La partie est finie », jamais un lien mort. Pas de spam : une invitation par
+copain et par jeu toutes les 5 min, plus rien pendant 1 h après un « non ». Serveur : source/inviter.sql (SQL v136 : live_inviter,
+live_invitations, live_invitation_repondre, live_invites_envoyees, live_salon_vivant ; signal { t: 'invjeu' } du canal privé jdw-sms-<pseudo>).

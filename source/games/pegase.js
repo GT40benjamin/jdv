@@ -10152,6 +10152,14 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       }
     }
     const ST_TXT = { envoye: 'Envoyé', distribue: 'Distribué', lu: 'Lu' };
+    // borne 2.0.126 (SQL v136, source/inviter.sql) : une INVITATION dans un jeu à plusieurs (« 📣 Inviter mes copains ») = un message du copain
+    // avec data.type = 'invite' ; « ▶️ Rejoindre » ouvre la borne sur jouer/?rejoindre=<id> (la borne dit « La partie est finie » si le salon est fermé)
+    function invBulle(m, tm) {
+      const d = m.data || {}, id = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(String(d.id || '')) ? String(d.id) : '';
+      let href = ''; try { href = id ? new URL('../jouer/?rejoindre=' + id, location.href).href : ''; } catch (e) { href = ''; }
+      return `<div class="pgh-bub ${m.mine ? 'me' : 'th'} pgh-inv" style="display:grid;gap:6px"><b style="font-size:1.05em">🎮 ${esc(d.titre || d.jeu || 'Un jeu')}</b><span>${esc(m.b)}</span>` +
+        (!m.mine && href ? `<a class="pgh-cta gold" href="${esc(href)}" style="justify-self:start;text-decoration:none;padding:8px 16px"><span>▶️ Rejoindre</span></a>` : m.mine ? '<em style="opacity:.8">Invitation envoyée</em>' : '') + `<small>${tm}</small></div>`;
+    }
     function renderThread(scroll) {
       const T = SMS.th; if (!T) return;
       const L = $.thl, atEnd = L.scrollHeight - L.scrollTop - L.clientHeight < 60, h0 = L.scrollHeight, t0 = L.scrollTop;
@@ -10169,7 +10177,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         }
         const pnjName = m.pnj ? smsWho(T.w, (SMS.list.find((x) => x.w === T.w) || {}).title).name : '';
         const can = rxCan(T, m), eff = rxEff(m);
-        html += CARTES && CARTES.est(m) ? CARTES.bulle(m, tm) : `<div class="pgh-bub ${m.mine ? 'me' : m.pnj ? 'pnj' : 'th'}${eff.length ? ' rx' : ''}"${can ? ` data-m="${esc(m.id)}" tabindex="0" role="button" aria-haspopup="menu"` : ''}>${m.pnj ? `<i>${esc(pnjName)}</i>` : ''}${esc(m.b || (m.photo ? '📷 Photo' : ''))}<small>${tm}</small>${rxPill(eff, m.id)}${can ? RXB : ''}</div>`;
+        html += m.data && m.data.type === 'invite' && !m.pnj ? invBulle(m, tm) : CARTES && CARTES.est(m) ? CARTES.bulle(m, tm) : `<div class="pgh-bub ${m.mine ? 'me' : m.pnj ? 'pnj' : 'th'}${eff.length ? ' rx' : ''}"${can ? ` data-m="${esc(m.id)}" tabindex="0" role="button" aria-haspopup="menu"` : ''}>${m.pnj ? `<i>${esc(pnjName)}</i>` : ''}${esc(m.b || (m.photo ? '📷 Photo' : ''))}<small>${tm}</small>${rxPill(eff, m.id)}${can ? RXB : ''}</div>`;
         if (m.mine && m.sid === lastMine && !pend.length && ST_TXT[m.st]) html += `<div class="pgh-thst${m.st === 'lu' ? ' lu' : ''}">${m.st === 'lu' ? '✓✓ ' : m.st === 'distribue' ? '✓✓ ' : '✓ '}${ST_TXT[m.st]}</div>`;
       }
       if (!all.length) { const o = smsWho(T.w); html += T.err ? `<div class="pgh-thempty"><b>📡</b>${esc(T.err)}</div>` : `<div class="pgh-thempty"><b>👋</b>${o.pnj ? 'Pas encore de message.' : 'Dis bonjour à ' + esc(o.name) + ' !'}</div>`; }
