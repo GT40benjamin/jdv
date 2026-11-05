@@ -472,7 +472,9 @@ function mount(root, api) {
   let parts = [], textes = [], msg = null, secousse = 0, flash = 0;
   const cam = { x: TOUR.x * T, y: TOUR.y * T + 240 };
   const IN = { dx: 0, dy: 0, feu: 0, eclair: 0, monstre: 0, souris: null, viser: null, tenir: false };
-  let modeDoigt = false, modePad = false;
+  // V4 : avec le menu de la borne (pas d'écran titre à toucher), un écran tactile démarre en mode toucher, sauf manette branchée
+  const TACT = (() => { try { return (('ontouchstart' in window) || navigator.maxTouchPoints > 0) && !matchMedia('(pointer:fine)').matches; } catch (e) { return false; } })();
+  let modeDoigt = !!(MENU_B && TACT && !(pad && pad.active && pad.active())), modePad = false;
   const NOM = (((api.player && api.player.name) || 'invite') + '').toUpperCase().slice(0, 40);
   const RKEY = 'jdw.sorcier.record.' + NOM;
   let record = 0; try { record = +localStorage.getItem(RKEY) || 0; } catch (e) { /* rien */ }
@@ -1502,7 +1504,7 @@ function mount(root, api) {
     const gb = BTN_GRIM();
     ctx.fillStyle = 'rgba(70,40,110,0.78)'; carte(gb.x, gb.y, gb.w, gb.h, 14); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2; ctx.stroke();
     icone('grimoire', gb.x + gb.w / 2, gb.y + gb.h / 2, gb.h * 0.68);
-    if (!modeDoigt) txt(PADON() ? GL('y') : 'G', gb.x + gb.w / 2, gb.y + gb.h + 15, 13, '#ffffff', 'center', 800, 4);
+    if (!modeDoigt) txt(PADON() ? GL('y') : 'G', gb.x - 8, gb.y + gb.h / 2 + 5, 13, '#ffffff', 'right', 800, 4);   /* V4 : à gauche du bouton (dessous, il mordait sur la carte) */
     if (G.nouveau && Math.floor(now * 4) % 2 === 0) { ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 4; carte(gb.x - 3, gb.y - 3, gb.w + 6, gb.h + 6, 16); ctx.stroke(); }
     minicarte(now);
     // les sorts (boutons en tactile, petites icônes sinon)
