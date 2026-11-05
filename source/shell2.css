@@ -5408,3 +5408,5 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
   #jdw-play .tm-cartoon .tm-bas .tm-icos{position:static;transform:none;display:flex;justify-content:center;gap:16px;margin:0}
 }
 #jdw-play .tm-cartoon .tm-bas{left:0!important;right:0!important;width:auto!important;transform:none!important}#jdw-play .tm-cartoon .tm-liste{width:min(520px,calc(100% - 52px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)))!important}   /* 16 px + l'anneau du JOUER de chaque côté */
+#jdw-play .tmenu[data-vue="touche"] .tm-bas{left:0!important;right:0!important;width:auto!important;transform:none!important;display:flex;justify-content:center}#jdw-play .tmenu[data-vue="touche"] .tm-liste{width:auto!important;justify-items:center}#jdw-play .tmenu .tm-it.tm-touche{white-space:nowrap;margin:0 auto}   /* 2.0.143 : toujours centré, sur une ligne */
+#jdw-play .tmenu .tm-it.tm-touche{animation:tmPouls 1.4s ease-in-out infinite!important;opacity:1}@keyframes tmPouls{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}   /* la pastille reste pleine : elle bat doucement au lieu de s'effacer */

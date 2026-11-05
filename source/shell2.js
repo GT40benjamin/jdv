@@ -637,7 +637,7 @@ function menuMontrer(g, o) {
     bas.textContent = ''; M.dataset.vue = quoi || 'liste'; for (const x of M.querySelectorAll(':scope > .tm-icos')) x.remove();
     const L = el('div', 'tm-liste'); bas.appendChild(L);
     if (quoi === 'touche') {
-      const t = it('Appuie sur une touche', () => vue(''), 'tm-touche'); L.appendChild(t);
+      const ap = appareilApi()(), t = it(ap === 'toucher' ? 'Touche l’écran' : ap === 'manette' ? 'Appuie sur A' : 'Appuie sur une touche', () => vue(''), 'tm-touche'); L.appendChild(t);   // 2.0.143 : selon l'appareil
     } else if (!quoi) {
       L.appendChild(it('▶ JOUER', jouer, 'tm-go'));
       for (const x of M.querySelectorAll(':scope > .tm-icos')) x.remove();
@@ -2058,9 +2058,9 @@ const MUSIC_VOL = 0.42, XFADE = 1.6;
 // ils s'ajoutent aux réglages généraux de la borne (menu 🔊)
 const SON_JEU = { id: '', m: true, mv: 1, b: true, bv: 1, fns: new Set() };
 // 2.0.142 (CONTRACT.md Ajout 27 bis) : l'appareil du joueur — 'toucher' | 'clavier' | 'manette' — d'après le DERNIER appui (dès le menu)
-const APPAREIL = { v: (navigator.maxTouchPoints > 0 && matchMedia('(pointer:coarse)').matches) ? 'toucher' : 'clavier', fns: new Set() };
+const APPAREIL = { v: (navigator.maxTouchPoints > 0 || matchMedia('(pointer:coarse)').matches) ? 'toucher' : 'clavier', fns: new Set() };
 function appareilMettre(v) { if (APPAREIL.v === v) return; APPAREIL.v = v; for (const f of APPAREIL.fns) { try { f(v); } catch (e) {} } }
-addEventListener('pointerdown', e => appareilMettre(e.pointerType === 'touch' || e.pointerType === 'pen' ? 'toucher' : 'clavier'), true);
+addEventListener('pointerdown', e => { if (!e.isTrusted) return; appareilMettre(e.pointerType === 'touch' || e.pointerType === 'pen' || (e.pointerType === 'mouse' && TOUCH && matchMedia('(pointer:coarse)').matches) ? 'toucher' : 'clavier'); }, true);
 addEventListener('keydown', e => { if (!e.isTrusted) return; appareilMettre('clavier'); }, true);
 const appareilApi = () => Object.assign(() => (typeof PADJ !== 'undefined' && PADJ && PADJ.active && PADJ.active() && APPAREIL.v !== 'toucher') ? 'manette' : APPAREIL.v, { suivre: fn => { if (typeof fn !== 'function') return () => {}; APPAREIL.fns.add(fn); return () => APPAREIL.fns.delete(fn); } });
 // niveau de la musique selon l'écran (accueil 1, en jeu 0.8, fin de partie 0.5) et baisse momentanée pendant un cri
