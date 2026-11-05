@@ -26,6 +26,13 @@
 [noisette] 🐿️ Sur la carte de la tuile, les arbres ne passent plus sur les mondes ni sur les titres, et les noisettes des mondes à venir restent bien claires.
 [jetporte] ## 🍑 Jet Porté arrive dans l’Atelier (borne 2.0.117)
 [jetporte] 🍑 Traite le rang de pêchers avant que le vent et la pluie s’en mêlent : 5 niveaux, du matin calme au coup de vent, avec la carte du verger sur la tuile et tes records par niveau.
+[borne] ## 📣 Invite tes copains dans tes parties (borne 2.0.126)
+[borne] 📣 Dans un jeu à plusieurs (Abracadabra, Tête de Cible…), touche « 📣 Inviter » en haut : tu choisis les copains de ta salle et ils reçoivent l’invitation tout de suite, dans vos messages, et en ouvrant la borne. « ▶️ Rejoindre » les amène dans ta partie, dans ta salle.
+[borne] 🙅 Pas de harcèlement : une invitation par copain toutes les 5 minutes, et après un « non », on n’insiste pas. Si la partie est finie, la borne le dit.
+[trone] ## 📣 Remplis les 8 places de Trôn-e (borne 2.0.126)
+[trone] 📣 Dans le salon, touche « 📣 Inviter » : les copains de ta salle reçoivent ton invitation et te rejoignent en un toucher.
+[pegase] ## 📣 Les invitations dans tes messages (borne 2.0.126)
+[pegase] 📣 Quand un copain t’invite dans un jeu, son invitation arrive dans votre conversation avec un bouton « ▶️ Rejoindre ».
 [borne] ## 🧩 Tes éléments s’affichent vite, même par centaines (borne 2.0.125)
 [borne] 🧩 L’onglet « Éléments » montre tout de suite les premiers, puis la suite quand tu descends (ou « Voir plus »). Pendant le chargement, {g} te montre où il en est. Chaque personnage animé joue son animation à côté de toutes ses images, sans doublon, et les catégories vides ne s’affichent plus.
 [borne] ## 💬 Ton projet, c’est une discussion avec {g} (borne 2.0.124)
