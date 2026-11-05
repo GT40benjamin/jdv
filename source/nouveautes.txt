@@ -30,6 +30,11 @@
 [noisette] 🐿️ Sur la carte de la tuile, les arbres ne passent plus sur les mondes ni sur les titres, et les noisettes des mondes à venir restent bien claires.
 [jetporte] ## 🍑 Jet Porté arrive dans l’Atelier (borne 2.0.117)
 [jetporte] 🍑 Traite le rang de pêchers avant que le vent et la pluie s’en mêlent : 5 niveaux, du matin calme au coup de vent, avec la carte du verger sur la tuile et tes records par niveau.
+[borne] ## 🎮 Un même menu pour les jeux, et des boutons qui ne gênent plus (borne 2.0.138)
+[borne] 🎮 Empilo, Glouton et La Chasse aux mouches ouvrent sur le nouveau menu : ▶ Jouer, ❓ Touches et explications, 🔊 Son, ⚙️ Paramètres. Les autres jeux suivent.
+[borne] 🔊 Musique et bruitages se règlent pour chaque jeu, avec leur volume, et c’est retenu.
+[borne] 📱 Téléphone couché : les boutons ✕ ⏸ 🔊 sont plus petits et s’effacent au bout de 3 s ; touche le bord pour les faire revenir.
+[borne] 🧹 Sur ordinateur et téléphone droit, la barre du jeu garde tous ses boutons sur une ligne : plus rien ne déborde sur le jeu.
 [borne] ## 💬 Tout se passe dans la discussion (borne 2.0.137)
 [borne] 💬 La page de ton projet : 🎮 Jouer · 💬 Discussion avec {g} · 🧩 Éléments. Tes demandes, ses questions, ses offres, son travail et ses livraisons : tout est dans la discussion.
 [borne] 🎫 Le bouton « Mes demandes » en haut à droite montre la liste de tes tickets : touche-en un, la discussion s’ouvre pile à son endroit.

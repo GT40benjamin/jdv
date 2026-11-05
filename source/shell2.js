@@ -439,6 +439,7 @@ function padPauseOpen(by) {
 }
 function padPauseClose(resume) {
   if (!PADP.open) return;
+  setTimeout(() => { try { dodoArme(); } catch (e) {} }, 50);   // 2.0.138
   PADP.open = false; $('jdw-padpause').hidden = true; musicBaseLevel(0.8);
   if (resume && current && current.inst) { const inst = current.inst; try { if (current.pad) current.pad.flush(); } catch (e) {} try { if (inst.resume) inst.resume(); else padKey('p'); } catch (e) {} try { if (current.pause && current.pause.reprendre) current.pause.reprendre(); } catch (e) {} }
   if (PADJ) PADJ.blur(true);
@@ -503,6 +504,149 @@ function pauseDepuisDebut() {
   if (f) { setTimeout(() => { try { f(); } catch (e) { reportError('Recommencer le jeu : ' + e.message, e.stack); } }, 60); return; }
   current.over = true; unmountGame(); mountGame(g);   // un jeu sans partie gardée : on le relance, tout neuf
 }
+// ---------- 2.0.138 (CONTRACT.md Ajout 27, l'admin : « les boutons de la borne couvrent la jauge » + « un même menu pour tous les jeux ») ----------
+// (1) son par jeu ; (2) ZONE SÛRE (ce que la borne couvre dans le cadre du jeu) ; (3) boutons flottants discrets qui s'endorment ; (4) MENU PRINCIPAL
+function sonJeuLire(id) { const d = (id && store.get('jdw.son.' + id, null)) || {}, v = x => Number.isFinite(+x) ? Math.min(1, Math.max(0, +x)) : 1; return { m: d.m !== false, mv: v(d.mv), b: d.b !== false, bv: v(d.bv) }; }
+function sonJeuEtat() { return { musique: { on: !!(SON_JEU.m && MUS.on), volume: SON_JEU.mv }, bruitages: { on: !!(SON_JEU.b && !muted), volume: SON_JEU.bv } }; }
+function sonJeuAppliquer() {
+  musicApplyLevel(0.25);
+  try { if (Audio.master && Audio.ctx) { const now = Audio.ctx.currentTime; Audio.master.gain.cancelScheduledValues(now); Audio.master.gain.setTargetAtTime(sfxLevel(), now, 0.05); } } catch (e) {}
+  const e = sonJeuEtat(); for (const f of SON_JEU.fns) { try { f(e); } catch (x) {} }
+}
+function sonJeuActiver(id) { Object.assign(SON_JEU, sonJeuLire(id), { id: id || '' }); if (!id) SON_JEU.fns.clear(); sonJeuAppliquer(); }
+function sonJeuEcrire(id, d) { const v = Object.assign(sonJeuLire(id), d); store.set('jdw.son.' + id, { m: v.m, mv: v.mv, b: v.b, bv: v.bv }); if (SON_JEU.id === id) { Object.assign(SON_JEU, v); sonJeuAppliquer(); } }
+// zone sûre : en px CSS depuis chaque bord du cadre du jeu — l'encoche (env(safe-area-inset-*)) et les boutons flottants de la borne posés SUR le jeu
+const ZS = { fns: new Set(), last: '', t: 0, sonde: null };
+function zoneSure() {
+  const z = { haut: 0, gauche: 0, droite: 0, bas: 0 }, host = $('jdw-host'); if (!host) return z;
+  const H = host.getBoundingClientRect(); if (!H.width || !H.height) return z;
+  if (!ZS.sonde) { const sd = document.createElement('div'); sd.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)'; document.body.appendChild(sd); ZS.sonde = sd; }
+  const cs = getComputedStyle(ZS.sonde), px = v => parseFloat(v) || 0;
+  z.haut = Math.max(0, px(cs.paddingTop) - H.top); z.gauche = Math.max(0, px(cs.paddingLeft) - H.left);
+  z.droite = Math.max(0, px(cs.paddingRight) - (innerWidth - H.right)); z.bas = Math.max(0, px(cs.paddingBottom) - (innerHeight - H.bottom));
+  const bs = [...document.querySelectorAll('#jdw-play .topbar > button')].filter(b => !b.hidden && b.getClientRects().length).map(b => b.getBoundingClientRect())
+    .filter(r => r.width && r.right > H.left && r.left < H.right && r.bottom > H.top && r.top < H.bottom);
+  if (bs.length) {   // une colonne (téléphone couché) : un bord de côté ; une rangée : le haut ou le bas
+    const U = { l: Math.min(...bs.map(r => r.left)), r: Math.max(...bs.map(r => r.right)), t: Math.min(...bs.map(r => r.top)), b: Math.max(...bs.map(r => r.bottom)) }, m = 6;
+    if (U.b - U.t >= U.r - U.l) { if ((U.l + U.r) / 2 < H.left + H.width / 2) z.gauche = Math.max(z.gauche, U.r - H.left + m); else z.droite = Math.max(z.droite, H.right - U.l + m); }
+    else if ((U.t + U.b) / 2 < H.top + H.height / 2) z.haut = Math.max(z.haut, U.b - H.top + m); else z.bas = Math.max(z.bas, H.bottom - U.t + m);
+  }
+  for (const k in z) z[k] = Math.round(z[k]);
+  return z;
+}
+function zoneSureMaj() {
+  const z = zoneSure();
+  if (current && current.root && current.root.style) for (const k in z) current.root.style.setProperty('--zone-' + k, z[k] + 'px');   // pour un HUD en CSS : var(--zone-gauche)
+  const k = JSON.stringify(z); if (k === ZS.last) return; ZS.last = k;
+  for (const f of ZS.fns) { try { f(Object.assign({}, z)); } catch (e) {} }
+}
+const zoneSureBientot = ms => { clearTimeout(ZS.t); ZS.t = setTimeout(zoneSureMaj, ms); };
+addEventListener('resize', () => { zoneSureBientot(200); dodoArme(); });
+addEventListener('orientationchange', () => { zoneSureBientot(400); dodoArme(); });
+// boutons flottants (téléphone couché, en partie) : petits, semi-transparents, ils s'endorment après 3 s sans être touchés ; un toucher près
+// d'eux (le bord) les réveille — ce toucher-là ne va pas au jeu, et le « clic » qui suit n'appuie sur aucun bouton
+const DODO = { t: 0, reveil: 0 }, flotMQ = matchMedia('(orientation:landscape) and (max-height:500px)');
+function dodoActif() { const pl = $('jdw-play'); return !!(current && !current.over && !current.coop && !pl.hidden && flotMQ.matches && !document.getElementById('jdw-gmenu')); }
+function dodoArme() {
+  const pl = $('jdw-play'); clearTimeout(DODO.t); pl.classList.remove('btn-dodo'); if (!dodoActif()) return;
+  DODO.t = setTimeout(() => {
+    if (!dodoActif()) return;
+    if (PADP.open || !$('jdw-soundmenu').hidden || !$('jdw-end').hidden || document.getElementById('jdw-vitrine') || document.getElementById('jdw-howto') || document.querySelector('#jdw-play .quitask:not([hidden])')) { dodoArme(); return; }
+    pl.classList.add('btn-dodo');
+  }, 3000);
+}
+function dodoZone(x, y) {
+  const bs = [...document.querySelectorAll('#jdw-play .topbar > button')].filter(b => !b.hidden && b.getClientRects().length).map(b => b.getBoundingClientRect()).filter(r => r.width); if (!bs.length) return false;
+  const M = 28; return x >= Math.min(...bs.map(r => r.left)) - M && x <= Math.max(...bs.map(r => r.right)) + M && y >= Math.min(...bs.map(r => r.top)) - M && y <= Math.max(...bs.map(r => r.bottom)) + M;
+}
+for (const ev of ['touchstart', 'pointerdown', 'mousedown']) addEventListener(ev, e => {
+  const pl = $('jdw-play'); if (pl.hidden || !current) return;
+  const pt = e.touches && e.touches[0] ? e.touches[0] : e;
+  if (pl.classList.contains('btn-dodo')) { if (dodoZone(pt.clientX, pt.clientY)) { e.preventDefault(); e.stopPropagation(); DODO.reveil = Date.now(); dodoArme(); } return; }
+  if (Date.now() - DODO.reveil < 600 && dodoZone(pt.clientX, pt.clientY)) { e.preventDefault(); e.stopPropagation(); return; }
+  if (e.target && e.target.closest && e.target.closest('#jdw-play .topbar')) dodoArme();
+}, { capture: true, passive: false });
+addEventListener('click', e => { if (Date.now() - DODO.reveil < 600 && e.target && e.target.closest && e.target.closest('#jdw-play .topbar')) { e.preventDefault(); e.stopPropagation(); } }, true);
+// MENU PRINCIPAL standard (avant la partie) : ▶ Jouer · ❓ Touches et explications · 🛍️ Boutique · 🔊 Son · ⚙️ Paramètres (le son,
+// « Recommencer l'aventure »). Pour les jeux qui le déclarent (menu: true, jeux de l'Atelier compris) et les jeux de la borne de MENU_BORNE.
+const MENU_BORNE = new Set(['empilo', 'glouton', 'mouches']);   // 2.0.138 : les 3 premiers jeux de la borne branchés (sans écran titre à eux)
+const MENU = { passe: '' };
+const menuAvoir = g => !!g && g.menu !== false && (g.menu === true || MENU_BORNE.has(g.id) || (navigator.webdriver && Array.isArray(window.JDW_MENU_ESSAI) && window.JDW_MENU_ESSAI.includes(g.id))) && !PAD_DOM.has(g.id) && !g.external && g.id !== 'pegase';   // jeux de l'Atelier : menu: true (leur équipe retire d'abord leur écran titre : jamais deux menus)
+function menuOuJouer(g) { if (menuAvoir(g) && MENU.passe !== g.id) menuMontrer(g); else mountGame(g); }
+function menuFermer() { const m = document.getElementById('jdw-gmenu'); if (m) { if (m._esc) document.removeEventListener('keydown', m._esc, true); m.remove(); } }
+function menuMontrer(g) {
+  menuFermer(); MENU.passe = ''; { const lt = document.getElementById('jdw-losetip'); if (lt) lt.remove(); }   // jamais un bandeau par-dessus le menu
+  const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+  const btn = (c, x, f) => { const b = el('button', 'btn ' + c, x); b.type = 'button'; b.addEventListener('click', f); return b; };
+  let titre = g.title || ''; try { if (ATL_NES.has(g.id)) titre = atlTitre(g) || titre; } catch (e) {}
+  const M = el('div', 'gmenu'); M.id = 'jdw-gmenu'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Menu de ' + titre); M.style.setProperty('--acc', g.accent || COLORS.amber);
+  try { const x = ATL_JEUX.get(g.id), jq = x && x.vignette && atlIaUrl(x.vignette); if (jq) M.style.setProperty('--gm-fond', 'url("' + jq + '")'); } catch (e) {}
+  const C = el('div', 'gm-c'); M.appendChild(C); $('jdw-play').appendChild(M);
+  sonJeuActiver(g.id); musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);   // la musique du jeu, à SON volume, pendant le menu
+  let boutique = 0;
+  const jouer = () => { MENU.passe = g.id; menuFermer(); mountGame(g); };
+  const vue = (quoi) => {
+    C.textContent = ''; C.appendChild(el('p', 'gm-k', quoi === 'son' ? '🔊 Le son' : quoi === 'param' ? '⚙️ Paramètres' : '🎮 Menu'));
+    C.appendChild(el('h2', 'gm-t', titre));
+    const L = el('div', 'gm-l'); C.appendChild(L);
+    if (!quoi) {
+      L.appendChild(btn('btn-play gm-go', '▶ Jouer', jouer));
+      if (howtoOf(g)) L.appendChild(btn('btn-ghost', '❓ Touches et explications', () => howtoShow(g, $('jdw-play'), { then: () => { const b = M.querySelector('.gm-go'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} } })));
+      if (boutique) L.appendChild(btn('btn-ghost', '🛍️ Boutique', () => { MENU.passe = g.id; menuFermer(); mountGame(g); setTimeout(() => { try { if (current && current.game.id === g.id) boutiqueOuvrir(); } catch (e) {} }, 1200); }));
+      L.appendChild(btn('btn-ghost', '🔊 Son', () => vue('son')));
+      L.appendChild(btn('btn-ghost', '⚙️ Paramètres', () => vue('param')));
+    } else if (quoi === 'son') {
+      const s = sonJeuLire(g.id);
+      const ligne = (k, kv, ic, nom) => {
+        const r = el('div', 'gm-son'), sl = el('input', 'gm-vol');
+        const t = btn('btn-ghost gm-tog', '', () => { sonJeuEcrire(g.id, { [k]: !sonJeuLire(g.id)[k] }); maj(); });
+        t.setAttribute('role', 'switch');
+        sl.type = 'range'; sl.min = '0'; sl.max = '100'; sl.step = '5'; sl.value = String(Math.round(s[kv] * 100)); sl.setAttribute('aria-label', 'Volume : ' + nom);
+        sl.addEventListener('input', () => { sonJeuEcrire(g.id, { [kv]: (+sl.value || 0) / 100, [k]: true }); maj(); });
+        const maj = () => { const v = sonJeuLire(g.id); t.textContent = ic + ' ' + nom + ' : ' + (v[k] ? 'oui' : 'non'); t.setAttribute('aria-checked', String(v[k])); t.classList.toggle('on', v[k]); sl.value = String(Math.round(v[kv] * 100)); r.classList.toggle('off', !v[k]); };
+        maj(); r.append(t, sl); return r;
+      };
+      L.append(ligne('m', 'mv', '🎵', 'Musique'), ligne('b', 'bv', '🔊', 'Bruitages'), el('p', 'gm-note', 'Réglé pour ce jeu seulement, et retenu.'));
+      L.appendChild(btn('btn-ghost gm-ret', '← Retour', () => vue('')));
+    } else {
+      L.appendChild(btn('btn-ghost', '🔊 Son', () => vue('son')));
+      if (g.saves || typeof g.recommencerAventure === 'function' || ATL_NES.has(g.id)) {
+        const ask = el('div', 'gm-ask'); ask.hidden = true;
+        const rb = btn('btn-ghost', '🔄 Recommencer l’aventure', () => {
+          ask.textContent = ''; ask.append(el('p', '', 'Tu perds ta progression dans ce jeu. Tes achats et tes records restent.'));
+          const oui = btn('btn-play', 'Oui, tout recommencer', () => menuRecommencer(g, vue)), non = btn('btn-ghost', 'Non', () => { ask.hidden = true; try { rb.focus({ preventScroll: true }); } catch (e) {} });
+          ask.append(oui, non); ask.hidden = false; setTimeout(() => { try { non.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 30);
+        });
+        L.append(rb, ask);
+      }
+      L.appendChild(btn('btn-ghost gm-ret', '← Retour', () => vue('')));
+    }
+    setTimeout(() => { try { const f = L.querySelector('button:not([disabled])'); if (f) f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40);
+  };
+  vue('');
+  M._esc = e => { if (e.key !== 'Escape' || document.getElementById('jdw-howto')) return; e.preventDefault(); e.stopImmediatePropagation(); if (C.querySelector('.gm-ret')) vue(''); else backToLibrary(); };
+  document.addEventListener('keydown', M._esc, true);
+  // la boutique : seulement si le jeu en a une (jeux de l'Atelier)
+  if (ATL_NES.has(g.id) && ONLINE && !netOff() && !isGuest() && profile.name) rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true })
+    .then(r => { if (r && Array.isArray(r.articles) && r.articles.length && document.getElementById('jdw-gmenu') === M) { boutique = r.articles.length; if (!C.querySelector('.gm-ret')) vue(''); } }).catch(() => {});
+}
+// « Recommencer l'aventure » : la fonction du jeu (recommencerAventure, sans lancer la partie), sinon le jeu est lancé et sa remise à zéro
+// standard (api.pause.onRecommencerJeu, Ajout 24) est appelée ; un jeu qui ne garde rien repart déjà de zéro
+function menuRecommencer(g, vue) {
+  if (typeof g.recommencerAventure === 'function') {
+    try { g.recommencerAventure(); menuToast('🔄 C’est reparti de zéro !'); } catch (e) { reportError('Recommencer l’aventure : ' + e.message, e.stack); }
+    vue(''); return;
+  }
+  MENU.passe = g.id; menuFermer(); mountGame(g);
+  const seq = current && current.seq; let n = 0;
+  const t = setInterval(() => {
+    if (!current || current.seq !== seq) { clearInterval(t); return; }
+    const f = current.pause && current.pause.jeu;
+    if (f) { clearInterval(t); try { f(); menuToast('🔄 C’est reparti de zéro !'); } catch (e) { reportError('Recommencer l’aventure : ' + e.message, e.stack); } return; }
+    if (++n > 15) { clearInterval(t); menuToast('Ce jeu ne garde pas ta progression : il repart déjà du début.'); }
+  }, 200);
+}
+function menuToast(t) { try { toastCheer(t, profile.name, true); } catch (e) {} }
 // la touche Échap pendant une partie = le menu de pause (avant le jeu)
 addEventListener('keydown', e => {
   if (e.key !== 'Escape' || e.repeat || !current || current.coop || current.over || PADP.open || QA.open || $('jdw-play').hidden || !$('jdw-end').hidden || PAD_DOM.has(current.game.id) || aPauseJeu(current.game)) return;
@@ -515,7 +659,7 @@ addEventListener('keydown', e => {
   const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.id = 'jdw-pause-b'; b.type = 'button'; b.hidden = true; b.textContent = '⏸'; b.title = 'Pause'; b.setAttribute('aria-label', 'Pause');
   b.addEventListener('click', e => { e.stopPropagation(); padPauseOpen('bouton'); });
   hb.parentNode.insertBefore(b, hb);
-  setInterval(() => { const g = current && current.game; b.hidden = !(g && !current.coop && !current.over && !aPauseJeu(g) && !PAD_DOM.has(g.id) && !$('jdw-play').hidden); }, 700);
+  setInterval(() => { const g = current && current.game, h = b.hidden; b.hidden = !(g && !current.coop && !current.over && !aPauseJeu(g) && !PAD_DOM.has(g.id) && !$('jdw-play').hidden); if (h !== b.hidden) zoneSureMaj(); }, 700);
 })();
 $('jdw-padpause-resume').addEventListener('click', () => padPauseClose(true));
 $('jdw-padpause-quit').addEventListener('click', () => { padPauseClose(false); quitGame(); });
@@ -1808,14 +1952,17 @@ addEventListener('unhandledrejection', e => { const r = e.reason; reportError('P
 /* ================= Musique (assets/music/<morceau>.mp3) ================= */
 const MUS = { on: store.get('jdw.music', true) !== false, gain: null, buf: {}, order: [], cur: null, id: '', want: '', loopT: 0, seq: 0 };
 const MUSIC_VOL = 0.42, XFADE = 1.6;
+// 2.0.138 (CONTRACT.md Ajout 27) : musique et bruitages réglés À PART pour chaque jeu (oui / non + volume), retenus (jdw.son.<jeu>) ;
+// ils s'ajoutent aux réglages généraux de la borne (menu 🔊)
+const SON_JEU = { id: '', m: true, mv: 1, b: true, bv: 1, fns: new Set() };
 // niveau de la musique selon l'écran (accueil 1, en jeu 0.8, fin de partie 0.5) et baisse momentanée pendant un cri
 let musBase = 1, duckLvl = 1, duckUntil = 0, duckTimer = 0, musHush = false;   // musHush : fenêtre des cris ouverte = musique coupée
-function musicLevel() { return musHush ? 0 : MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1) * (micQ ? MIC_QUIET : 1); }
+function musicLevel() { return musHush ? 0 : MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1) * (micQ ? MIC_QUIET : 1) * (SON_JEU.m ? SON_JEU.mv : 0); }
 // 2 nov. 2026, Benjamin : « quand on utilise le micro pour parler, il faut couper le son ou le réduire énormément » : pendant que la borne
 // écoute au micro (l'Atelier des jeux), musique ET bruitages à 5 %, puis retour en douceur (api.duck d'un jeu : la musique seule, à 5 %)
 const MIC_QUIET = 0.05;
 let micQ = false;
-function sfxLevel() { return muted ? 0 : 0.6 * (micQ ? MIC_QUIET : 1); }
+function sfxLevel() { return muted ? 0 : 0.6 * (micQ ? MIC_QUIET : 1) * (SON_JEU.b ? SON_JEU.bv : 0); }
 function micQuiet(on) {
   if (micQ === !!on) return; micQ = !!on; musicApplyLevel(on ? 0.25 : 1.4);
   const A = Audio.ctx, m = Audio.master; if (!A || !m) return;
@@ -10796,6 +10943,9 @@ function mountGame(g) {
     reached: g.spots ? reachedApi(g) : undefined,
     live: g.live ? liveApi(g, seq) : undefined,
     boutique: boutiqueApi(g, seq),   // 2.0.130 : la boutique du créateur (CONTRACT.md Ajout 25, SQL v139)
+    // 2.0.138 (CONTRACT.md Ajout 27) : la zone sûre (ce que la borne couvre) et le son réglé pour ce jeu
+    zoneSure: Object.assign(() => zoneSure(), { suivre: fn => { if (typeof fn !== 'function' || !current || current.seq !== seq) return () => {}; ZS.fns.add(fn); try { fn(zoneSure()); } catch (e) {} return () => ZS.fns.delete(fn); } }),
+    son: { etat: () => sonJeuEtat(), suivre: fn => { if (typeof fn !== 'function' || !current || current.seq !== seq) return () => {}; SON_JEU.fns.add(fn); try { fn(sonJeuEtat()); } catch (e) {} return () => SON_JEU.fns.delete(fn); } },
     // 2.0.128 (CONTRACT.md Ajout 24) : le menu de pause standard — le jeu dit ce qu'il sait faire
     pause: { onReprendre: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).reprendre = typeof fn === 'function' ? fn : null; }, onRecommencerNiveau: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).niveau = typeof fn === 'function' ? fn : null; }, onRecommencerJeu: fn => { if (current && current.seq === seq) (current.pause = current.pause || {}).jeu = typeof fn === 'function' ? fn : null; }, ajouter: l => { if (!current || current.seq !== seq) return; (current.pause = current.pause || {}).extra = (Array.isArray(l) ? l : []).filter(a => a && typeof a.fn === 'function' && a.texte).slice(0, 4).map((a, i) => ({ id: String(a.id || 'b' + i).slice(0, 30), texte: String(a.texte).slice(0, 48), fn: a.fn })); if (PADP.open) pauseStdMaj(); }, ouvrir: () => { if (current && current.seq === seq) padPauseOpen('jeu'); } },                   // Abracadabra : les autres joueurs de la salle en direct (Ajout 17)
     monde: g.monde ? mondeApi(g, seq) : undefined,                // 2.0.56 : le monde partagé de la salle (L'Explorateur de l'espace)
@@ -10812,6 +10962,7 @@ function mountGame(g) {
     }
   };
   current = { game: g, root, seq, over: false, inst: null, lvBase: lvBest(profile.name, g.id), pad: api.pad };
+  menuFermer(); sonJeuActiver(g.id); ZS.fns.clear(); ZS.last = ''; zoneSureMaj();   // 2.0.138 : son de CE jeu, zone sûre posée sur son cadre (--zone-*)
   if (g.live) setTimeout(livSalonVivant, 1500);   // 2.0.126 : le salon de ce jeu est ouvert dans ma salle (les invitations restent valables)
   recReset(); setTimeout(recLine, 50);
   musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);
@@ -10821,6 +10972,7 @@ function mountGame(g) {
   setWhere(g.id);
   if (LANDSCAPE.has(g.id)) fsTip();   // iPhone dans Safari : astuce « Sur l'écran d'accueil » (une seule fois)
   if (!PAD_DOM.has(g.id)) padIntro(g);
+  setTimeout(() => { zoneSureMaj(); dodoArme(); }, 300);   // 2.0.138
 }
 function unmountGame() {
   if (!current) return;
@@ -10831,7 +10983,7 @@ function unmountGame() {
   if (RHY.src || RHY.t0 != null) rhythmStop(0.3);
   if (game.external) root.hidden = true; else root.remove();
   musicMuffle(0);   // un jeu qui étouffait la musique la rend normale en partant (aucun effet sinon)
-  current = null;
+  current = null; ZS.fns.clear(); ZS.last = ''; sonJeuActiver(''); clearTimeout(DODO.t); $('jdw-play').classList.remove('btn-dodo');   // 2.0.138
   $('jdw-cheer').hidden = true; $('jdw-rescue').hidden = true;
 }
 // 2.0.37 : le coin des boutons flottants (téléphone couché) pour les jeux dont le coin haut-gauche porte un bouton ou une info utile
@@ -10889,19 +11041,19 @@ function openGame(g, web, vok, os) {
     waitRotate = g; $('jdw-rotate').hidden = false;
     return;
   }
-  mountGame(g);
+  MENU.passe = ''; menuOuJouer(g);   // 2.0.138 : le menu principal standard (jeux qui l'ont), puis la partie
 }
 function startAfterRotate() {
   if (!waitRotate) return;
   const g = waitRotate; if (g && orientMauvaise(g) && !startAfterRotate.force) return; startAfterRotate.force = false; waitRotate = null; $('jdw-rotate').hidden = true;
-  setTimeout(() => mountGame(g), 250);            // laisse le temps à l'écran de se redimensionner
+  setTimeout(() => menuOuJouer(g), 250);            // laisse le temps à l'écran de se redimensionner (2.0.138 : le menu d'abord)
 }
 portraitMQ.addEventListener ? portraitMQ.addEventListener('change', () => { if (!portraitMQ.matches) startAfterRotate(); })
                             : portraitMQ.addListener(() => { if (!portraitMQ.matches) startAfterRotate(); });
 $('jdw-rotate-skip').addEventListener('click', () => { startAfterRotate.force = true; startAfterRotate(); });
 try { paysageMQ.addEventListener('change', () => { if (waitRotate && !orientMauvaise(waitRotate)) startAfterRotate(); }); } catch (e) {}
 function backToLibrary() {
-  howtoHide(false);
+  howtoHide(false); menuFermer(); MENU.passe = '';   // 2.0.138
   flushPending(); OPEN_SEQ++;   // 2.0.44 : un jeu encore en chargement ne s'ouvre plus une fois revenu à l'accueil
   if (CADRE_G) { try { unmountGame(); } catch (e) {} $('jdw-end').hidden = true; $('jdw-play').hidden = false; mountGame(CADRE_G); return; }   // page d'un projet : on rejoue
   waitRotate = null; $('jdw-rotate').hidden = true;

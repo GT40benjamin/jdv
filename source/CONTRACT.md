@@ -404,3 +404,79 @@ comme aujourd'hui. Ce que la borne doit savoir, le MODULE le déclare lui-même 
 - `pauseJeu`, `saves`, `live`, `spots`, `noScore`, `fps`, `scoreLabel`, `emoji` (icône des notifications), comme pour tout jeu.
 Le module de secours embarqué (`source/games/<id>.js`) n'est plus nécessaire pour un jeu en essai ; il ne sert qu'à un jeu publié pour
 tous qu'on veut jouable hors ligne dès l'installation. L'id ne peut pas être celui d'un jeu de la borne elle-même.
+
+## Ajout 27 : ZONE SÛRE, boutons discrets, UNE pause, MENU PRINCIPAL standard et son par jeu (borne 2.0.138 ; demandes de l'admin du 5 nov. 2026)
+Pour tous les jeux : ceux de la borne et ceux des créateurs de l'Atelier. La borne fournit tout ; aucun jeu n'est à refaire, chacun se branche.
+
+### 1. La zone sûre (`api.zoneSure`)
+Sur un téléphone couché, les boutons de la borne (✕, ⏸, 🔊) flottent SUR le jeu, et l'encoche du téléphone mange un bord. La zone sûre dit,
+en px CSS depuis chaque bord du cadre du jeu (le `root` de `mount`), la place que la borne prend : **aucun HUD (jauge, score, vies, boutons
+du jeu) ne se pose dedans.**
+- `api.zoneSure()` → `{ haut, gauche, droite, bas }` (nombres entiers, souvent 0 sur PC et en portrait).
+- `api.zoneSure.suivre(fn)` → appelle `fn(zone)` tout de suite, puis à chaque changement (rotation, redimensionnement, bouton ⏸ qui apparaît) ;
+  rend une fonction pour se désabonner. Tout est oublié au démontage du jeu.
+- Pour un HUD en HTML : le `root` porte les variables CSS `--zone-haut`, `--zone-gauche`, `--zone-droite`, `--zone-bas`
+  (ex. `left: calc(12px + var(--zone-gauche, 0px))`).
+- Pour un HUD dessiné dans un canvas : convertir en pixels du canvas (× `canvas.width / canvas.clientWidth`).
+- Vérifier `api.zoneSure` avant de s'en servir (vieilles bornes) ; sans lui, garder 56 px libres à gauche en téléphone couché.
+Exemple :
+```js
+let Z = { haut: 0, gauche: 0, droite: 0, bas: 0 };
+const stop = api.zoneSure ? api.zoneSure.suivre(z => { Z = z; placerHud(); }) : () => {};
+function placerHud() { jauge.style.left = (12 + Z.gauche) + 'px'; jauge.style.top = (10 + Z.haut) + 'px'; }
+// destroy() { stop(); }
+```
+
+### 2. Les boutons de la borne pendant la partie
+Téléphone couché : les ronds ✕ / ⏸ / 🔊 sont plus petits (38 px) et semi-transparents ; après 3 s sans être touchés ils s'effacent (une
+petite barre reste au bord). Un toucher près de ce bord les fait revenir : ce toucher-là n'est PAS envoyé au jeu et n'appuie sur aucun bouton.
+Ils comptent toujours dans la zone sûre, même effacés (ils reviennent au même endroit). Un jeu peut toujours choisir leur coin avec
+`coinBoutons: 'tr' | 'bl' | 'br' | 'ml'` dans son module.
+
+### 3. UNE seule pause à l'écran (règle pour toutes les équipes)
+- Soit le jeu utilise la pause STANDARD (Ajout 24 : `api.pause`, le ⏸ de la borne) et il N'AFFICHE AUCUN bouton pause à lui ;
+- soit il garde SA pause et il déclare `pauseJeu: true` dans son module : la borne cache alors son ⏸ (et Start / Échap vont au jeu).
+- Jamais les deux. Même règle pour le son (un seul bouton 🔊 : celui de la borne, le jeu lit `api.son`) et la boutique (un seul 🛍️ :
+  celui de la borne, Ajout 25 ; dans ses propres menus, un jeu peut lister et vendre avec `api.boutique.liste` / `acheter`, jamais avec un
+  2e bouton 🛍️ flottant).
+
+### 4. Le MENU PRINCIPAL standard (avant la partie)
+Quand on ouvre le jeu, la borne montre son menu, aux couleurs du jeu (accent, jaquette en fond), dans la zone sûre, entièrement à la manette :
+- **▶ Jouer** → la partie commence (le « Comment jouer » de la 1re fois passe d'abord, comme avant) ;
+- **❓ Touches et explications** → l'écran « Comment jouer » (colonnes Clavier-souris / Toucher / Manette : `howto` ou comment-jouer.js) ;
+  absent si le jeu n'a pas de « Comment jouer » ;
+- **🛍️ Boutique** → seulement si le jeu en a une (Ajout 25) : le jeu démarre et la vitrine s'ouvre par-dessus ;
+- **🔊 Son** → Musique (oui / non + volume) et Bruitages (oui / non + volume), réglés pour CE jeu et retenus (`jdw.son.<id>`) ;
+- **⚙️ Paramètres** → le son, et **🔄 Recommencer l'aventure** avec la confirmation « Tu perds ta progression dans ce jeu. Tes achats et
+  tes records restent. » → remise à zéro de la progression de CE jeu seulement.
+Qui a le menu : chaque jeu qui le déclare (`menu: true` dans son module, jeux de l'Atelier compris : l'équipe retire d'abord son écran titre
+à elle, jamais deux menus), et les jeux de la borne branchés par la borne (2.0.138 :
+Empilo, Glouton, La Chasse aux mouches). « Rejouer » à la fin d'une partie ne repasse pas par le menu. B / Échap : ← Retour, puis quitter.
+Un jeu qui a déjà son propre écran titre met `menu: false` ou retire de son écran ce que la borne fait déjà (pas de doublon : un seul son,
+une seule boutique, une seule pause).
+
+### 5. Recommencer l'aventure (`recommencerAventure`)
+Ordre de la borne :
+1. le module a une fonction `recommencerAventure()` (SANS `api`, appelée hors partie) → elle efface la progression du jeu (ses clés
+   `localStorage`, sa partie gardée…) ; la borne reste sur le menu ;
+2. sinon la borne lance le jeu et appelle son `api.pause.onRecommencerJeu` (Ajout 24) dès qu'il l'a déclaré (3 s au plus) ;
+3. sinon : « Ce jeu ne garde pas ta progression : il repart déjà du début. »
+Les achats de la boutique (serveur) et les records ne sont JAMAIS effacés.
+```js
+window.JDW_GAMES['monjeu'] = {
+  id: 'monjeu', title: 'Mon jeu', menu: true,
+  recommencerAventure() { localStorage.removeItem('monjeu.progression'); },
+  mount(root, api) { /* … */ }
+};
+```
+
+### 6. Le son par jeu (`api.son`)
+La borne règle elle-même le volume de sa musique (`api.music`) et des bruitages joués par `api.audio`. Un jeu qui joue ses PROPRES sons
+(son AudioContext, `<audio>`, three.js) lit le réglage :
+- `api.son.etat()` → `{ musique: { on, volume }, bruitages: { on, volume } }` (volume de 0 à 1 ; `on` tient compte du 🔊 général) ;
+- `api.son.suivre(fn)` → `fn(etat)` tout de suite puis à chaque changement ; rend la fonction pour se désabonner.
+```js
+const stopSon = api.son ? api.son.suivre(e => { monGainMusique.gain.value = e.musique.on ? 0.5 * e.musique.volume : 0;
+  monGainSons.gain.value = e.bruitages.on ? e.bruitages.volume : 0; }) : () => {};
+```
+Le testeur vérifie chaque jeu branché : PC, téléphone en portrait et couché, à la manette ; aucune jauge sous les boutons de la borne.

@@ -5163,7 +5163,7 @@ body:has(#jdw-padpause:not([hidden])) .fs-tip{display:none!important}
 /* 2.0.134 : actualisation en douceur — « ⬇ nouveau message » collé en bas de la liste */
 .atl-pnouv{position:sticky;bottom:8px;display:block;margin:6px auto 0;width:max-content;padding:6px 14px;border:0;border-radius:999px;background:#ffd34d;color:#1d1030;font:800 13px var(--body);box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer;z-index:3}
 /* 2.0.134 (le chef) : jamais un bandeau de nouveauté (.fs-tip : cri de perte, plein écran…) par-dessus un panneau, un menu ou une fenêtre ouverte : il attend qu'ils soient fermés */
-body:has(.sheet:not([hidden])) .fs-tip,body:has([role=menu]:not([hidden])) .fs-tip,body:has(.liv-mod) .fs-tip,body:has(.bout-vit) .fs-tip,body:has(#jdw-atelier:not([hidden])) .fs-tip,body:has(#jdw-soundmenu:not([hidden])) .fs-tip,body:has(#jdw-chat:not([hidden])) .fs-tip,body:has(#jdw-howto) .fs-tip,body:has(#jdw-quitask:not([hidden])) .fs-tip,body:has(#jdw-callring:not([hidden])) .fs-tip,body:has(#jdw-coop-pause:not([hidden])) .fs-tip,body:has(#jdw-duo-pause:not([hidden])) .fs-tip,body:has(#jdw-natif:not([hidden])) .fs-tip{display:none!important}
+body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([role=menu]:not([hidden])) .fs-tip,body:has(.liv-mod) .fs-tip,body:has(.bout-vit) .fs-tip,body:has(#jdw-atelier:not([hidden])) .fs-tip,body:has(#jdw-soundmenu:not([hidden])) .fs-tip,body:has(#jdw-chat:not([hidden])) .fs-tip,body:has(#jdw-howto) .fs-tip,body:has(#jdw-quitask:not([hidden])) .fs-tip,body:has(#jdw-callring:not([hidden])) .fs-tip,body:has(#jdw-coop-pause:not([hidden])) .fs-tip,body:has(#jdw-duo-pause:not([hidden])) .fs-tip,body:has(#jdw-natif:not([hidden])) .fs-tip{display:none!important}
 /* 2.0.135 : ouvert sur le message non lu (il brille) ; badge « 💬 n » sur la tuile */
 @keyframes atlBrille{0%,100%{box-shadow:0 0 0 0 transparent}30%{box-shadow:0 0 0 4px #ffd34d,0 0 26px rgba(255,211,77,.7)}}
 .atl-brille{animation:atlBrille 1.3s ease-in-out 2;border-radius:16px}
@@ -5181,3 +5181,39 @@ body:has(.sheet:not([hidden])) .fs-tip,body:has([role=menu]:not([hidden])) .fs-t
 .atl-dfeuille{width:min(720px,100%);max-height:min(86vh,900px);overflow:auto;display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
 .atl-dfh{display:flex;align-items:center;justify-content:space-between;gap:10px}.atl-dfh h2{margin:0;font:800 18px var(--display,inherit);min-width:0;overflow-wrap:anywhere}
 .atl-dfp{margin:0;color:var(--muted);font:13px var(--body)}.atl-dfeuille .atl-dlist{display:grid;gap:8px;grid-template-columns:minmax(0,1fr)}
+/* 2.0.138 (CONTRACT.md Ajout 27) : le MENU PRINCIPAL standard d'un jeu (avant la partie), au-dessus du cadre du jeu, dans la zone sûre */
+#jdw-play .gmenu{position:absolute;inset:0;z-index:24;display:grid;place-items:center;padding:max(14px,env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) max(14px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));
+  padding-top:calc(var(--tbh,52px) + max(14px,env(safe-area-inset-top,0px)));overflow:auto;
+  background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--acc) 26%,transparent),transparent 62%),linear-gradient(rgba(6,8,16,.78),rgba(6,8,16,.92)),var(--gm-fond,none) center/cover no-repeat,#070912}
+#jdw-play .gm-c{width:min(440px,100%);display:grid;gap:12px;justify-items:stretch;text-align:center;padding:22px 20px;border-radius:22px;background:rgba(14,18,32,.86);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);
+  box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04) inset}
+#jdw-play .gm-k{margin:0;font:700 12px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+#jdw-play .gm-t{margin:0 0 4px;font:400 clamp(22px,5vw,32px)/1.1 var(--display,inherit);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.45);overflow-wrap:anywhere}
+#jdw-play .gm-l{display:grid;gap:10px}
+#jdw-play .gm-l > .btn{width:100%;min-height:48px;font-size:16px;justify-content:center}
+#jdw-play .gm-go{min-height:58px!important;font-size:20px!important}
+#jdw-play .gm-son{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center}
+#jdw-play .gm-son.off .gm-vol{opacity:.4}
+#jdw-play .gm-tog{min-height:46px;justify-content:flex-start}#jdw-play .gm-tog.on{border-color:var(--acc);color:#fff}
+#jdw-play .gm-vol{width:100%;accent-color:var(--acc);min-height:32px}
+#jdw-play .gm-note{margin:0;color:var(--muted);font:13px var(--body)}
+#jdw-play .gm-ask{display:grid;gap:8px;padding:12px;border-radius:14px;background:rgba(255,90,90,.08);border:1px solid rgba(255,120,120,.4)}#jdw-play .gm-ask p{margin:0;font:600 14px var(--body)}
+@media (orientation:landscape) and (max-height:500px){
+  #jdw-play .gmenu{padding-top:max(10px,env(safe-area-inset-top,0px))}
+  #jdw-play .gm-c{width:min(620px,100%);padding:14px 16px;gap:8px}
+  #jdw-play .gm-l{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#jdw-play .gm-l > .gm-go,#jdw-play .gm-l > .gm-ask,#jdw-play .gm-l > .gm-note,#jdw-play .gm-l > .gm-son{grid-column:1/-1}
+  #jdw-play .gm-l > .btn{min-height:42px;font-size:15px}#jdw-play .gm-go{min-height:48px!important}
+}
+/* 2.0.138 : téléphone couché, en partie — boutons de la borne plus petits, plus discrets, et qui s'endorment (classe btn-dodo, 3 s sans toucher) */
+@media (orientation:landscape) and (max-height:500px){
+  #jdw-play .topbar > button,#jdw-play .topbar #jdw-back,#jdw-play .topbar #jdw-fs,#jdw-play .topbar #jdw-mute,#jdw-play .topbar.has-fs #jdw-mute{width:38px;height:38px;font-size:14px;opacity:.62;transition:opacity .35s}
+  #jdw-play .topbar{gap:5px}
+  #jdw-play.btn-dodo .topbar > button{opacity:0!important;pointer-events:none!important}
+  #jdw-play .topbar::before{content:"";position:absolute;width:4px;height:28px;border-radius:4px;background:rgba(255,255,255,.35);left:2px;top:max(14px,env(safe-area-inset-top,0px));opacity:0;transition:opacity .35s;pointer-events:none}
+  #jdw-play.btn-dodo .topbar::before{opacity:1}
+  #jdw-play.fl-tr .topbar::before,#jdw-play.fl-br .topbar::before{left:auto;right:2px}
+  #jdw-play.fl-bl .topbar::before,#jdw-play.fl-br .topbar::before{top:auto;bottom:max(14px,env(safe-area-inset-bottom,0px))}
+}
+/* 2.0.138 : la barre du jeu (PC, portrait) — ✕ et titre, puis AUTANT de boutons qu'il faut sur la même ligne (⏸, 🛍️, ?, 🔊…) : avant, un bouton de plus que les colonnes prévues passait à la ligne, SUR le jeu */
+#jdw-play .topbar{grid-template-columns:auto minmax(0,1fr)!important;grid-auto-flow:column;grid-auto-columns:auto}
+@media (max-width:520px){#jdw-play .topbar .tb-word{display:none}#jdw-play .topbar{gap:6px}#jdw-play .topbar > button{padding-inline:9px;min-width:0}}   /* 2.0.138 : téléphone droit, beaucoup de boutons (✕ ⏸ 🛍️ ? 📣 ⛶ 🔊) : rien ne sort de l'écran */
