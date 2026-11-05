@@ -5110,3 +5110,21 @@ body.howto-on .fs-tip,body.howto-on #jdw-cheer,body:has(#jdw-howto) .atl-flot{vi
 #jdw-padpause .pad-pause-btns .btn{width:100%;justify-content:center}
 #jdw-padpause .pp-tog{font-size:.92em}
 .pp-ask{display:grid;gap:8px;padding:10px;border-radius:12px;border:1px solid var(--alarm);background:rgba(255,77,94,.08)}.pp-ask[hidden]{display:none}.pp-ask p{margin:0;font:700 14px/1.4 var(--body)}
+/* 2.0.129 : 📖 la collection (Cosmodex) — une ligne par lignée, chaque stade s'anime à son tour */
+.atl-libcoll{border-color:#ffd34d}
+.atl-coll{display:grid;gap:12px}
+.atl-colr{display:grid;gap:8px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(122,76,255,.10),rgba(255,255,255,.02))}
+.atl-colh{display:flex;align-items:baseline;justify-content:space-between;gap:10px}.atl-colh b{font:700 16px var(--body);color:#ffe9a8}.atl-colh small{color:var(--muted);font:12.5px var(--body)}
+.atl-colst{display:flex;align-items:center;justify-content:flex-start;gap:8px;overflow-x:auto}
+.atl-colfl{flex:0 0 auto;color:#ffd34d;font:700 22px var(--body);opacity:.8}
+.atl-colc{flex:0 0 auto;margin:0;display:grid;justify-items:center;gap:2px;width:150px;padding:6px;border-radius:12px;cursor:zoom-in;transition:background .3s}
+.atl-colc.joue{background:rgba(255,211,77,.10);box-shadow:0 0 0 1px rgba(255,211,77,.45) inset}
+.atl-colv{position:relative;width:130px;height:130px;display:grid;place-items:end center}
+.atl-colv img{position:absolute;bottom:4px;left:50%;max-width:124px;max-height:124px;object-fit:contain;transform:translateX(-50%);transform-origin:50% 100%}
+.atl-colv img.off{visibility:hidden}
+.atl-colc:not(.joue) .atl-colv img{filter:saturate(.75) brightness(.85)}
+.atl-colc.joue .atl-colv img{animation:atlColRebond .6s ease-in-out infinite}
+@keyframes atlColRebond{0%,100%{transform:translateX(-50%) translateY(0) scaleY(1) rotate(0)}30%{transform:translateX(-50%) translateY(-10px) scaleY(1.04) rotate(-3deg)}60%{transform:translateX(-50%) translateY(0) scaleY(.94) rotate(2deg)}}
+.atl-colc figcaption{font:700 13px/1.2 var(--body);text-align:center}.atl-coln{color:var(--muted);font:11.5px var(--body)}
+@media (max-width:600px){.atl-colst{flex-direction:column;gap:2px}.atl-colc{width:100%;max-width:240px}.atl-colv{width:140px;height:140px}.atl-colv img{max-width:134px;max-height:134px}.atl-colfl{line-height:1}}
+@media (prefers-reduced-motion:reduce){.atl-colc.joue .atl-colv img{animation:none}}

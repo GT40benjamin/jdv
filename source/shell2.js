@@ -16981,7 +16981,7 @@ function atlElVus(f) {   // l'onglet Éléments a été regardé : tout ce qui y
 }
 function atlNeufMark(el, it) { if (!el || !it || !it.neuf) return el; el.classList.add('atl-elneuf'); el.appendChild(atlEl('span', 'atl-elnb', '✨ nouveau')); return el; }
 function atlBiblioItems(f, fi) {
-  const as = Array.isArray(f.assets) ? f.assets.filter(a => a && typeof a === 'object' && atlAssetUrl(a)) : [], vus = new Set(), items = {};
+  const as = Array.isArray(f.assets) ? f.assets.filter(a => a && typeof a === 'object' && atlAssetUrl(a) && !atlCollEst(a)) : [], vus = new Set(), items = {};   // 2.0.129 : les bêtes d'une collection sont dans son onglet
   for (const [cat] of ATL_CATS) items[cat] = [];
   for (const a of as) {
     const cat = atlAssetCat(a, fi), cle = (a.image || a.son) + (a.case ? '#' + a.case : ''); if (!cat || vus.has(cle)) continue; vus.add(cle);
@@ -17040,12 +17040,17 @@ function atlBiblio(host, f, fi, lecture) {
     items[cat] = items[cat].filter(it => it.asset || !pleins.some(z => atlMemeChose(z.parent || z.nom, it.nom)));
   }
   const lib = atlEl('div', 'atl-lib' + (lecture ? ' lecture' : ''));
-  let cat = store.get('jdw.atl.libcat', 'personnage'); if (!ATL_CATS.some(c => c[0] === cat)) cat = 'personnage';
+  let cat = store.get('jdw.atl.libcat', 'personnage'); if (!ATL_CATS.some(c => c[0] === cat) && cat !== 'collection') cat = 'personnage';
+  const coll = atlCollection(f);   // 2.0.129 : « 📖 Cosmodex » (ou « Collection ») = les familles à stades, une ligne par lignée
   const pleines = ATL_CATS.filter(([c]) => items[c].length);   // 2.0.125 (chef) : pas d'onglet vide
-  if (pleines.length && !items[cat].length) cat = pleines[0][0];
+  if (coll.lignees.length) pleines.push(['collection']);
+  if (cat === 'collection' && !coll.lignees.length) cat = 'personnage';
+  if (pleines.length && cat !== 'collection' && !items[cat].length) cat = pleines[0][0];
   const nav = atlEl('div', 'atl-libnav'); nav.setAttribute('role', 'tablist'); nav.hidden = !pleines.length;
   for (const [k, ic, lab] of ATL_CATS) { if (!items[k].length) continue; const nn = items[k].filter(x => x.neuf).length, b = atlEl('button', 'atl-libt' + (k === cat ? ' on' : '') + (nn ? ' neuf' : ''), ic + ' ' + lab + ' · ' + items[k].length + (nn ? ' · ✨' + nn : '')); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(k === cat)); b.addEventListener('click', () => { store.set('jdw.atl.libcat', k); atlLibVider(host); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
+  if (coll.lignees.length) { const b = atlEl('button', 'atl-libt atl-libcoll' + (cat === 'collection' ? ' on' : ''), '📖 ' + coll.nom + ' · ' + coll.n.toLocaleString('fr-FR')); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(cat === 'collection')); b.addEventListener('click', () => { store.set('jdw.atl.libcat', 'collection'); atlLibVider(host); host.textContent = ''; atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
   lib.appendChild(nav);
+  if (cat === 'collection') { lib.appendChild(nav); atlCollRendre(lib, coll); host.appendChild(lib); return; }   // 2.0.129
   const [, ic, lab, k] = ATL_CATS.find(c => c[0] === cat), l = items[cat], visuel = !['son', 'musique'].includes(cat);
   let vue = store.get('jdw.atl.libvue', 'planche'); if (vue !== 'cartes') vue = 'planche';
   const bar = atlEl('div', 'atl-libbar');
@@ -17086,6 +17091,67 @@ function atlBiblio(host, f, fi, lecture) {
   if (lecture) lib.appendChild(atlEl('p', 'atl-libmasc', '💬 Un nouveau personnage, un objet, un décor, une musique ? Dis-le à ' + gNM() + ' dans la discussion : il te pose ses questions, puis te propose une offre.'));   // 2.0.125 : sous les éléments (ils arrivent plus haut à l'écran)
   host.appendChild(lib);
   if (ATL.tab === 'elements') setTimeout(() => { try { if (ATL.tab === 'elements' && host.isConnected && !host.closest('[hidden]')) atlElVus(f); } catch (e) {} }, 2500);   // 2.0.61
+}
+// ---- 2.0.129 (l'admin, 5 nov. : « 📖 Cosmodex » de L'Explorateur) : une COLLECTION = les éléments qui ont une famille à stades —
+// clés af_lignee (la lignée), af_stade ('1' | '2' | '3' | 'légendaire' | 'ancienne'), af_num (le numéro : ordre des stades), af_vue + af_ordre
+// (les vues fixes) ; nom de l'onglet = fiche.collection, sinon le module (g.collection), sinon « Collection ». Une ligne par lignée : ses
+// stades côte à côte (↓ au téléphone), chacun s'anime à son tour (rebond, balancement, vues qui changent), en boucle. Par paquets.
+const atlCollEst = a => !!(a && a.af_stade != null && a.af_lignee);
+function atlCollection(f) {
+  const fi = f && f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, g = f && f.jeu ? (window.JDW_GAMES || {})[f.jeu] : null;
+  const nom = String(fi.collection || (g && g.collection) || 'Collection').slice(0, 24);
+  const L = new Map(), as = Array.isArray(f && f.assets) ? f.assets.filter(a => atlCollEst(a) && atlIaUrl(a.image) && a.actif !== false) : [];
+  for (const a of as) {
+    const ln = String(a.af_lignee), num = +a.af_num || 0, k = num || String(a.af_id || a.nom);
+    if (!L.has(ln)) L.set(ln, { nom: ln, min: 1e9, stades: new Map() }); const l = L.get(ln); if (num) l.min = Math.min(l.min, num);
+    if (!l.stades.has(k)) l.stades.set(k, { num, nom: String(a.nom || '').split(' — ')[0].trim() || ln, stade: String(a.af_stade), vues: [] });
+    l.stades.get(k).vues.push({ u: atlIaUrl(a.image), o: +a.af_ordre || 9, v: String(a.af_vue || '') });
+  }
+  const rang = st => st === 'ancienne' ? 2 : st === 'légendaire' ? 1 : 0;
+  const lignees = [...L.values()].map(l => { const st = [...l.stades.values()].sort((a, b) => a.num - b.num); for (const x of st) x.vues.sort((a, b) => a.o - b.o); return { nom: l.nom, min: l.min, stades: st, r: rang(st[0] && st[0].stade) }; })
+    .sort((a, b) => a.r - b.r || a.min - b.min || a.nom.localeCompare(b.nom, 'fr'));
+  return { nom, lignees, n: lignees.reduce((m, l) => m + l.stades.length, 0) };
+}
+function atlCollRendre(lib, coll) {
+  const sec = atlEl('section', 'atl-libc atl-coll'), ch = atlLibCharge(lib, coll.n), tel = atlPetit();
+  lib.appendChild(sec);
+  atlPager(sec, coll.lignees, tel ? 3 : 8, l => {
+    const r = atlEl('div', 'atl-colr'), h = atlEl('div', 'atl-colh'), st0 = l.stades[0] || {};
+    h.append(atlEl('b', '', l.stades.length > 1 ? 'Lignée ' + l.nom : l.nom), atlEl('small', '', st0.stade === 'légendaire' ? '✨ Légendaire' : st0.stade === 'ancienne' ? '🕰️ Ancienne' : l.stades.length > 1 ? 'N° ' + l.stades.map(x => x.num).filter(Boolean).join(' · ') : (st0.num ? 'N° ' + st0.num : '')));
+    const row = atlEl('div', 'atl-colst');
+    l.stades.forEach((x, n) => {
+      if (n) row.appendChild(atlEl('span', 'atl-colfl', tel ? '↓' : '→'));
+      const c = atlEl('figure', 'atl-colc'), v = atlEl('div', 'atl-colv');
+      x.vues.forEach((w, k) => { const im = atlEl('img'); im.alt = x.nom; im.decoding = 'async'; im.src = w.u; if (k) im.className = 'off'; v.appendChild(im); });
+      if (x.vues.length > 1) v.dataset.n = String(x.vues.length);
+      c.append(v, atlEl('figcaption', '', x.nom), atlEl('small', 'atl-coln', x.num ? 'N° ' + x.num : ''));
+      c.addEventListener('click', () => { const u = x.vues[0] && x.vues[0].u; if (u) atlZoom(u); });
+      row.appendChild(c);
+    });
+    r.append(h, row); ch.suivre(r); return r;
+  }, n => n + ' lignée' + (n > 1 ? 's' : ''));
+  if (lib.parentNode || true) atlCollTick();
+  lib.appendChild(atlEl('p', 'atl-libmasc', '📖 Chaque lignée évolue de gauche à droite. Une bête en plus ou une évolution ? Dis-le à ' + gNM() + ' dans la discussion.'));
+}
+// un seul minuteur pour toutes les lignes à l'écran : stade 1, puis 2, puis 3 (1,8 s chacun), en boucle ; vues fixes qui changent pendant son tour
+let ATL_COLL_T = 0;
+function atlCollTick() {
+  if (ATL_COLL_T) return;
+  ATL_COLL_T = setInterval(() => {
+    const rows = document.querySelectorAll('.atl-colr'); if (!rows.length) { clearInterval(ATL_COLL_T); ATL_COLL_T = 0; return; }
+    const t = performance.now(), H = innerHeight;
+    for (const r of rows) {
+      const b = r.getBoundingClientRect(); if (b.bottom < -50 || b.top > H + 50) continue;
+      const cs = r.querySelectorAll('.atl-colc'); if (!cs.length) continue;
+      const k = Math.floor(t / 1800) % cs.length;
+      cs.forEach((c, i) => {
+        const on = i === k; if (c.classList.contains('joue') !== on) c.classList.toggle('joue', on);
+        const v = c.querySelector('.atl-colv'), n = v && +v.dataset.n; if (!n) return;
+        const q = on ? Math.floor((t % 1800) / 600) % n : 0, ims = v.children;
+        for (let j = 0; j < ims.length; j++) { const off = j !== q; if (ims[j].classList.contains('off') !== off) ims[j].classList.toggle('off', off); }
+      });
+    }
+  }, 120);
 }
 // 2.0.125 : les images d'un onglet quitté s'arrêtent (sinon des centaines de téléchargements bouchent les suivants)
 function atlLibVider(host) { for (const im of host.querySelectorAll('img')) { if (!im.complete) im.removeAttribute('src'); } }
