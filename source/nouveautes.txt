@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🛍️ La boutique de ton jeu, en grand (borne 2.0.160)
+[borne] 🛍️ Dans l'Atelier, l'onglet Boutique de ton jeu montre chaque article en carte avec sa vraie image, son prix, ses ventes et tes crédits gagnés, rangés par famille ; le bouton ⋯ demande une modification à {g} ou retire l'article de la vente (ceux qui l'ont acheté le gardent).
+[borne] 🧩 Les onglets Éléments, Stats et Feuille de route prennent toute la largeur de l'écran sur ordinateur ; les jours joués se voient sur la courbe, et la feuille de route montre toutes les parties de ta fiche.
 [abracadabra] ## 🪄 Abracadabra : plus de titre en double (borne 2.0.158)
 [abracadabra] 🪄 Le chargement du monde 3D n'affiche plus le titre une deuxième fois : seulement « Le bâton se réveille… ».
 [ilo] ## 🚀 Galaxy Wars : plus de titre en double (borne 2.0.158)
