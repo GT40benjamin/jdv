@@ -5559,3 +5559,6 @@ span.atl-esjaq{display:grid;place-items:center;font-size:60px}
 #jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-rl{background:rgba(155,123,255,.08);color:#2a1e45}#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-rl b,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-rl.res:hover .atl-rres{color:#4a2370}#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-rl.ok b{color:#127a4a}
 #jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-route small,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-route p,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-route .atl-rres{color:#6b5c86}
 @media (max-width:600px){.atl-esstats .atl-esnums{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.atl-travt{display:none}
+.atl-wiz.atl-nuages .atl-travb .atl-travt,.atl-espace .atl-travb .atl-travt{display:block;font:800 13px var(--body);color:#5a3a90;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.atl-wiz.atl-nuages .atl-travb:has(.atl-travt) b,.atl-espace .atl-travb:has(.atl-travt) b{display:none}

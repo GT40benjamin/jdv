@@ -16732,7 +16732,7 @@ function atlVerMaj(W, f) {
 // Menu latéral (PC) / menu flottant au pouce (téléphone) : 🏠 Mon jeu · 💬 Discussion · 🧩 Éléments · 🛍️ Boutique · 🗂️ Versions · 📊 Statistiques
 // · ⚙️ Paramètres ; la mascotte en haut à gauche ; le FOND de l'espace généré pour le projet (at_espace_fond, SQL v148) ; des cartes de résumé
 // et des statistiques RÉELLES (at_stats_lire) — jamais de faux chiffres : zéro = zéro, avec un mot gentil.
-const ATL_ESPACE_ON = !!(navigator.webdriver && window.JDW_ESPACE_ESSAI);   // 2.0.152 : en essai sur les bancs, sort pour tous après l'OK du chef   // 2.0.142 : l'espace du jeu sort en 2.0.143 (refait comme la maquette validée)
+const ATL_ESPACE_ON = !(navigator.webdriver && window.JDW_ESPACE_OFF);   // 2.0.152 : en essai sur les bancs, sort pour tous après l'OK du chef   // 2.0.142 : l'espace du jeu sort en 2.0.143 (refait comme la maquette validée)
 const ATL_ESP = [['jeu', '🏠', 'Mon jeu'], ['demandes', '💬', 'Discussion'], ['elements', '🧩', 'Éléments'], ['boutique', '🛍️', 'Boutique'], ['versions', '🗂️', 'Versions'], ['stats', '📊', 'Statistiques'], ['params', '⚙️', 'Paramètres']];
 const ATL_ESP_EL = [['🦸', 'Personnages'], ['🎁', 'Objets'], ['🏞️', 'Décor'], ['🔊', 'Sons'], ['🎵', 'Musiques']];
 const atlNb0 = n => atlNb(Math.round(+n || 0));
@@ -18674,6 +18674,7 @@ function atlTravBulle(x, qui) {
   const tx = String(e.texte || e.etape || ''), m = tx.match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i), d0 = new Date(e.at);
   const test = /^tests?$/.test(String(e.etape || '')), B = atlEl('div', 'atl-dthink atl-travb' + (test ? ' tests' : '')), col = atlEl('div'); B.dataset.id = x.id || ''; B.dataset.k = tx + '|' + (e.at || '');
   col.append(atlEl('b', '', test ? '🔍 ' + gNM() + ' teste ' + (qui ? 'le jeu de ' + qui : 'ton jeu') + ' en profondeur' : '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : /^🚀\s*Conception de ta V\d/.test(String(x.texte || '')) ? 'sur ta V1' : 'sur ta demande')), atlEl('p', 'atl-travt', test ? (tx.replace(/\s*🔍\s*/g, ' ').replace(/\s*je teste ton jeu en profondeur\s*[….]*\s*/i, ' ').replace(/\s+/g, ' ').trim().replace(/^./, c => c.toUpperCase()) || 'Chaque niveau, chaque bouton, chaque son.') : tx));   // 2.0.62 : l'étape « tests » (sans redire le titre)
+  { const tt = atlDemLigne(x); if (tt) col.appendChild(atlEl('span', 'atl-travt', '🛠️ « ' + (tt.length > 70 ? tt.slice(0, 68).replace(/\s+\S*$/, '') + '…' : tt) + ' »')); }   // 2.0.153 (chef) : la ligne fine dit QUELLE demande
   if (m && +m[2] > 0) { const n = Math.min(+m[1], +m[2]), bar = atlEl('div', 'atl-travbar'), i = atlEl('i'); i.style.width = Math.round(n / +m[2] * 100) + '%'; bar.appendChild(i); col.append(bar, atlEl('small', 'atl-travn', 'Étape ' + n + ' / ' + m[2])); }
   if (ea && ea !== e) col.appendChild(atlEl('p', 'atl-travel', '🧩 ' + String(ea.texte || '') + ' (onglet Éléments)'));
   col.append(atlEl('small', '', (isNaN(d0) ? '' : 'à ' + d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' · ') + (qui ? 'en direct' : 'Je te préviens dès que c’est prêt 🔔')), atlEl('span', 'atl-dpts', '•••'));
