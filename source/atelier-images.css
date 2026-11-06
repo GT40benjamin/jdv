@@ -400,3 +400,14 @@
   #jdw-atelier.crea-mt.ecrire .crea-mth .sous{font-size:14px}
 }
 #jdw-atelier.crea-mt:not(.ecrire) .atl-comp > .atl-row2 > .atl-cost:not([hidden]){display:block}
+/* CORRECTIF (l'admin, 6 nov. 23 h) : un atelier en montage montre au milieu l'offre « Aménager mon atelier » et l'avancement, en direct */
+#jdw-atelier .crea-mtof{position:relative;z-index:1;flex:0 0 auto;max-height:46vh;overflow:auto;padding:8px 14px 10px;border-top:1px solid #eee6ff;background:#fbf8ff}
+#jdw-atelier .crea-mtprep{background:#fff;border:1px solid #e4d7ff;border-radius:14px;padding:10px 12px;margin:6px 0;font-size:14px;line-height:1.4;color:#3b2a66}
+#jdw-atelier .crea-mtprep b{display:block;margin-bottom:4px;font-size:14.5px}
+#jdw-atelier .crea-mtet{font-size:13.5px;padding:2px 0;color:#4a3f63}
+#jdw-atelier .crea-mtet.der{font-weight:600;color:#5a32b0}
+#jdw-atelier.crea-nuit .crea-mtof{background:#1a1440;border-top-color:#3a2f73}
+#jdw-atelier.crea-nuit .crea-mtprep{background:#2a215c;border-color:#4a3c94;color:#efe6ff}
+#jdw-atelier.crea-nuit .crea-mtet{color:#d6cbef}
+#jdw-atelier.crea-nuit .crea-mtet.der{color:#e2d6ff}
+#jdw-atelier.crea-mt.crea-img .atl-comp > .atl-row2 > .atl-cost{display:none!important}

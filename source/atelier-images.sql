@@ -81,11 +81,12 @@ begin
   if t = '' then t := 'Mes images'; end if;
   why := pegase_int.at_filtre(t); if why <> '' then raise exception 'filtre %', why; end if;
   insert into public.at_fiches (name, titre, etat, type) values (n, t, 'en_discussion', 'images') returning at_fiches.id into id;
-  perform pegase_int.at_esp_dire(id, 'Voilà ton espace de travail ! 🎨 Importe une photo ou un dessin avec « ＋ Importer une image », puis dis-moi ce que tu veux changer. Je fais chaque nouvelle image dans ton atelier, et toutes tes versions restent gardées.');
+  -- v164 : plus de message « Voilà ton espace de travail » ici : un atelier se monte comme un jeu, ce message part à la livraison de sa V1
   return jsonb_build_object('id', id, 'titre', t);
 end $$;
 -- tout l'espace d'un projet Images
 create or replace function public.at_esp_lire(p_name text, p_fiche uuid) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+#variable_conflict use_variable   -- v163 : « n » (le joueur) contre la colonne at_creation_versions.n
 declare n text := public.pg_n(p_name); f public.at_fiches;
 begin
   perform public.acct_check(n);
@@ -110,6 +111,7 @@ begin
 end $$;
 -- importer une photo ou un dessin : une nouvelle création, V1 « import », à déposer dans le seau atelier (e/<version>.jpg)
 create or replace function public.at_esp_importer(p_name text, p_fiche uuid, p_titre text default null) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+#variable_conflict use_variable   -- v163 : « n » (le joueur) contre la colonne at_creation_versions.n
 declare n text := public.pg_n(p_name); f public.at_fiches; c uuid; v uuid; t text := left(btrim(coalesce(p_titre, '')), 60); why text;
 begin
   perform public.acct_check(n);
@@ -127,6 +129,7 @@ begin
 end $$;
 -- recadrer : nouvelle version gratuite (le navigateur envoie l'image recadrée en e/<version>.jpg)
 create or replace function public.at_esp_recadrer(p_name text, p_creation uuid) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+#variable_conflict use_variable   -- v163 : « n » (le joueur) contre la colonne at_creation_versions.n
 declare n text := public.pg_n(p_name); c public.at_creations; a public.at_creation_versions; v uuid; k int;
 begin
   perform public.acct_check(n);
@@ -142,6 +145,7 @@ begin
 end $$;
 -- le dépôt est fait : un import part au CONTRÔLE (visages réels, choquant), un recadrage est prêt tout de suite
 create or replace function public.at_esp_envoye(p_name text, p_version uuid) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+#variable_conflict use_variable   -- v163 : « n » (le joueur) contre la colonne at_creation_versions.n
 declare n text := public.pg_n(p_name); v public.at_creation_versions; c public.at_creations; g uuid;
 begin
   perform public.acct_check(n);
@@ -178,6 +182,7 @@ create or replace function pegase_int.at_esp_style(k text) returns text language
     else null end $$;
 -- FABRIQUER une nouvelle image depuis la version affichée (retoucher en parlant, changer le style) : débit à la demande
 create or replace function public.at_esp_fabriquer(p_name text, p_creation uuid, p_outil text, p_consigne text) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+#variable_conflict use_variable   -- v163 : « n » (le joueur) contre la colonne at_creation_versions.n
 declare n text := public.pg_n(p_name); c public.at_creations; a public.at_creation_versions; f public.at_fiches; t text := left(btrim(regexp_replace(coalesce(p_consigne, ''), '\s+', ' ', 'g')), 400);
   why text; prix int := greatest(0, coalesce(pegase_int.at_reglage('prix_esp_image'), 20)); s int; k int; v uuid; g uuid; pr text; sty text; lib text;
 begin
@@ -235,6 +240,7 @@ begin
 end $$;
 -- revenir à une version (gratuit) ; renommer une image ; retirer une image
 create or replace function public.at_esp_choisir(p_name text, p_creation uuid, p_version uuid) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+#variable_conflict use_variable   -- v163 : « n » (le joueur) contre la colonne at_creation_versions.n
 declare n text := public.pg_n(p_name);
 begin
   perform public.acct_check(n);
