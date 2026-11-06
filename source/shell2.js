@@ -16917,7 +16917,9 @@ async function atlEspStats(W, f) {
   const dessine = () => {
     const D = (n === 7 ? s7 : s30) || s30, P = D.periode || {}, J = Array.isArray(D.jours) ? D.jours : [];
     for (const b of tabs.children) b.classList.toggle('on', +b.dataset.n === n);
-    ch.textContent = ''; ch.appendChild(atlEspCourbe(J)); g2.textContent = '';
+    ch.textContent = ''; g2.textContent = '';
+    if (!(P.parties | 0) && !(P.temps | 0)) { const x = atlEl('div', 'atl-esdoux'); x.append(atlEl('span', '', '🌱'), atlEl('p', '', 'Personne n’a encore joué ces ' + n + ' derniers jours. Lance une partie et invite tes copains : la courbe démarre dès la première partie !')); ch.appendChild(x); if (S.record != null) { const z = atlEl('div', 'atl-esnum'); z.append(atlEl('b', '', atlNb0(S.record)), atlEl('small', '', '🏆 record')); g2.appendChild(z); } return; }   // 2.0.154 (chef) : à zéro, une petite carte gentille, pas une courbe plate
+    ch.appendChild(atlEspCourbe(J));
     const nn = (v, l, z) => { const x = atlEl('div', 'atl-esnum' + (z ? ' zero' : '')); x.append(atlEl('b', '', v), atlEl('small', '', l)); g2.appendChild(x); };
     nn(atlNb0(P.parties), '▶ parties jouées', !(P.parties | 0)); nn(atlNb0(P.joueurs), '👥 joueurs différents', !(P.joueurs | 0)); nn(atlDuree(P.temps), '⏱️ temps de jeu', !(P.temps | 0));
     nn(S.record != null ? atlNb0(S.record) : '—', '🏆 record', S.record == null); nn(atlNb0(A.nombre), '🧾 achats dans la boutique', !(A.nombre | 0)); nn(atlNb0(A.credits) + ' 💎', '💰 crédits gagnés', !(A.credits | 0));

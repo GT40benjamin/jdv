@@ -5562,3 +5562,5 @@ span.atl-esjaq{display:grid;place-items:center;font-size:60px}
 .atl-travt{display:none}
 .atl-wiz.atl-nuages .atl-travb .atl-travt,.atl-espace .atl-travb .atl-travt{display:block;font:800 13px var(--body);color:#5a3a90;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .atl-wiz.atl-nuages .atl-travb:has(.atl-travt) b,.atl-espace .atl-travb:has(.atl-travt) b{display:none}
+/* 2.0.154 : la conversation ne déborde jamais de l'écran (une ligne longue élargissait toute la grille au téléphone) */
+.atl-discc,.atl-pmsgs{grid-template-columns:minmax(0,1fr)}.atl-disclog,.atl-discc > *{min-width:0;max-width:100%}.atl-disclog .atl-m{max-width:100%}
