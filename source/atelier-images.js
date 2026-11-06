@@ -87,19 +87,20 @@
       + '<button class="crea-rond crea-retour" type="button" aria-label="Retour à mes projets">‹</button>'
       + '<div class="crea-marque"><img alt="" src="' + AV() + '"><b></b></div><div class="crea-fil"></div>'
       + '<div class="crea-cred" title="Tes crédits"></div></header>'
-      + '<div class="crea-ciel" aria-hidden="true"><img alt="" src="' + ROOT + 'accueil/atelier-nuage-1.webp"><img alt="" src="' + ROOT + 'accueil/atelier-nuage-2.webp"><img alt="" src="' + ROOT + 'accueil/atelier-nuage-3.webp"><img alt="" src="' + ROOT + 'accueil/atelier-nuage-1.webp"><img alt="" src="' + ROOT + 'accueil/atelier-nuage-2.webp"></div>'
+      + '<div class="crea-ciel" aria-hidden="true"></div>'
       + '<div class="crea-corps"><nav class="crea-arbre crea-carte" aria-label="Mes projets"></nav><main class="crea-outil"></main>'
       + '<aside class="crea-pooky crea-carte" aria-label="Discussion avec Pooky"></aside></div>'
       + '<button class="crea-flot" type="button" aria-label="Parler à Pooky"><span class="bb" hidden></span><span class="pk"><img alt="" src="' + AV() + '"></span></button>'
       + '<div class="crea-voile"></div><div class="crea-mod" hidden role="dialog" aria-modal="true"></div>'
       + '<input class="crea-file" type="file" accept="image/jpeg,image/png,image/webp" hidden>';
     document.body.appendChild(R); AIM.root = R;
+    try { atlEspCiel(R.querySelector('.crea-ciel'), false); } catch (e) {}   // le MÊME ciel que la création d'un jeu (2.0.152 / 2.0.161)
     const q = s => R.querySelector(s);
     q('.crea-menu').addEventListener('click', () => { R.classList.toggle('tiroir'); });
     q('.crea-voile').addEventListener('click', () => R.classList.remove('tiroir'));
     q('.crea-retour').addEventListener('click', fermerVersProjets);
     q('.crea-flot').addEventListener('click', () => { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); setTimeout(() => { const t = q('.crea-pooky textarea'); if (t) t.focus({ preventScroll: true }); }, 60); });
-    q('.crea-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) importer(f); });
+    q('.crea-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0], nv = e.target.dataset.nv; e.target.value = ''; delete e.target.dataset.nv; if (!f) return; if (nv && AIM.vue === 'nouveau') imageNouveau(f); else importer(f); });
     q('.crea-cred').addEventListener('click', () => { try { atlRecharger(); } catch (e) {} });
     try { if (store.get('jdw.crea.pkreplie', false)) R.classList.add('pk-replie'); } catch (e) {}
     return R;
@@ -126,13 +127,16 @@
 
   // ---------- Nouveau projet : un ciel de nuages + la discussion de Pooky, claire, AU CENTRE (admin, 6 nov. : PAS de grille de types, pas de
   // feuille de route ni d'étapes ; Pooky comprend ce que le joueur veut faire, choisit le type et dit seulement ce qui existe vraiment) ----------
-  const DIT_POSSIBLE = 'Aujourd’hui, je sais faire avec toi : 🎮 des jeux pour la borne, et 🎨 des images (retoucher tes photos ou tes dessins, changer leur style). La musique, le DJ, les BD, les dessins animés, les cartes et les avatars arrivent bientôt.';
+  // ce que Pooky raconte quand le joueur ne sait pas quoi faire, ou demande « tu sais faire quoi ? » (seulement ce qui existe VRAIMENT)
+  const DIT_POSSIBLE = () => 'Plein de choses ! 🤩 Avec moi, tu peux créer :\n'
+    + '🎮 un JEU pour la borne : une course dans l’espace, un chat ninja qui saute de toit en toit, un quiz sur tes copains… Tu me racontes, je le fabrique, et tes copains y jouent !\n'
+    + (AIM.off ? '' : '🎨 des IMAGES : tu me montres ta photo ou ton dessin, et je la mets de nuit, en aquarelle, en dessin animé, en pixel… ou je change ce que tu veux dedans.\n')
+    + 'Alors, une idée ? 😊';
   async function nouveau() {
     AIM.fiche = null; AIM.d = null; AIM.cur = null; AIM.vue = 'nouveau'; AIM.prop = null;
     AIM.nv = { choix: null, titre: 'Mes images' };
     AIM.loc = [];
-    dire({ pk: 1, img: 'coucou', t: 'Coucou ' + joli(nom()) + ' ! Qu’est-ce qu’on crée aujourd’hui ? Raconte-moi ton idée, au clavier ou au micro 🎤' });
-    dire({ pk: 1, t: DIT_POSSIBLE });
+    dire({ pk: 1, img: 'coucou', t: 'Bonjour ' + joli(nom()) + ' ! Qu’est-ce qu’on crée aujourd’hui ? Raconte-moi ton idée 😊' });
     montrer(); render();
     await chargerTypes(true); render();
   }
@@ -141,7 +145,9 @@
     [/(dessin anim|vid[ée]o|film|clip)/i, 'Les dessins animés'], [/\b(carte d|carte pour|invitation|anniversaire|affiche)/i, 'Les cartes'], [/\b(avatar|autocollant|sticker|emoji)/i, 'Les avatars']];
   const RX_IMG = /(photo|image|dessin|retouch|fond d.?[ée]cran|style|couleur|filtre|selfie|paysage|aquarelle|pixel)/i;
   const RX_JEU = /(\bjeu\b|\bjeux\b|jouer|niveau|personnage qui|score|ennemi|course|plateforme|labyrinthe|tirer|sauter)/i;
+  const RX_AIDE = /(sais pas|sais faire quoi|tu sais faire|tu fais quoi|quoi faire|qu.est.ce (que )?(tu|je|on) (peu[xt]|sai[st])|aide|id[ée]e[s]? \?|propose|inspire|^\s*\?+\s*$)/i;
   function comprendre(t) {
+    if (RX_AIDE.test(t) && !RX_IMG.test(t) && !RX_JEU.test(t)) return 'aide';
     const img = RX_IMG.test(t), jeu = RX_JEU.test(t), bt = RX_BIENTOT.find(([r]) => r.test(t));
     if (/^\s*(un |une |des |les |le )?(jeu|jeux)\s*!?\s*$/i.test(t)) return 'jeu';
     if (/^\s*(une |des |les |l’|l')?(images?|photos?)\s*!?\s*$/i.test(t)) return 'images';
@@ -163,8 +169,16 @@
       dire({ pk: 1, img: 'joie', t: 'Super idée ! Je te propose un projet Images, avec ton propre atelier de retouche 🎨 Tu y mets ta photo ou ton dessin, tu me dis ce que tu veux changer, et chaque nouvelle image s’ajoute à côté des autres. Voilà ce qu’il y a dedans, et les prix 👇', offre: 1 });
       render(); return;
     }
+    if (k === 'aide') { dire({ pk: 1, img: 'idee', t: DIT_POSSIBLE() }); render(); return; }
     if (k.startsWith('bientot:')) { dire({ pk: 1, t: k.slice(8) + ' : ça arrive bientôt ! Aujourd’hui je sais faire des jeux 🎮 et des images 🎨. Tu veux qu’on fasse l’un des deux ?' }); render(); return; }
     dire({ pk: 1, img: 'idee', t: 'J’adore ! Tu veux plutôt en faire un jeu 🎮 (pour jouer sur la borne) ou une image 🎨 (retoucher une photo, changer son style) ?' }); render();
+  }
+  function imageNouveau(f) {
+    if (!/^image\/(jpeg|png|webp)$/.test(f.type || '') || f.size > 5 * 1024 * 1024) { dire({ pk: 1, t: 'Seulement des images JPEG, PNG ou WebP, 5 Mo au plus (photo, capture d’écran, dessin…) 🙂' }); render(); return; }
+    try { if (AIM.nv.apercu) URL.revokeObjectURL(AIM.nv.apercu); } catch (e) {}
+    AIM.nv.fichier = f; AIM.nv.apercu = URL.createObjectURL(f);
+    dire({ pk: 0, t: '', image: AIM.nv.apercu }); render();
+    setTimeout(() => { dire({ pk: 1, img: 'joie', t: 'Oh, jolie image ! 😍 Tu veux la retoucher ou changer son style ? Alors c’est un projet Images.' }); choisirType('images'); }, 450);
   }
   const etroit = () => matchMedia('(max-width: 899px)').matches;
   function renderNouveau(O) {
@@ -174,16 +188,19 @@
     const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
     for (const m of AIM.loc) { F.appendChild(bulle(m)); if (m.offre && AIM.nv.choix === 'images') { const o = offreImages(); o.classList.add('dans-fil'); F.appendChild(o); } }
     C.appendChild(F);
-    C.appendChild(saisie(etroit() ? 'Raconte ton idée…' : 'Ex. : « je voudrais retoucher la photo de mon chat » ou « un jeu de course dans l’espace »'));
+    C.appendChild(saisie('Raconte-moi ton idée…', true));
     O.appendChild(C);
     requestAnimationFrame(() => { F.scrollTop = F.scrollHeight; });
   }
   // la case pour écrire (ou dicter) à Pooky : dans son panneau, ou au centre pendant la création d'un projet
-  function saisie(ph) {
+  function saisie(ph, avecImage) {
     const S = E('form', 'crea-saisie'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 2000; ta.placeholder = ph || 'Écris à ' + PK() + '…'; ta.setAttribute('aria-label', 'Ton message à Pooky');
     ta.value = AIM.brouPk || ''; ta.addEventListener('input', () => { AIM.brouPk = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) {} }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
+    if (avecImage) {   // joindre une image dès la création (elle ira dans l'atelier d'images une fois le projet accepté)
+      const ib = B('crea-mic crea-imgb', '🖼️', () => { const f = AIM.root.querySelector('.crea-file'); f.dataset.nv = '1'; f.click(); }); ib.setAttribute('aria-label', 'Joindre une image'); ch.insertBefore(ib, mic);
+    }
     const env = E('button', 'crea-env', '➤'); env.type = 'submit'; env.setAttribute('aria-label', 'Envoyer');
     S.append(ch, env);
     S.addEventListener('submit', e => { e.preventDefault(); const v = ta.value.trim(); if (!v) return; ta.value = ''; AIM.brouPk = ''; envoyerPooky(v); });
@@ -214,7 +231,9 @@
         AIM.types[r.id] = { id: r.id, type: 'images', titre: r.titre, images: 0 };
         try { if (ATL.data && Array.isArray(ATL.data.projets)) ATL.data.projets.unshift({ id: r.id, titre: r.titre, etat: 'en_discussion' }); atlLoad(true); } catch (e) {}
         nuages('Voilà ton espace de travail !', 'Ton atelier de retouche est prêt, ' + joli(nom()) + ' ✨');
+        const fj = AIM.nv.fichier; AIM.nv.fichier = null;
         await ouvrir(r.id);
+        if (fj) setTimeout(() => importer(fj), 3300);   // l'image jointe pendant la création arrive dans l'atelier (après les nuages)
       } catch (e) {
         const m = pourquoi(e);
         dire({ pk: 1, t: /trop de projets/.test(m) ? 'Tu as déjà le maximum de projets : termine ou supprime un projet avant d’en commencer un autre.' : /filtre/.test(m) ? 'Ce nom-là, je ne peux pas le garder 🙈 Choisis-en un autre !' : 'Oups, ça n’a pas marché. Réessaie dans un moment 🙏' });
@@ -509,7 +528,7 @@
     if (foc) S.querySelector('textarea').focus({ preventScroll: true });
   }
   function bulle(m) {
-    if (!m.pk) return E('div', 'crea-b moi', m.t);
+    if (!m.pk) { const b = E('div', 'crea-b moi', m.t || null); if (m.image) { const i = E('img', 'crea-bimg'); i.alt = 'Ton image'; i.src = m.image; b.appendChild(i); } return b; }
     const l = E('div', 'crea-lpk'), im = E('img'); im.alt = ''; im.src = m.img ? POSE(m.img) : AV();
     const b = E('div', 'crea-b');
     const tag = /^(✅|⏳)/.test(m.t);
