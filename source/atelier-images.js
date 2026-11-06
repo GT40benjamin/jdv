@@ -61,6 +61,19 @@
     if (atlProjets().length >= max) { toast(max + ' projets au plus'); return; }
     nouveau();
   };
+  // le chef (6 nov., 21 h) : « ＋ Nouveau projet » de l'arbre → un NOUVEAU message de {g} arrive dans la discussion (on y raconte son idée),
+  // le curseur dans la case au PC ; déjà sur l'écran sous les nuages : le message s'ajoute à la discussion en cours
+  function nouveauDepuisArbre() {
+    const cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
+    if (atlProjets().length >= max) { toast(max + ' projets au plus'); return; }
+    if (AIM.open && AIM.vue === 'nouveau') {
+      AIM.prop = null; render(); curseur();
+      const der = AIM.loc[AIM.loc.length - 1]; if (der && der.pk && der.t === DIT_NOUVEAU) return;   // déjà dit, rien de neuf depuis : pas de doublon
+      setTimeout(() => { if (!AIM.open || AIM.vue !== 'nouveau') return; dire({ pk: 1, img: 'joie', t: DIT_NOUVEAU }); render(); curseur(); }, 350);
+      return;
+    }
+    nouveau(DIT_NOUVEAU);
+  }
   atlRenderProjets = function () {   // eslint-disable-line no-global-assign
     _renderProjets.apply(this, arguments);
     try { decorer(); } catch (e) {}
@@ -206,11 +219,12 @@
     + '🎮 un JEU pour la borne : une course dans l’espace, un chat ninja qui saute de toit en toit, un quiz sur tes copains… Tu me racontes, je le fabrique, et tes copains y jouent !\n'
     + (AIM.off ? '' : '🎨 des IMAGES : tu me montres ta photo ou ton dessin, et je la mets de nuit, en aquarelle, en dessin animé, en pixel… ou je change ce que tu veux dedans.\n')
     + 'Alors, une idée ? 😊';
-  async function nouveau() {
+  const DIT_NOUVEAU = 'C’est parti pour un nouveau projet ! ✨ Raconte-moi ton idée ici : un jeu, des images… je te dis tout ce qu’on peut faire ensemble.';
+  async function nouveau(premier) {
     AIM.fiche = null; AIM.d = null; AIM.cur = null; AIM.vue = 'nouveau'; AIM.prop = null;
     AIM.nv = { choix: null, titre: 'Mes images' };
     AIM.loc = [];
-    dire({ pk: 1, img: 'coucou', t: 'Bonjour ' + joli(nom()) + ' ! Qu’est-ce qu’on crée aujourd’hui ? Raconte-moi ton idée 😊' });
+    dire({ pk: 1, img: 'coucou', t: premier || ('Bonjour ' + joli(nom()) + ' ! Qu’est-ce qu’on crée aujourd’hui ? Raconte-moi ton idée 😊') });
     montrer(); render(); curseur();
     await chargerTypes(true); render(); if (AIM.vue === 'nouveau') curseur();   // la discussion est redessinée : le curseur y revient
   }
@@ -453,7 +467,7 @@
     try { lireCartes(); } catch (e) {}
     const ps = atlProjets(), cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
     const h = E('div', 'crea-tarb'); h.append(E('b', '', '📁 MES PROJETS'), E('span', '', ps.length + ' / ' + max)); A.appendChild(h);
-    const nb = B('crea-nouveau' + (AIM.vue === 'nouveau' && !AIM.cadre ? ' on' : ''), '＋ Nouveau projet', () => { AIM.root.classList.remove('tiroir'); atlNouveau(); });
+    const nb = B('crea-nouveau' + (AIM.vue === 'nouveau' && !AIM.cadre ? ' on' : ''), '＋ Nouveau projet', () => { AIM.root.classList.remove('tiroir'); nouveauDepuisArbre(); });
     if (ps.length >= max) nb.disabled = true;
     A.appendChild(nb);
     for (const pj of ps) {
