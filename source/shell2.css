@@ -5579,7 +5579,7 @@ span.atl-esjaq{display:grid;place-items:center;font-size:60px}
 /* 2.0.159 : sous l'Atelier (plein écran), la bibliothèque de la borne ne se dessine plus (ses tuiles et badges animés tournaient encore derrière) */
 body.atl-on #jdw-lib{content-visibility:hidden}
 /* 2.0.160 (équipe Jeux, demande de l'admin) : l'onglet BOUTIQUE de l'espace du jeu — toute la largeur sur PC, stats sur une ligne, articles en cartes */
-.atl-espace:is(:has(.atl-pane[data-k="boutique"]:not([hidden])),:has(.atl-pane[data-k="elements"]:not([hidden])),:has(.atl-pane[data-k="stats"]:not([hidden])),:has(.atl-pane[data-k="route"]:not([hidden]))) > .atl-pbox{max-width:1400px;width:100%}
+.atl-espace:is(:has(.atl-pane[data-k="jeu"]:not([hidden])),:has(.atl-pane[data-k="boutique"]:not([hidden])),:has(.atl-pane[data-k="elements"]:not([hidden])),:has(.atl-pane[data-k="stats"]:not([hidden])),:has(.atl-pane[data-k="route"]:not([hidden]))) > .atl-pbox{max-width:1400px;width:100%}
 /* 2.0.160 (l'admin : « les éléments pleine page au maximum ») : grille des éléments qui s'adapte à la largeur, onglets sur une ligne, bulle d'aide pleine largeur, 3 colonnes au téléphone */
 .atl-espace .atl-pane[data-k="elements"] .atl-libg,.atl-espace .atl-pane[data-k="elements"] .atl-pl{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
 .atl-espace .atl-pane[data-k="elements"] .atl-libnav{flex-wrap:nowrap}
@@ -5761,3 +5761,8 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-est.rouge.atl-pdot::after,.atl-esb.rouge.atl-pdot::after{content:'';position:absolute;top:4px;right:8px;width:10px;height:10px;border-radius:50%;background:#d93025;box-shadow:0 0 0 2px #fff}
 /* 2.0.164 (chef) : pas de doublons dans l'encart Admin (le solde et « Demandes de J2B » sont déjà en haut de l'encart) */
 .atl-esadm .atl-adminb > b,.atl-esadm .atl-adminb > .btn:first-of-type{display:none}
+/* 2.0.163 (l'admin : « agrandis, une grande image belle, le fond ») : le fond = l'image de menu du jeu (16:9 / 9:16), plein écran ; « Mon jeu » en pleine largeur */
+.atl-wiz.atl-espace.esp-menu{--esp-fond:var(--esp-fond-l)}
+@media (orientation:portrait){.atl-wiz.atl-espace.esp-menu{--esp-fond:var(--esp-fond-p)}}
+@media (min-width:1000px){.atl-esres{grid-template-columns:repeat(3,minmax(0,1fr))!important}.atl-esjaq{width:300px}.atl-eshero{gap:26px;padding:20px}}
+.atl-esres .atl-escard h4{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(16px,1.3vw,19px)}

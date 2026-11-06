@@ -17042,7 +17042,15 @@ function atlEspResume(c, f, st) {
 }
 // le fond de l'espace : l'image générée pour le projet (une fois, refaite si le thème change), sinon les couleurs du jeu ; relu pendant la génération
 async function atlEspFond(W, f, n) {
-  if (!W.isConnected || isGuest() || !profile.name) return;
+  // 2.0.163 (l'admin : « une grande image belle, le fond ») : le fond = UNE seule grande image sans texte, plein écran ; d'abord l'IMAGE DE MENU du jeu
+  // (menu.* en 16:9 sur PC, menu-portrait.* debout), sinon le fond peint pour l'espace (at_espace_fond), sinon le dégradé du jeu — jamais une planche
+  if (!W.isConnected) return;
+  try { let g = (window.JDW_GAMES || {})[f.jeu]; if (!g || !g.menuImage) { try { g = (await atlModule(f.jeu, (f.version | 0) || (f.version_publiee | 0) || 1)) || g; } catch (e) {} } if (!W.isConnected) return; const ok = x => typeof x === 'string' && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp)$/i.test(x);
+    if (g && ok(g.menuImage)) { const b = ROOT + 'assets/jeux/' + f.jeu + '/', ul = b + g.menuImage, up = b + (ok(g.menuImagePortrait) ? g.menuImagePortrait : g.menuImage);
+      W.style.setProperty('--esp-fond-l', 'url("' + ul + '")'); W.style.setProperty('--esp-fond-p', 'url("' + up + '")'); W.classList.add('esp-menu');
+      try { const im = new Image(); im.src = matchMedia('(orientation:portrait)').matches ? up : ul; await Promise.race([im.decode(), new Promise(ok2 => setTimeout(ok2, 2500))]); } catch (e) {}
+      return; } } catch (e) {}
+  if (isGuest() || !profile.name) return;
   let r = null; try { r = await rpc('at_espace_fond', { p_name: profile.name, p_fiche: f.id }, { quiet: true, quiet404: true }); } catch (e) { r = null; }
   if (!W.isConnected || !r) return;
   const u0 = r.fond ? atlIaUrl(r.fond) : '', lw = (innerWidth <= 900 || matchMedia('(pointer:coarse)').matches) ? 1280 : 1920;   // 2.0.159 (chef, lenteurs) : webp réduit par le serveur d'images
