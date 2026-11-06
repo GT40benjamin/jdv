@@ -181,12 +181,48 @@ const PANTIN = (() => {
       const hand = proj(T, a.r * cr, up(a.u) + Math.max(-2, a.f) * 0.4 * Math.abs(T.c), a.f + lean * 0.4);
       parts.push({ z: sh0.z * 1.2 + a.f * c * 0.3 + 0.5, d: () => bras(ctx, T, sh0, hand, a, k, ow, blanc, ombre, acc, gant, side) });
     });
+    // V17 : l'outil en main (multi-outil pour miner, laser pour attaquer) : tenu par la main droite, il pointe devant lui dans toutes les directions
+    if (P.outil && (S.m === 'mine' || S.m === 'construit')) {
+      const a = S.arms[0], G = pointsCanon(T, a, cr, up, lean);
+      parts.push({ z: proj(T, a.r * cr, 0, a.f + 6).z * 1.2 + 0.6 + a.f * c * 0.3, d: () => outilMain(ctx, G, P.outil, T.k, ow, P.t || 0) });
+      bout.x = G.bout.x; bout.y = G.bout.y; bout.t = Date.now();
+    }
     parts.sort((a, b) => a.z - b.z);
     parts.forEach(p => p.d());
     if (P.sansCasque) teteNue(ctx, T, L, S, up, lean); else casque(ctx, T, L, S, up, lean, k, ow, blanc, ombre, acc, accS);
     if (S.m === 'jetpack') flammes(ctx, T, H, up, lean, k, P.t || 0, sacZ);
   }
 
+  // V17 : le pistolet (la main, l'arrière, le bout du canon, la crosse) en coordonnées écran
+  function pointsCanon(T, a, cr, up, lean) {
+    const r = a.r * cr, u = up(a.u) + Math.max(-2, a.f) * 0.4 * Math.abs(T.c), f = a.f + lean * 0.4;
+    return { main: proj(T, r, u, f), arr: proj(T, r, u + 1.4, f - 5), bout: proj(T, r, u + 2, f + 19), crosse: proj(T, r, u - 7, f - 2), v0: proj(T, r, u + 5.4, f - 1), v1: proj(T, r, u + 5.6, f + 7) };
+  }
+  const bout = { x: 0, y: 0, t: 0 };
+  // le bout du canon, relatif aux pieds (unités du pantin, k = 1), pour faire partir le rayon et les tirs du canon
+  function boutCanon(look, P) {
+    const L = lk(look), S = squelette(L, Object.assign({}, P, { mode: 'mine' })), th = P.th || 0, T = { c: Math.cos(th), s: Math.sin(th), x: 0, y: 0, k: L.taille || 1 };
+    const up = u => u + S.H.bob; return pointsCanon(T, S.arms[0], L.carrure || 1, up, S.H.lean).bout;
+  }
+  function outilMain(ctx, G, sorte, k, ow, t) {
+    const laser = sorte === 'laser', corps = laser ? '#3d4656' : '#eef2f8', ombreC = laser ? '#262c38' : '#b8c2d2', bande = laser ? '#ff4a5a' : '#f28a26', bout0 = laser ? '#ff6a7a' : '#5ef0ff';
+    tube(ctx, [G.crosse, G.main], 5.6, laser ? '#2a303c' : '#8a94a6', k, ow * 0.9);                     // la poignée dans la main
+    tube(ctx, [G.v0, G.v1], 3.6, ombreC, k, ow * 0.8);                                                    // le viseur sur le dessus
+    tube(ctx, [G.arr, G.bout], laser ? 7.2 : 8.6, corps, k, ow);                                          // le corps
+    const P = q => ({ x: G.arr.x + (G.bout.x - G.arr.x) * q, y: G.arr.y + (G.bout.y - G.arr.y) * q });
+    ctx.lineCap = 'butt'; ctx.strokeStyle = bande; ctx.lineWidth = (laser ? 7.4 : 8.8) * k; ctx.beginPath(); const a1 = P(0.36), a2 = P(0.56); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1.6 * k; ctx.lineCap = 'round'; const h1 = P(0.1), h2 = P(0.85); ctx.beginPath(); ctx.moveTo(h1.x, h1.y - 2 * k); ctx.lineTo(h2.x, h2.y - 2 * k); ctx.stroke();   // un reflet
+    // le bout qui brille (l'émetteur), bien visible même quand il pointe vers nous
+    ctx.fillStyle = laser ? '#1c2028' : '#5a6476'; ctx.beginPath(); ctx.arc(G.bout.x, G.bout.y, 4.4 * k, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#2d2433'; ctx.lineWidth = ow * 0.8 * k; ctx.stroke();
+    const g = ctx.createRadialGradient(G.bout.x, G.bout.y, 0, G.bout.x, G.bout.y, 8 * k); g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, bout0); g.addColorStop(1, bout0 + '00');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(G.bout.x, G.bout.y, (7 + Math.sin(t * 20) * 0.8) * k, 0, Math.PI * 2); ctx.fill();
+  }
+  // V17 : l'outil seul, de profil, pour la barre d'outils (centré en x, y ; taille = largeur à peu près)
+  function iconeOutil(ctx, x, y, taille, sorte) {
+    const k = taille / 30, P = (f, u) => ({ x: x + (f - 7) * k, y: y - (u - 2) * k });
+    const G = { main: P(0, 0), arr: P(-5, 1.4), bout: P(19, 2), crosse: P(-2, -7), v0: P(-1, 5.4), v1: P(7, 5.6) };
+    ctx.save(); outilMain(ctx, G, sorte, k, 1.55, 0); ctx.restore();
+  }
   function jambe(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS) {
     // genou : à mi-chemin, poussé vers l'avant (la jambe plie quand le pied est plus près que la longueur de la jambe)
     const Lg = 30, dx = ft.x - hip.x, dy = ft.y - hip.y, d = Math.hypot(dx, dy) / T.k;
@@ -651,7 +687,7 @@ const PANTIN = (() => {
     }
   }
 
-  return { draw, LOOKS, COIFFURES, CASQUES, SACS, DEF, TENUES, nbVisages: 10, nbMotifs: 7 };
+  return { draw, LOOKS, COIFFURES, CASQUES, SACS, DEF, TENUES, nbVisages: 10, nbMotifs: 7, bout, boutCanon, iconeOutil };
 })();
 const EXPL_PANTIN = PANTIN;
 
@@ -1588,7 +1624,7 @@ function mount(root, api) {
   function setPaused(v) { paused = v; pauseBtn.innerHTML = v ? PB_PLAY : PB_PAUSE; }
   function onPauseBtn(e) { e.preventDefault(); e.stopPropagation(); if (state === 'jeu' || state === 'espace' || state === 'combat' || state === 'arene') setPaused(!paused); }
   canvas.addEventListener('contextmenu', e => e.preventDefault());
-  function onRoue(e) { if (state === 'station' && defilMax > 0) { e.preventDefault(); defil = clamp(defil + e.deltaY, 0, defilMax); } }
+  function onRoue(e) { if (molletteOutil(e)) return; if (state === 'station' && defilMax > 0) { e.preventDefault(); defil = clamp(defil + e.deltaY, 0, defilMax); } }
   canvas.addEventListener('wheel', onRoue, { passive: false });
   canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
@@ -1884,7 +1920,7 @@ function mount(root, api) {
     if (liveOn && AUTRES.size) { ctx.save(); ctx.strokeStyle = 'rgba(122,255,208,0.75)'; ctx.lineWidth = 3 * Z; ctx.beginPath(); ctx.ellipse(x, y, 30 * Z, 9 * Z, 0, 0, TAU); ctx.stroke(); ctx.restore(); }
     if (COMBAT.invuln > 0 && COMBAT.roule <= 0 && Math.floor(t * 20) % 2) ctx.globalAlpha = 0.55;
     if (COMBAT.roule > 0) { const a = (1 - COMBAT.roule / 0.38) * TAU * Math.sign(COMBAT.rdx || 1); ctx.save(); ctx.translate(x, y - 34 * k); ctx.rotate(a); ctx.translate(-x, -(y - 34 * k)); EXPL_PANTIN.draw(ctx, x, y, k, look, { th: J.th, mode: 'accroupi', t }); ctx.restore(); }
-    else EXPL_PANTIN.draw(ctx, x, y, k, look, { th: J.th, mode: J.tirPose > 0 ? 'mine' : J.mode, phase: J.phase, t, z: J.z / KP, foulee: J.fou, sansCasque: sousUnToit() });
+    else EXPL_PANTIN.draw(ctx, x, y, k, look, { th: J.th, mode: J.tirPose > 0 ? 'mine' : J.mode, phase: J.phase, t, z: J.z / KP, foulee: J.fou, sansCasque: sousUnToit(), outil: outilDessin() });
     ctx.globalAlpha = 1;
   }
   function etourdi(x, y, t) { for (let i = 0; i < 3; i++) { const a = t * 4 + i * TAU / 3; ctx.fillStyle = '#ffe36a'; ctx.font = (16 * U) + 'px system-ui'; ctx.textAlign = 'center'; ctx.fillText('★', x + Math.cos(a) * 26 * Z, y + Math.sin(a) * 8 * Z); } }
@@ -1978,7 +2014,7 @@ function mount(root, api) {
       ctx.fillStyle = '#fff'; ctx.font = '700 ' + Math.round(14 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('SAUT', bx, by); ctx.restore();
       tapBtns.push({ x: bx - r, y: by - r, w: r * 2, h: r * 2, f: () => { sautDemande = true; } });
     }
-    drawFleches(t); flecheObjectif(t); flecheBase(t); hudPlus(t); hudReseau(t); hudBase(t); hudCombat(t); hudJour(t); boutonJournal(); boutonCosmo(); if (!construire) bandeauObjectif(t);
+    drawFleches(t); flecheObjectif(t); flecheBase(t); hudPlus(t); hudReseau(t); hudBase(t); hudCombat(t); hudJour(t); hudOutils(t); boutonJournal(); boutonCosmo(); if (!construire) bandeauObjectif(t);
     if (transfert) drawTransfert(t);   // V11 : le panneau sac ⇄ coffre / soute passe par-dessus tout le reste
     if (etabliOuvert) drawEtabli(t);
     drawSommeil(1 / 60); drawGrotteSeq(t);
@@ -2035,8 +2071,7 @@ function mount(root, api) {
     let by = portrait ? H * 0.74 : H * 0.5;
     if (!LOADED) { ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(16 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.fillText('Chargement…', bx + bw / 2, by + bh / 2); return; }
     bouton(bx, by, bw, bh, SAVE.look && SAVE.cine ? 'Continuer l’aventure' : 'Commencer l’aventure', jouer, true, '▶'); by += bh + 14 * U;
-    bouton(bx, by, bw, bh * 0.86, 'Mon explorateur', () => { state = 'creation'; stT = 0; creaRetour = 'titre'; }, false, '🧑‍🚀'); by += bh * 0.86 + 12 * U;
-    bouton(bx, by, bw, bh * 0.86, SAVE.cine ? 'Revoir le crash' : 'Voir le crash', () => { if (!SAVE.look) { state = 'creation'; stT = 0; creaRetour = 'cine'; } else { look = Object.assign({}, EXPL_PANTIN.DEF, SAVE.look); lancerCine(); } }, false, '🎬');
+    bouton(bx, by, bw, bh * 0.86, SAVE.cine ? 'Revoir le crash' : 'Voir le crash', () => { if (!SAVE.look) SAVE.look = {}; look = Object.assign({}, EXPL_PANTIN.DEF, SAVE.look); lancerCine(); }, false, '🎬');
   }
   // le rocher lunaire du titre : relief ombré, bord éclairé, cratères
   function rocherLunaire(x, y, R) {
@@ -2067,7 +2102,7 @@ function mount(root, api) {
   }
   function jouer() {
     if (!LOADED) return;
-    if (!SAVE.look) { state = 'creation'; stT = 0; creaRetour = 'cine'; return; }
+    if (!SAVE.look) { SAVE.look = {}; sauver(); }   // V17 : plus de personnalisation au début (l'explorateur par défaut ; son apparence se change plus tard : boutique, magasin d'une ville)
     look = Object.assign({}, EXPL_PANTIN.DEF, SAVE.look);
     if (!SAVE.cine) { lancerDebut(); return; }
     const X = E0(), pos = X.pos;
@@ -2494,9 +2529,10 @@ function mount(root, api) {
     for (const o of filonsAutour(J.x, J.y, 120)) { const d = Math.hypot(o.x - J.x, (o.y - J.y) * 1.4); if (d < 95 && d < bd) { bd = d; best = o; } }
     const dNav = NAV ? Math.hypot(NAV.x - J.x, (NAV.y - J.y) * 1.4) : 1e9;
     if (best && (!actionBtn || (bd < dNav - 5 && actionBtn.ico !== '📜' && !(actionBtn.d != null && actionBtn.d < bd * 1.4 + 10)))) {   // un filon collé à la navette se mine aussi
-      const peut = best.f.m.r <= RAR_LASER[X.amel.laser];
-      actionBtn = { txt: peut ? 'Miner : ' + best.f.m.nom : 'Laser trop faible (' + MONDE.RARETE[best.f.m.r].nom + ')', ico: '⛏', tenir: true, off: !peut };
-      if (peut && actionTenue()) {
+      const peut = best.f.m.r <= RAR_LASER[X.amel.laser], multi = outilActif() === 'multi';   // V17 : on mine avec le multi-outil
+      actionBtn = { txt: !multi ? 'Prends le multi-outil pour miner (molette, 1)' : peut ? 'Miner : ' + best.f.m.nom : 'Laser trop faible (' + MONDE.RARETE[best.f.m.r].nom + ')', ico: '⛏', tenir: true, off: !peut || !multi };
+      if (!multi && actionTenue()) rappelOutil('multi');
+      if (peut && multi && actionTenue()) {
         mineCible = best.f; J.mode = 'mine'; J.th += angDiff(J.th, Math.atan2(best.x - J.x, best.y - J.y)) * Math.min(1, dt * 10); J.vx *= 0.5; J.vy *= 0.5;
         mineT += dt * VIT_LASER[X.amel.laser] / (1 + best.f.m.r * 0.6);
         if (Math.random() < dt * 30) parts.push({ x: best.x + (Math.random() - 0.5) * 30, y: best.y - 20 - Math.random() * 20, vx: (Math.random() - 0.5) * 120, vy: -80 - Math.random() * 60, t: 0, d: 0.5, c: best.f.m.c, r: 2 + Math.random() * 2, g: 1 });
@@ -2519,7 +2555,7 @@ function mount(root, api) {
   function drawLaser(t) {
     if (!mineCible || !J) return;
     const o = filonsAutour(J.x, J.y, 120).find(q => q.f === mineCible); if (!o) return;
-    const hx = sx(J.x) + Math.sin(J.th) * 18 * Z, hy = sy(J.y) - 64 * KP * Z;
+    const B = EXPL_PANTIN.bout, frais = Date.now() - B.t < 120, hx = frais ? B.x : sx(J.x) + Math.sin(J.th) * 18 * Z, hy = frais ? B.y : sy(J.y) - 64 * KP * Z;   // V17 : du bout du multi-outil
     const tx = sx(o.x), ty = sy(o.y) - 30 * Z;
     ctx.save(); ctx.lineCap = 'round';
     ctx.strokeStyle = 'rgba(120,255,240,0.35)'; ctx.lineWidth = 10 * Z; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
@@ -2557,7 +2593,7 @@ function mount(root, api) {
     tapBtns.push({ x: 18 * U + w1, y, w: w2, h: 30 * U, f: () => { sacOuvert = !sacOuvert; } });
     // le bouton d'action (doigt) ou l'aide (clavier / manette)
     if (actionBtn && !transfert) {
-      const bw = Math.min(W * (auDoigt ? 0.56 : 0.7), 300 * U), bh = 50 * U, bx = auDoigt ? (W - bw) / 2 - (portrait ? 30 * U : 0) : (W - bw) / 2, by = H - bh - (auDoigt ? 26 : 20) * U;
+      const bw = Math.min(W * (auDoigt ? 0.56 : 0.7), 300 * U), bh = 50 * U, bx = auDoigt ? (W - bw) / 2 - (portrait ? 30 * U : 0) : (W - bw) / 2, by = H - bh - (auDoigt ? 26 : 20) * U - hauteurOutils();
       ctx.save(); ctx.globalAlpha = actionBtn.off ? 0.6 : 1;
       const g = ctx.createLinearGradient(bx, by, bx, by + bh); g.addColorStop(0, actionBtn.off ? '#666a80' : '#7affd0'); g.addColorStop(1, actionBtn.off ? '#444858' : '#1fae8a');
       ctx.fillStyle = g; ctx.strokeStyle = '#eafff8'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, bh / 2) : ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
@@ -4000,9 +4036,10 @@ function mount(root, api) {
   }
   function tirer(cx, cy) {
     if (COMBAT.tirT > 0 || COMBAT.mortT > 0 || !J) return;
+    if (!laserEnMain()) { rappelOutil('laser'); return; }   // V17 : on attaque avec le laser (barre d'outils)
     COMBAT.tirT = 0.28 / (1 + 0.15 * ((E0().amel.arme || 1) - 1));
-    const ox = J.x + Math.sin(J.th) * 16, oy = J.y - 62 * KP, a = Math.atan2(cx - ox, cy - oy);
     J.th += angDiff(J.th, Math.atan2(cx - J.x, cy - J.y)) * 0.8; J.tirPose = 0.25;
+    const Bm = boutMonde(J.th), ox = Bm.x, oy = Bm.y, a = Math.atan2(cx - ox, cy - oy);   // V17 : le tir part du bout du laser
     COMBAT.tirs.push({ x: ox, y: oy, vx: Math.sin(a) * 950, vy: Math.cos(a) * 950, t: 0, moi: true }); son('tir', 0.6);
     parts.push({ x: ox, y: oy, vx: 0, vy: 0, t: 0, d: 0.12, c: 'rgba(160,255,240,0.9)', r: 9, g: 0 });
   }
@@ -6583,7 +6620,7 @@ function mount(root, api) {
     if (!deLoin || (F.sorte === 'bete' && F.c && Math.hypot(F.c.x - F.c.x0, F.c.y - F.c.y0) > 30)) return;
     const d = Math.min(0.42, A.tF), t0 = A.tF - d, k = (A.t - t0) / d;
     const hF = F.sorte === 'hero' ? 70 : F.sorte === 'robot' ? 35 : (ESPECES[F.e] ? ESPECES[F.e].taille * 0.55 : 40), hC = cible.sorte === 'bete' && ESPECES[cible.e] ? ESPECES[cible.e].taille * 0.5 : 50;
-    const x0 = sx(F.x + (F.camp ? -30 : 30)), y0 = sy(F.y - hF), x1 = sx(cible.x), y1 = sy(cible.y - hC), coul = (TYPES[A.a.type] && TYPES[A.a.type].c) || '#9affef';
+    const Bh = F.sorte === 'hero' && J ? boutMonde(J.th) : null, x0 = Bh ? sx(Bh.x) : sx(F.x + (F.camp ? -30 : 30)), y0 = Bh ? sy(Bh.y) : sy(F.y - hF), x1 = sx(cible.x), y1 = sy(cible.y - hC), coul = (TYPES[A.a.type] && TYPES[A.a.type].c) || '#9affef';
     ctx.save();
     if (k >= 0 && k <= 1) {
       const x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * 18 * Z, r = 15 * Z;
@@ -7737,7 +7774,7 @@ function mount(root, api) {
     if (state === 'prologue' && PRO && !PRO.choix) { if (padP('a')) suitePrologue(); else if (padP('b')) passerPrologue(); return; }   // V17 : A = la suite, B = passer (jusqu'au choix du compagnon)
     if (!padMenu()) {
       padF = null;
-      if (state === 'jeu' && !recit) { if (padP('y')) { ouvrirCosmo(true); return; } if (padP('select')) { ouvrirCarte(); return; } if (!construire && padP('lt')) { construire = true; bSouris = null; if (!bMat) bMat = matDefaut(); return; } }   // V17 : LT ouvre Construire (B ou LT pour sortir)
+      if (state === 'jeu' && !recit) { if (padP('y')) { ouvrirCosmo(true); return; } if (padP('select')) { ouvrirCarte(); return; } if (!construire && padP('rb')) { changerOutil(1); return; } if (!construire && padP('lb')) { changerOutil(-1); return; } if (!construire && padP('lt')) { construire = true; bSouris = null; if (!bMat) bMat = matDefaut(); return; } }   // V17 : LT ouvre Construire (B ou LT pour sortir)
       if (state === 'espace' && padP('select')) ouvrirCarte();
       return;
     }
@@ -8081,7 +8118,7 @@ function mount(root, api) {
   function poolStade(st, pref) {
     return AF_LISTE.filter(id => { const a = AF[id]; return a && a.st === st && !a.legende && (a.rar || 1) < 5 && dessinee(id) && ESPECES[id] && !EXCLUS_CR.includes(id) && (!pref || a.t.some(x => pref.includes(x))); });
   }
-  function tirer(L, r) {
+  function tirerPoids(L, r) {
     if (!L.length) return null; let tot = 0; const w = L.map(id => { const a = AF[id], p = (POIDS_RAR[a.rar || 1] || 0.5) * (a.b && a.b.includes(PL.bid) ? 3 : 1); tot += p; return p; });
     let x = r() * tot; for (let i = 0; i < L.length; i++) { x -= w[i]; if (x <= 0) return L[i]; } return L[L.length - 1];
   }
@@ -8090,10 +8127,10 @@ function mount(root, api) {
   // une bête du crash : sorte = 'bebe' | 'fort' (stade 2) | 'terrible' (stade 3) | 'legende' ; nuit : les stade 2 chassent
   function beteCrash(sorte, nuit, r, x, y, id) {
     let e, niv, o = {};
-    if (sorte === 'legende') { e = tirer(legendes(), r); niv = entre(r, 28, 34); o = { terrible: true, legendaire: true, echelle: 1.15 }; }
-    else if (sorte === 'terrible') { e = tirer(poolStade(2), r); niv = entre(r, 16, 21); o = { terrible: true, feroce: true, echelle: 1.35 }; }
-    else if (sorte === 'fort') { e = tirer(poolStade(1, nuit ? ['ombre', 'lueur', 'brasier', 'foudre', 'roc', 'tempete'] : null), r) || tirer(poolStade(1), r); niv = nuit ? entre(r, 18, 24) : entre(r, 10, 14); o = nuit ? { chasseNuit: true, feroce: true, echelle: 1.12 } : { feroce: true }; }
-    else { e = tirer(poolStade(0, nuit ? ['ombre', 'lueur'] : null), r) || tirer(poolStade(0), r); niv = entre(r, 2, 5); }
+    if (sorte === 'legende') { e = tirerPoids(legendes(), r); niv = entre(r, 28, 34); o = { terrible: true, legendaire: true, echelle: 1.15 }; }
+    else if (sorte === 'terrible') { e = tirerPoids(poolStade(2), r); niv = entre(r, 16, 21); o = { terrible: true, feroce: true, echelle: 1.35 }; }
+    else if (sorte === 'fort') { e = tirerPoids(poolStade(1, nuit ? ['ombre', 'lueur', 'brasier', 'foudre', 'roc', 'tempete'] : null), r) || tirerPoids(poolStade(1), r); niv = nuit ? entre(r, 18, 24) : entre(r, 10, 14); o = nuit ? { chasseNuit: true, feroce: true, echelle: 1.12 } : { feroce: true }; }
+    else { e = tirerPoids(poolStade(0, nuit ? ['ombre', 'lueur'] : null), r) || tirerPoids(poolStade(0), r); niv = entre(r, 2, 5); }
     if (!e) return null;
     o.nivFixe = niv; const c = nouvelle(id, e, x, y, r, o); c.crash = sorte; return c;
   }
@@ -8307,6 +8344,43 @@ function mount(root, api) {
     if (!piecesSol.length && X.radar && !X.posees.includes('reacteur')) { const L = lieuCrash('grotte'); if (L) return { x: L.x, y: L.y, ico: '🕳️', nom: 'la grotte' }; }
     return null;
   }
+  // =================================================================== V17 : LA BARRE D'OUTILS (en bas) — le multi-outil pour miner, le laser pour attaquer
+  // On choisit à la molette de la souris, avec 1 / 2, LB / RB à la manette, ou en touchant la case au doigt. Les deux sont là dès le départ.
+  // Le bon outil apparaît dans la main de l'explorateur quand il s'en sert, et le rayon part du bout du canon.
+  const OUTILS = [{ id: 'multi', nom: 'Multi-outil', ico: '⛏', sert: 'miner', c: '#5ef0ff' }, { id: 'laser', nom: 'Laser', ico: '🎯', sert: 'attaquer', c: '#ff6a7a' }];
+  let outilT = 0, rappelT = -10;
+  function outilIdx() { const X = E0(); if (!(X.outil >= 0 && X.outil < OUTILS.length)) X.outil = 0; return X.outil; }
+  const outilActif = () => OUTILS[outilIdx()].id;
+  const laserEnMain = () => outilActif() === 'laser';
+  function choisirOutil(i) { const X = E0(), n = OUTILS.length; i = ((i % n) + n) % n; if (X.outil === i) return; X.outil = i; outilT = 1.6; son('ui', 0.5); }
+  const changerOutil = d => choisirOutil(outilIdx() + d);
+  function outilsVisibles() { return state === 'jeu' && !!J && !construire && !CB && !transfert && !etabliOuvert && !sacOuvert && !journalOuvert && !cosmoOuvert && !echange && !recit && !GROTTE; }
+  function molletteOutil(e) { if (!outilsVisibles()) return false; e.preventDefault(); const d = Math.sign(e.deltaY || 0); if (d) changerOutil(d); return true; }
+  function rappelOutil(id) { if (tG - rappelT < 2.5) return; rappelT = tG; const q = OUTILS.find(o => o.id === id); dire(q.ico + ' Prends le ' + q.nom.toLowerCase() + ' pour ' + q.sert + ' (molette, ' + (OUTILS.indexOf(q) + 1) + ', ou LB / RB à la manette)', 3); }
+  try { window.addEventListener('keydown', e => { if (state !== 'jeu' || construire || !J) return; if (e.key === '1' || e.key === '2') choisirOutil(+e.key - 1); }); } catch (e) { /* rien */ }
+  // l'outil dans la main pour le dessin de l'explorateur : laser quand il tire, multi-outil quand il mine (ou coupe une plante)
+  const outilDessin = () => J && J.tirPose > 0 ? 'laser' : J && J.mode === 'mine' ? 'multi' : null;
+  // le bout du canon en coordonnées du MONDE (pour faire partir les tirs du canon)
+  function boutMonde(th) { const b = EXPL_PANTIN.boutCanon(look, { th, t: tG }); return { x: J.x + b.x * KP, y: J.y + b.y * KP }; }
+  // la barre : 2 cases en bas au centre, la case choisie brille ; son nom s'affiche un instant au changement
+  const hauteurOutils = () => outilsVisibles() ? 76 * U : 0;
+  function hudOutils(t) {
+    if (!outilsVisibles()) return; outilT = Math.max(0, outilT - 1 / 60);
+    const n = OUTILS.length, cs = 46 * U, gap = 8 * U, w = n * cs + (n - 1) * gap + 16 * U, h = cs + 12 * U, x0 = (W - w) / 2, y0 = H - h - 8 * U, sel = outilIdx();
+    ctx.save(); ctx.fillStyle = 'rgba(8,12,30,0.66)'; ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(x0, y0, w, h, 14 * U); ctx.fill(); ctx.stroke();
+    OUTILS.forEach((o, i) => {
+      const x = x0 + 8 * U + i * (cs + gap), y = y0 + 6 * U, on = i === sel;
+      ctx.fillStyle = on ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.05)'; ctx.beginPath(); ctx.roundRect(x, y, cs, cs, 10 * U); ctx.fill();
+      if (on) { ctx.strokeStyle = o.c; ctx.lineWidth = 3 * U; ctx.shadowColor = o.c; ctx.shadowBlur = 10 * U; ctx.stroke(); ctx.shadowBlur = 0; }
+      ctx.globalAlpha = on ? 1 : 0.55; EXPL_PANTIN.iconeOutil(ctx, x + cs / 2, y + cs / 2, cs * 0.78, o.id); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '800 ' + Math.round(9 * U) + 'px ' + FB; ctx.fillStyle = '#fff'; ctx.fillText(String(i + 1), x + 8 * U, y + 9 * U); ctx.globalAlpha = 1;
+      tapBtns.push({ x, y, w: cs, h: cs, f: () => choisirOutil(i) });
+    });
+    // le nom de l'outil choisi (toujours au-dessus, un peu plus fort juste après un changement)
+    const o = OUTILS[sel], s = o.nom + ' · ' + o.sert; ctx.font = '800 ' + Math.round(12 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.globalAlpha = 0.75 + 0.25 * Math.min(1, outilT); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(8,12,30,0.85)'; ctx.strokeText(s, W / 2, y0 - 3 * U); ctx.fillStyle = o.c; ctx.fillText(s, W / 2, y0 - 3 * U);
+    ctx.restore();
+  }
 
 
   // =================================================================== LA BOUCLE
@@ -8394,7 +8468,7 @@ function mount(root, api) {
     _test: {
       state: () => state, J: () => J, PL: () => PL, look: () => look, cine: () => cine,
       crash: () => ({ dep: GAL.depart.i, v17: crashV17(), bid: PL && PL.bid, heure: heure(), phase: phaseJour(heure()), lum: PL && PL.lum, nav: NAV && { x: NAV.x, y: NAV.y, cassee: NAV.cassee, epave: NAV.epave, brume: !!NAV.brume }, epave: epave && { x: epave.x, y: epave.y, repare: !!epave.repare }, pieces: E0().pieces.slice(), posees: E0().posees.slice(), sol: piecesSol.map(q => ({ id: q.id, x: Math.round(q.x), y: Math.round(q.y) })), lieux: lieuxCrash(), radar: E0().radar, radarT: E0().radarT, faune: CR.map(c => ({ e: c.esp, s: c.crash, n: c.nivFixe, nuit: !!c.chasseNuit, x: Math.round(c.x), y: Math.round(c.y) })), cache: CRASH.cache, abri: CRASH.abri, action: actionBtn && actionBtn.txt, etape: crashV17() ? etapeCrash() : null }),
-      setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
+      setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
       objectif() { const o = objectif(); return o && { id: o.c.id, etape: o.etape, lieu: o.lieu, sys: o.sys, k: o.k, saut: o.saut && o.saut.nom }; },
       transfert: () => transfert, transi: () => transi, passerSaut, sauter(i, sec) { transi = sec ? { sorte: 'saut', t: 0, d: 5, vers: i, cout: 0 } : { sorte: 'saut', t: 0, d: 2, vers: i, cout: 1 }; state = 'transi'; stT = 0; }, razUI: () => razUI, setRaz(v) { razUI = v; }, recommencer, recupererAncienne, pause(v) { setPaused(v); }, sauver, carte: () => carte, dest: () => dest, poserDest, carteCibles: () => carteCibles, toucherCarte(x, y) { toucherCarteLocale({ x, y }); }, objSel: () => carte && carte.objSel, infos(v) { if (carte) carte.infos = v; }, carteVue(v) { if (carte) carte.vue = v; }, utiliserBidons, nbBidons, estCoupee, coupees, capSoute, stockRelie, capRelie, dangerFaune, misEtat, evt, CHAINES, missionSuivie, etabli: () => etabliOuvert, ouvrirEtabli() { etabliOuvert = true; }, onglet2(o) { ongletJ = o; }, raidMaintenant() { const b = maBase(); if (b) b.raidT = 0; }, sommeil: () => sommeil, fabriquer(id) { fabriquer(RECETTES.find(r => r.id === id)); }, ouvrirTransfert, fermerTransfert() { transfert = null; }, action: () => actionBtn && actionBtn.txt, faireAction() { if (actionBtn && actionBtn.f) actionBtn.f(); }, NAVp: () => NAV, base: () => maBase(),
       jouer, creation() { state = 'creation'; stT = 0; }, cineT(x) { if (!cine) lancerCine(); cine.t = x; }, finCine, decoller,
@@ -8438,7 +8512,7 @@ window.JDW_GAMES.lune = {
   fps: false,
   preview,
   mount,
-  pad: { help: [['ls/dpad', 'Marcher / choisir'], ['a', 'Sauter / valider'], ['b', 'Retour'], ['x', 'Action'], ['y', 'Cosmodex'], ['select', 'Carte'], ['lt', 'Construire'], ['lb/rb', 'Pièce (en construction)'], ['rt', 'Courir'], ['start', 'Pause']], intro: false },
+  pad: { help: [['ls/dpad', 'Marcher / choisir'], ['a', 'Sauter / valider'], ['b', 'Retour'], ['x', 'Action'], ['y', 'Cosmodex'], ['select', 'Carte'], ['lt', 'Construire'], ['lb/rb', 'Outil (ou pièce en construction)'], ['rt', 'Courir'], ['start', 'Pause']], intro: false },
   // pour la carte de la tuile (MAP_DEFS.lune de la borne) : un niveau par chapitre de l'histoire, un palier par région de la galaxie
   carte: {
     regions: [{ nom: 'Les Périphéries', coul: '#7fb6ff' }, { nom: 'Les Secteurs extérieurs', coul: '#7fe0c0' }, { nom: 'Les Régions intermédiaires', coul: '#ffd27f' },
