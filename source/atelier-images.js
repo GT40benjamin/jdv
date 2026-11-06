@@ -100,6 +100,7 @@
   // (classe crea-mt : ciel de nuages, feuille blanche, sans barre d'étapes ni feuille de route) et #jdw-crea passe en « cadre » par-dessus
   // (en-tête « Crée avec … › Mes projets › titre » + l'arbre), rangé DANS #jdw-atelier pour que la manette voie tout. atlJouable → la main
   // revient à l'Interface (sa révélation des nuages joue)
+  if (typeof atlLoad === 'function') { const _load = atlLoad; atlLoad = async function () { const cur0 = ATL.cur, libre = !ATL.busy; try { return await _load.apply(this, arguments); } finally { if (libre && cur0 && ATL.cur === cur0) { AIM.luPour = cur0; try { cadreMaj(); } catch (e) {} } } }; }   // eslint-disable-line no-global-assign
   if (typeof atlRender === 'function') { const _rendu = atlRender; atlRender = function () { const r = _rendu.apply(this, arguments); try { cadreMaj(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
 
   // les tuiles « Mes projets » de l'Atelier : un projet Images montre son image et « 🎨 Images · N images »
@@ -184,10 +185,24 @@
     for (const x of ouv) { try { box.appendChild(atlDiscBulleDem(x, x.etat_at || x.at)); } catch (e) {} }
     const comp = C.querySelector(':scope > .atl-comp'); C.insertBefore(box, comp || null);
   }
+  // l'admin (6 nov. soir) : JAMAIS l'ancienne page, même une image. Un projet ouvert mais pas encore chargé (jeu jouable, projet d'un joueur
+  // pas encore dans la liste) : l'Interface dessinerait son ancien écran le temps du chargement → on ne montre que le ciel (+ un petit anneau)
+  // jusqu'à ce que sa fiche arrive (6 s au plus, ou une erreur : la main revient à l'Interface)
+  function projetSeCharge() {
+    if (AIM.open || !ATL.open || !ATL.root || ATL.root.hidden || !ATL.cur || atelierOuvert(ATL.cur) || ATL.err) return false;
+    let f0 = null; try { f0 = atlFiche(); } catch (e) {}
+    if (f0 || AIM.luPour === ATL.cur) return false;   // chargé (avec ou sans fiche) : la main revient à l'Interface
+    const f = ficheMontage(); if (f && atlAvantV1(f)) return false;   // un montage : le cadre s'en occupe
+    if (AIM.attId !== ATL.cur) { AIM.attId = ATL.cur; AIM.attAt = Date.now(); setTimeout(() => { try { cadreMaj(); } catch (e) {} }, 6100); }
+    return Date.now() - AIM.attAt < 6000;
+  }
+  function cielDans(A) { if (!A.querySelector('.crea-mtciel')) { const c = E('div', 'crea-mtciel'); c.setAttribute('aria-hidden', 'true'); try { atlEspCiel(c, false); } catch (e) {} A.insertBefore(c, A.firstChild); } }
   function cadreMaj() {
     const A = ATL.root; if (!A) return;
     // l'atelier vient d'être LIVRÉ (V1) pendant que le joueur est dans sa discussion : il passe tout seul dans son atelier, jamais l'ancien écran
     if (!AIM.open && ATL.open && !A.hidden && ATL.cur && atelierOuvert(ATL.cur) && AIM.bascule !== ATL.cur) { AIM.bascule = ATL.cur; const id = ATL.cur; setTimeout(() => { try { if (ATL.cur === id && !AIM.open) { if (AIM.cadre) cadreFin(); ouvrir(id); } } catch (e) {} }, 0); }
+    const att = projetSeCharge(); if (att) cielDans(A);
+    A.classList.toggle('crea-charge', att);
     const on = enMontage();
     A.classList.toggle('crea-mt', on);
     A.classList.toggle('crea-img', on && !!ATL.cur && typeDe(ATL.cur) === 'images');   // un atelier en montage : la discussion y est gratuite (at_dire en discussion = 0 💎)
@@ -197,7 +212,7 @@
       if (!AIM.cadre) {
         AIM.cadre = true; R.classList.remove('tiroir', 'pk-plein', 'nv'); R.classList.add('cadre'); R.removeAttribute('role'); R.style.backgroundImage = '';
         A.appendChild(R);
-        if (!A.querySelector('.crea-mtciel')) { const c = E('div', 'crea-mtciel'); c.setAttribute('aria-hidden', 'true'); try { atlEspCiel(c, false); } catch (e) {} A.insertBefore(c, A.firstChild); }
+        cielDans(A);
         if (!AIM.obs) montrerObs();
       }
       R.hidden = false; monde(); renderCadre(); enteteMt(); try { offresMt(); } catch (e) {}
@@ -223,7 +238,7 @@
   function renderCadre() {
     const R = AIM.root, q = s => R.querySelector(s), f = ficheMontage();
     const fil = q('.crea-fil'); fil.textContent = '';
-    fil.append(E('span', 'lien', '· Mes projets'), E('span', 'lien', ' › '), E('strong', '', (f && f.titre) || 'Nouveau jeu'));
+    if (f && f.titre) fil.append(E('span', 'lien', '· Mes projets'), E('span', 'lien', ' › '), E('strong', '', f.titre));   // l'admin (6 nov. soir) : un nouveau jeu = « CRÉE AVEC … » seul
     q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
     let so = null; try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {}
     if (so == null && typeof AIM.solde === 'number') so = AIM.solde;
@@ -313,7 +328,7 @@
   }
   const etroit = () => matchMedia('(max-width: 899px)').matches;
   // le curseur prêt dans la discussion de {g} à chaque entrée (Interface / chef) ; jamais tout seul au toucher (le clavier s'ouvrirait)
-  function curseur() { if (TOUCH) return; setTimeout(() => { const t = AIM.root && AIM.root.querySelector(AIM.vue === 'nouveau' ? '.crea-nv textarea' : '.crea-masc textarea'); if (t && t.getClientRects().length) t.focus({ preventScroll: true }); }, 80); }
+  function curseur() { if (TOUCH) { try { if (window.JDW_PAD && JDW_PAD.active()) setTimeout(() => { const m = AIM.root && AIM.root.querySelector(AIM.vue === 'nouveau' ? '.crea-nv .crea-mic:not(.crea-imgb)' : '.crea-masc .crea-mic'); if (m && m.getClientRects().length) JDW_PAD.focusEl(m); }, 120); } catch (e) {} return; }   /* téléphone + manette (testeurs, 6 nov.) : le curseur de la manette sur 🎤, sans ouvrir le clavier */ setTimeout(() => { const t = AIM.root && AIM.root.querySelector(AIM.vue === 'nouveau' ? '.crea-nv textarea' : '.crea-masc textarea'); if (t && t.getClientRects().length) t.focus({ preventScroll: true }); }, 80); }
   function renderNouveau(O) {
     const C = E('div', 'crea-nv crea-carte'), hd = E('div', 'crea-nvh'), im = E('img'); im.src = POSE('coucou'); im.alt = '';
     const tx = E('div'); tx.append(E('h1', '', 'Qu’est-ce qu’on crée aujourd’hui ?'), E('div', 'sous', 'Raconte ton idée à ' + PK() + ' : il te dit ce qu’on peut faire ensemble.'));
@@ -459,9 +474,10 @@
     const R = AIM.root, q = s => R.querySelector(s);
     const pj = AIM.fiche && AIM.types[AIM.fiche];
     const fil = q('.crea-fil'); fil.textContent = '';
-    const lien = E('span', 'lien', '· Mes projets'); fil.appendChild(lien);
-    const ti = AIM.vue === 'nouveau' ? 'Nouveau projet' : (AIM.d && AIM.d.titre) || (pj && pj.titre) || 'Mes images';
-    fil.append(E('span', 'lien', ' › '), E('strong', '', ti));
+    if (AIM.vue !== 'nouveau') {   // l'admin (6 nov. soir) : plus de « · Mes projets › Nouveau projet » en haut, seulement « CRÉE AVEC … »
+      const ti = (AIM.d && AIM.d.titre) || (pj && pj.titre) || 'Mes images';
+      fil.append(E('span', 'lien', '· Mes projets'), E('span', 'lien', ' › '), E('strong', '', ti));
+    }
     q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
     let so = AIM.solde; if (typeof so !== 'number') { try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {} }   // sans SQL v160 : le solde de l'Atelier (testeurs, 6 nov.)
     q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + so + (etroit() ? '' : ' crédits') : '';
