@@ -4390,8 +4390,8 @@
       // gauche : le voyage (sur un panneau plus haut, les pays s'espacent un peu et restent au milieu)
       const lh = Math.min(vch - top - 8, Math.max(470, H * U / k));
       panel(lx, top, pw, lh, acc, 0.94);
-      bigText('CASSE-CARREAUX', lx + pw / 2, top + 26, 17, '#ffffff', pw - 24);
-      smallText('Le tour du monde des carreaux' + (S.tour ? ' · Tour ' + roman(S.tour) : ''), lx + pw / 2, top + 46, 11, rgba(acc, 0.95), 'center', 600, 1, pw - 20);
+      bigText('LE TOUR DU MONDE', lx + pw / 2, top + 26, 17, '#ffffff', pw - 24);   // 2.0.158 : plus le nom du jeu en double (écran-titre de la borne)
+      smallText('des carreaux' + (S.tour ? ' · Tour ' + roman(S.tour) : ''), lx + pw / 2, top + 46, 11, rgba(acc, 0.95), 'center', 600, 1, pw - 20);
       const rowH = Math.min(62, (lh - 70) / NW), pitch = rowH + clamp((lh - 70 - NW * rowH) / NW, 0, 22);
       const y0 = top + 62 + Math.max(0, (lh - 72 - NW * pitch) / 2);
       for (let i = 0; i < NW; i++) {

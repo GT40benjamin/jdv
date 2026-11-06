@@ -5200,7 +5200,7 @@
       ctx.textBaseline = 'alphabetic';
       // gauche : titre, secteur, carte des secteurs
       fontKey = '';
-      ctx.font = '22px ' + FD; ctx.textAlign = 'left'; ctx.fillStyle = '#38e1ff'; ctx.fillText('GALAXY WARS', lx, 42);
+      ctx.font = '22px ' + FD; ctx.textAlign = 'left'; ctx.fillStyle = '#38e1ff'; ctx.fillText('LA GALAXIE', lx, 42);   // 2.0.158 : plus le nom du jeu en double (écran-titre de la borne)
       ctx.font = '600 12px ' + FB; ctx.fillStyle = '#8aa0ae'; ctx.fillText(CO ? 'À deux contre la galaxie' : 'Le Vaisseau Noir contre la galaxie', lx, 60);
       ctx.font = '13px ' + FD; ctx.fillStyle = SEC.acc;
       ctx.fillText((cycle > 0 ? 'CYCLE ' + ROMAN[Math.min(9, cycle)] + ' · ' : '') + 'SECTEUR ' + (secI + 1) + ' / 8', lx, 98);

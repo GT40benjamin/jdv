@@ -260,6 +260,8 @@ function mount(root, api) {
     '<div style="margin-top:16px;width:min(320px,62vw);height:14px;border-radius:7px;background:#140b22;box-shadow:0 0 0 1.5px rgba(255,255,255,.2);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#c79bff,#ffe08a);transition:width .2s"></u></div>' +
     '<div style="margin-top:10px;font:600 14px ' + FB + ';color:#e8d8ff">Le bâton magique se réveille…</div>';
   root.appendChild(box);
+  // 2.0.158 : le titre du chargement 3D du moteur (charge, ui.js) ne se montre plus en double (écran-titre de la borne) ; la phrase garde sa taille
+  if (!document.getElementById('jdw-ab-menu')) { const css = document.createElement('style'); css.id = 'jdw-ab-menu'; css.textContent = 'div[style*="#3a1a5a,#0b0616 75%"]{font-size:0!important;text-shadow:none!important}'; document.head.appendChild(css); }
   const bar = box.querySelector('u');
   const prog = { e: 0, p: 0 }, upd = () => { bar.style.width = Math.round((prog.e * 0.4 + prog.p * 0.6) * 100) + '%'; };
   const fail = (e) => {

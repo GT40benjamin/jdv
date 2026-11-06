@@ -536,46 +536,48 @@ window.JDW_GAMES['monjeu'] = { id: 'monjeu', title: 'Mon jeu', menu: true, accen
   mount(root, api) { /* … */ } };
 ```
 
-### Suivi de l'écran-titre (6 nov. 2026 ; à jour avec `python ~/jdv-tools/bancs-borne/suivi-menus.py`)
-L'admin : « on uniformise tout » — chaque jeu passe en `menu: true` (l'équipe Jeux pour les jeux de la borne, par lots). État du 6 nov. :
+### Suivi de l'écran-titre (à jour le 6 nov. 2026, borne 2.0.157 ; `PYTHONUTF8=1 python ~/jdv-tools/bancs-borne/suivi-menus.py <dépôt>`)
+L'admin : « on uniformise tout » — FAIT pour tous les jeux de la borne et tous les duels (lots 1 à 4, équipe Jeux, 6 nov.). Restent hors menu :
+**pegase** (jeu Unity, exclu par la borne) et **canards** (fichier encore présent mais plus embarqué par build2.py : remplacé par le duel « Canards : la guerre »).
+Images de menu des jeux de la borne : `assets/jeux/<id>/menu.webp`, `menu-portrait.webp`, `logo.png` (champs `menuImage: 'jeux/<id>/menu.webp'`…), musique `assets/music/<id>-menu.mp3`.
 
 | Jeu | Sorte | menu | style | menuImage | portrait | logo | musicMenu | demo |
 |---|---|---|---|---|---|---|---|---|
-| abracadabra | borne | — | — | — | — | — | — | — |
+| abracadabra | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
 | canards | borne | — | — | — | — | — | — | — |
-| carreaux | borne | — | — | — | — | — | — | — |
-| chrono | borne | — | — | — | — | — | — | — |
-| coffres | borne | — | — | — | — | — | — | — |
-| empilo | borne | ✅ | — | — | — | — | — | — |
-| flechettes | borne | — | — | — | — | — | — | — |
-| glouton | borne | ✅ | — | — | — | — | — | — |
-| ilo | borne | — | — | — | — | — | — | — |
-| magic | borne | — | — | — | — | — | — | — |
-| mouches | borne | ✅ | — | — | — | — | — | — |
-| neon | borne | — | — | — | — | — | — | — |
+| carreaux | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| chrono | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| coffres | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| empilo | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| flechettes | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| glouton | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| ilo | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| magic | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| mouches | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| neon | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
 | pegase | borne | — | — | — | — | — | — | — |
-| remparts | borne | — | — | — | — | — | — | — |
-| rouleaux | borne | — | — | — | — | — | — | — |
-| sensinterdit | borne | — | — | — | — | — | — | — |
-| smoothie | borne | — | — | — | — | — | — | — |
-| bolides | duel | — | — | — | — | — | — | — |
-| boum | duel | — | — | — | — | — | — | — |
-| briques | duel | — | — | — | — | — | — | — |
-| guerre | duel | — | — | — | — | — | — | — |
-| kombat | duel | — | — | — | — | — | — | — |
-| mots | duel | — | — | — | — | — | — | — |
-| palet | duel | — | — | — | — | — | — | — |
-| pingpong | duel | — | — | — | — | — | — | — |
-| souris | duel | — | — | — | — | — | — | — |
-| spatial | duel | — | — | — | — | — | — | — |
-| tirsaubut | duel | — | — | — | — | — | — | — |
-| toupies | duel | — | — | — | — | — | — | — |
-| trouve | duel | — | — | — | — | — | — | — |
+| remparts | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| rouleaux | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| sensinterdit | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| smoothie | borne | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| bolides | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| boum | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| briques | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| guerre | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| kombat | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| mots | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| palet | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| pingpong | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| souris | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| spatial | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| tirsaubut | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| toupies | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
+| trouve | duel | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
 | jetporte | Atelier V7 | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
-| licornes | Atelier V24 | ✅ | cartoon | — | — | ✅ | ✅ | ✅ |
-| lune | Atelier V16 | — | — | — | — | — | — | — |
-| manoir | Atelier V1 | ✅ | aventure | ✅ | ✅ | ✅ | ✅ | ✅ |
-| noisette | Atelier V10 | ✅ | cartoon | — | — | ✅ | ✅ | ✅ |
+| licornes | Atelier V28 | ✅ | cartoon | — | — | ✅ | ✅ | ✅ |
+| lune | Atelier V17 | ✅ | aventure | ✅ | ✅ | ✅ | ✅ | — |
+| manoir | Atelier V2 | ✅ | aventure | ✅ | ✅ | ✅ | ✅ | ✅ |
+| noisette | Atelier V11 | ✅ | cartoon | — | — | ✅ | ✅ | ✅ |
 | pigeon | Atelier V4 | ✅ | cartoon | ✅ | ✅ | ✅ | ✅ | — |
 | sorcier | Atelier V4 | ✅ | aventure | ✅ | ✅ | ✅ | ✅ | ✅ |
 | strike | Atelier V3 | ✅ | cartoon | — | — | ✅ | ✅ | ✅ |
