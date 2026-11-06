@@ -1,12 +1,12 @@
-/* ================= « Crée avec Pooky » : Nouveau projet + ATELIER D'IMAGES =================
+/* ================= « Crée avec {g} » : Nouveau projet + ATELIER D'IMAGES =================
    borne 2.0.170, 6 nov. 2026 (équipe Études ; « Oui, lance-le » de l'admin transmis par le chef). Étude, maquettes et règles :
    ~/jdv-tools/etudes/espaces-sur-mesure/SPEC.md. Serveur : source/atelier-images.sql (SQL v160 : at_esp_*), fonction Edge atelier-image v18.
    Chargé par build2.py JUSTE APRÈS shell2.js : on garde shell2.js intact et on SURCHARGE trois fonctions de l'Atelier :
      atlNouveau        → l'écran « Qu'est-ce qu'on crée aujourd'hui ? » (Un jeu = l'ancien parcours, Des images = ce fichier, le reste « bientôt ») ;
      atlOuvrir(id)     → un projet de type « images » s'ouvre ici, un jeu comme avant ;
-     atlRenderProjets  → les tuiles des projets Images (vignette, « 🎨 Images · N images »), en-tête « Crée avec Pooky ».
-   Structure (admin) : arborescence à gauche comme un CRM | l'OUTIL au centre | la discussion de POOKY toujours À PART à droite ;
-   au téléphone : tiroir ☰ et Pooky en bouton flottant qui ouvre la discussion en plein écran. Ce que Pooky fait s'applique dans l'outil
+     atlRenderProjets  → les tuiles des projets Images (vignette, « 🎨 Images · N images »), en-tête « Crée avec {g} ».
+   Structure (admin) : arborescence à gauche comme un CRM | l'OUTIL au centre | la discussion de {g} toujours À PART à droite ;
+   au téléphone : tiroir ☰ et {g} en bouton flottant qui ouvre la discussion en plein écran. Ce que {g} fait s'applique dans l'outil
    (« ✅ Fait dans ton atelier : … » dans sa discussion). Prix par utilisation (réglages du serveur) : nouvelle image 20 💎 (confirmée la
    1re fois), le reste gratuit. Jamais « IA », « coût », « € » ni le nom du service dans ce que voit le joueur. */
 (() => {
@@ -21,7 +21,7 @@
   const D = '💎';
   const nom = () => (typeof profile !== 'undefined' && profile && profile.name) || '';
   const joli = n => String(n || '').charAt(0) + String(n || '').slice(1).toLowerCase();
-  const PK = () => { try { return gNM() || 'Pooky'; } catch (e) { return 'Pooky'; } };   // le nom de la mascotte (serveur), comme « Crée avec … » de la tuile
+  const PK = () => { try { return gNM() || ''; } catch (e) { return ''; } };   // le nom de la mascotte (serveur), comme « Crée avec … » de la tuile
   const AV = () => ROOT + 'accueil/guide-portrait.webp';
   const POSE = k => ROOT + 'accueil/guide-' + ({ idee: 'p-idee', dessine: 'p-dessine' }[k] || k) + '.webp';   // accueil/guide-joie, guide-coucou, guide-p-idee, guide-p-dessine
   const base = () => CFG.url.replace(/\/+$/, '');
@@ -35,7 +35,7 @@
   }
   const typeDe = id => (AIM.types[id] && AIM.types[id].type) || 'jeu';
   const toast = t => { try { atlToast(t); } catch (e) { try { toastCheer(t); } catch (e2) {} } };
-  const dire = m => { m.pk = m.pk === undefined ? 1 : m.pk; m.at = new Date().toISOString(); AIM.loc.push(m); };   // un mot de Pooky (ou du joueur) seulement sur cet appareil
+  const dire = m => { m.pk = m.pk === undefined ? 1 : m.pk; m.at = new Date().toISOString(); AIM.loc.push(m); };   // un mot de {g} (ou du joueur) seulement sur cet appareil
   const pourquoi = e => String((e && e.message) || e || '');
 
   // ---------- types des projets (pour l'arbre, les tuiles et l'aiguillage) ----------
@@ -89,8 +89,8 @@
       + '<div class="crea-cred" title="Tes crédits"></div></header>'
       + '<div class="crea-ciel" aria-hidden="true"></div>'
       + '<div class="crea-corps"><nav class="crea-arbre crea-carte" aria-label="Mes projets"></nav><main class="crea-outil"></main>'
-      + '<aside class="crea-pooky crea-carte" aria-label="Discussion avec Pooky"></aside></div>'
-      + '<button class="crea-flot" type="button" aria-label="Parler à Pooky"><span class="bb" hidden></span><span class="pk"><img alt="" src="' + AV() + '"></span></button>'
+      + '<aside class="crea-masc crea-carte" aria-label="Discussion avec ' + PK() + '"></aside></div>'
+      + '<button class="crea-flot" type="button" aria-label="Parler à ' + PK() + '"><span class="bb" hidden></span><span class="pk"><img alt="" src="' + AV() + '"></span></button>'
       + '<div class="crea-voile"></div><div class="crea-mod" hidden role="dialog" aria-modal="true"></div>'
       + '<input class="crea-file" type="file" accept="image/jpeg,image/png,image/webp" hidden>';
     document.body.appendChild(R); AIM.root = R;
@@ -99,7 +99,7 @@
     q('.crea-menu').addEventListener('click', () => { R.classList.toggle('tiroir'); if (R.classList.contains('tiroir')) setTimeout(() => { const b = R.querySelector('.crea-arbre button'); if (b) b.focus({ preventScroll: true }); }, 60); });
     q('.crea-voile').addEventListener('click', () => R.classList.remove('tiroir'));
     q('.crea-retour').addEventListener('click', fermerVersProjets);
-    q('.crea-flot').addEventListener('click', () => { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); setTimeout(() => { const t = q('.crea-pooky textarea'); if (t) t.focus({ preventScroll: true }); }, 60); });
+    q('.crea-flot').addEventListener('click', () => { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); setTimeout(() => { const t = q('.crea-masc textarea'); if (t) t.focus({ preventScroll: true }); }, 60); });
     q('.crea-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0], nv = e.target.dataset.nv; e.target.value = ''; delete e.target.dataset.nv; if (!f) return; if (nv && AIM.vue === 'nouveau') imageNouveau(f); else importer(f); });
     q('.crea-cred').addEventListener('click', () => { try { atlRecharger(); } catch (e) {} });
     try { if (store.get('jdw.crea.pkreplie', false)) R.classList.add('pk-replie'); } catch (e) {}
@@ -125,9 +125,9 @@
     fermerVersProjets(); return true;
   }
 
-  // ---------- Nouveau projet : un ciel de nuages + la discussion de Pooky, claire, AU CENTRE (admin, 6 nov. : PAS de grille de types, pas de
-  // feuille de route ni d'étapes ; Pooky comprend ce que le joueur veut faire, choisit le type et dit seulement ce qui existe vraiment) ----------
-  // ce que Pooky raconte quand le joueur ne sait pas quoi faire, ou demande « tu sais faire quoi ? » (seulement ce qui existe VRAIMENT)
+  // ---------- Nouveau projet : un ciel de nuages + la discussion de {g}, claire, AU CENTRE (admin, 6 nov. : PAS de grille de types, pas de
+  // feuille de route ni d'étapes ; {g} comprend ce que le joueur veut faire, choisit le type et dit seulement ce qui existe vraiment) ----------
+  // ce que {g} raconte quand le joueur ne sait pas quoi faire, ou demande « tu sais faire quoi ? » (seulement ce qui existe VRAIMENT)
   const DIT_POSSIBLE = () => 'Plein de choses ! 🤩 Avec moi, tu peux créer :\n'
     + '🎮 un JEU pour la borne : une course dans l’espace, un chat ninja qui saute de toit en toit, un quiz sur tes copains… Tu me racontes, je le fabrique, et tes copains y jouent !\n'
     + (AIM.off ? '' : '🎨 des IMAGES : tu me montres ta photo ou ton dessin, et je la mets de nuit, en aquarelle, en dessin animé, en pixel… ou je change ce que tu veux dedans.\n')
@@ -140,7 +140,7 @@
     montrer(); render(); curseur();
     await chargerTypes(true); render();
   }
-  // ce que le joueur veut faire, d'après ses mots (Pooky décide ; dans le doute, une seule question)
+  // ce que le joueur veut faire, d'après ses mots ({g} décide ; dans le doute, une seule question)
   const RX_BIENTOT = [[/\b(musique|chanson|m[ée]lodie|son[s]? |instrument|piano|beat)/i, 'La musique'], [/\b(dj|mixer|mix|platines?)\b/i, 'Le DJ'], [/\b(bd|bande dessin[ée]e|manga|histoire illustr)/i, 'Les BD'],
     [/(dessin anim|vid[ée]o|film|clip)/i, 'Les dessins animés'], [/\b(carte d|carte pour|invitation|anniversaire|affiche)/i, 'Les cartes'], [/\b(avatar|autocollant|sticker|emoji)/i, 'Les avatars']];
   const RX_IMG = /(photo|image|dessin|retouch|fond d.?[ée]cran|style|couleur|filtre|selfie|paysage|aquarelle|pixel)/i;
@@ -181,8 +181,8 @@
     setTimeout(() => { dire({ pk: 1, img: 'joie', t: 'Oh, jolie image ! 😍 Tu veux la retoucher ou changer son style ? Alors c’est un projet Images.' }); choisirType('images'); }, 450);
   }
   const etroit = () => matchMedia('(max-width: 899px)').matches;
-  // le curseur prêt dans la discussion de Pooky à chaque entrée (Interface / chef) ; jamais tout seul au toucher (le clavier s'ouvrirait)
-  function curseur() { if (TOUCH) return; setTimeout(() => { const t = AIM.root && AIM.root.querySelector(AIM.vue === 'nouveau' ? '.crea-nv textarea' : '.crea-pooky textarea'); if (t && t.getClientRects().length) t.focus({ preventScroll: true }); }, 80); }
+  // le curseur prêt dans la discussion de {g} à chaque entrée (Interface / chef) ; jamais tout seul au toucher (le clavier s'ouvrirait)
+  function curseur() { if (TOUCH) return; setTimeout(() => { const t = AIM.root && AIM.root.querySelector(AIM.vue === 'nouveau' ? '.crea-nv textarea' : '.crea-masc textarea'); if (t && t.getClientRects().length) t.focus({ preventScroll: true }); }, 80); }
   function renderNouveau(O) {
     const C = E('div', 'crea-nv crea-carte'), hd = E('div', 'crea-nvh'), im = E('img'); im.src = POSE('coucou'); im.alt = '';
     const tx = E('div'); tx.append(E('h1', '', 'Qu’est-ce qu’on crée aujourd’hui ?'), E('div', 'sous', 'Raconte ton idée à ' + PK() + ' : il te dit ce qu’on peut faire ensemble.'));
@@ -194,9 +194,9 @@
     O.appendChild(C);
     requestAnimationFrame(() => { F.scrollTop = F.scrollHeight; });
   }
-  // la case pour écrire (ou dicter) à Pooky : dans son panneau, ou au centre pendant la création d'un projet
+  // la case pour écrire (ou dicter) à {g} : dans son panneau, ou au centre pendant la création d'un projet
   function saisie(ph, avecImage) {
-    const S = E('form', 'crea-saisie'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 2000; ta.placeholder = ph || 'Écris à ' + PK() + '…'; ta.setAttribute('aria-label', 'Ton message à Pooky');
+    const S = E('form', 'crea-saisie'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 2000; ta.placeholder = ph || 'Écris à ' + PK() + '…'; ta.setAttribute('aria-label', 'Ton message à ' + PK());
     ta.value = AIM.brouPk || ''; ta.addEventListener('input', () => { AIM.brouPk = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) {} }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
@@ -205,7 +205,7 @@
     }
     const env = E('button', 'crea-env', '➤'); env.type = 'submit'; env.setAttribute('aria-label', 'Envoyer');
     S.append(ch, env);
-    S.addEventListener('submit', e => { e.preventDefault(); const v = ta.value.trim(); if (!v) return; ta.value = ''; AIM.brouPk = ''; envoyerPooky(v); });
+    S.addEventListener('submit', e => { e.preventDefault(); const v = ta.value.trim(); if (!v) return; ta.value = ''; AIM.brouPk = ''; envoyerMasc(v); });
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TOUCH) { e.preventDefault(); S.requestSubmit(); } });
     return S;
   }
@@ -331,7 +331,7 @@
     q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
     let so = AIM.solde; if (typeof so !== 'number') { try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {} }   // sans SQL v160 : le solde de l'Atelier (testeurs, 6 nov.)
     q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + so + (etroit() ? '' : ' crédits') : '';
-    renderArbre(); renderOutil(); renderPooky(); renderFlot();
+    renderArbre(); renderOutil(); renderMasc(); renderFlot();
   }
   function renderArbre() {
     const A = AIM.root.querySelector('.crea-arbre'); A.textContent = '';
@@ -509,9 +509,9 @@
     O.appendChild(p);
   }
 
-  // ---------- Pooky, À PART ----------
-  function renderPooky() {
-    const P = AIM.root.querySelector('.crea-pooky'), vieux = P.querySelector('.crea-fil2'), bas = vieux ? vieux.scrollHeight - vieux.scrollTop - vieux.clientHeight < 40 : true;
+  // ---------- {g}, À PART ----------
+  function renderMasc() {
+    const P = AIM.root.querySelector('.crea-masc'), vieux = P.querySelector('.crea-fil2'), bas = vieux ? vieux.scrollHeight - vieux.scrollTop - vieux.clientHeight < 40 : true;
     const foc = !!(document.activeElement && document.activeElement.tagName === 'TEXTAREA' && AIM.root.contains(document.activeElement) && document.activeElement.closest('.crea-saisie'));
     P.textContent = '';
     AIM.root.classList.toggle('nv', AIM.vue === 'nouveau');   // pendant la création : la discussion est AU CENTRE, pas de panneau à droite
@@ -523,7 +523,7 @@
     rep.setAttribute('aria-label', etroit() ? 'Retour à l’outil' : 'Replier ' + PK());
     t.append(im, tx, rep); P.appendChild(t);
     const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
-    for (const m of filPooky().slice(-60)) F.appendChild(bulle(m));
+    for (const m of filMasc().slice(-60)) F.appendChild(bulle(m));
     if (AIM.prop) F.appendChild(propCarte());
     P.appendChild(F);
     const S = saisie(); P.appendChild(S);
@@ -549,7 +549,7 @@
     const non = B('crea-puce', 'Non, on discute', () => { AIM.prop = null; dire({ pk: 1, t: 'D’accord ! Je te réponds ici dès que possible 🙂' }); render(); });
     p.append(oui, non); b.appendChild(p); l.append(im, b); return l;
   }
-  async function envoyerPooky(t) {
+  async function envoyerMasc(t) {
     if (AIM.vue === 'nouveau') {
       dire({ pk: 0, t });
       const k = comprendre(t);
@@ -563,14 +563,14 @@
     if (a && !enAttente() && !/\?\s*$/.test(t) && t.length >= 4) { AIM.prop = t; render(); }
     chargerMsgs().then(render);
   }
-  const filPooky = () => (AIM.vue === 'nouveau' ? AIM.loc : AIM.msgs.concat(AIM.loc).sort((a, b) => String(a.at || '').localeCompare(String(b.at || ''))));
+  const filMasc = () => (AIM.vue === 'nouveau' ? AIM.loc : AIM.msgs.concat(AIM.loc).sort((a, b) => String(a.at || '').localeCompare(String(b.at || ''))));
   function renderFlot() {
     const R = AIM.root; if (!R) return;
     const f = R.querySelector('.crea-flot'), bb = f.querySelector('.bb'), pk = f.querySelector('.pk');
-    const liste = filPooky(), der = [...liste].reverse().find(m => m.pk);
+    const liste = filMasc(), der = [...liste].reverse().find(m => m.pk);
     const neufs = AIM.vue === 'nouveau' ? 0 : AIM.msgs.filter(m => m.pk && m.at && +new Date(m.at) > AIM.vuAt).length;
     let i = pk.querySelector('i'); if (neufs) { if (!i) { i = E('i'); pk.appendChild(i); } i.textContent = String(Math.min(9, neufs)); } else if (i) i.remove();
-    // la petite bulle : quelques secondes quand Pooky dit quelque chose de neuf (jamais sur l'écran « Nouveau projet » : elle cacherait l'offre)
+    // la petite bulle : quelques secondes quand {g} dit quelque chose de neuf (jamais sur l'écran « Nouveau projet » : elle cacherait l'offre)
     const cle = AIM.prop ? 'prop' : der ? der.at + der.t : '';
     if (cle !== AIM.bulleCle) { AIM.bulleCle = cle; AIM.bulleAt = Date.now(); clearTimeout(AIM.bulleT); AIM.bulleT = setTimeout(renderFlot, 6500); }
     const t = AIM.vue === 'nouveau' || Date.now() - (AIM.bulleAt || 0) > 6000 ? '' : AIM.prop ? 'Je le fais sur ton image ? 👆' : der ? der.t.replace(/\s+/g, ' ').slice(0, 70) + (der.t.length > 70 ? '…' : '') : '';

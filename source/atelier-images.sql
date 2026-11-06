@@ -1,17 +1,17 @@
 -- ===================================================================================================================================
--- « CRÉE AVEC POOKY » : L'ATELIER D'IMAGES (SQL v160, borne 2.0.170, 6 nov. 2026 — équipe Études, oui de l'admin transmis par le chef)
+-- « CRÉE AVEC {g} » : L'ATELIER D'IMAGES (SQL v160, borne 2.0.170, 6 nov. 2026 — équipe Études, oui de l'admin transmis par le chef)
 -- Étude : ~/jdv-tools/etudes/espaces-sur-mesure/SPEC.md. Un projet a maintenant un TYPE ('jeu' par défaut, 'images'…). Un projet Images
 -- contient des CRÉATIONS (une par photo importée) et leurs VERSIONS (rien n'est jamais écrasé). Prix par utilisation (réglages) :
 -- nouvelle image 20 (prix_esp_image), le reste gratuit (importer, recadrer, comparer, revenir à une version, télécharger).
 -- Fabrication : la file de l'équipe (at_gen_file, rôle 'espace', image SOURCE jointe au dessin, fonction Edge atelier-image v18) ;
 -- un import passe d'abord un CONTRÔLE (rôle 'controle' : visage d'une vraie personne ou image choquante → refusée, V1 de l'admin).
--- Crédits débités à la demande, RENDUS tout seuls si la fabrication rate ou est refusée (at_esp_apres). Pooky écrit dans le fil du
+-- Crédits débités à la demande, RENDUS tout seuls si la fabrication rate ou est refusée (at_esp_apres). {g} écrit dans le fil du
 -- projet (« ✅ Fait dans ton atelier : … ») ; le joueur ne voit jamais d'euros, de « coût » ni le nom du service.
 -- Fonctions existantes touchées (une petite branche chacune) : pegase_int.at_gen_garde (contrôle gratuit), at_gen_prendre (prix réel du contrôle), at_gen_fin (pas d'« éléments »
 -- pour 'espace' / 'controle'), pegase_int.at_gen_apres (appelle at_esp_apres), pegase_int.atelier_ok (dépôt e/<version>.jpg).
 -- ===================================================================================================================================
 
--- 1) le type du projet (les projets existants restent des jeux) et l'espace (briques, ordre : modifiables par Pooky)
+-- 1) le type du projet (les projets existants restent des jeux) et l'espace (briques, ordre : modifiables par {g})
 alter table public.at_fiches add column if not exists type text not null default 'jeu';
 alter table public.at_fiches drop constraint if exists at_fiches_type_check;
 alter table public.at_fiches add constraint at_fiches_type_check check (type in ('jeu', 'images', 'musique', 'dj', 'bd', 'video', 'carte', 'avatar'));
@@ -70,7 +70,7 @@ create or replace function pegase_int.at_esp_json(f public.at_fiches) returns js
       from public.at_creations c where c.fiche = f.id and c.supprime_at is null), '[]'::jsonb)) $$;
 
 -- 5) côté joueur
--- nouveau projet Images (le titre est celui du joueur ; Pooky ouvre l'espace)
+-- nouveau projet Images (le titre est celui du joueur ; {g} ouvre l'espace)
 create or replace function public.at_esp_nouveau(p_name text, p_titre text) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare n text := public.pg_n(p_name); t text := left(btrim(regexp_replace(coalesce(p_titre, ''), '\s+', ' ', 'g')), 60); id uuid; why text;
 begin
@@ -94,7 +94,7 @@ begin
     'prix', jsonb_build_object('image', coalesce(pegase_int.at_reglage('prix_esp_image'), 20), 'agrandir', coalesce(pegase_int.at_reglage('prix_esp_agrandir'), 10)),
     'deja_paye', exists (select 1 from public.at_creation_versions v join public.at_creations c on c.id = v.creation where c.name = n and v.prix > 0));
 end $$;
--- les projets qui ne sont pas des jeux (pour l'arbre et les tuiles de « Mes projets ») + les prix (pour l'offre de Pooky)
+-- les projets qui ne sont pas des jeux (pour l'arbre et les tuiles de « Mes projets ») + les prix (pour l'offre de {g})
 create or replace function public.at_esp_types(p_name text) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare n text := public.pg_n(p_name);
 begin
@@ -218,8 +218,8 @@ begin
   perform pegase_int.at_gen_reveil();
   return jsonb_build_object('version', v, 'n', k, 'solde', s, 'prix', prix);
 end $$;
--- parler à Pooky dans un projet Images : GRATUIT (at_dire ferait payer la « 1re idée » d'un projet de jeu) ; même fil at_messages,
--- donc la boucle de Pooky (discussions en attente) le voit et répond comme d'habitude
+-- parler à {g} dans un projet Images : GRATUIT (at_dire ferait payer la « 1re idée » d'un projet de jeu) ; même fil at_messages,
+-- donc la boucle de {g} (discussions en attente) le voit et répond comme d'habitude
 create or replace function public.at_esp_parler(p_name text, p_fiche uuid, p_texte text, p_micro boolean default false) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare n text := public.pg_n(p_name); f public.at_fiches; t text := left(btrim(coalesce(p_texte, '')), 2000); i uuid;
 begin
@@ -258,7 +258,7 @@ begin
 end $$;
 
 -- 6) côté file (appelé par pegase_int.at_gen_apres quand un travail 'espace' ou 'controle' finit) : version prête, refusée ou ratée ;
---    crédits RENDUS si rien n'est livré ; Pooky l'écrit dans le fil du projet
+--    crédits RENDUS si rien n'est livré ; {g} l'écrit dans le fil du projet
 create or replace function pegase_int.at_esp_apres(p_id uuid, ok boolean, p_path text) returns void language plpgsql security definer set search_path = public as $$
 declare g public.at_gen_file; v public.at_creation_versions; c public.at_creations; vr text; rend int;
 begin

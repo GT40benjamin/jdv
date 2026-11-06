@@ -16,7 +16,7 @@ after_style = src[src.index('</style>') + 8:]
 markup = after_style[:after_style.index('<script>')].strip()
 script = after_style[after_style.index('<script>') + 8: after_style.rindex('</script>')]
 
-# « Crée avec Pooky » (borne 2.0.170, 6 nov. 2026) : l'atelier d'images est un fichier À PART (source/atelier-images.js), glissé à la fin
+# « Crée avec {g} » (borne 2.0.170, 6 nov. 2026) : l'atelier d'images est un fichier À PART (source/atelier-images.js), glissé à la fin
 # de la GRANDE fonction englobante de shell2.js (juste après window.JDW_SHELL = …), DANS sa portée : il voit ATL, rpc, atlOuvrir… et les
 # surcharge, sans toucher à shell2.js (d'autres petites fonctions indépendantes suivent dans le fichier : pas « le dernier })(); »).
 def shell2_avec_ateliers():
