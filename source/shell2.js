@@ -16748,7 +16748,7 @@ function atlEspace(W, box, f, g, pane) {
   const conv = () => { atlEspFermer(); atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} };
   const pk = (cls) => { const b = atlEl('button', 'atl-espk ' + (cls || '')); b.type = 'button'; b.title = 'Parler ' + gA(); b.setAttribute('aria-label', 'Ouvrir la conversation avec ' + gN());
     const t = atlEl('span'), st = atlEl('small', 'atl-espst', ''); t.append(atlEl('b', '', gNM()), st); b.append(atlEspAv(), t); b.addEventListener('click', conv);
-    const maj = () => { const tx = atlHsTxt(f).replace(/^🛠️\s*/, ''); st.textContent = /travaille/.test(tx) ? 'prépare ta V' + (vN + 1) + '…' : 'Je suis là ! Une idée ?'; st.classList.toggle('vif', /travaille/.test(tx)); };
+    const maj = () => { const f2 = atlFiche() && atlFiche().id === f.id ? atlFiche() : f, tv = atlTravaille(f2); st.textContent = tv ? 'prépare ta V' + tv + '…' : 'Je suis là ! Une idée ?'; st.classList.toggle('vif', !!tv); };   // 2.0.155 (chef) : seulement si une demande est vraiment en cours, avec version_jeu + 1
     maj(); b._maj = maj; return b; };
   const aide = () => { const b = atlEl('button', 'atl-esaide', '?'); b.type = 'button'; b.title = 'Comment ça marche ?'; b.setAttribute('aria-label', 'Comment ça marche ?'); b.addEventListener('click', atlEspAide); return b; };
   const nArt = () => { try { return (BOUT && BOUT.r && Array.isArray(BOUT.r.articles) && BOUT.r.articles.length) || (W._nArt | 0); } catch (e) { return W._nArt | 0; } };
@@ -16792,7 +16792,8 @@ function atlEspace(W, box, f, g, pane) {
   // 🎮 « Mon jeu » : la grande carte du jeu (jaquette, titre, état, ▶ JOUER) + 3 cartes (stats, boutique, conversation)
   { const jp = W.querySelector('.atl-pane[data-k="jeu"]'); if (jp) {
     const H = atlEl('section', 'atl-eshero'), jq = atlJaquette(f, g, 'atl-esjaq'), tx = atlEl('div', 'atl-eshtx'), ch = atlEl('div', 'atl-eschips');
-    const et = String(f.etat || ''); ch.append(atlEl('span', 'atl-eschip ' + (et === 'publie_monde' ? 'ok' : ''), et === 'publie_monde' ? '🌍 En ligne pour tous' : et === 'publie_salle' ? '🏠 Dans ta salle' : '🧪 En essai'), atlEl('span', 'atl-eschip', 'V' + vN));
+    const et = String(f.etat || ''); const enLigne = (et === 'publie_monde' || et === 'publie_salle') && (f.version_publiee | 0) > 0;   // 2.0.155 (chef) : la version PUBLIÉE quand le jeu est en ligne
+    ch.append(atlEl('span', 'atl-eschip ' + (et === 'publie_monde' ? 'ok' : ''), et === 'publie_monde' ? '🌍 En ligne pour tous' : et === 'publie_salle' ? '🏠 Dans ta salle' : '🧪 En essai'), atlEl('span', 'atl-eschip', 'V' + (enLigne ? f.version_publiee | 0 : vN) + (enLigne && (f.version_publiee | 0) < vN ? ' · V' + vN + ' en essai' : '')));
     const cre = atlCreateurDe(f); if (cre) ch.appendChild(atlEl('span', 'atl-eschip', 'par ' + cre));
     tx.append(atlEl('h1', '', f.titre || (g && g.title) || 'Mon jeu'), ch);
     const go = atlEl('button', 'atl-esjouer', '▶ JOUER'); go.type = 'button'; go.disabled = !g; go.addEventListener('click', () => atlJouerVrai(f));
@@ -18705,7 +18706,7 @@ function atlHsTxt(f) {
   const ec = atlAdminIci() ? (ATL.data.demandes_projet || []).some(x => x && x.etat === 'en_cours') : atlDemEnCours().some(x => x.fiche === f.id && x.etat === 'en_cours');
   return ec || atlTravaille(f) ? '🛠️ ' + gNM() + ' travaille sur la nouvelle version' : et === 'alpha' ? 'Ton jeu est prêt à tester !' : 'Ton jeu est publié';
 }
-function atlHsMaj() { try { const R = ATL.root, f = atlFiche(), h = R && R.querySelector('.atl-hs'); if (h && f && ATL.cur === f.id && R.querySelector('.atl-pbox')) { const t = atlHsTxt(f); if (h.textContent !== t) h.textContent = t; } } catch (e) {} }
+function atlHsMaj() { try { for (const b of document.querySelectorAll('#jdw-atelier .atl-espk')) if (b._maj) b._maj(); } catch (e) {} try { const R = ATL.root, f = atlFiche(), h = R && R.querySelector('.atl-hs'); if (h && f && ATL.cur === f.id && R.querySelector('.atl-pbox')) { const t = atlHsTxt(f); if (h.textContent !== t) h.textContent = t; } } catch (e) {} }
 function atlTravailMaj() {
   const R = ATL && ATL.root, W = R && R.querySelector('.atl-wiz'), p = W && W.querySelector('.atl-pane[data-k="jeu"]'); if (!p || !ATL.cur) return;
   const l = atlTravEnCours();   // 2.0.59 : en vue admin, celles du joueur (2.0.60 : sans champ « fiche », elles sont toutes de ce projet)
