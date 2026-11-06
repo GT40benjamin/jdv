@@ -16677,8 +16677,10 @@ function atlVSortie(W, f) {
   bn = atlEl('div', 'atl-vsortie'); bn.dataset.v = String(v);
   const quand = vh && Date.parse(vh.at) ? atlQuand(vh.at) : '';   // 2.0.134 (l'admin) : la date et l'heure de sortie, comme les autres messages
   const tx = atlEl('div'); tx.append(atlEl('b', '', '🎉 Ta V' + v + ' est sortie' + (quand ? ' ' + quand : '') + ' !'), atlEl('small', '', vh && vh.note ? String(vh.note) : 'Essaie-la tout de suite.'));
-  const go = atlEl('button', 'btn btn-play atl-essai', '▶️ Essayer ma V' + v); go.type = 'button'; go.addEventListener('click', () => atlJouerVrai(f));
+  const go = atlEl('button', 'btn btn-play atl-essai', String(f.etat) === 'publie_monde' && (f.version_publiee | 0) === v ? '▶ JOUER' : '▶️ Essayer ma V' + v); go.type = 'button'; go.addEventListener('click', () => atlJouerVrai(f));
   bn.append(atlGuideAv(), tx, go);
+  const her = box.querySelector('.atl-pane[data-k="jeu"] .atl-eshero');   // 2.0.153 (chef) : dans l'espace du jeu, seulement dans « Mon jeu », sous la grande carte
+  if (her) { her.insertAdjacentElement('afterend', bn); return; }
   const nav = box.querySelector('.atl-ptabs'), hd = box.querySelector('.atl-phd'); if (nav) nav.insertAdjacentElement('afterend', bn); else if (hd) hd.insertAdjacentElement('afterend', bn); else box.prepend(bn);
 }
 // 2.0.8 (Benjamin : l'en-tête et la tuile disaient V3, l'historique V4) : chaque badge de la page relit f.version (at_fiches.version_jeu) ;
@@ -16794,7 +16796,7 @@ function atlEspace(W, box, f, g, pane) {
     tx.append(atlEl('h1', '', f.titre || (g && g.title) || 'Mon jeu'), ch);
     const go = atlEl('button', 'atl-esjouer', '▶ JOUER'); go.type = 'button'; go.disabled = !g; go.addEventListener('click', () => atlJouerVrai(f));
     if (jq.tagName === 'IMG') { jq.style.cursor = 'pointer'; jq.addEventListener('click', () => atlJouerVrai(f)); }
-    H.append(jq, tx, go); jp.prepend(H);
+    H.append(jq, tx, go); jp.prepend(H); { const vs = box.querySelector('.atl-vsortie'); if (vs) H.insertAdjacentElement('afterend', vs); }
     const c = atlEl('div', 'atl-escards atl-esres'); c.dataset.esp = 'resume'; H.after(c); atlEspResume(c, f, null); } }
   atlEspFond(W, f); atlEspStats(W, f);
   // Boutique grisée tant qu'il n'y a aucun article (la sonde de la boutique est lue avec les statistiques)
@@ -16872,11 +16874,11 @@ function atlEspResume(c, f, st) {
   const T = (st && st.total) || {}, S = (st && st.scores) || {}, A = (st && st.achats) || {}, J = st && Array.isArray(st.jours) ? st.jours : [];
   { const d = card('📊 Ton jeu ce mois-ci', 'stats');
     if (!st) d.appendChild(atlEl('p', 'atl-chv', 'Un instant…'));
-    else if (!(T.lancements | 0) && !(S.parties | 0)) doux(d, '🌱', 'Personne n’a encore joué ce mois-ci. Lance une partie et invite tes copains : les chiffres arrivent dès la première partie !');
+    else if (!((st.periode || {}).parties | 0)) doux(d, '🌱', 'Personne n’a encore joué ce mois-ci. Lance une partie et invite tes copains : les chiffres arrivent dès la première partie !');
     else {
-      nums(d, [[S.record != null ? atlNb0(S.record) : '—', '🏆 record', S.record == null], [atlNb0(Math.max(S.parties | 0, T.lancements | 0)), '▶ parties', false], [atlNb0(Math.max(S.joueurs | 0, T.joueurs | 0)), '👥 joueurs', false]]);
-      if (J.some(x => (x.lancements | 0) > 0)) d.appendChild(atlEspCourbe(J.slice(-30), true));
-      if (T.temps | 0) d.appendChild(atlEl('p', 'atl-estemps', '⏱️ ' + atlDuree(T.temps) + ' de jeu' + (T.depuis ? ' depuis le ' + new Date(T.depuis).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '')));
+      const P = st.periode || {}; nums(d, [[S.record != null ? atlNb0(S.record) : '—', '🏆 record', S.record == null], [atlNb0(P.parties), '▶ parties', false], [atlNb0(P.joueurs), '👥 joueurs', false]]);
+      if (J.some(x => (x.parties | 0) > 0)) d.appendChild(atlEspCourbe(J.slice(-30), true));
+      if ((st.periode || {}).temps | 0) d.appendChild(atlEl('p', 'atl-estemps', '⏱️ ' + atlDuree(st.periode.temps) + ' de jeu sur les 30 derniers jours'));
     } }
   { const d = card('🛍️ Ta boutique', 'boutique');
     if (!st) d.appendChild(atlEl('p', 'atl-chv', 'Un instant…'));
@@ -16896,41 +16898,47 @@ async function atlEspFond(W, f, n) {
   if (r.en_cours && (n | 0) < 8) setTimeout(() => atlEspFond(W, f, (n | 0) + 1), 25000);
 }
 // les statistiques : cartes du résumé, section complète, courbe des 7 / 30 derniers jours
-async function atlEspStats(W, f) {
-  if (!W.isConnected || !f.jeu || isGuest() || !profile.name) return;
-  let st = null; try { st = await rpc('at_stats_lire', { p_name: profile.name, p_jeu: f.jeu, p_jours: 30 }, { quiet: true, quiet404: true }); } catch (e) { st = null; }
-  if (!W.isConnected) return;
+async function atlEspStats(W, f) {
+  // 2.0.153 (chef : « une seule source ») : parties et joueurs = les SCORES (chaque partie terminée), jour par jour, sur 7 ou 30 jours (SQL v154) ;
+  // le temps de jeu et les visites de la boutique = mesurés par la borne. « Mon jeu » et l'onglet Stats lisent les MÊMES réponses.
+  if (!W.isConnected || !f.jeu || isGuest() || !profile.name) return;
+  const lire = async n => { try { return await rpc('at_stats_lire', { p_name: profile.name, p_jeu: f.jeu, p_jours: n }, { quiet: true, quiet404: true }); } catch (e) { return null; } };
+  const [s30, s7] = await Promise.all([lire(30), lire(7)]);
+  if (!W.isConnected) return;
+  const st = s30;
   if (st) { W._nArt = st.articles | 0; atlEspGris(W); }
-  const rs = W.querySelector('[data-esp="resume"]'); if (rs) atlEspResume(rs, f, st || { total: {}, scores: {}, achats: {}, articles: 0 });
-  const bt = W.querySelector('[data-esp="boutique"]'); if (bt && st) { bt.textContent = ''; const A = st.achats || {}, T = st.total || {};
-    for (const [v, l] of [[atlNb0(st.articles), '🏷️ articles en vente'], [atlNb0(A.nombre), '🧾 ventes'], [atlNb0(A.credits) + ' 💎', '💰 crédits gagnés'], [atlNb0(T.boutique), '👀 visites de la boutique']]) { const x = atlEl('div', 'atl-esnum'); x.append(atlEl('b', '', v), atlEl('small', '', l)); bt.appendChild(x); } }
-  const sp = W.querySelector('[data-esp="stats"]'); if (!sp) return; sp.textContent = '';
-  if (!st) { sp.appendChild(atlEl('p', 'atl-chv', 'Les statistiques ne se chargent pas pour l’instant : réessaie dans un moment.')); return; }
-  const T = st.total || {}, S = st.scores || {}, A = st.achats || {}, J = Array.isArray(st.jours) ? st.jours : [];
-  let n = 7; const tabs = atlEl('div', 'atl-demtabs'), ch = atlEl('div', 'atl-eschart');
-  const dessine = () => { for (const b of tabs.children) b.classList.toggle('on', +b.dataset.n === n); ch.textContent = ''; ch.appendChild(atlEspCourbe(J.slice(-n))); };
-  for (const k of [7, 30]) { const b = atlEl('button', 'atl-demtab', k + ' derniers jours'); b.type = 'button'; b.dataset.n = k; b.addEventListener('click', () => { n = k; dessine(); }); tabs.appendChild(b); }
-  sp.append(tabs, ch); dessine();
-  const g2 = atlEl('div', 'atl-esnums'); const nn = (v, l, z) => { const x = atlEl('div', 'atl-esnum' + (z ? ' zero' : '')); x.append(atlEl('b', '', v), atlEl('small', '', l)); g2.appendChild(x); };
-  nn(atlNb0(T.lancements), '▶ lancements', !(T.lancements | 0)); nn(atlNb0(T.joueurs), '👥 joueurs différents', !(T.joueurs | 0)); nn(atlDuree(T.temps), '⏱️ temps joué', !(T.temps | 0));
-  nn(atlNb0(T.boutique), '🛍️ visites de la boutique', !(T.boutique | 0)); nn(atlNb0(A.nombre), '🧾 achats', !(A.nombre | 0)); nn(atlNb0(A.credits) + ' 💎', '💰 crédits gagnés', !(A.credits | 0));
-  nn(S.record != null ? atlNb0(S.record) : '—', '🏆 record', S.record == null); nn(atlNb0(S.joueurs), '🎯 joueurs avec un score', !(S.joueurs | 0));
-  sp.appendChild(g2);
-  sp.appendChild(atlEl('p', 'atl-esnote', T.depuis ? 'Comptés depuis le ' + new Date(T.depuis).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) + ' : chaque partie lancée, chaque minute jouée, chaque visite de la boutique.' : 'Les parties sont comptées depuis le 5 novembre : dès que quelqu’un joue, les chiffres arrivent ici ✨'));
-}
-// la courbe (SVG, sans bibliothèque) : lancements par jour (trait plein) et joueurs différents (pointillés), vrais chiffres
+  const rs = W.querySelector('[data-esp="resume"]'); if (rs) atlEspResume(rs, f, st || { total: {}, scores: {}, achats: {}, articles: 0, periode: {} });
+  const bt = W.querySelector('[data-esp="boutique"]'); if (bt && st) { bt.textContent = ''; const A = st.achats || {}, P = st.periode || {};
+    for (const [v, l] of [[atlNb0(st.articles), '🏷️ articles en vente'], [atlNb0(A.nombre), '🧾 ventes'], [atlNb0(A.credits) + ' 💎', '💰 crédits gagnés'], [atlNb0(P.boutique), '👀 visites (30 jours)']]) { const x = atlEl('div', 'atl-esnum'); x.append(atlEl('b', '', v), atlEl('small', '', l)); bt.appendChild(x); } }
+  const sp = W.querySelector('[data-esp="stats"]'); if (!sp) return; sp.textContent = '';
+  if (!st) { sp.appendChild(atlEl('p', 'atl-chv', 'Les statistiques ne se chargent pas pour l’instant : réessaie dans un moment.')); return; }
+  const S = st.scores || {}, A = st.achats || {}; let n = 7;
+  const tabs = atlEl('div', 'atl-demtabs'), ch = atlEl('div', 'atl-eschart'), g2 = atlEl('div', 'atl-esnums n3');
+  const dessine = () => {
+    const D = (n === 7 ? s7 : s30) || s30, P = D.periode || {}, J = Array.isArray(D.jours) ? D.jours : [];
+    for (const b of tabs.children) b.classList.toggle('on', +b.dataset.n === n);
+    ch.textContent = ''; ch.appendChild(atlEspCourbe(J)); g2.textContent = '';
+    const nn = (v, l, z) => { const x = atlEl('div', 'atl-esnum' + (z ? ' zero' : '')); x.append(atlEl('b', '', v), atlEl('small', '', l)); g2.appendChild(x); };
+    nn(atlNb0(P.parties), '▶ parties jouées', !(P.parties | 0)); nn(atlNb0(P.joueurs), '👥 joueurs différents', !(P.joueurs | 0)); nn(atlDuree(P.temps), '⏱️ temps de jeu', !(P.temps | 0));
+    nn(S.record != null ? atlNb0(S.record) : '—', '🏆 record', S.record == null); nn(atlNb0(A.nombre), '🧾 achats dans la boutique', !(A.nombre | 0)); nn(atlNb0(A.credits) + ' 💎', '💰 crédits gagnés', !(A.credits | 0));
+  };
+  for (const k of [7, 30]) { const b = atlEl('button', 'atl-demtab', k + ' derniers jours'); b.type = 'button'; b.dataset.n = k; b.addEventListener('click', () => { n = k; dessine(); }); tabs.appendChild(b); }
+  sp.append(tabs, ch, g2); dessine();
+  sp.appendChild(atlEl('p', 'atl-esnote', 'Les parties et les joueurs : chaque partie terminée avec un score. Le temps de jeu est mesuré depuis le ' + ((st.total || {}).depuis ? new Date(st.total.depuis).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '5 novembre') + '.'));
+}
+// la courbe (SVG, sans bibliothèque) : parties par jour (trait plein) et joueurs différents (pointillés), vrais chiffres
 function atlEspCourbe(J, mini) {
-  const W0 = 640, H0 = 200, m = { l: 34, r: 12, t: 14, b: 28 }, n = Math.max(1, J.length), mx = Math.max(1, ...J.map(d => d.lancements | 0), ...J.map(d => d.joueurs | 0));
+  const W0 = 640, H0 = 200, m = { l: 34, r: 12, t: 14, b: 28 }, n = Math.max(1, J.length), vp = d => d.parties != null ? d.parties | 0 : d.lancements | 0, vj = d => d.pjoueurs != null ? d.pjoueurs | 0 : d.joueurs | 0, mx = Math.max(1, ...J.map(vp), ...J.map(vj));
   const x = i => m.l + (n === 1 ? (W0 - m.l - m.r) / 2 : i * (W0 - m.l - m.r) / (n - 1)), y = v => m.t + (H0 - m.t - m.b) * (1 - v / mx);
   const ns = 'http://www.w3.org/2000/svg', S = document.createElementNS(ns, 'svg'); S.setAttribute('viewBox', '0 0 ' + W0 + ' ' + H0); S.setAttribute('class', 'atl-escourbe'); S.setAttribute('role', 'img');
-  S.setAttribute('aria-label', 'Lancements par jour : ' + J.map(d => d.lancements | 0).join(', '));
+  S.setAttribute('aria-label', 'Parties par jour : ' + J.map(vp).join(', '));
   const el = (t, a) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); S.appendChild(e); return e; };
   for (const v of [...new Set([0, Math.round(mx / 2), mx])]) { el('line', { x1: m.l, x2: W0 - m.r, y1: y(v), y2: y(v), class: 'g' }); const t = el('text', { x: m.l - 6, y: y(v) + 4, class: 'ax', 'text-anchor': 'end' }); t.textContent = String(v); }
-  const pts = k => J.map((d, i) => x(i) + ',' + y(d[k] | 0)).join(' ');
-  el('polyline', { points: pts('joueurs'), class: 'l2' }); el('polyline', { points: pts('lancements'), class: 'l1' });
-  J.forEach((d, i) => { el('circle', { cx: x(i), cy: y(d.lancements | 0), r: 3.5, class: 'p1' });
+  const pts = fn => J.map((d, i) => x(i) + ',' + y(fn(d))).join(' ');
+  el('polyline', { points: pts(vj), class: 'l2' }); el('polyline', { points: pts(vp), class: 'l1' });
+  J.forEach((d, i) => { el('circle', { cx: x(i), cy: y(vp(d)), r: 3.5, class: 'p1' });
     if (n <= 7 || i % 5 === 0 || i === n - 1) { const t = el('text', { x: x(i), y: H0 - 8, class: 'ax', 'text-anchor': 'middle' }); const d0 = new Date(d.jour); t.textContent = isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); } });
-  const w = atlEl('div', 'atl-escw'); w.appendChild(S); if (mini) w.classList.add('mini'); w.appendChild(atlEl('p', 'atl-esleg', '━ parties lancées par jour · ┅ joueurs différents')); return w;
+  const w = atlEl('div', 'atl-escw'); w.appendChild(S); if (mini) w.classList.add('mini'); w.appendChild(atlEl('p', 'atl-esleg', '━ parties par jour · ┅ joueurs différents par jour')); return w;
 }
 // les statistiques envoyées par la borne pour un jeu de l'Atelier (SQL v148) : lancement, temps joué (au démontage), visite de la boutique
 function atlStatEnvoyer(jeu, sorte, v) {

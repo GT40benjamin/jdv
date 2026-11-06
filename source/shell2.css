@@ -5516,3 +5516,46 @@ span.atl-esjaq{display:grid;place-items:center;font-size:60px}
 /* v152 : la petite phrase d'un article */
 #jdw-vitrine .bout-vtx{display:block;margin:2px 0 6px;font-size:12.5px;line-height:1.3;opacity:.85;font-weight:600}
 #jdw-boutmod .bout-tx{margin:-4px 0 10px;font-weight:600;opacity:.9}
+/* 2.0.153 (chef) : la conversation de la CRÉATION, nette et claire (seuls les bords sont dans les nuages) */
+.atl-wiz.atl-nuages .atl-av1{background:rgba(255,255,255,.35)}
+.atl-wiz.atl-nuages .atl-disc{background:rgba(255,255,255,.94);border:1.5px solid rgba(255,122,200,.35);box-shadow:0 10px 30px rgba(170,110,190,.18)}
+.atl-wiz.atl-nuages .atl-dischd,.atl-wiz.atl-nuages .atl-dischd b{color:#4a2370}
+.atl-wiz.atl-nuages .atl-pmsgs,.atl-wiz.atl-nuages .atl-disclog{background:none;border:0}
+.atl-wiz.atl-nuages .atl-a .atl-b{background:#f6f0ff;border:1px solid #e6dbff;color:#2a1e45;box-shadow:0 3px 10px rgba(120,60,140,.08)}
+.atl-wiz.atl-nuages .atl-wel .atl-b{background:linear-gradient(180deg,#fff3fb,#f3ecff);border-color:#f2c9e6}
+.atl-wiz.atl-nuages .atl-wel .atl-b p:first-child{color:#c2387f}
+.atl-wiz.atl-nuages .atl-who{color:#b0478f}
+.atl-wiz.atl-nuages .atl-t,.atl-wiz.atl-nuages .atl-mc small,.atl-wiz.atl-nuages .atl-disc small,.atl-wiz.atl-nuages .atl-disc p.atl-aide{color:#7a6a96}
+.atl-wiz.atl-nuages textarea{background:#fff;color:#2a1e45;border:1.5px solid #e2d6f5}
+.atl-wiz.atl-nuages textarea::placeholder{color:#a397b8}
+.atl-wiz.atl-nuages .atl-disc a,.atl-wiz.atl-nuages .atl-disc .atl-lien{color:#7b55d6}
+/* « Pooky travaille sur ta demande » : une LIGNE fine (plus de gros bloc) */
+.atl-wiz.atl-nuages .atl-travb,.atl-espace .atl-travb{display:flex;align-items:center;gap:8px;margin:6px 0;padding:6px 12px;border-radius:999px;border:0;background:rgba(155,123,255,.14)}
+.atl-wiz.atl-nuages .atl-travb .atl-wav,.atl-espace .atl-travb .atl-wav{flex:0 0 22px;width:22px;height:22px;animation:none}
+.atl-wiz.atl-nuages .atl-travb > div,.atl-espace .atl-travb > div{display:flex;align-items:center;gap:8px;min-width:0}
+.atl-wiz.atl-nuages .atl-travb b,.atl-espace .atl-travb b{font:800 13px var(--body);color:#5a3a90;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.atl-wiz.atl-nuages .atl-travb p,.atl-wiz.atl-nuages .atl-travb small:not(.atl-travn),.atl-wiz.atl-nuages .atl-travb .atl-travel,.atl-wiz.atl-nuages .atl-travb .atl-loupe,
+.atl-espace .atl-travb p,.atl-espace .atl-travb small:not(.atl-travn),.atl-espace .atl-travb .atl-travel,.atl-espace .atl-travb .atl-loupe{display:none}
+.atl-wiz.atl-nuages .atl-travb .atl-travbar,.atl-espace .atl-travb .atl-travbar{flex:0 0 60px;height:6px;margin:0}
+.atl-wiz.atl-nuages .atl-travb .atl-travn,.atl-espace .atl-travb .atl-travn{font:700 12px var(--body);color:#7a6a96;white-space:nowrap}
+.atl-wiz.atl-nuages .atl-travb .atl-dpts,.atl-espace .atl-travb .atl-dpts{color:#9b7bff}
+/* la barre du haut : claire comme l'espace, le titre en entier */
+#jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-bar,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-bar{background:rgba(255,248,253,.92);border-bottom:1.5px solid rgba(226,180,214,.6)}
+#jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-h b,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-h b{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#4a2370;white-space:normal;overflow:visible;line-height:1.05}
+#jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-h small,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-h small{color:#7a6a96}
+#jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-bar .btn,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-bar .btn,#jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-bar > button,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-bar > button{background:#fff;color:#4a2370;border-color:rgba(74,35,112,.18)}
+#jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])),#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])){background:#fbeaf6}
+/* le moment de la V1 : la bulle de la mascotte, grande, en couleur */
+.atl-revbb{left:70%;top:-22%;padding:16px 26px;border:4px solid #fff;border-radius:30px 30px 30px 8px;background:linear-gradient(180deg,#ff8fd2,#e2459f);color:#fff;font:400 40px/1.05 var(--display,inherit);letter-spacing:.5px;
+  text-shadow:0 3px 0 #a3206d,0 6px 14px rgba(120,20,80,.35);box-shadow:0 14px 34px rgba(160,40,120,.45),0 0 0 8px rgba(255,255,255,.35)}
+.atl-revbb::after{content:'';position:absolute;left:-4px;bottom:-26px;border:14px solid transparent;border-top:22px solid #fff;border-left:6px solid #fff;transform:skewX(-14deg)}
+@media (max-width:900px){.atl-revbb{left:50%;right:auto;top:-52%;margin-left:min(-38vw,-150px);font-size:27px;padding:12px 18px;white-space:normal;width:76vw;max-width:300px;text-align:center;box-sizing:border-box}.atl-revbb::after{left:44%}}
+/* téléphone : le même fond lumineux que le PC (le fond tient l'écran, il ne défile pas) */
+@media (max-width:900px){.atl-wiz.atl-espace{background:radial-gradient(120% 70% at 50% 0%,rgba(255,255,255,.5),rgba(255,240,250,.32) 55%,rgba(255,225,245,.2)),var(--esp-fond,linear-gradient(135deg,#ffd6ee,#d9ccff)) center top/cover no-repeat,#fbeaf6;background-attachment:scroll}}
+/* 2.0.153 : la feuille de route de la CRÉATION, claire elle aussi */
+#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-route{background:rgba(255,255,255,.9);border:1.5px solid rgba(226,180,214,.7);color:#2a1e45;box-shadow:0 10px 30px rgba(170,110,190,.18)}
+#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-route summary,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-route summary::after{color:#4a2370}
+#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-rsec h4{color:#b0478f}
+#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-rl{background:rgba(155,123,255,.08);color:#2a1e45}#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-rl b,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-rl.res:hover .atl-rres{color:#4a2370}#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-rl.ok b{color:#127a4a}
+#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-route small,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-route p,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-route .atl-rres{color:#6b5c86}
+@media (max-width:600px){.atl-esstats .atl-esnums{grid-template-columns:repeat(2,minmax(0,1fr))}}
