@@ -154,9 +154,7 @@ function mount(root, api) {
   root.innerHTML = '';
   const box = document.createElement('div');
   box.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#4a2a14,#0a0503 70%);color:#f6e6c8;font-family:' + FB;
-  box.innerHTML = '<div style="font:400 38px ' + FD + ';color:#ffe3a0;text-shadow:0 4px 0 #2a1204,0 0 22px rgba(255,182,74,.6)">COFFRES</div>' +
-    '<div style="font:400 22px ' + FD + ';color:#f3c25a;margin-top:-2px;text-shadow:0 0 16px rgba(255,207,106,.6)">À SECRETS</div>' +
-    '<div style="margin-top:16px;width:min(300px,62vw);height:14px;border-radius:7px;background:#1c0e06;box-shadow:0 0 0 1.5px rgba(224,170,72,.5);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#b07a2a,#ffd56a);transition:width .2s"></u></div>' +
+  box.innerHTML = '<div style="margin-top:16px;width:min(300px,62vw);height:14px;border-radius:7px;background:#1c0e06;box-shadow:0 0 0 1.5px rgba(224,170,72,.5);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#b07a2a,#ffd56a);transition:width .2s"></u></div>' +
     '<div style="margin-top:10px;font:600 14px ' + FB + ';color:#e2c79a">On sort les coffres de l\'atelier…</div>';
   root.appendChild(box);
   const bar = box.querySelector('u');
@@ -188,6 +186,8 @@ window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES.coffres = {
   id: 'coffres',
   title: 'Coffres à Secrets',
+  menu: true, menuStyle: 'cartoon', accent2: '#ffe3a0', pauseJeu: true,   // borne 2.0.156 : vrai écran-titre (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+  menuImage: 'jeux/coffres/menu.webp', menuImagePortrait: 'jeux/coffres/menu-portrait.webp', logo: 'jeux/coffres/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'coffres-menu',
   tagline: 'Fais glisser les pièces du couvercle et sors la clé dorée : le coffre s\'ouvre !',
   accent: '#e0aa48',
   scoreLabel: 'points',

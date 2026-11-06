@@ -2579,7 +2579,7 @@
       padRow(keys, text, cx - (kw + ctx.measureText(text).width) / 2, y, size, col, weight, alpha);
     }
     let tuto = null;
-    if (pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
+    // 2.0.156 : plus de tutoriel ouvert tout seul (écran-titre de la borne : ❓ COMMANDES)
 
     // ---------------------------------------------------------------- difficulté (tout dépend du niveau)
     function lvlK() { return S.level - 1; }
@@ -5540,6 +5540,8 @@
   window.JDW_GAMES['carreaux'] = {
     id: 'carreaux',
     title: 'Casse-Carreaux',
+    menu: true, menuStyle: 'cartoon', accent2: '#ffd34d', pauseJeu: true,   // borne 2.0.156 : vrai écran-titre (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/carreaux/menu.webp', menuImagePortrait: 'jeux/carreaux/menu-portrait.webp', logo: 'jeux/carreaux/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'carreaux-menu',
     tagline: 'Fais le tour du monde en cassant les plus beaux carreaux, de Lisbonne au palais de cristal !',
     accent: '#1fc9a8',
     scoreLabel: 'points',

@@ -147,10 +147,10 @@ function mount(root, api) {
   root.innerHTML = '';
   const box = document.createElement('div');
   box.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(#7cc8ff,#bfe6ff 40%,#6aaa3a);color:#1a2a10;font-family:' + FB;
-  box.innerHTML = '<div style="font:400 40px ' + FD + ';color:#ffd34d;text-shadow:0 4px 0 #2a1a08,0 0 20px rgba(255,180,40,.6)">REMPARTS !</div>' +
-    '<div style="margin-top:16px;width:min(300px,62vw);height:14px;border-radius:7px;background:#1a3a10;box-shadow:0 0 0 2px rgba(255,255,255,.6);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#5cc94a,#ffd34d);transition:width .2s"></u></div>' +
+  box.innerHTML = '<div style="margin-top:16px;width:min(300px,62vw);height:14px;border-radius:7px;background:#1a3a10;box-shadow:0 0 0 2px rgba(255,255,255,.6);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#5cc94a,#ffd34d);transition:width .2s"></u></div>' +
     '<div style="margin-top:10px;font:700 14px ' + FB + ';color:#1a3a10">Les squelettes se réveillent…</div>';
   root.appendChild(box);
+    if (!document.getElementById('jdw-rp-menu')) { const css = document.createElement('style'); css.id = 'jdw-rp-menu'; css.textContent = '.td-card:has(.td-worlds)>h1,.td-card:has(.td-worlds)>h1+h3{display:none!important}'; document.head.appendChild(css); }   // 2.0.156 : plus de titre en double (écran-titre de la borne)
   const bar = box.querySelector('u');
   let pe = 0, pp = 0; const prog = () => { bar.style.width = Math.round((pe * 0.2 + pp * 0.8) * 100) + '%'; };
   const proxy = {
@@ -259,6 +259,8 @@ window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES[ID] = {
   id: ID,
   title: NOM,
+  menu: true, menuStyle: 'cartoon', accent2: '#7cc8ff', pauseJeu: true,   // borne 2.0.156 : vrai écran-titre (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+  menuImage: 'jeux/remparts/menu.webp', menuImagePortrait: 'jeux/remparts/menu-portrait.webp', logo: 'jeux/remparts/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'remparts-menu',
   tagline: 'Pose tes tours magiques au bord du chemin et défends la tour du sorcier contre les monstres !',
   accent: '#ffd34d',
   scoreLabel: 'points',

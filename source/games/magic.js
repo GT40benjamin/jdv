@@ -605,7 +605,7 @@
       '<div class="mf-win"><div class="mf-wcard"><div class="mf-whead"><h2></h2><h3></h3><div class="mf-stars">' + ICON.star + ICON.star + ICON.star + '</div></div><div class="mf-wrows"></div><div class="mf-wnext"></div></div></div>' +
       '<div class="mf-fade"></div>' +
       '<div class="mf-overlay mf-paused"><b>PAUSE</b><span>Touche pour reprendre</span></div>' +
-      '<div class="mf-load"><canvas width="600" height="340"></canvas><h1>MAGIC FORCE</h1><p>Les torches s’allument…</p><div class="mf-lbar"><i></i></div></div>';
+      '<div class="mf-load"><canvas width="600" height="340"></canvas><p>Les torches s’allument…</p><div class="mf-lbar"><i></i></div></div>';
     root.appendChild(style); root.appendChild(el); el.appendChild(canvas); el.appendChild(ui);
     const $ = (s) => ui.querySelector(s);
     const H = {
@@ -9190,6 +9190,8 @@ void main(){ if (vK >= 0.999) discard;
   window.JDW_GAMES['magic'] = {
     id: 'magic',
     title: 'Magic Force',
+    menu: true, menuStyle: 'cartoon', accent2: '#ffe08a', pauseJeu: true,   // borne 2.0.156 : vrai écran-titre (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/magic/menu.webp', menuImagePortrait: 'jeux/magic/menu-portrait.webp', logo: 'jeux/magic/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'magic-menu',
     tagline: 'Un mage, quatre sorts, six mondes et six boss géants : libère le royaume !',
     accent: '#9b7bff',
     scoreLabel: 'points',

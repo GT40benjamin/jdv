@@ -188,10 +188,10 @@ function mount(root, api, mo) {
   const box = document.createElement('div');
   box.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#4a1a3a,#07070f 72%);color:#f4eefc;font-family:' + FB;
   box.innerHTML = '<svg width="74" height="74" viewBox="0 0 74 74" style="filter:drop-shadow(0 0 14px rgba(255,60,60,.6))"><circle cx="37" cy="37" r="33" fill="#d8162a" stroke="#fff" stroke-width="4"/><rect x="13" y="30" width="48" height="14" rx="2" fill="#fff"/></svg>' +
-    '<div style="font:400 36px ' + FD + ';color:#ffe9a0;margin-top:10px;text-shadow:0 4px 0 #3a1408,0 0 22px rgba(255,120,48,.7)">SENS INTERDIT</div>' +
     '<div style="margin-top:16px;width:min(320px,62vw);height:14px;border-radius:7px;background:#140b22;box-shadow:0 0 0 1.5px rgba(255,255,255,.2);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#ff4d5e,#ffd34d);transition:width .2s"></u></div>' +
     '<div style="margin-top:10px;font:600 14px ' + FB + ';color:#e8c8d8">On fait le plein…</div>';
   root.appendChild(box);
+    if (!document.getElementById('jdw-si-menu')) { const css = document.createElement('style'); css.id = 'jdw-si-menu'; css.textContent = '#si-load>b{display:none!important}'; document.head.appendChild(css); }   // 2.0.156 : plus de titre en double (écran-titre de la borne)
   const bar = box.querySelector('u');
   const prog = { e: 0, p: 0 }, upd = () => { bar.style.width = Math.round((prog.e * 0.2 + prog.p * 0.8) * 100) + '%'; };
   let failed = false;
@@ -228,6 +228,8 @@ window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES.sensinterdit = {
   id: 'sensinterdit',
   title: 'Sens Interdit',
+  menu: true, menuStyle: 'cartoon', accent2: '#ffe9a0', pauseJeu: true,   // borne 2.0.156 : vrai écran-titre (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+  menuImage: 'jeux/sensinterdit/menu.webp', menuImagePortrait: 'jeux/sensinterdit/menu-portrait.webp', logo: 'jeux/sensinterdit/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'sensinterdit-menu',
   tagline: 'Fonce à contresens au milieu des voitures, toujours plus vite : va le plus loin et le plus vite possible… au premier choc, tout explose !',
   accent: '#ff3b3b',
   scoreLabel: 'km',   // (le score rendu à la borne n'est plus montré : deux classements Plus loin / Plus vite, voir shell2.js SI_BOARDS)

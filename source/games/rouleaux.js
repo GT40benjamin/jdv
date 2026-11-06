@@ -5486,8 +5486,8 @@
 
     // ---------- Départ ----------
     loadLevel(START - 1);   // ?start= : directement au niveau demandé (les précédents comptent comme réussis, sans leurs points)
-    if (pref(TUTO_KEY, '0') !== '1') { tuto = { step: 0, t: 0 }; state = 'tuto'; }
-    else { state = 'arrive'; stateT = 0; SFX.arrive(); }
+    // 2.0.156 : plus de tutoriel ouvert tout seul (écran-titre de la borne : ❓ COMMANDES)
+    state = 'arrive'; stateT = 0; SFX.arrive();
     if (doc.hidden) paused = true;
     raf = requestAnimationFrame(frame);
     mapPlaying++;      // (la carte d'avancement ne prépare rien pendant une partie)
@@ -5998,6 +5998,8 @@
   window.JDW_GAMES['rouleaux'] = {
     id: 'rouleaux',
     title: "Les P'tits Rouleaux",
+    menu: true, menuStyle: 'cartoon', accent2: '#ffd34d', pauseJeu: true,   // borne 2.0.156 : vrai écran-titre (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/rouleaux/menu.webp', menuImagePortrait: 'jeux/rouleaux/menu-portrait.webp', logo: 'jeux/rouleaux/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'rouleaux-menu',
     tagline: 'Guide les rouleaux de papier jusqu\'aux WC, à travers cinq mondes fous !',
     accent: '#4fc3ff',
     scoreLabel: 'points',

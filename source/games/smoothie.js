@@ -1298,6 +1298,8 @@
   window.JDW_GAMES['smoothie'] = {
     id: 'smoothie',
     title: 'Smoothie Samouraï',
+    menu: true, menuStyle: 'cartoon', accent2: '#7cf0a0', pauseJeu: true,   // borne 2.0.156 : vrai écran-titre (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/smoothie/menu.webp', menuImagePortrait: 'jeux/smoothie/menu-portrait.webp', logo: 'jeux/smoothie/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'smoothie-menu',
     tagline: 'Tranche les fruits au doigt, évite les bombes et découpe les fruits géants !',
     accent: '#ff5a8a',
     scoreLabel: 'points',

@@ -257,7 +257,6 @@ function mount(root, api) {
   const box = document.createElement('div');
   box.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#3a1a5a,#0b0616 72%);color:#f4eefc;font-family:' + FB;
   box.innerHTML = '<div style="font-size:54px;filter:drop-shadow(0 0 14px rgba(200,120,255,.7))">🪄</div>' +
-    '<div style="font:400 34px ' + FD + ';color:#ffe08a;margin-top:6px;text-shadow:0 4px 0 #2a0c3a,0 0 22px rgba(200,120,255,.7)">' + NOM.toUpperCase() + '</div>' +
     '<div style="margin-top:16px;width:min(320px,62vw);height:14px;border-radius:7px;background:#140b22;box-shadow:0 0 0 1.5px rgba(255,255,255,.2);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#c79bff,#ffe08a);transition:width .2s"></u></div>' +
     '<div style="margin-top:10px;font:600 14px ' + FB + ';color:#e8d8ff">Le bâton magique se réveille…</div>';
   root.appendChild(box);
@@ -357,6 +356,8 @@ window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES[ID] = {
   id: ID,
   title: NOM,
+  menu: true, menuStyle: 'cartoon', accent2: '#ffe08a',   // borne 2.0.156 : vrai écran-titre (Ajout 27 bis)
+  menuImage: 'jeux/abracadabra/menu.webp', menuImagePortrait: 'jeux/abracadabra/menu-portrait.webp', logo: 'jeux/abracadabra/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'abracadabra-menu',
   tagline: 'Tu es un sorcier : lance tes sorts À VOIX HAUTE et aide les villageois, mission après mission. Qui ira le plus loin sur la carte ?',
   accent: '#c79bff',
   scoreLabel: 'points',
