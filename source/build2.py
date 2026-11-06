@@ -16,7 +16,18 @@ after_style = src[src.index('</style>') + 8:]
 markup = after_style[:after_style.index('<script>')].strip()
 script = after_style[after_style.index('<script>') + 8: after_style.rindex('</script>')]
 
+# « Crée avec Pooky » (borne 2.0.170, 6 nov. 2026) : l'atelier d'images est un fichier À PART (source/atelier-images.js), glissé à la fin
+# de la GRANDE fonction englobante de shell2.js (juste après window.JDW_SHELL = …), DANS sa portée : il voit ATL, rpc, atlOuvrir… et les
+# surcharge, sans toucher à shell2.js (d'autres petites fonctions indépendantes suivent dans le fichier : pas « le dernier })(); »).
+def shell2_avec_ateliers():
+    sh = open(J + 'shell2.js').read()
+    k = sh.find('\nwindow.JDW_SHELL = ')
+    i = sh.find('\n})();', k) if k >= 0 else -1
+    if i < 0: raise SystemExit('shell2.js : fin de la fonction englobante (après window.JDW_SHELL) introuvable')
+    return sh[:i] + '\n' + open(J + 'atelier-images.js', encoding='utf-8').read() + sh[i:]
+
 # ---------- CSS Plein Gaz : variables globales, le reste préfixé #jdw-pg ----------
+
 def split_rules(s):
     out, i, depth, start = [], 0, 0, 0
     while i < len(s):
@@ -168,7 +179,7 @@ def page(config=None):
     return (('<title>Pégase · Elixir Game Studio</title>\n' if PAGE == 'pegase' else '<title>Borne d\'arcade entre amis</title>\n') +
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
             '<link rel="stylesheet" href="' + FONT_CSS + '">\n'
-            '<style>\n' + pg_css + '\n' + open(J + 'shell2.css').read() + '\n' + open(J + 'accessoires.css', encoding='utf-8').read() + '\n' + open(J + 'manette.css', encoding='utf-8').read() + '\n</style>\n' + body + '\n'
+            '<style>\n' + pg_css + '\n' + open(J + 'shell2.css').read() + '\n' + open(J + 'atelier-images.css', encoding='utf-8').read() + '\n' + open(J + 'accessoires.css', encoding='utf-8').read() + '\n' + open(J + 'manette.css', encoding='utf-8').read() + '\n</style>\n' + body + '\n'
             '<script>\n(() => {\n' + script + '\n})();\n</script>\n' + games + cfg +
             # manette (API Gamepad) : glyphes, api.pad des jeux, navigation ; avant la bibliothèque, qui s'en sert
             '<script>\n' + open(J + 'manette.js', encoding='utf-8').read() + '\n</script>\n'
@@ -176,7 +187,7 @@ def page(config=None):
             '<script>\n' + open(J + 'accessoires.js', encoding='utf-8').read() + '\n</script>\n'
             # « Comment jouer » : les commandes de chaque jeu (2.0.112), lues par shell2.js
             '<script>\n' + open(J + 'comment-jouer.js', encoding='utf-8').read() + '\n</script>\n'
-            '<script>\n' + open(J + 'shell2.js').read() + '\n</script>\n')
+            '<script>\n' + shell2_avec_ateliers() + '\n</script>\n')
 OG = {
     'borne': {
         'site': 'Borne d\'arcade entre amis', 'title': 'Viens jouer avec nous sur la Borne d\'arcade !',

@@ -600,3 +600,10 @@ en LOCAL (même écran, contre l'IA), la tuile ouvre l'écran-titre et ▶ JOUER
 Sans menuImage, l'aperçu `preview` est montré en CARTE nette dans la bande du héros (jamais étiré au-delà de ~1,5×), le même aperçu flou derrière.
 À FAIRE (équipe Jeux) — logo + menuImage + menuImagePortrait pour chaque duel ; en attendant : bolides, kombat, tirsaubut, toupies n'écrivent pas le titre
 (leur aperçu le porte) ; **briques** est en `menu: false` (DUEL_SANS_MENU de shell2.js : aperçu presque vide) jusqu'à ses images. Planches : dossier des captures du chef, 146b-planche-duels-*.jpg.
+
+## Ajout 28 : les projets « Crée avec Pooky » qui ne sont PAS des jeux (borne 2.0.170, 6 nov. 2026)
+Un projet de l'Atelier a un type (`at_fiches.type`). Seuls les projets `jeu` suivent ce contrat (module de jeu, api.*, écran-titre, boutique…).
+Un projet `images` n'a ni module, ni version de jeu, ni publication sur la borne : il vit dans l'atelier d'images (`source/atelier-images.js`,
+serveur `source/atelier-images.sql`). Ce qu'il produit (des images, en versions) reste privé au joueur ; « Mettre dans un de mes jeux » viendra
+plus tard (bientôt). Rien à faire côté jeux.
+
