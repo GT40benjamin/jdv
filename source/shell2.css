@@ -5766,3 +5766,6 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 @media (orientation:portrait){.atl-wiz.atl-espace.esp-menu{--esp-fond:var(--esp-fond-p)}}
 @media (min-width:1000px){.atl-esres{grid-template-columns:repeat(3,minmax(0,1fr))!important}.atl-esjaq{width:300px}.atl-eshero{gap:26px;padding:20px}}
 .atl-esres .atl-escard h4{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(16px,1.3vw,19px)}
+/* 2.0.166 (l'admin) : un article sans description le dit, en italique gris */
+.atl-esbph.vide{font-style:italic;color:#9a8fb0}
+.atl-esbout > .atl-esnote{justify-self:start;margin:0;padding:8px 14px;border-radius:14px;background:rgba(255,255,255,.88);color:var(--esp-ink);font:700 13px/1.4 var(--body)}

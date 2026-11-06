@@ -11054,17 +11054,20 @@ function atlEspBoutFamille(x) {
   const m = String(x.cle || '').toLowerCase().split(/[_-]/)[0];
   if (/^(tenue|costume|habit|skin|chapeau|look)/.test(m)) return [1, '👕 Tenues'];
   if (/^(deco|decor|meuble|maison)/.test(m)) return [2, '🏡 Décor'];
-  return [3, '🎁 Objets'];
+  if (/^(niveau|monde|chapitre)/.test(m)) return [3, '🗺️ Niveaux en plus'];
+  return [4, '🎁 Objets'];
 }
 async function atlEspBoutique(box, f) {
   if (!box || !f || isGuest()) return;
   box.textContent = ''; box.appendChild(atlEl('p', 'atl-chv', 'Un instant…'));
-  let l = null; if (!atlAdminIci()) { try { l = await rpc('at_boutique_mes_ventes', { p_name: profile.name }, { quiet: true, quiet404: true }); } catch (e) { l = null; } }
+  // 2.0.163 : les articles de CE jeu, pour son créateur et pour l'admin, en essai ou publié (at_boutique_ventes_fiche, SQL v157)
+  let l = null; try { l = await rpc('at_boutique_ventes_fiche', { p_name: profile.name, p_fiche: f.id }, { quiet: true, quiet404: true }); } catch (e) { l = null; }
+  if (!Array.isArray(l) && !atlAdminIci()) { try { l = await rpc('at_boutique_mes_ventes', { p_name: profile.name }, { quiet: true, quiet404: true }); } catch (e) { l = null; } }
   if (!box.isConnected) return; box.textContent = '';
   const mine = Array.isArray(l) ? l.filter(x => x && x.fiche === f.id) : [];
   if (!mine.length) {
     const v = atlEl('div', 'atl-escard atl-esbvide');
-    v.append(atlEl('span', 'ic', '🛍️'), atlEl('p', '', atlAdminIci() ? 'La boutique de ce jeu se voit dans la borne.' : 'Ton jeu n’a pas encore de boutique. Demande ' + gA() + ' d’en avoir une : tes joueurs pourront acheter des tenues ou des objets, et chaque vente te revient en crédits !'));
+    v.append(atlEl('span', 'ic', '🛍️'), atlEl('p', '', atlAdminIci() ? 'Ce jeu n’a pas encore de boutique.' : 'Ton jeu n’a pas encore de boutique. Demande ' + gA() + ' d’en avoir une : tes joueurs pourront acheter des tenues ou des objets, et chaque vente te revient en crédits !'));
     box.appendChild(v); return;
   }
   const G = new Map(); for (const x of mine) { const [o, lab] = atlEspBoutFamille(x); if (!G.has(o)) G.set(o, { lab, l: [] }); G.get(o).l.push(x); }
@@ -11082,7 +11085,7 @@ function atlEspBoutCarte(x, f, box) {
   if (u) { im.src = u; im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; }
   const tx = atlEl('div', 'atl-esbtx'), hd = atlEl('div', 'atl-esbhd');
   hd.append(atlEl('b', '', x.nom || 'Article'), atlEl('span', 'atl-esbprix', (x.prix | 0) + ' 💎'));
-  tx.appendChild(hd); if (x.texte) tx.appendChild(atlEl('p', 'atl-esbph', String(x.texte)));
+  tx.appendChild(hd); tx.appendChild(x.texte && String(x.texte).trim() ? atlEl('p', 'atl-esbph', String(x.texte)) : atlEl('p', 'atl-esbph vide', 'Pas encore de description — ⋯ pour la demander ' + gA()));   // 2.0.166 (l'admin)
   const ch = atlEl('div', 'atl-esbchips'), nv = x.ventes | 0;
   ch.append(atlEl('span', 'atl-esbchip', '🧾 ' + nv + ' vente' + (nv > 1 ? 's' : '')), atlEl('span', 'atl-esbchip ok', '💰 ' + atlNb0(x.gagne) + ' 💎 pour toi'));
   if (x.conso) ch.appendChild(atlEl('span', 'atl-esbchip conso', '🔁 se rachète' + ((x.quantite | 0) > 1 ? ' · ×' + (x.quantite | 0) : '')));
@@ -11098,8 +11101,7 @@ function atlEspBoutMenu(btn, x, f, box) {
   const P = atlEl('div', 'atl-esbpop'); P.setAttribute('role', 'menu');
   let fin = null;
   const it = (t, fn) => { const b = atlEl('button', '', t); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.addEventListener('click', () => { fin(); fn(); }); P.appendChild(b); return b; };
-  it('💬 Demander une modification ' + gA(), () => {
-    const msg = 'Pour l’article « ' + (x.nom || '') + ' » (' + (x.prix | 0) + ' 💎), je voudrais : ';
+  const ecrire = msg => {
     atlEspFermer(); atlProjTab('demandes'); try { atlDiscOuvrir(true); } catch (e) {}
     let n = 0; const go = () => {
       const W = ATL.root && ATL.root.querySelector('.atl-wiz'), ta = W && W.querySelector('.atl-disc textarea');
@@ -11108,7 +11110,9 @@ function atlEspBoutMenu(btn, x, f, box) {
       try { ta.focus({ preventScroll: true }); ta.setSelectionRange(msg.length, msg.length); } catch (e) {}
     };
     setTimeout(go, 150);
-  });
+  };
+  if (!(x.texte && String(x.texte).trim())) it('✍️ Ajouter une description', () => ecrire('Pour l’article « ' + (x.nom || '') + ' », ajoute une description : '));
+  it('💬 Demander une modification ' + gA(), () => ecrire('Pour l’article « ' + (x.nom || '') + ' » (' + (x.prix | 0) + ' 💎), je voudrais : '));
   it('🗑️ Retirer cet article de la vente', async () => {
     const ok = await atlConfirmer('Retirer « ' + (x.nom || 'cet article') + ' » ?', 'Il ne sera plus en vente dans ton jeu. Les joueurs qui l’ont acheté le gardent.', '🗑️ Oui, le retirer');
     if (!ok) return;
