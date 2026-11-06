@@ -16867,19 +16867,21 @@ function atlEspace(W, box, f, g, pane) {
   const aide = () => { const b = atlEl('button', 'atl-esaide', '?'); b.type = 'button'; b.title = 'Comment ça marche ?'; b.setAttribute('aria-label', 'Comment ça marche ?'); b.addEventListener('click', atlEspAide); return b; };
   const nArt = () => { try { return (BOUT && BOUT.r && Array.isArray(BOUT.r.articles) && BOUT.r.articles.length) || (W._nArt | 0); } catch (e) { return W._nArt | 0; } };
   const SECT = [['jeu', '🎮', 'Mon jeu'], ['demandes', '💬', gNM()], ['route', '🗺️', 'Feuille de route'], ['elements', '🧩', 'Éléments'], ['boutique', '🛍️', 'Boutique'], ['stats', '📊', 'Stats'], ['versions', '🗂️', 'Versions'], ['params', '⚙️', 'Paramètres']];
+  const ADM = atlAdminIci() && !!ATL.adminVoir;   // 2.0.163 (l'admin) : tout ce qui est admin dans un onglet rouge, seulement sur le jeu d'un autre
+  if (ADM) SECT.push(['admin', '🛡️', 'Admin']);
   const bouton = (k, ic, lab, cls) => { const b = atlEl('button', cls); b.type = 'button'; b.dataset.k = k; const i = atlEl('span', 'ic', ic); b.append(i, atlEl('span', 'lab', lab));
     b.addEventListener('click', () => { if (b.classList.contains('gris')) { atlEspBulle(b, 'Demande ' + gA() + ' d’en avoir une ! 100 crédits offerts'); return; } if (k === 'demandes') conv(); else { atlEspFermer(); atlProjTab(k); } }); return b; };
   // PC : colonne de gauche
   const N = atlEl('nav', 'atl-esnav'); N.setAttribute('aria-label', 'Menu de ton jeu');
   const pk1 = pk(); N.appendChild(pk1);
-  for (const [k, ic, lab] of SECT) N.appendChild(bouton(k, ic, lab, 'atl-esb'));
+  for (const [k, ic, lab] of SECT) N.appendChild(bouton(k, ic, lab, 'atl-esb' + (k === 'admin' ? ' rouge' : '')));
   const ret = atlEl('button', 'atl-esb atl-esret', '← Mes projets'); ret.type = 'button'; ret.addEventListener('click', () => { atlEspFermer(); try { atlListe(); } catch (e) {} });
   N.append(atlEl('div', 'atl-essp'), ret, aide()); W.prepend(N);
   // téléphone : la mascotte + « ? » en haut, la barre d'onglets en bas
   const top = atlEl('div', 'atl-estop'), pk2 = pk('mini'); top.append(pk2, aide()); W.prepend(top);
   { for (const o of R0.querySelectorAll('.atl-esflot, .atl-estabs')) o.remove();
     const T = atlEl('nav', 'atl-estabs'); T.setAttribute('aria-label', 'Menu de ton jeu');
-    for (const [k, ic, lab] of SECT.filter(x => x[0] !== 'versions')) T.appendChild(bouton(k, ic, k === 'route' ? 'Feuille' : k === 'params' ? 'Réglages' : lab, 'atl-est'));
+    for (const [k, ic, lab] of SECT.filter(x => x[0] !== 'versions')) T.appendChild(bouton(k, ic, k === 'route' ? 'Feuille' : k === 'params' ? 'Réglages' : lab, 'atl-est' + (k === 'admin' ? ' rouge' : '')));
     R0.appendChild(T); }
   W._pk = [pk1, pk2];
   // 🗺️ la feuille de route, en entier
@@ -16908,6 +16910,11 @@ function atlEspace(W, box, f, g, pane) {
     const vb = atlEl('button', 'btn btn-ghost', '🖼️ Modifier l’image de ta tuile'); vb.type = 'button'; vb.addEventListener('click', () => { try { atlVignetteDem(f, atlVignetteUrl(f) || ''); } catch (e) {} });
     const c = atlEl('div', 'atl-escard atl-esparams'); c.append(vb, atlOrientChoix(f, g), atlCreateurChamp(f)); p.appendChild(c);
     const pv = atlEl('div', 'atl-pubv atl-escard'); p.appendChild(pv); try { atlPubV(pv, f); } catch (e) {} }
+  if (ADM) { const p = pane('admin'), av = (ATL.data && ATL.data.admin_voir) || {}, jn = dispName(av.joueur || f.name || '') || 'ce joueur';
+    const E = atlEl('section', 'atl-esadm'); E.append(atlEl('h3', '', '🛡️ Réservé admin'), atlEl('p', 'atl-esadmp', 'Ce n’est pas ton jeu : c’est celui de ' + jn + '. Tout ce qui est ici agit sur son projet.'));
+    const zb = atlEl('div', 'atl-esadmb'); E.appendChild(zb);
+    const zp = atlEl('div', 'atl-esadmpub'); zp.appendChild(atlEl('h4', '', '🌍 Publication et onglet')); try { zp.appendChild(atlPubAdmin(f)); } catch (e) {} E.appendChild(zp);
+    p.appendChild(E); W._admZone = zb; setTimeout(() => { try { atlAdminBandeau(); } catch (e) {} }, 0); }
   // 🎮 « Mon jeu » : la grande carte du jeu (jaquette, titre, état, ▶ JOUER) + 3 cartes (stats, boutique, conversation)
   { const jp = W.querySelector('.atl-pane[data-k="jeu"]'); if (jp) {
     const H = atlEl('section', 'atl-eshero'), jq = atlJaquette(f, g, 'atl-esjaq'), tx = atlEl('div', 'atl-eshtx'), ch = atlEl('div', 'atl-eschips');
@@ -19388,13 +19395,15 @@ function atlAdminBandeau() {
   const R = ATL.root; if (!R) return;
   let b = R.querySelector('.atl-adminb'); const m = ATL.adminVoir, av = ATL.data && ATL.data.admin_voir;
   if (!m || !ATL.cur || ATL.cur !== m.id) { if (b) b.remove(); return; }
-  if (!b) { b = atlEl('div', 'atl-adminb'); const bar = R.querySelector('.atl-bar'); if (bar) bar.prepend(b); else R.prepend(b); }   // dans la barre du haut (la page est une grille sur PC)
+  const zEsp = R.querySelector('.atl-wiz.atl-espace') && R.querySelector('.atl-wiz.atl-espace')._admZone;   // 2.0.163 : dans l'onglet 🛡️ Admin de l'espace
+  if (b && zEsp && b.parentNode !== zEsp) { zEsp.appendChild(b); b.dataset.sig = ''; }
+  if (!b) { b = atlEl('div', 'atl-adminb'); if (zEsp) zEsp.appendChild(b); else { const bar = R.querySelector('.atl-bar'); if (bar) bar.prepend(b); else R.prepend(b); } }   // dans la barre du haut (la page est une grille sur PC)
   { const cp = R.querySelector('.atl-cred'), cr = atlCred(); if (cp && cr) cp.textContent = atlCredTxt(cr.solde); }   // le solde du joueur, à chaque rendu
   const rp = atlRentDe(m.id);   // 2.0.119 : la rentabilité du projet (admin), chargée à part
   if (!ATL_RENT.d || Date.now() - ATL_RENT.at > 30000) atlRent().then(d => { if (d && ATL.adminVoir === m) atlAdminBandeau(); });
   const sig = (av ? av.joueur + av.solde : '') + (ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet.length : 0) + '|' + ((atlFiche() || {}).assets_archive || []).length + (rp ? '|' + rp.credits + ':' + rp.cout_cents + ':' + ATL_RENT.at : '');
   if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
-  const pt = atlPetit();   // 2.0.108 : téléphone = un bandeau court (titres courts, une ou deux lignes), la page reste visible
+  const pt = atlPetit() && !b.closest('.atl-esadm');   // 2.0.108 : téléphone = un bandeau court ; 2.0.163 : dans l'onglet Admin, tout en grand
   b.classList.toggle('pt', pt);
   b.appendChild(atlEl('b', '', (pt ? '🛡️ Admin · ' : '🛡️ Mode admin : projet de ') + (av ? dispName(av.joueur) + ' · ' + (av.solde | 0) + ' 💎' : '…')));
   const bt = (t, fn, c) => { const x = atlEl('button', 'btn btn-ghost btn-sm', pt && c ? c : t); x.type = 'button'; x.title = t.replace(/^\S+\s/, ''); x.addEventListener('click', fn); b.appendChild(x); };

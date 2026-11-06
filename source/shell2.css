@@ -5248,7 +5248,7 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 .atl-wiz.atl-espace{--esp-acc:#ff7ac8;--esp-ink:#2a1e45;--esp-soft:#6b5c86;--esp-card:rgba(255,255,255,.66);--esp-line:rgba(255,255,255,.8);position:relative;isolation:isolate;display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start;padding:18px;border-radius:24px;color:var(--esp-ink);
   background:radial-gradient(120% 80% at 50% 0%,rgba(255,255,255,.62),rgba(255,240,250,.42) 50%,rgba(255,225,245,.3)),var(--esp-fond,linear-gradient(135deg,#ffd6ee,#d9ccff)) center/cover no-repeat,#fbeaf6}
 .atl-espace > .atl-pbox{grid-column:2;min-width:0}
-.atl-espace .atl-ptabs,.atl-espace .atl-phd:not(:has(.atl-phadm)),.atl-espace .atl-travail,.atl-espace .atl-gframe,.atl-espace .atl-gbar,.atl-espace .atl-gaide{display:none!important}
+.atl-espace .atl-ptabs,.atl-espace .atl-phd,.atl-espace .atl-travail,.atl-espace .atl-gframe,.atl-espace .atl-gbar,.atl-espace .atl-gaide{display:none!important}
 .atl-espace .atl-pane{background:none;padding:0;color:var(--esp-ink)}
 .atl-espace .atl-ph3{margin:2px 0 12px;font:400 24px var(--display,inherit);letter-spacing:.3px;color:#4a2370;-webkit-text-stroke:0;text-shadow:none}
 .atl-esnav{grid-column:1;position:sticky;top:8px;display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:24px;background:rgba(255,255,255,.55);border:1.5px solid var(--esp-line);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 40px rgba(120,60,140,.15);min-height:calc(100vh - 200px)}
@@ -5718,3 +5718,29 @@ body.atl-on #jdw-lib{content-visibility:hidden}
   .atl-wiz.atl-espace:has(.atl-pane[data-k="demandes"]:not([hidden]) .atl-chat),.atl-wiz.atl-nuages:has(.atl-chat){isolation:auto}
   .atl-wiz.atl-espace .atl-pane[data-k="demandes"]:not([hidden]) .atl-disc.atl-chat,.atl-wiz.atl-nuages .atl-disc.atl-chat{z-index:90}}
 .atl-chat .atl-mremp{opacity:.85}.atl-chat .atl-mremp .atl-b{background:#f4f1f8!important;color:#5b5568!important}.atl-chat .atl-remp,.atl-chat [class*="atl-remp"]{color:#5b5568}
+/* 2.0.163 (l'admin : « un encart réservé admin, un réglage en rouge, pour comprendre qu'on n'est pas chez nous ») */
+#jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-bar > .atl-adminb{display:none}
+.atl-esb.rouge{color:#b3261e;background:#fdecea;border:1.5px solid #f2b8b5}.atl-esb.rouge .ic{background:#fff}.atl-esb.rouge.on{background:#b3261e;color:#fff}
+.atl-est.rouge{color:#b3261e;background:#fdecea}.atl-est.rouge.on{background:#b3261e;color:#fff}
+.atl-esadm{display:grid;gap:14px;max-width:760px;padding:16px;border-radius:22px;background:#fdecea;border:2px solid #d93025;color:#3b0f0c}
+.atl-esadm h3{margin:0;font:400 24px var(--display,inherit);color:#b3261e;letter-spacing:.3px}
+.atl-esadmp{margin:0;font:700 15px/1.45 var(--body);color:#5c1a14}
+.atl-esadm h4{margin:0 0 8px;font:800 16px var(--body);color:#b3261e}
+.atl-esadm .atl-adminb{position:static;display:grid;grid-template-columns:1fr;gap:10px;padding:0;background:none;border:0;box-shadow:none;color:#3b0f0c}
+.atl-esadm .atl-adminb > b{margin:0;padding:12px 14px;border-radius:14px;background:#fff;font:800 16px var(--body);color:#3b0f0c}
+.atl-esadm .atl-adminb .btn{min-height:48px;justify-content:flex-start;padding:10px 14px;border-radius:14px;background:#fff;color:#3b0f0c;border:1.5px solid #f2b8b5;font:800 15px var(--body);text-transform:none;letter-spacing:0}
+.atl-esadm .atl-adminb .btn:hover,.atl-esadm .atl-adminb .btn:focus-visible{background:#fff5f4;border-color:#d93025;outline:none}
+.atl-esadm .atl-rentb{display:grid;gap:4px;padding:12px 14px;border-radius:14px;background:#fff;border:1.5px dashed #f2b8b5}
+.atl-esadm .atl-rentb small{color:#5c1a14;font:600 13.5px/1.4 var(--body)}
+.atl-esadmpub{padding:14px;border-radius:14px;background:#fff;border:1.5px solid #f2b8b5}
+.atl-esadm .atl-pubadm,.atl-esadm .atl-pubadm *{color:#3b0f0c}
+.atl-esadm .atl-padl{display:grid;gap:8px;margin-bottom:10px}
+.atl-esadm .atl-publab{font:800 14px var(--body);color:#5c1a14}
+.atl-esadm .atl-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.atl-esadm .atl-segb{min-height:46px;border-radius:12px;border:1.5px solid #e0c3c0;background:#fff;color:#3b0f0c;font:800 14px var(--body)}
+.atl-esadm .atl-segb.on{background:#b3261e;border-color:#b3261e;color:#fff}
+.atl-esadm .atl-rentb small:first-child{color:#16754a}
+/* 2.0.163 : les lignes d'état d'une demande (« 🛠️ … », « 🔗 Regroupée… ») lisibles dans le chat clair */
+.atl-chat .atl-fet{align-self:center;max-width:92%;margin:8px auto;padding:6px 12px;border-radius:12px;border:0;background:#fff3e3;color:#7a4300;font:700 13px/1.4 var(--body);text-align:center}
+.atl-chat .atl-fet *{color:inherit}
+.atl-chat .atl-fet.atl-rgp{background:#ece8f3;color:#4f4863}
