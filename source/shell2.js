@@ -16241,8 +16241,10 @@ function atlRenderAvantV1(W, f) {
   const R = ATL.root, lance = ATL_AFTER.has(String(f.etat || ''));
   R.querySelector('.atl-hs').textContent = lance ? (gNM() + ' construit ta V1') : 'Ton projet est prêt à lancer';
   if (W.dataset.av1 === f.id && W.querySelector('.atl-av1')) { atlDiscMaj(W, f); return; }
-  atlFrameStop(); ATL.pSig = ''; W.textContent = ''; W.dataset.av1 = f.id; ATL.discFerme = '';
+  atlFrameStop(); ATL.pSig = ''; W.textContent = ''; W.dataset.av1 = f.id; ATL.discFerme = ''; W.classList.remove('atl-espace');
+  if (ATL_ESPACE_ON) try { W.classList.add('atl-nuages'); atlEspCiel(W, false); } catch (e) {}   // 2.0.152 (l'admin) : pendant la création, la conversation flotte dans les nuages
   const box = atlEl('div', 'atl-pbox atl-av1'), d = atlDiscBloc(f); d.classList.add('plein'); box.appendChild(d); W.appendChild(box);
+  if (ATL_ESPACE_ON) for (const cote of ['haut', 'bas']) { const b = atlEl('div', 'atl-nbord ' + cote); b.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 4; i++) { const n = atlEl('div', 'atl-nuage'); n.style.setProperty('--ph', (i * 1.3).toFixed(1) + 's'); n.innerHTML = atlEspNuageSvg(cote === 'haut' ? 20 + i : 40 + i); b.appendChild(n); } box.appendChild(b); }   // 2.0.152 : des nuages devant les bords de la conversation
   atlDiscMaj(W, f, true);
   setTimeout(() => { const lg = W.querySelector('.atl-disclog'); if (lg) lg.scrollTop = lg.scrollHeight; }, 0);
 }
@@ -16597,6 +16599,7 @@ function atlAllerNonLu() {
   // sinon la DERNIÈRE réponse de {g} (jamais une bulle remplacée, une question déjà répondue d'un vieux ticket, ni une bulle du joueur),
   // choisie seulement quand la discussion a fini de se remplir (même nombre de bulles deux fois de suite, 5 s au plus)
   const W = ATL.root && ATL.root.querySelector('.atl-wiz'), f = atlFiche(); if (!W || !f || !ATL.open) return;
+  if (Date.now() - (ATL.revele || 0) < 8000) return;   // 2.0.152 : le moment de la V1 montre « Mon jeu », pas la discussion
   atlDiscOuvrir(true, true);
   const cur = ATL.cur; let n0 = -1, essais = 0;
   const viser = () => {
@@ -16727,56 +16730,132 @@ function atlVerMaj(W, f) {
 // Menu latéral (PC) / menu flottant au pouce (téléphone) : 🏠 Mon jeu · 💬 Discussion · 🧩 Éléments · 🛍️ Boutique · 🗂️ Versions · 📊 Statistiques
 // · ⚙️ Paramètres ; la mascotte en haut à gauche ; le FOND de l'espace généré pour le projet (at_espace_fond, SQL v148) ; des cartes de résumé
 // et des statistiques RÉELLES (at_stats_lire) — jamais de faux chiffres : zéro = zéro, avec un mot gentil.
-const ATL_ESPACE_ON = false;   // 2.0.142 : l'espace du jeu sort en 2.0.143 (refait comme la maquette validée)
+const ATL_ESPACE_ON = !!(navigator.webdriver && window.JDW_ESPACE_ESSAI);   // 2.0.152 : en essai sur les bancs, sort pour tous après l'OK du chef   // 2.0.142 : l'espace du jeu sort en 2.0.143 (refait comme la maquette validée)
 const ATL_ESP = [['jeu', '🏠', 'Mon jeu'], ['demandes', '💬', 'Discussion'], ['elements', '🧩', 'Éléments'], ['boutique', '🛍️', 'Boutique'], ['versions', '🗂️', 'Versions'], ['stats', '📊', 'Statistiques'], ['params', '⚙️', 'Paramètres']];
 const ATL_ESP_EL = [['🦸', 'Personnages'], ['🎁', 'Objets'], ['🏞️', 'Décor'], ['🔊', 'Sons'], ['🎵', 'Musiques']];
 const atlNb0 = n => atlNb(Math.round(+n || 0));
-const atlDuree = s => { s = Math.max(0, Math.round(+s || 0)); if (s < 60) return s + ' s'; const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); return h + ' h ' + String(m % 60).padStart(2, '0'); };
-function atlEspace(W, box, f, g, pane) {
-  W.classList.add('atl-espace'); W.style.setProperty('--esp-acc', (g && g.accent) || '#9b7bff');
-  // la mascotte + le menu (PC : colonne de gauche ; téléphone : bouton flottant qui ouvre la même liste par en bas)
-  const mkNav = (sheet) => {
-    const N = atlEl('nav', 'atl-esnav' + (sheet ? ' sheet' : '')); N.setAttribute('aria-label', 'Menu de ton jeu');
-    const pk = atlEl('div', 'atl-espk'), pt = atlEl('div');
-    const go = atlEl('button', 'btn btn-play btn-sm', '💬 Discuter'); go.type = 'button'; go.addEventListener('click', () => { atlEspFermer(); atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} });
-    pt.append(atlEl('b', '', gN()), atlEl('small', '', 'Je suis là ! Une idée pour ton jeu ?'), go); pk.append(atlEspAv(), pt); N.appendChild(pk);
-    for (const [k, ic, lab] of ATL_ESP) {
-      if (k === 'demandes' && atlAdminIci()) { /* l'admin a la même discussion */ }
-      const b = atlEl('button', 'atl-esb', ic + ' ' + (k === 'demandes' ? 'Discussion avec ' + gN() : lab)); b.type = 'button'; b.dataset.k = k;
-      b.addEventListener('click', () => { atlEspFermer(); atlProjTab(k); if (k === 'demandes') try { atlDiscOuvrir(true, true); } catch (e) {} });
-      N.appendChild(b);
-      if (k === 'elements' && !sheet) { const s = atlEl('div', 'atl-essub'); for (const [i2, l2] of ATL_ESP_EL) { const c = atlEl('button', 'atl-esb2', i2 + ' ' + l2); c.type = 'button'; c.addEventListener('click', () => atlEspElCat(W, l2)); s.appendChild(c); } N.appendChild(s); }
-    }
-    const ret = atlEl('button', 'atl-esb atl-esret', '← Mes projets'); ret.type = 'button'; ret.addEventListener('click', () => { atlEspFermer(); try { atlListe(); } catch (e) {} }); N.appendChild(ret);
-    return N;
-  };
-  W.prepend(mkNav(false));
-  const fab = atlEl('button', 'atl-esfab', '☰ Menu'); fab.type = 'button';
-  const bul = atlEl('button', 'atl-esbul'); bul.type = 'button'; bul.setAttribute('aria-label', 'Discuter avec ' + gN()); bul.appendChild(atlEspAv());
-  bul.addEventListener('click', () => { atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} });
-  const scrim = atlEl('div', 'atl-esscrim'), sh = mkNav(true); scrim.hidden = sh.hidden = true;
-  const fer = atlEl('button', 'btn btn-ghost atl-esfer', '✕ Fermer le menu'); fer.type = 'button'; fer.addEventListener('click', atlEspFermer); sh.appendChild(fer);
-  fab.addEventListener('click', () => { scrim.hidden = sh.hidden = false; setTimeout(() => { try { const x = sh.querySelector('.atl-esb.on') || sh.querySelector('.atl-esb'); x.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40); });
-  scrim.addEventListener('click', atlEspFermer);
-  { const R0 = ATL.root; for (const o of R0.querySelectorAll('.atl-esflot')) o.remove(); const fl = atlEl('div', 'atl-esflot'); fl.style.setProperty('--esp-acc', (g && g.accent) || '#9b7bff'); fl.append(fab, bul, scrim, sh); R0.appendChild(fl); }   // à la racine : au-dessus de tout, collés à l'écran
-  // les nouvelles sections
-  { const p = pane('boutique'); p.appendChild(atlEl('h3', 'atl-ph3', '🛍️ La boutique de ton jeu')); const st = atlEl('div', 'atl-escards'); st.dataset.esp = 'boutique'; p.appendChild(st); atlMaBoutique(p, f); }
-  { const p = pane('versions'); p.appendChild(atlEl('h3', 'atl-ph3', '🗂️ Les versions de ton jeu'));
-    const vs = (Array.isArray(f.versions) ? f.versions.slice() : []).filter(v => v && (v.v | 0)).sort((a, b) => (b.v | 0) - (a.v | 0));
-    if (!vs.length) p.appendChild(atlEl('p', 'atl-chv', 'Ta première version arrive : elle s’affichera ici.'));
-    for (const v of vs) { const d0 = new Date(v.at), r = atlEl('div', 'atl-vh atl-escard');
-      r.append(atlEl('b', '', 'V' + v.v + ((v.v | 0) === (f.version_publiee | 0) ? ' · 🌍 en ligne' : '') + (isNaN(d0) ? '' : ' · ' + d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }))), atlEl('p', '', v.note || ''));
-      if (Array.isArray(v.demandes) && v.demandes.length) { const ul = atlEl('ul'); for (const t of v.demandes.slice(0, 8)) ul.appendChild(atlEl('li', '', String(t))); r.appendChild(ul); }
-      p.appendChild(r); } }
-  { const p = pane('stats'); p.appendChild(atlEl('h3', 'atl-ph3', '📊 Les statistiques de ton jeu')); const s = atlEl('div', 'atl-esstats'); s.dataset.esp = 'stats'; s.appendChild(atlEl('p', 'atl-chv', 'Un instant…')); p.appendChild(s); }
-  { const p = pane('params'); p.appendChild(atlEl('h3', 'atl-ph3', '⚙️ Paramètres'));
-    const vb = atlEl('button', 'btn btn-ghost', '🖼️ Modifier l’image de ta tuile'); vb.type = 'button'; vb.addEventListener('click', () => { try { atlVignetteDem(f, W.querySelector('.atl-gtuile .tile') || null); } catch (e) {} });
-    const c = atlEl('div', 'atl-escard atl-esparams'); c.append(vb, atlOrientChoix(f, g), atlCreateurChamp(f)); p.appendChild(c);
-    const pv = atlEl('div', 'atl-pubv atl-escard'); p.appendChild(pv); try { atlPubV(pv, f); } catch (e) {} }
-  // « Mon jeu » : les cartes de résumé (vraies données), sous le jeu
-  { const jp = W.querySelector('.atl-pane[data-k="jeu"]'); if (jp) { const c = atlEl('div', 'atl-escards'); c.dataset.esp = 'resume'; jp.appendChild(c); atlEspResume(c, f, null); } }
-  atlEspFond(W, f); atlEspStats(W, f);
-}
+const atlDuree = s => { s = Math.max(0, Math.round(+s || 0)); if (s < 60) return s + ' s'; if (s < 3600) return Math.floor(s / 60) + ' min' + (s % 60 ? ' ' + (s % 60) + ' s' : ''); const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); return h + ' h ' + String(m % 60).padStart(2, '0'); };
+function atlEspace(W, box, f, g, pane) {
+  // 2.0.152 (maquette validée par le chef, remarques de l'admin) : fond lumineux du jeu, cartes claires translucides ; mascotte en haut à
+  // gauche = la conversation (pas de bouton « Discuter ») ; pas de barre d'étapes ; feuille de route lisible en entier (section du menu) ;
+  // « ? » pour les explications ; Boutique grisée sans article ; téléphone : barre d'onglets en bas (Paramètres compris)
+  W.classList.add('atl-espace'); W.style.setProperty('--esp-acc', (g && g.accent) || '#ff7ac8');
+  const R0 = ATL.root;
+  const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, vN = (f.version | 0) || 1;
+  const conv = () => { atlEspFermer(); atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} };
+  const pk = (cls) => { const b = atlEl('button', 'atl-espk ' + (cls || '')); b.type = 'button'; b.title = 'Parler ' + gA(); b.setAttribute('aria-label', 'Ouvrir la conversation avec ' + gN());
+    const t = atlEl('span'), st = atlEl('small', 'atl-espst', ''); t.append(atlEl('b', '', gNM()), st); b.append(atlEspAv(), t); b.addEventListener('click', conv);
+    const maj = () => { const tx = atlHsTxt(f).replace(/^🛠️\s*/, ''); st.textContent = /travaille/.test(tx) ? 'prépare ta V' + (vN + 1) + '…' : 'Je suis là ! Une idée ?'; st.classList.toggle('vif', /travaille/.test(tx)); };
+    maj(); b._maj = maj; return b; };
+  const aide = () => { const b = atlEl('button', 'atl-esaide', '?'); b.type = 'button'; b.title = 'Comment ça marche ?'; b.setAttribute('aria-label', 'Comment ça marche ?'); b.addEventListener('click', atlEspAide); return b; };
+  const nArt = () => { try { return (BOUT && BOUT.r && Array.isArray(BOUT.r.articles) && BOUT.r.articles.length) || (W._nArt | 0); } catch (e) { return W._nArt | 0; } };
+  const SECT = [['jeu', '🎮', 'Mon jeu'], ['demandes', '💬', gNM()], ['route', '🗺️', 'Feuille de route'], ['elements', '🧩', 'Éléments'], ['boutique', '🛍️', 'Boutique'], ['stats', '📊', 'Stats'], ['versions', '🗂️', 'Versions'], ['params', '⚙️', 'Paramètres']];
+  const bouton = (k, ic, lab, cls) => { const b = atlEl('button', cls); b.type = 'button'; b.dataset.k = k; const i = atlEl('span', 'ic', ic); b.append(i, atlEl('span', 'lab', lab));
+    b.addEventListener('click', () => { if (b.classList.contains('gris')) { atlEspBulle(b, 'Demande ' + gA() + ' d’en avoir une ! 100 crédits offerts'); return; } if (k === 'demandes') conv(); else { atlEspFermer(); atlProjTab(k); } }); return b; };
+  // PC : colonne de gauche
+  const N = atlEl('nav', 'atl-esnav'); N.setAttribute('aria-label', 'Menu de ton jeu');
+  const pk1 = pk(); N.appendChild(pk1);
+  for (const [k, ic, lab] of SECT) N.appendChild(bouton(k, ic, lab, 'atl-esb'));
+  const ret = atlEl('button', 'atl-esb atl-esret', '← Mes projets'); ret.type = 'button'; ret.addEventListener('click', () => { atlEspFermer(); try { atlListe(); } catch (e) {} });
+  N.append(atlEl('div', 'atl-essp'), ret, aide()); W.prepend(N);
+  // téléphone : la mascotte + « ? » en haut, la barre d'onglets en bas
+  const top = atlEl('div', 'atl-estop'), pk2 = pk('mini'); top.append(pk2, aide()); W.prepend(top);
+  { for (const o of R0.querySelectorAll('.atl-esflot, .atl-estabs')) o.remove();
+    const T = atlEl('nav', 'atl-estabs'); T.setAttribute('aria-label', 'Menu de ton jeu');
+    for (const [k, ic, lab] of SECT.filter(x => x[0] !== 'versions')) T.appendChild(bouton(k, ic, k === 'route' ? 'Feuille' : k === 'params' ? 'Réglages' : lab, 'atl-est'));
+    R0.appendChild(T); }
+  W._pk = [pk1, pk2];
+  // 🗺️ la feuille de route, en entier
+  { const p = pane('route'); p.appendChild(atlEl('h3', 'atl-ph3', '🗺️ La feuille de route de ton jeu'));
+    const c = atlEl('section', 'atl-escard atl-esroute'), dl = atlEl('dl');
+    const L = [['idee', '💡 L’idée'], ['but', '🎯 Le but'], ['heros', '🦸 Les héros'], ['monde', '🏞️ Le monde'], ['commandes', '🕹️ Les commandes'], ['score', '🏆 Le score'], ['style', '🎨 Le style'], ['personnages', '🧑‍🤝‍🧑 Personnages'], ['objets', '🎁 Objets'], ['decor', '🏡 Décor'], ['sons', '🔊 Sons et musique']];
+    let n = 0; for (const [k, lab] of L) { const v = fi[k]; const t = Array.isArray(v) ? v.filter(Boolean).map(x => typeof x === 'object' ? (x.nom || x.texte || '') : String(x)).filter(Boolean).join(' · ') : typeof v === 'string' ? v : ''; if (!t.trim()) continue; dl.append(atlEl('dt', '', lab), atlEl('dd', '', t.trim())); n++; }
+    if (!n) c.appendChild(atlEl('p', 'atl-chv', 'La feuille de route se remplit avec ' + gN() + ' au fil de vos discussions.')); else c.appendChild(dl);
+    c.appendChild(atlEl('p', 'atl-esnote', 'Une envie de changer quelque chose ? Dis-le ' + gA() + ' : il met la feuille de route à jour.')); p.appendChild(c); }
+  // 🛍️, 🗂️, 📊, ⚙️ : les sections
+  { const p = pane('boutique'); p.appendChild(atlEl('h3', 'atl-ph3', '🛍️ La boutique de ton jeu')); const st = atlEl('div', 'atl-escards atl-esnums'); st.dataset.esp = 'boutique'; p.appendChild(st); const c = atlEl('div', 'atl-escard'); p.appendChild(c); atlMaBoutique(c, f); }
+  { const p = pane('versions'); p.appendChild(atlEl('h3', 'atl-ph3', '🗂️ Les versions de ton jeu'));
+    const vs = (Array.isArray(f.versions) ? f.versions.slice() : []).filter(v => v && (v.v | 0)).sort((a, b) => (b.v | 0) - (a.v | 0));
+    if (!vs.length) p.appendChild(atlEl('p', 'atl-chv', 'Ta première version arrive : elle s’affichera ici.'));
+    for (const v of vs) { const d0 = new Date(v.at), r = atlEl('div', 'atl-vh atl-escard');
+      r.append(atlEl('b', '', 'V' + v.v + ((v.v | 0) === (f.version_publiee | 0) ? ' · 🌍 en ligne' : '') + (isNaN(d0) ? '' : ' · ' + d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }))), atlEl('p', '', v.note || ''));
+      if (Array.isArray(v.demandes) && v.demandes.length) { const ul = atlEl('ul'); for (const t of v.demandes.slice(0, 8)) ul.appendChild(atlEl('li', '', String(t))); r.appendChild(ul); }
+      p.appendChild(r); } }
+  { const p = pane('stats'); p.appendChild(atlEl('h3', 'atl-ph3', '📊 Les statistiques de ton jeu')); const s = atlEl('div', 'atl-esstats atl-escard'); s.dataset.esp = 'stats'; s.appendChild(atlEl('p', 'atl-chv', 'Un instant…')); p.appendChild(s); }
+  { const p = pane('params'); p.appendChild(atlEl('h3', 'atl-ph3', '⚙️ Paramètres'));
+    const vb = atlEl('button', 'btn btn-ghost', '🖼️ Modifier l’image de ta tuile'); vb.type = 'button'; vb.addEventListener('click', () => { try { atlVignetteDem(f, atlVignetteUrl(f) || ''); } catch (e) {} });
+    const c = atlEl('div', 'atl-escard atl-esparams'); c.append(vb, atlOrientChoix(f, g), atlCreateurChamp(f)); p.appendChild(c);
+    const pv = atlEl('div', 'atl-pubv atl-escard'); p.appendChild(pv); try { atlPubV(pv, f); } catch (e) {} }
+  // 🎮 « Mon jeu » : la grande carte du jeu (jaquette, titre, état, ▶ JOUER) + 3 cartes (stats, boutique, conversation)
+  { const jp = W.querySelector('.atl-pane[data-k="jeu"]'); if (jp) {
+    const H = atlEl('section', 'atl-eshero'), jq = atlJaquette(f, g, 'atl-esjaq'), tx = atlEl('div', 'atl-eshtx'), ch = atlEl('div', 'atl-eschips');
+    const et = String(f.etat || ''); ch.append(atlEl('span', 'atl-eschip ' + (et === 'publie_monde' ? 'ok' : ''), et === 'publie_monde' ? '🌍 En ligne pour tous' : et === 'publie_salle' ? '🏠 Dans ta salle' : '🧪 En essai'), atlEl('span', 'atl-eschip', 'V' + vN));
+    const cre = atlCreateurDe(f); if (cre) ch.appendChild(atlEl('span', 'atl-eschip', 'par ' + cre));
+    tx.append(atlEl('h1', '', f.titre || (g && g.title) || 'Mon jeu'), ch);
+    const go = atlEl('button', 'atl-esjouer', '▶ JOUER'); go.type = 'button'; go.disabled = !g; go.addEventListener('click', () => atlJouerVrai(f));
+    if (jq.tagName === 'IMG') { jq.style.cursor = 'pointer'; jq.addEventListener('click', () => atlJouerVrai(f)); }
+    H.append(jq, tx, go); jp.prepend(H);
+    const c = atlEl('div', 'atl-escards atl-esres'); c.dataset.esp = 'resume'; H.after(c); atlEspResume(c, f, null); } }
+  atlEspFond(W, f); atlEspStats(W, f);
+  // Boutique grisée tant qu'il n'y a aucun article (la sonde de la boutique est lue avec les statistiques)
+  setTimeout(() => atlEspGris(W), 0);
+  // les nuages s'écartent une seule fois, la 1re fois qu'on arrive dans l'espace de ce jeu
+  try { const k = 'jdw.atl.revele.' + f.id; if (!store.get(k, null)) { store.set(k, Date.now()); ATL.tab = 'jeu'; setTimeout(() => { try { atlProjTab('jeu'); } catch (e) {} }, 0); atlEspReveler(W, f); } } catch (e) {}
+}
+function atlEspGris(W) {
+  const n = W._nArt; if (n == null) return;
+  for (const b of document.querySelectorAll('#jdw-atelier .atl-esb[data-k="boutique"], #jdw-atelier .atl-est[data-k="boutique"]')) { b.classList.toggle('gris', !n); b.title = n ? '' : 'Demande ' + gA() + ' d’en avoir une ! 100 crédits offerts'; }
+}
+function atlEspBulle(b, t) {
+  const o = document.querySelector('.atl-esbulle'); if (o) o.remove();
+  const x = atlEl('div', 'atl-esbulle', t), r = b.getBoundingClientRect(); document.body.appendChild(x);
+  const w = x.offsetWidth, l = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)), t0 = r.top > 80 ? r.top - x.offsetHeight - 8 : r.bottom + 8;
+  x.style.left = l + 'px'; x.style.top = t0 + 'px'; setTimeout(() => x.remove(), 2600);
+}
+function atlEspAide() {
+  const M = ATL.root && ATL.root.querySelector('.atl-mod'); if (!M) return;
+  const c = atlEl('div', 'atl-mcard atl-esaidec'), x = atlEl('button', 'btn btn-ghost btn-sm', '✕'); x.type = 'button';
+  c.append(x, atlEl('h2', '', '❓ L’espace de ton jeu'));
+  for (const [t, d] of [['🎮 Mon jeu', 'Joue à ton jeu, comme les autres joueurs de la borne, et regarde comment il marche.'], ['💬 ' + gNM(), 'Touche ' + gN() + ' (en haut à gauche) : vous discutez de ton jeu, et il le change pour toi.'], ['🗺️ Feuille de route', 'Tout ce que ton jeu doit être : l’idée, le but, les héros, le monde…'], ['🧩 Éléments', 'Les personnages, objets, décors, sons et musiques de ton jeu.'], ['🛍️ Boutique', 'Ce que les joueurs peuvent acheter dans ton jeu. Tout ce qu’ils dépensent te revient.'], ['📊 Stats', 'Combien de parties, de joueurs, de minutes de jeu, chaque jour.'], ['⚙️ Paramètres', 'L’image de ta tuile, le sens de l’écran, ton nom de créateur, la publication.']]) { const r = atlEl('p'); r.append(atlEl('b', '', t + ' : '), d); c.appendChild(r); }
+  M.textContent = ''; M.appendChild(c); M.hidden = false; const fer = () => { M.hidden = true; M.textContent = ''; M.onclick = null; };
+  x.addEventListener('click', fer); M.onclick = e => { if (e.target === M) fer(); };
+}
+// le moment de la V1 : un ciel de nuages par-dessus l'espace, la mascotte fière (« Tadaa ! Voici ton jeu ! ») les écarte, puis file se poser en haut à gauche
+function atlEspNuageSvg(seed) {
+  let s = seed; const r = () => (s = (s * 9301 + 49297) % 233280) / 233280, n = 6 + (r() * 3 | 0); let c = '';
+  for (let i = 0; i < n; i++) { const x = 60 + i * (280 / (n - 1)) + (r() - .5) * 20, y = 120 - Math.sin(i / (n - 1) * Math.PI) * (50 + r() * 30), rr = 48 + r() * 42; c += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + rr.toFixed(1) + '"/>'; }
+  return '<svg viewBox="-40 -60 480 320" aria-hidden="true"><defs><linearGradient id="atlng' + seed + '" x1="0" y1="0" x2="0" y2="1"><stop offset=".35" stop-color="#fff"/><stop offset="1" stop-color="#f6d9ef"/></linearGradient></defs><g fill="url(#atlng' + seed + ')">' + c + '<rect x="50" y="110" width="300" height="70" rx="35"/></g></svg>';
+}
+function atlEspCiel(host, dense) {
+  const C = atlEl('div', 'atl-ciel'); C.setAttribute('aria-hidden', 'true'); const W0 = innerWidth, tel = W0 < 700, L = [];
+  const cw = tel ? W0 * 1.15 : W0 * .55; let k = 0;
+  for (let y = -0.25; y < 1.05; y += tel ? .14 : .2) for (let x = -0.25; x < 1.05; x += tel ? .55 : (dense ? .3 : .42)) {
+    const d = atlEl('div', 'atl-nuage' + (k % 3 === 1 ? ' loin' : '')), ww = cw * (0.85 + ((k * 37) % 30) / 100);
+    d.style.width = ww + 'px'; d.style.left = (x * 100) + '%'; d.style.top = (y * 100) + '%'; d.style.setProperty('--ph', (k * 1.7 % 6).toFixed(2) + 's'); d.innerHTML = atlEspNuageSvg(k + 3); C.appendChild(d);
+    L.push({ d, side: (x + ww / W0 / 2) < .5 ? -1 : 1 }); k++; }
+  C._L = L; host.appendChild(C); return C;
+}
+function atlEspReveler(W, f) {
+  ATL.revele = Date.now();
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const O = atlEl('div', 'atl-revele'), C = atlEspCiel(O, true), P = atlEl('div', 'atl-revpk'), im = atlEl('img'); im.alt = ''; im.src = ROOT + 'accueil/guide-joie.webp';
+  const bb = atlEl('div', 'atl-revbb', 'Tadaa ! Voici ton jeu !'); P.append(im, bb); O.appendChild(P); document.body.appendChild(O);
+  try { if (typeof sfx === 'function') setTimeout(() => sfx('win'), 900); } catch (e) {}
+  const ease = 'cubic-bezier(.45,.05,.25,1)';
+  P.animate([{ transform: 'translate(-50%,-50%) scale(.4)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1.12)', opacity: 1, offset: .6 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }], { duration: 900, easing: ease, fill: 'forwards' });
+  bb.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 350, delay: 600, fill: 'both' });
+  for (const n of C._L) n.d.animate([{ transform: 'translateX(0) scale(1)', opacity: 1 }, { transform: 'translateX(' + (n.side * 115) + 'vw) scale(1.15)', opacity: .2 }], { duration: 2000, delay: 1500, easing: ease, fill: 'forwards' });
+  O.animate([{ backgroundColor: 'rgba(251,234,246,.9)' }, { backgroundColor: 'rgba(251,234,246,0)' }], { duration: 1800, delay: 1700, fill: 'forwards' });
+  setTimeout(() => {
+    bb.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' });
+    const cible = (W._pk || []).find(x => x && x.getClientRects().length && x.getBoundingClientRect().width), av = cible && cible.querySelector('img');
+    const r = av ? av.getBoundingClientRect() : { left: 20, top: 20, width: 40, height: 40 }, pr = im.getBoundingClientRect();
+    const dx = r.left + r.width / 2 - innerWidth / 2, dy = r.top + r.height / 2 - innerHeight / 2, k = r.width / Math.max(1, pr.width);
+    P.animate([{ transform: 'translate(-50%,-50%) scale(1)' }, { transform: 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px)) scale(' + k.toFixed(3) + ')', opacity: .9 }], { duration: 900, easing: ease, fill: 'forwards' });
+  }, 3700);
+  setTimeout(() => O.remove(), 4800);
+  O.addEventListener('click', () => O.remove());
+}
 function atlEspAv() { const i = atlEl('img', 'atl-espav'); i.alt = ''; i.src = (typeof ATL_GUIDE !== 'undefined' && ATL_GUIDE.img && atlIaUrl(ATL_GUIDE.img)) || ROOT + 'accueil/guide-portrait.webp'; i.onerror = () => { i.onerror = null; i.src = ROOT + 'accueil/guide-portrait.webp'; }; return i; }
 function atlEspFermer() { const R = ATL.root; if (!R) return; for (const e of R.querySelectorAll('.atl-esscrim, .atl-esnav.sheet')) e.hidden = true; }
 function atlEspElCat(W, lab) {
@@ -16784,25 +16863,30 @@ function atlEspElCat(W, lab) {
   setTimeout(() => { const p = W.querySelector('.atl-pane[data-k="elements"]'); if (!p) return; const h = [...p.querySelectorAll('h4, h3, summary, b')].find(e => e.textContent.includes(lab)); if (h) try { h.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) {} }, 60);
 }
 // les cartes de résumé (« Mon jeu ») : statistiques (si lues), publication, éléments, boutique
-function atlEspResume(c, f, st) {
-  c.textContent = '';
-  const card = (t, k) => { const d = atlEl('section', 'atl-escard'); const h = atlEl('h4', '', t); if (k) { const a = atlEl('button', 'atl-lien', 'Ouvrir →'); a.type = 'button'; a.addEventListener('click', () => atlProjTab(k)); h.appendChild(a); } d.appendChild(h); c.appendChild(d); return d; };
-  const kv = (d, l) => { const g2 = atlEl('div', 'atl-eskv'); for (const [a, b] of l) g2.append(atlEl('span', '', a), atlEl('b', '', b)); d.appendChild(g2); };
-  const T = (st && st.total) || {}, S = (st && st.scores) || {}, A = (st && st.achats) || {};
-  { const d = card('📊 Statistiques', 'stats');
-    if (!st) d.appendChild(atlEl('p', 'atl-chv', 'Un instant…'));
-    else { const g2 = atlEl('div', 'atl-esnums'); const n = (v, l, z) => { const x = atlEl('div', 'atl-esnum' + (z ? ' zero' : '')); x.append(atlEl('b', '', v), atlEl('small', '', l)); g2.appendChild(x); };
-      n(S.record != null ? atlNb0(S.record) : '—', '🏆 meilleur score', S.record == null); n(atlNb0(T.lancements), '▶ lancements', !(T.lancements | 0)); n(atlNb0(T.joueurs), '👥 joueurs', !(T.joueurs | 0));
-      n(atlDuree(T.temps), '⏱️ temps joué', !(T.temps | 0)); n(atlNb0(T.boutique), '🛍️ visites de la boutique', !(T.boutique | 0));
-      d.appendChild(g2); if (!(T.lancements | 0)) d.appendChild(atlEl('p', 'atl-esnote', 'Les parties sont comptées depuis le 5 novembre : les premiers chiffres arrivent dès qu’on joue ✨')); } }
-  { const d = card('🌍 Publication'), et = String(f.etat || '');
-    kv(d, [['Où', et === 'publie_monde' ? 'Dans le monde entier' : et === 'publie_salle' ? 'Dans ta salle' : 'Pas encore publié'], ['Version', 'V' + ((f.version | 0) || 1) + (f.version_publiee ? ' · en ligne : V' + f.version_publiee : '')], ['Publication auto', f.auto_publier ? '✅ oui' : 'non']]); }
-  { const d = card('🧩 Éléments', 'elements'), as = Array.isArray(f.assets) ? f.assets.filter(a => a && typeof a === 'object') : [], ct = s => as.filter(a => a.sorte === s).length;
-    kv(d, [['Tous les éléments', atlNb0(as.length)], ['🎵 Musiques', atlNb0(ct('musique'))], ['🖼️ Grandes images', atlNb0(ct('grande image'))]]); }
-  { const d = card('🛍️ Boutique', 'boutique');
-    if (!st) d.appendChild(atlEl('p', 'atl-chv', 'Un instant…'));
-    else { kv(d, [['Articles en vente', atlNb0(st.articles)], ['Ventes', atlNb0(A.nombre)], ['Crédits gagnés', atlNb0(A.credits) + ' 💎']]); if (!(A.nombre | 0)) d.appendChild(atlEl('p', 'atl-esnote', (st.articles | 0) ? 'Pas encore de vente : ton premier acheteur arrive bientôt ✨' : 'Pas encore d’article : demande à ' + gNM() + ' d’en préparer un.')); } }
-}
+function atlEspResume(c, f, st) {
+  // 2.0.152 : 3 cartes (maquette) — ton jeu ce mois-ci (vrais chiffres + courbe), ta boutique, la conversation avec la mascotte ; à zéro : un mot gentil
+  c.textContent = '';
+  const card = (t, k, cls) => { const d = atlEl('section', 'atl-escard ' + (cls || '')); const h = atlEl('h4', '', t); if (k) { const a = atlEl('button', 'atl-lien', 'Tout voir →'); a.type = 'button'; a.addEventListener('click', e => { e.stopPropagation(); atlProjTab(k); }); h.appendChild(a); } d.appendChild(h); c.appendChild(d); return d; };
+  const nums = (d, l) => { const g2 = atlEl('div', 'atl-esnums n' + l.length); for (const [v, lab, z] of l) { const x = atlEl('div', 'atl-esnum' + (z ? ' zero' : '')); x.append(atlEl('b', '', v), atlEl('small', '', lab)); g2.appendChild(x); } d.appendChild(g2); };
+  const doux = (d, ic, t) => { const x = atlEl('div', 'atl-esdoux'); x.append(atlEl('span', '', ic), atlEl('p', '', t)); d.appendChild(x); };
+  const T = (st && st.total) || {}, S = (st && st.scores) || {}, A = (st && st.achats) || {}, J = st && Array.isArray(st.jours) ? st.jours : [];
+  { const d = card('📊 Ton jeu ce mois-ci', 'stats');
+    if (!st) d.appendChild(atlEl('p', 'atl-chv', 'Un instant…'));
+    else if (!(T.lancements | 0) && !(S.parties | 0)) doux(d, '🌱', 'Personne n’a encore joué ce mois-ci. Lance une partie et invite tes copains : les chiffres arrivent dès la première partie !');
+    else {
+      nums(d, [[S.record != null ? atlNb0(S.record) : '—', '🏆 record', S.record == null], [atlNb0(Math.max(S.parties | 0, T.lancements | 0)), '▶ parties', false], [atlNb0(Math.max(S.joueurs | 0, T.joueurs | 0)), '👥 joueurs', false]]);
+      if (J.some(x => (x.lancements | 0) > 0)) d.appendChild(atlEspCourbe(J.slice(-30), true));
+      if (T.temps | 0) d.appendChild(atlEl('p', 'atl-estemps', '⏱️ ' + atlDuree(T.temps) + ' de jeu' + (T.depuis ? ' depuis le ' + new Date(T.depuis).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '')));
+    } }
+  { const d = card('🛍️ Ta boutique', 'boutique');
+    if (!st) d.appendChild(atlEl('p', 'atl-chv', 'Un instant…'));
+    else if (!(st.articles | 0)) doux(d, '🎁', 'Pas encore d’article. Demande ' + gA() + ' d’en créer : 100 crédits offerts pour ta boutique !');
+    else { nums(d, [[atlNb0(st.articles), 'articles', false], [atlNb0(A.credits) + ' 💎', 'gagnés', !(A.credits | 0)]]); if (!(A.nombre | 0)) doux(d, '🌱', 'Pas encore de vente : ça viendra ! Partage ton jeu à tes copains.'); } }
+  { const d = card('💬 ' + gNM(), null, 'atl-esconv'); d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-label', 'Parler ' + gA());
+    const r = atlEl('div', 'atl-esconvr'), im = atlEl('img'); im.alt = ''; im.src = ROOT + 'accueil/guide-coucou.webp';
+    r.append(im, atlEl('div', 'atl-esbul', 'Une idée pour « ' + (f.titre || 'ton jeu') + ' » ? Dis-la-moi, je m’en occupe !')); d.append(r, atlEl('div', 'atl-estape', 'Écris ' + gA() + '…'));
+    const go = () => { atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} }; d.addEventListener('click', go); d.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); }
+}
 // le fond de l'espace : l'image générée pour le projet (une fois, refaite si le thème change), sinon les couleurs du jeu ; relu pendant la génération
 async function atlEspFond(W, f, n) {
   if (!W.isConnected || isGuest() || !profile.name) return;
@@ -16816,6 +16900,7 @@ async function atlEspStats(W, f) {
   if (!W.isConnected || !f.jeu || isGuest() || !profile.name) return;
   let st = null; try { st = await rpc('at_stats_lire', { p_name: profile.name, p_jeu: f.jeu, p_jours: 30 }, { quiet: true, quiet404: true }); } catch (e) { st = null; }
   if (!W.isConnected) return;
+  if (st) { W._nArt = st.articles | 0; atlEspGris(W); }
   const rs = W.querySelector('[data-esp="resume"]'); if (rs) atlEspResume(rs, f, st || { total: {}, scores: {}, achats: {}, articles: 0 });
   const bt = W.querySelector('[data-esp="boutique"]'); if (bt && st) { bt.textContent = ''; const A = st.achats || {}, T = st.total || {};
     for (const [v, l] of [[atlNb0(st.articles), '🏷️ articles en vente'], [atlNb0(A.nombre), '🧾 ventes'], [atlNb0(A.credits) + ' 💎', '💰 crédits gagnés'], [atlNb0(T.boutique), '👀 visites de la boutique']]) { const x = atlEl('div', 'atl-esnum'); x.append(atlEl('b', '', v), atlEl('small', '', l)); bt.appendChild(x); } }
@@ -16834,7 +16919,7 @@ async function atlEspStats(W, f) {
   sp.appendChild(atlEl('p', 'atl-esnote', T.depuis ? 'Comptés depuis le ' + new Date(T.depuis).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) + ' : chaque partie lancée, chaque minute jouée, chaque visite de la boutique.' : 'Les parties sont comptées depuis le 5 novembre : dès que quelqu’un joue, les chiffres arrivent ici ✨'));
 }
 // la courbe (SVG, sans bibliothèque) : lancements par jour (trait plein) et joueurs différents (pointillés), vrais chiffres
-function atlEspCourbe(J) {
+function atlEspCourbe(J, mini) {
   const W0 = 640, H0 = 200, m = { l: 34, r: 12, t: 14, b: 28 }, n = Math.max(1, J.length), mx = Math.max(1, ...J.map(d => d.lancements | 0), ...J.map(d => d.joueurs | 0));
   const x = i => m.l + (n === 1 ? (W0 - m.l - m.r) / 2 : i * (W0 - m.l - m.r) / (n - 1)), y = v => m.t + (H0 - m.t - m.b) * (1 - v / mx);
   const ns = 'http://www.w3.org/2000/svg', S = document.createElementNS(ns, 'svg'); S.setAttribute('viewBox', '0 0 ' + W0 + ' ' + H0); S.setAttribute('class', 'atl-escourbe'); S.setAttribute('role', 'img');
@@ -16845,7 +16930,7 @@ function atlEspCourbe(J) {
   el('polyline', { points: pts('joueurs'), class: 'l2' }); el('polyline', { points: pts('lancements'), class: 'l1' });
   J.forEach((d, i) => { el('circle', { cx: x(i), cy: y(d.lancements | 0), r: 3.5, class: 'p1' });
     if (n <= 7 || i % 5 === 0 || i === n - 1) { const t = el('text', { x: x(i), y: H0 - 8, class: 'ax', 'text-anchor': 'middle' }); const d0 = new Date(d.jour); t.textContent = isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); } });
-  const w = atlEl('div', 'atl-escw'); w.appendChild(S); w.appendChild(atlEl('p', 'atl-esleg', '━ lancements · ┅ joueurs différents')); return w;
+  const w = atlEl('div', 'atl-escw'); w.appendChild(S); if (mini) w.classList.add('mini'); w.appendChild(atlEl('p', 'atl-esleg', '━ parties lancées par jour · ┅ joueurs différents')); return w;
 }
 // les statistiques envoyées par la borne pour un jeu de l'Atelier (SQL v148) : lancement, temps joué (au démontage), visite de la boutique
 function atlStatEnvoyer(jeu, sorte, v) {
@@ -16859,7 +16944,7 @@ function atlRenderProjet(W, f) {
   const as = Array.isArray(f.assets) ? f.assets.filter(a => a && typeof a === 'object') : [];
   const sig = [f.id, et, f.jeu || '', f.rayon || '', f.version_publiee || '', (f.design && f.design.f) || '', JSON.stringify(fi).length, f.titre || '', f.salle || '', f.monde_demande_at || '', String(!!g)].join('|');
   if (ATL.pSig === sig && W.querySelector('.atl-pbox')) { atlProjMsgs(W, f); atlVerMaj(W, f); try { atlElMaj(W, f); } catch (e) {} return; }
-  atlFrameStop(); ATL.pSig = sig; W.textContent = ''; W.dataset.ver = String((f.version | 0) || 1);
+  atlFrameStop(); ATL.pSig = sig; W.textContent = ''; W.classList.remove('atl-nuages', 'atl-espace'); W.dataset.ver = String((f.version | 0) || 1);
   const box = atlEl('div', 'atl-pbox'); W.appendChild(box);
   // en-tête : le design, le titre, l'état
   const dz = (f.design && atlIaUrl(f.design.f)) || atlIaUrl((as.find(a => a.sorte === 'grande image' && atlIaUrl(a.image)) || {}).image);
