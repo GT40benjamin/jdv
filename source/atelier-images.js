@@ -21,6 +21,7 @@
   const D = '💎';
   const nom = () => (typeof profile !== 'undefined' && profile && profile.name) || '';
   const joli = n => String(n || '').charAt(0) + String(n || '').slice(1).toLowerCase();
+  const PK = () => { try { return gNM() || 'Pooky'; } catch (e) { return 'Pooky'; } };   // le nom de la mascotte (serveur), comme « Crée avec … » de la tuile
   const AV = () => ROOT + 'accueil/guide-portrait.webp';
   const POSE = k => ROOT + 'accueil/guide-' + ({ idee: 'p-idee', dessine: 'p-dessine' }[k] || k) + '.webp';   // accueil/guide-joie, guide-coucou, guide-p-idee, guide-p-dessine
   const base = () => CFG.url.replace(/\/+$/, '');
@@ -65,14 +66,10 @@
     if (Date.now() - AIM.typesAt > 15000) chargerTypes().then(() => { try { decorer(); } catch (e) {} });
   };
   if (typeof jdwBack === 'function') { const _back = jdwBack; jdwBack = function () { if (AIM.open && retour()) return true; return _back.apply(this, arguments); }; }   // eslint-disable-line no-global-assign
-  if (typeof atlTileState === 'function') { const _ts = atlTileState; atlTileState = function () { const r = _ts.apply(this, arguments); renommerTuile(); return r; }; }   // eslint-disable-line no-global-assign
-  function renommerTuile() { for (const e of document.querySelectorAll('.tile-name')) if (e.textContent.trim() === 'Crée ton jeu') e.textContent = 'Crée avec Pooky'; }
-  setTimeout(renommerTuile, 1500); setTimeout(renommerTuile, 6000);
 
   // les tuiles « Mes projets » de l'Atelier : un projet Images montre son image et « 🎨 Images · N images »
   function decorer() {
     const R = ATL.root; if (!R || ATL.cur) return;
-    const nm = R.querySelector('.atl-nom'); if (nm) nm.textContent = 'Crée avec Pooky';
     const ps = atlProjets(), tiles = R.querySelectorAll('.atl-pgrid .atl-pwrap > .atl-ptile');
     ps.forEach((pj, i) => {
       const t = tiles[i], x = AIM.types[pj.id]; if (!t || !x || x.type !== 'images') return;
@@ -85,10 +82,10 @@
   // ---------- la fenêtre ----------
   function construire() {
     if (AIM.root) return AIM.root;
-    const R = E('section', 'crea'); R.id = 'jdw-crea'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'Crée avec Pooky');
+    const R = E('section', 'crea'); R.id = 'jdw-crea'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'Crée avec ' + PK());
     R.innerHTML = '<header class="crea-bar"><button class="crea-rond crea-menu" type="button" aria-label="Mes projets">☰</button>'
       + '<button class="crea-rond crea-retour" type="button" aria-label="Retour à mes projets">‹</button>'
-      + '<div class="crea-marque"><img alt="" src="' + AV() + '"><b>CRÉE AVEC POOKY</b></div><div class="crea-fil"></div>'
+      + '<div class="crea-marque"><img alt="" src="' + AV() + '"><b></b></div><div class="crea-fil"></div>'
       + '<div class="crea-cred" title="Tes crédits"></div></header>'
       + '<div class="crea-ciel" aria-hidden="true"><img alt="" src="' + ROOT + 'accueil/atelier-nuage-1.webp"><img alt="" src="' + ROOT + 'accueil/atelier-nuage-2.webp"><img alt="" src="' + ROOT + 'accueil/atelier-nuage-3.webp"><img alt="" src="' + ROOT + 'accueil/atelier-nuage-1.webp"><img alt="" src="' + ROOT + 'accueil/atelier-nuage-2.webp"></div>'
       + '<div class="crea-corps"><nav class="crea-arbre crea-carte" aria-label="Mes projets"></nav><main class="crea-outil"></main>'
@@ -172,7 +169,7 @@
   const etroit = () => matchMedia('(max-width: 899px)').matches;
   function renderNouveau(O) {
     const C = E('div', 'crea-nv crea-carte'), hd = E('div', 'crea-nvh'), im = E('img'); im.src = POSE('coucou'); im.alt = '';
-    const tx = E('div'); tx.append(E('h1', '', 'Qu’est-ce qu’on crée aujourd’hui ?'), E('div', 'sous', 'Raconte ton idée à Pooky : il te dit ce qu’on peut faire ensemble.'));
+    const tx = E('div'); tx.append(E('h1', '', 'Qu’est-ce qu’on crée aujourd’hui ?'), E('div', 'sous', 'Raconte ton idée à ' + PK() + ' : il te dit ce qu’on peut faire ensemble.'));
     hd.append(im, tx); C.appendChild(hd);
     const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
     for (const m of AIM.loc) { F.appendChild(bulle(m)); if (m.offre && AIM.nv.choix === 'images') { const o = offreImages(); o.classList.add('dans-fil'); F.appendChild(o); } }
@@ -183,7 +180,7 @@
   }
   // la case pour écrire (ou dicter) à Pooky : dans son panneau, ou au centre pendant la création d'un projet
   function saisie(ph) {
-    const S = E('form', 'crea-saisie'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 2000; ta.placeholder = ph || 'Écris à Pooky…'; ta.setAttribute('aria-label', 'Ton message à Pooky');
+    const S = E('form', 'crea-saisie'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 2000; ta.placeholder = ph || 'Écris à ' + PK() + '…'; ta.setAttribute('aria-label', 'Ton message à Pooky');
     ta.value = AIM.brouPk || ''; ta.addEventListener('input', () => { AIM.brouPk = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) {} }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
@@ -198,7 +195,7 @@
     const c = E('div', 'crea-offre');
     const h = E('div', 'haut'), ic = E('div', 'ic', '🎨'), t = E('div'); t.style.flex = '1';
     const inp = E('input'); inp.value = AIM.nv.titre; inp.maxLength = 60; inp.setAttribute('aria-label', 'Nom du projet'); inp.addEventListener('input', () => { AIM.nv.titre = inp.value; });
-    t.append(E('div', 'ty', 'Projet Images · proposé par Pooky'), inp, E('div', '', 'Ton atelier de retouche, rien que pour toi')); t.lastChild.style.cssText = 'font-size:13.5px;color:#5b4f75;margin-top:3px';
+    t.append(E('div', 'ty', 'Projet Images · proposé par ' + PK()), inp, E('div', '', 'Ton atelier de retouche, rien que pour toi')); t.lastChild.style.cssText = 'font-size:13.5px;color:#5b4f75;margin-top:3px';
     h.append(ic, t); c.appendChild(h);
     const corps = E('div', 'corps');
     const ul1 = E('ul'), ul2 = E('ul');
@@ -310,6 +307,7 @@
     const lien = E('span', 'lien', '· Mes projets'); fil.appendChild(lien);
     const ti = AIM.vue === 'nouveau' ? 'Nouveau projet' : (AIM.d && AIM.d.titre) || (pj && pj.titre) || 'Mes images';
     fil.append(E('span', 'lien', ' › '), E('strong', '', ti));
+    q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
     q('.crea-cred').textContent = typeof AIM.solde === 'number' ? D + ' ' + AIM.solde + (etroit() ? '' : ' crédits') : '';
     renderArbre(); renderOutil(); renderPooky(); renderFlot();
   }
@@ -498,9 +496,9 @@
     if (AIM.vue === 'nouveau') { if (foc) setTimeout(() => { const t = AIM.root.querySelector('.crea-nv textarea'); if (t) t.focus({ preventScroll: true }); }, 0); return; }
     const t = B('crea-pkt', null, () => { if (AIM.root.classList.contains('pk-replie')) { AIM.root.classList.remove('pk-replie'); try { store.set('jdw.crea.pkreplie', false); } catch (e) {} } });
     const im = E('img'); im.alt = ''; im.src = AV();
-    const tx = E('div'); tx.append(E('b', '', 'Pooky'), E('small', '', '● en ligne · je t’écoute'));
+    const tx = E('div'); tx.append(E('b', '', PK()), E('small', '', '● en ligne · je t’écoute'));
     const rep = B('crea-pkrep', etroit() ? '✕' : '⟩', e => { e.stopPropagation(); if (etroit()) AIM.root.classList.remove('pk-plein'); else { AIM.root.classList.add('pk-replie'); try { store.set('jdw.crea.pkreplie', true); } catch (x) {} } });
-    rep.setAttribute('aria-label', etroit() ? 'Retour à l’outil' : 'Replier Pooky');
+    rep.setAttribute('aria-label', etroit() ? 'Retour à l’outil' : 'Replier ' + PK());
     t.append(im, tx, rep); P.appendChild(t);
     const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
     for (const m of filPooky().slice(-60)) F.appendChild(bulle(m));

@@ -228,7 +228,7 @@
   .crea{--cg:10px}
   .crea-marque{display:none}
   .crea-fil{font-family:var(--display);color:var(--cv);font-size:15px;line-height:1.1;flex:1}
-  .crea-fil::before{content:"CRÉE AVEC POOKY";display:block;font-family:var(--body);font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--cdoux)}
+  .crea-fil::before{content:var(--crea-nom,"CRÉE AVEC POOKY");display:block;font-family:var(--body);font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--cdoux)}
   .crea-fil .lien{display:none}
   .crea-fil strong{display:block;overflow:hidden;text-overflow:ellipsis}
   .crea-dem .crea-bt{padding:9px 11px;font-size:13px}
