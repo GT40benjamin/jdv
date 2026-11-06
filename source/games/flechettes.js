@@ -134,9 +134,7 @@ function mount(root, api) {
   root.innerHTML = '';
   const box = document.createElement('div');
   box.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#5a3418,#120804 72%);color:#fff3e0;font-family:' + FB;
-  box.innerHTML = '<div style="font:400 15px ' + FD + ';color:#ffb070;letter-spacing:4px">FLÉCHETTES</div>' +
-    '<div style="font:400 34px ' + FD + ';color:#ffe08a;text-shadow:0 4px 0 #3a1406,0 0 22px rgba(255,150,40,.6)">TÊTE DE CIBLE</div>' +
-    '<div style="margin-top:16px;width:min(320px,62vw);height:14px;border-radius:7px;background:#1a0c04;box-shadow:0 0 0 1.5px rgba(255,255,255,.2);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#ff3b4e,#ffd34d);transition:width .2s"></u></div>' +
+  box.innerHTML = '<div style="margin-top:16px;width:min(320px,62vw);height:14px;border-radius:7px;background:#1a0c04;box-shadow:0 0 0 1.5px rgba(255,255,255,.2);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#ff3b4e,#ffd34d);transition:width .2s"></u></div>' +
     '<div style="margin-top:10px;font:600 14px ' + FB + ';color:#e8c8a0">On accroche la cible…</div>';
   root.appendChild(box);
   const bar = box.querySelector('u');
@@ -154,6 +152,8 @@ function mount(root, api) {
   loadEngine((k) => { bar.style.width = Math.round(k * 100) + '%'; }, ac && ac.signal).then((FL) => {
     if (dead) return;
     root.innerHTML = '';
+    // 2.0.145 : l'étagère des cibles reste (choix de la cible et du mode), sans son grand titre (écran-titre de la borne)
+    if (!document.getElementById('jdw-fl-menu')) { const css = document.createElement('style'); css.id = 'jdw-fl-menu'; css.textContent = '.card.menu>.ttl{display:none!important}'; document.head.appendChild(css); }
     inst = FL.game(root, api, {});
     if (paused && inst.pause) inst.pause();
   }).catch(() => fail());
@@ -171,6 +171,8 @@ function mount(root, api) {
 window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES.flechettes = {
   id: 'flechettes',
+  menu: true, menuStyle: 'cartoon', accent2: '#ffd34d', pauseJeu: true,   // 2.0.145 : vrai écran-titre de la borne (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/flechettes/menu.webp', menuImagePortrait: 'jeux/flechettes/menu-portrait.webp', logo: 'jeux/flechettes/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'flechettes-menu',
   title: 'Tête de Cible',
   tagline: 'Fabrique ta cible avec ta photo, pose les cibles et leurs points, et lance tes fléchettes !',
   accent: '#ff8a2a',

@@ -3107,7 +3107,7 @@
     function draw(dtF) {
       const tp0 = performance.now();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (!L || !st || state === 'load') { ctx.fillStyle = '#05021a'; ctx.fillRect(0, 0, W, H); bigText('NÉON RUSH', W / 2, H * 0.42, B * 1.3, '#3af0ff'); smallText('Chargement de la musique…', W / 2, H * 0.58, Math.max(13, B * 0.45), '#ff5ad2'); return; }
+      if (!L || !st || state === 'load') { ctx.fillStyle = '#05021a'; ctx.fillRect(0, 0, W, H); smallText('Chargement de la musique…', W / 2, H * 0.5, Math.max(13, B * 0.45), '#ff5ad2'); return; }
       camX = st.x;
       const t = tG, bi = beatIdx(t), bt = L.TR.beats[bi], pulse = state === 'play' && t >= 0 ? Math.exp(-Math.max(0, t - bt) * 9) : 0;
       musicAt(t, dtF);
@@ -3467,6 +3467,8 @@
   window.JDW_GAMES = window.JDW_GAMES || {};
   window.JDW_GAMES['neon'] = {
     id: 'neon',
+    menu: true, menuStyle: 'cartoon', accent2: '#ff3ac8', pauseJeu: true,   // 2.0.145 : vrai écran-titre de la borne (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/neon/menu.webp', menuImagePortrait: 'jeux/neon/menu-portrait.webp', logo: 'jeux/neon/logo.png', menuFocus: { x: 40, y: 50 }, musicMenu: 'neonrush-menu',
     title: 'Néon Rush',
     tagline: 'Saute pile sur la musique électro, vole et inverse la gravité à travers les mondes néon !',
     accent: '#3af0ff',

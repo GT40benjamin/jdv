@@ -160,9 +160,7 @@ function mount(root, api) {
   root.innerHTML = '';
   const box = document.createElement('div');
   box.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#3a1f4a,#07070f 72%);color:#f4eefc;font-family:' + FB;
-  box.innerHTML = '<div style="font:400 40px ' + FD + ';color:#ffe9a0;text-shadow:0 4px 0 #3a1408,0 0 22px rgba(255,166,48,.7)">TURBO</div>' +
-    '<div style="font:400 26px ' + FD + ';color:#dffcff;margin-top:-4px;text-shadow:0 0 16px rgba(94,240,255,.7)">CHRONO</div>' +
-    '<div style="margin-top:16px;width:min(320px,62vw);height:14px;border-radius:7px;background:#140b22;box-shadow:0 0 0 1.5px rgba(255,255,255,.2);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#ff4d5e,#ffd34d 60%,#5ef0ff);transition:width .2s"></u></div>' +
+  box.innerHTML = '<div style="margin-top:16px;width:min(320px,62vw);height:14px;border-radius:7px;background:#140b22;box-shadow:0 0 0 1.5px rgba(255,255,255,.2);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#ff4d5e,#ffd34d 60%,#5ef0ff);transition:width .2s"></u></div>' +
     '<div style="margin-top:10px;font:600 14px ' + FB + ';color:#d9c8f0">On prépare le stade…</div>';
   root.appendChild(box);
   const bar = box.querySelector('u');
@@ -180,6 +178,8 @@ function mount(root, api) {
   loadEngine((k) => { bar.style.width = Math.round(k * 100) + '%'; }, ac && ac.signal).then((TC) => {
     if (dead) return;
     root.innerHTML = '';
+    // 2.0.145 : l'écran des circuits garde le choix du circuit et du fantôme, sans son titre ni l'aide en texte (écran-titre et ❓ COMMANDES de la borne)
+    if (!document.getElementById('jdw-tc-menu')) { const css = document.createElement('style'); css.id = 'jdw-tc-menu'; css.textContent = '.tc-veil>.tc-title,.tc-veil>.tc-sub,.tc-veil>.tc-help{display:none!important}'; document.head.appendChild(css); }
     inst = TC.game(root, api, {});
     if (paused && inst.pause) inst.pause();
   }).catch(() => fail());
@@ -197,6 +197,8 @@ function mount(root, api) {
 window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES.chrono = {
   id: 'chrono',
+  menu: true, menuStyle: 'cartoon', accent2: '#ffd34d', pauseJeu: true,   // 2.0.145 : vrai écran-titre de la borne (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/chrono/menu.webp', menuImagePortrait: 'jeux/chrono/menu-portrait.webp', logo: 'jeux/chrono/logo.png', menuFocus: { x: 50, y: 52 }, musicMenu: 'chrono-menu',
   title: 'Turbo Chrono',
   tagline: 'Contre la montre en 3D : loopings, tremplins… et les fantômes de tes copains à battre !',
   accent: '#ff4d5e',

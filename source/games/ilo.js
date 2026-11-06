@@ -5142,21 +5142,13 @@
       const cx = LW / 2;
       if (state === 'load') {
         ctx.fillStyle = 'rgba(1,3,8,0.55)'; ctx.fillRect(0, 0, LW, LH);
-        txt('GALAXY WARS', cx, LH * 0.4, 30, '#38e1ff', 'center', false, 5);
         ctx.strokeStyle = '#38e1ff'; ctx.lineWidth = 3; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.arc(cx, LH * 0.5, 14, rt * 5, rt * 5 + 4.2); ctx.stroke();
         txt('Chargement…', cx, LH * 0.5 + 38, 13, '#cfe6f5', 'center', true, 3);
       } else if (state === 'ready') {
         const ta = stT < 0.9 ? 1 : Math.max(0, 1 - (stT - 0.9) / 0.35);
         if (CO) drawReadyCoop(cx);
-        else if (ta > 0) {
-          ctx.globalAlpha = ta;
-          ctx.globalCompositeOperation = 'lighter'; glowAt(GL.c, cx, LH * 0.36, 260, 0.35); ctx.globalCompositeOperation = 'source-over';
-          ctx.globalAlpha = ta;
-          txt('GALAXY', cx, LH * 0.34, 34, '#38e1ff', 'center', false, 6);
-          txt('WARS', cx, LH * 0.34 + 34, 34, '#ff5fd2', 'center', false, 6);
-          ctx.globalAlpha = 1;
-        }
+        // 2.0.145 : plus de grand « GALAXY WARS » ici (le logo est sur l'écran-titre de la borne) : seulement « PRÊT ? / GO ! »
         const s = stT < 0.75 ? (CO ? 'PRÊTS ?' : 'PRÊT ?') : 'GO !';
         const k = stT < 0.75 ? stT / 0.75 : (stT - 0.75) / 0.5;
         const sc = 1 + (1 - Math.min(1, k * 3)) * 0.4;
@@ -6370,6 +6362,8 @@
   window.JDW_GAMES = window.JDW_GAMES || {};
   window.JDW_GAMES.ilo = {
     id: 'ilo',
+    menu: true, menuStyle: 'cartoon', accent2: '#ff5fd2', pauseJeu: true,   // 2.0.145 : vrai écran-titre de la borne (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/ilo/menu.webp', menuImagePortrait: 'jeux/ilo/menu-portrait.webp', logo: 'jeux/ilo/logo.png', menuFocus: { x: 52, y: 50 }, musicMenu: 'ilo-menu',
     title: 'Galaxy Wars',
     tagline: "Fonce à travers l'espace d'ILO, pulvérise les vagues et les boss planétaires.",
     accent: ACCENT,
