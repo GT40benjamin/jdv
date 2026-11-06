@@ -6,6 +6,38 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[briques] ## 🧱 Casse-briques face à face : nouvel écran-titre (borne 2.0.155)
+[briques] 🧱 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[bolides] ## 🏎️ Bolides RC : nouvel écran-titre (borne 2.0.155)
+[bolides] 🏎️ Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[boum] ## 💣 Boum ! : nouvel écran-titre (borne 2.0.155)
+[boum] 💣 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[guerre] ## 🦆 Canards : la guerre : nouvel écran-titre (borne 2.0.155)
+[guerre] 🦆 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[kombat] ## 🥊 Mandale Kombat : nouvel écran-titre (borne 2.0.155)
+[kombat] 🥊 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[mots] ## 🔤 Mots mêlés : nouvel écran-titre (borne 2.0.155)
+[mots] 🔤 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[palet] ## 🏒 Le palet : nouvel écran-titre (borne 2.0.155)
+[palet] 🏒 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[pingpong] ## 🏓 Ping-pong : nouvel écran-titre (borne 2.0.155)
+[pingpong] 🏓 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[souris] ## 🐭 Chat et souris : nouvel écran-titre (borne 2.0.155)
+[souris] 🐭 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[spatial] ## 🚀 Duel spatial : nouvel écran-titre (borne 2.0.155)
+[spatial] 🚀 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[tirsaubut] ## ⚽ Tirs au But : nouvel écran-titre (borne 2.0.155)
+[tirsaubut] ⚽ Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[toupies] ## 🌀 Turbo Toupies : nouvel écran-titre (borne 2.0.155)
+[toupies] 🌀 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[trouve] ## 🔎 Trouve-le ! : nouvel écran-titre (borne 2.0.155)
+[trouve] 🔎 Un vrai écran-titre avant le duel : une grande image du jeu, son logo et une musique de menu rien qu'à lui ; ▶ JOUER lance le duel sur ce téléphone, et sur ordinateur ▶ DÉFIER UN COPAIN.
+[empilo] ## 🧩 Empilo : nouvel écran-titre (borne 2.0.155)
+[empilo] 🧩 Un vrai écran-titre : une grande image du jeu, son logo et une musique de menu ; ▶ JOUER lance la partie tout de suite (le « Comment jouer » ne s'ouvre plus tout seul : il est dans ❓ COMMANDES), avec une seule pause à l'écran.
+[glouton] ## 🦆 Glouton : nouvel écran-titre (borne 2.0.155)
+[glouton] 🦆 Un vrai écran-titre : une grande image du jeu, son logo et une musique de menu ; ▶ JOUER lance la partie tout de suite (le « Comment jouer » ne s'ouvre plus tout seul : il est dans ❓ COMMANDES), avec une seule pause à l'écran.
+[mouches] ## 🪰 La Chasse aux mouches : nouvel écran-titre (borne 2.0.155)
+[mouches] 🪰 Un vrai écran-titre : une grande image du jeu, son logo et une musique de menu ; ▶ JOUER lance la partie tout de suite (le « Comment jouer » ne s'ouvre plus tout seul : il est dans ❓ COMMANDES), avec une seule pause à l'écran.
 [borne] ## 💬 L’Atelier au téléphone (borne 2.0.154)
 [borne] 💬 Au téléphone, ta conversation avec {g} tient toujours dans l’écran, et les statistiques d’un jeu pas encore joué affichent un petit mot au lieu d’une courbe vide.
 [borne] ## ✨ Nouvel espace pour ton jeu (borne 2.0.153)
