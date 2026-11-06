@@ -16919,8 +16919,8 @@ function atlEspace(W, box, f, g, pane) {
     const zp = atlEl('div', 'atl-esadmpub'); zp.appendChild(atlEl('h4', '', '🌍 Publication et onglet')); try { zp.appendChild(atlPubAdmin(f)); } catch (e) {} E.appendChild(zp);
     const zx = atlEl('div', 'atl-esadmx'); E.insertBefore(zx, zb);
     const majX = () => { zx.textContent = ''; const R1 = ATL.root, cp = R1 && R1.querySelector('.atl-bar .atl-cred'), db = R1 && R1.querySelector('.atl-bar .atl-demb');
-      if (cp && cp.textContent.trim()) zx.appendChild(atlEl('p', 'atl-esadmc', (/💎/.test(cp.textContent) ? '' : '💎 ') + cp.textContent.trim()));
-      if (db && !db.hidden) { const bt = atlEl('button', 'btn btn-ghost', db.textContent.trim()); bt.type = 'button'; bt.addEventListener('click', () => db.click()); zx.appendChild(bt); }
+      if (cp && cp.textContent.trim()) { const tx = cp.textContent.replace(/💎/g, '').trim(), m = tx.match(/^(.*?)\s+([\d\s ]+)\s*·\s*toi\s+([\d\s ]+)$/); zx.appendChild(atlEl('p', 'atl-esadmc', m ? '💎 ' + m[1].trim() + ' : ' + m[2].trim() + ' · toi : ' + m[3].trim() : '💎 ' + tx)); }   // 2.0.164 (chef) : une seule ligne de solde
+      if (db && !db.hidden) { const bt = atlEl('button', 'btn btn-ghost', '📋 ' + db.textContent.replace(/^\S*\s*/, '').trim()); bt.type = 'button'; bt.addEventListener('click', () => db.click()); zx.appendChild(bt); }
       const n = db ? +((db.textContent.match(/\((\d+)\)/) || [])[1] || 0) : 0; for (const t of document.querySelectorAll('#jdw-atelier .atl-esb.rouge, #jdw-atelier .atl-est.rouge')) t.classList.toggle('atl-pdot', n > 0); };
     W._admMaj = majX; setTimeout(majX, 0); setTimeout(majX, 1500);
     p.appendChild(E); W._admZone = zb; setTimeout(() => { try { atlAdminBandeau(); } catch (e) {} }, 0); }

@@ -5759,3 +5759,5 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-esadmx .btn{min-height:48px;justify-content:flex-start;padding:10px 14px;border-radius:14px;background:#fff;color:#3b0f0c;border:1.5px solid #f2b8b5;font:800 15px var(--body);text-transform:none}
 .atl-est.rouge.atl-pdot,.atl-esb.rouge.atl-pdot{position:relative}
 .atl-est.rouge.atl-pdot::after,.atl-esb.rouge.atl-pdot::after{content:'';position:absolute;top:4px;right:8px;width:10px;height:10px;border-radius:50%;background:#d93025;box-shadow:0 0 0 2px #fff}
+/* 2.0.164 (chef) : pas de doublons dans l'encart Admin (le solde et « Demandes de J2B » sont déjà en haut de l'encart) */
+.atl-esadm .atl-adminb > b,.atl-esadm .atl-adminb > .btn:first-of-type{display:none}
