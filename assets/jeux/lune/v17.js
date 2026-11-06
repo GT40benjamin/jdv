@@ -7797,12 +7797,12 @@ function mount(root, api) {
     { k: 'reve', txt: ['Depuis tout petit, tu as un rêve : partir dans les étoiles, à la rencontre des Astrofaunes des autres planètes.'] },
     { k: 'concours', txt: ['Un jour, l’Agence spatiale annonce le Concours des Rêves, ouvert à tous les jeunes d’Astréa.'] },
     { k: 'victoire', txt: ['Épreuve après épreuve… tu gagnes !', 'Ta place chez les jeunes explorateurs de l’Agence est à toi.'] },
-    { k: 'alarme', txt: ['Quelques jours plus tard, une alarme retentit à l’Agence.', 'Un signal arrive d’une planète inconnue… avec une énergie qui ressemble à celle des Astrofaunes !'] },
+    { k: 'alarme', txt: ['Quelques jours plus tard, une alarme retentit à l’Agence.', 'Un signal arrive d’une planète inconnue… avec une énergie qui ressemble à celle de Nébuléa, l’Astrofaune légendaire !'] },
     { k: 'choix', txt: ['Le directeur de l’Agence te confie la mission : « Veux-tu devenir notre premier jeune explorateur des étoiles ? »', '« Tu ne partiras pas seul. Choisis ton compagnon d’aventure. »'], apres: 'choix' },
-    { k: 'depart', txt: ['Toute la ville est venue pour ton grand départ.', '10… 9… 8…'], comp: { x: 0.635, y: 0.66, h: 0.2 } },
+    { k: 'depart', txt: ['Toute la ville est venue pour ton grand départ.', '10… 9… 8…'], comp: { x: 0.612, y: 0.775, h: 0.14 } },
     { k: 'decollage', txt: ['3… 2… 1… DÉCOLLAGE !'] },
     { k: 'espace', txt: ['Pour la première fois, tu vois Astréa depuis l’espace.', 'Cap sur le signal !'], comp: { x: 0.56, y: 0.95, h: 0.34 } },
-    { k: 'derive', txt: ['Soudain, une énergie inconnue secoue la navette…', 'Une immense Astrofaune légendaire passe tout près ! Plus rien ne répond…'] }
+    { k: 'derive', txt: ['Soudain, une énergie inconnue secoue la navette…', 'Nébuléa, l’Astrofaune légendaire, passe tout près ! Plus rien ne répond…'] }
   ];
   const CHOIX_PRO = ['braise1', 'clapot1', 'mousse1', 'robot'];
   let PRO = null;
@@ -8348,19 +8348,20 @@ function mount(root, api) {
       if (paused) ecranPause2(t, dt);
     }
   }
-  // les 4 ambiances (morceaux de la borne : assets/music/lune-1 planète, luneespace-1, lunestation-1, luneboss-1) ; api.music() = la musique normale du jeu
+  // les ambiances (morceaux de la borne : assets/music/luneplanete-1 planète (V17, très légère), lunehistoire-1 prologue et crash (V17), luneespace-1, lunestation-1, luneboss-1) ; api.music() = la musique normale du jeu
   let ambiance = '', ambT = 0;
   function majAmbiance(dt) {
     if ((ambT -= dt) > 0) return; ambT = 0.5;
     let a = 'planete';
-    if (state === 'espace' || state === 'transi' || state === 'carte') a = EN.some(e => !e.mort && ENNEMIS[e.t].boss && ship && Math.hypot(e.x - ship.x, e.y - ship.y) < 2600) ? 'boss' : 'espace';
+    if (state === 'prologue' || state === 'cine') a = 'histoire';   // V17 : l'histoire a sa propre musique (lunehistoire-1)
+    else if (state === 'espace' || state === 'transi' || state === 'carte') a = EN.some(e => !e.mort && ENNEMIS[e.t].boss && ship && Math.hypot(e.x - ship.x, e.y - ship.y) < 2600) ? 'boss' : 'espace';
     else if (state === 'station') a = 'station';
     else if (state === 'jeu' && J && CR.some(c => c.boss && !c.mort && Math.hypot(c.x - J.x, c.y - J.y) < 1100)) a = 'boss';
     else if (state === 'combat') a = musiqueCombat();
     else if (state === 'evolution') a = 'c11';
     else if (state === 'arene') a = 'c14';
     if (a === ambiance) return; ambiance = a;
-    try { if (api.music) api.music(a === 'planete' ? undefined : 'lune' + a); } catch (e) { /* pas de musique : rien */ }
+    try { if (api.music) api.music('lune' + a); } catch (e) { /* pas de musique : rien */ }
   }
   function frame(now) {
     if (recit) { /* le récit se dessine après le reste, dans draw */ }
