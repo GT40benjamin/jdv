@@ -17152,7 +17152,8 @@ function atlEspResume(c, f, st) {
   { const d = card('💬 ' + gNM(), null, 'atl-esconv'); d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-label', 'Parler ' + gA());
     const r = atlEl('div', 'atl-esconvr'), im = atlEl('img'); im.alt = ''; im.src = ROOT + 'accueil/guide-coucou.webp';
     r.append(im, atlEl('div', 'atl-esbul', 'Une idée pour « ' + (f.titre || 'ton jeu') + ' » ? Dis-la-moi, je m’en occupe !')); d.append(r, atlEl('div', 'atl-estape', 'Écris ' + gA() + '…'));
-    const go = () => { atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} }; d.addEventListener('click', go); d.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); }
+    const go = () => { atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} }; d.addEventListener('click', go); d.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    atlEspTravail(d, r, f); }
 }
 // le fond de l'espace : l'image générée pour le projet (une fois, refaite si le thème change), sinon les couleurs du jeu ; relu pendant la génération
 // 2.0.170 (l'admin : l'Explorateur avec le fond des Licornes) : l'élément de l'espace sert à TOUS les projets ; à chaque ouverture on efface le
@@ -17180,6 +17181,38 @@ async function atlEspFond(W, f, n, j) {
   if (r.en_cours && (n | 0) < 8) setTimeout(() => atlEspFond(W, f, (n | 0) + 1, j), 25000);
 }
 // les statistiques : cartes du résumé, section complète, courbe des 7 / 30 derniers jours
+// 2.0.176 (l'admin : « montre la mascotte qui bosse dessus, avec un texte qui dit ce qu'elle fait ») : la carte de la mascotte dans
+// « Mon jeu » montre le TRAVAIL EN COURS — posé par l'équipe du jeu (at_travail_lire, SQL v161), sinon la dernière étape d'un ticket en
+// cours — avec la mascotte au travail (poses à images, aucune animation CSS), le texte, l'étape et « il y a 5 min » ; relu chaque minute
+function atlIlYa(at) { const d = Date.now() - new Date(at).getTime(); if (!(d >= 0)) return ''; const m = Math.round(d / 6e4); return m < 1 ? 'à l’instant' : m < 60 ? 'il y a ' + m + ' min' : m < 1440 ? 'il y a ' + Math.round(m / 60) + ' h' : 'il y a ' + Math.round(m / 1440) + ' j'; }
+function atlEspTravail(d, r, f) {
+  const avant = [...r.childNodes], st0 = d.querySelector('.atl-estape'), st0t = st0 ? st0.textContent : '';
+  let av = null, sig = '';
+  const montre = t => {
+    const s2 = t ? JSON.stringify(t) : ''; if (s2 === sig) return; sig = s2; d.classList.toggle('atl-estrav', !!t);
+    if (!t) { r.textContent = ''; r.append(...avant); if (st0) { st0.textContent = st0t; st0.classList.remove('vif'); } return; }
+    if (!av) { av = atlEspPk(); av.classList.add('atl-estpk'); }
+    const bul = atlEl('div', 'atl-esbul atl-estbul'); bul.appendChild(atlEl('b', '', gNM() + ' travaille à fond sur ton jeu ! 🛠️'));
+    if (t.texte) bul.appendChild(atlEl('p', '', t.texte));
+    const ln = atlEl('div', 'atl-estln'); if (t.etape) ln.appendChild(atlEl('span', 'atl-estet', t.etape)); if (t.at) ln.appendChild(atlEl('small', '', atlIlYa(t.at))); if (ln.childNodes.length) bul.appendChild(ln);
+    r.textContent = ''; r.append(av, bul); try { atlEspPkEtat(av, 'travail', f.version | 0); } catch (e) {}
+    if (st0) { st0.textContent = '💬 Écris ' + gA() + ' : il lit tout en travaillant'; st0.classList.add('vif'); }
+  };
+  const ticket = () => {   // la dernière étape d'un ticket en cours de ce projet
+    const L = atlDemEnCours().filter(x => x && x.fiche === f.id && x.etat === 'en_cours'); let best = null;
+    for (const x of L) { const e = Array.isArray(x.etapes) && x.etapes.length ? x.etapes[x.etapes.length - 1] : null; const at = (e && e.at) || x.etat_at || x.at;
+      if (!best || String(at) > String(best.at)) best = { texte: atlTypo(String((e && (e.texte || e.etape)) || x.texte || '').replace(/^\S+\s*/, m => /^[\p{Extended_Pictographic}]/u.test(m) ? '' : m)).slice(0, 300), etape: 'Ta demande en cours', at }; }
+    return best;
+  };
+  const lire = async () => {
+    if (!d.isConnected) { clearInterval(d._travT); return; } if (document.hidden) return;
+    let t = null;
+    if (!isGuest() && profile.name) { try { t = await rpc('at_travail_lire', { p_name: profile.name, p_fiche: f.id }, { quiet: true, quiet404: true }); } catch (e) { t = null; } }
+    if (!d.isConnected) return;
+    montre(t && t.texte ? t : ticket());
+  };
+  lire(); d._travT = setInterval(lire, 60000);
+}
 async function atlEspStats(W, f) {
   // 2.0.153 (chef : « une seule source ») : parties et joueurs = les SCORES (chaque partie terminée), jour par jour, sur 7 ou 30 jours (SQL v154) ;
   // le temps de jeu et les visites de la boutique = mesurés par la borne. « Mon jeu » et l'onglet Stats lisent les MÊMES réponses.
