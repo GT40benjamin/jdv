@@ -716,9 +716,9 @@ function menuMontrer(g, o) {
     setTimeout(() => { try { const f = L.querySelector('.tm-it'); if (f) f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40);
   };
   vue(o.direct ? '' : 'touche');
-  // clavier : n'importe quelle touche (écran « Appuie »), ↑ ↓ entre les choix, Échap / B = revenir
+  // clavier : n'importe quelle touche (écran « Appuie »), ↑ ↓ entre les choix, Échap / B = revenir (2.1.10 : rien pendant l'arrêt sur image de l'Atelier, qui a ses propres touches)
   M._esc = e => {
-    if (document.getElementById('jdw-howto') || document.getElementById('jdw-vitrine') || document.getElementById('jdw-boutmod') || !M.isConnected || Date.now() - (HOWTO.fermeAt || 0) < 450) return;
+    if (document.getElementById('jdw-howto') || document.getElementById('jdw-vitrine') || document.getElementById('jdw-boutmod') || document.querySelector('.atl-arret2') || !M.isConnected || Date.now() - (HOWTO.fermeAt || 0) < 450) return;
     if (M.dataset.vue === 'touche') { if (['Shift', 'Control', 'Alt', 'Meta', 'Tab'].includes(e.key)) return; e.preventDefault(); e.stopImmediatePropagation(); if (e.key === 'Escape') backToLibrary(); else vue(''); return; }
     if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); e.stopImmediatePropagation(); if (M.dataset.vue !== 'liste') vue(''); else backToLibrary(); return; }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 's' || e.key === 'z' || e.key === 'w') {
@@ -15556,6 +15556,7 @@ function jdwBack() {
   if (PRIV.back && PRIV.back()) return true;
   // 2.0.142 : « Comment jouer » ouvert, ou fermé par ce même appui → rien de plus ; l'écran-titre d'un jeu recule d'un cran
   if (typeof HOWTO !== 'undefined' && (HOWTO.open || Date.now() - (HOWTO.fermeAt || 0) < 450)) { if (HOWTO.open) howtoHide(true); return true; }
+  { const tk = document.querySelector('.atl-tk'); if (tk && tk._fermer) { if (document.querySelector('.atl-ofmod')) { const m = document.querySelector('.atl-ofmod'); if (m._fermer) m._fermer(); else m.remove(); return true; } tk._fermer(); return true; } }   // 2.1.10 : « Mes demandes » de l'arrêt sur image (B = revenir à l'image)
   { const ar = document.querySelector('.atl-arret'); if (ar && ar._fin) { ar._fin(); return true; } }   // 2.0.170 : l'arrêt sur image (B = reprendre)
   { const bm = document.getElementById('jdw-boutmod'); if (bm) { if (bm._fermer) bm._fermer(); else bm.remove(); return true; } }   // 2.0.130 : la fenêtre d'achat
   { const bv = document.getElementById('jdw-vitrine'); if (bv) { if (bv._fermer) bv._fermer(); else bv.remove(); return true; } }   // 2.0.134 : la vitrine (2.0.168 : sa page détail d'abord ; elle passe AVANT l'écran-titre)
@@ -17248,7 +17249,7 @@ function atlEspResume(c, f, st) {
     const go = () => { atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} }; d.addEventListener('click', go); d.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
     atlEspTravail(d, r, f); }
 }
-// le fond de l'espace : l'image générée pour le projet (une fois, refaite si le thème change), sinon les couleurs du jeu ; relu pendant la génération
+// le fond de l'espace : l'image générée pour le projet (une fois, refaite si le thème change), sinon les couleurs du jeu ; relu pendant la génération
 // 2.0.170 (l'admin : l'Explorateur avec le fond des Licornes) : l'élément de l'espace sert à TOUS les projets ; à chaque ouverture on efface le
 // fond précédent (classe esp-menu, variables --esp-fond*), on pose le dégradé du jeu en attendant, et un jeton neuf : toute réponse d'un ancien projet est ignorée
 function atlEspRaz(W, g) {
@@ -17256,7 +17257,7 @@ function atlEspRaz(W, g) {
   const a = g && /^#[0-9a-f]{3,8}$/i.test(String(g.accent || '')) ? g.accent : '#9b7bff'; W.style.setProperty('--esp-fond', 'linear-gradient(160deg,' + a + ',#2a1e45)');
 }
 async function atlEspFond(W, f, n, j) {
-  j = j || W._espJeton; const vif = () => W.isConnected && W._espJeton === j;   // 2.0.170 : réponse d'un ancien projet = ignorée
+  j = j || W._espJeton; const vif = () => W.isConnected && W._espJeton === j;   // 2.0.170 : réponse d'un ancien projet = ignorée
   // 2.0.163 (l'admin : « une grande image belle, le fond ») : le fond = UNE seule grande image sans texte, plein écran ; d'abord l'IMAGE DE MENU du jeu
   // (menu.* en 16:9 sur PC, menu-portrait.* debout), sinon le fond peint pour l'espace (at_espace_fond), sinon le dégradé du jeu — jamais une planche
   if (!vif()) return;
@@ -17266,14 +17267,14 @@ async function atlEspFond(W, f, n, j) {
       try { const im = new Image(); im.src = matchMedia('(orientation:portrait)').matches ? up : ul; await Promise.race([im.decode(), new Promise(ok2 => setTimeout(ok2, 2500))]); } catch (e) {}
       return; } } catch (e) {}
   if (!vif() || isGuest() || !profile.name) return;
-  let r = null; try { r = await rpc('at_espace_fond', { p_name: profile.name, p_fiche: f.id }, { quiet: true, quiet404: true }); } catch (e) { r = null; }
-  if (!vif() || !r) return;
+  let r = null; try { r = await rpc('at_espace_fond', { p_name: profile.name, p_fiche: f.id }, { quiet: true, quiet404: true }); } catch (e) { r = null; }
+  if (!vif() || !r) return;
   const u0 = r.fond ? atlIaUrl(r.fond) : '', lw = (innerWidth <= 900 || matchMedia('(pointer:coarse)').matches) ? 1280 : 1920;   // 2.0.159 (chef, lenteurs) : webp réduit par le serveur d'images
-  const u = u0 && /\/storage\/v1\/object\/public\//.test(u0) ? u0.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + (u0.includes('?') ? '&' : '?') + 'width=' + lw + '&quality=78' : u0; if (u) W.style.setProperty('--esp-fond', 'url("' + u + '")');
+  const u = u0 && /\/storage\/v1\/object\/public\//.test(u0) ? u0.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + (u0.includes('?') ? '&' : '?') + 'width=' + lw + '&quality=78' : u0; if (u) W.style.setProperty('--esp-fond', 'url("' + u + '")');
   if (u) try { const im = new Image(); im.src = u; await Promise.race([im.decode(), new Promise(ok => setTimeout(ok, 2500))]); } catch (e) {}   // 2.0.160 : décodée avant le moment de la V1
-  if (r.en_cours && (n | 0) < 8) setTimeout(() => atlEspFond(W, f, (n | 0) + 1, j), 25000);
-}
-// les statistiques : cartes du résumé, section complète, courbe des 7 / 30 derniers jours
+  if (r.en_cours && (n | 0) < 8) setTimeout(() => atlEspFond(W, f, (n | 0) + 1, j), 25000);
+}
+// les statistiques : cartes du résumé, section complète, courbe des 7 / 30 derniers jours
 // 2.0.176 (l'admin : « montre la mascotte qui bosse dessus, avec un texte qui dit ce qu'elle fait ») : la carte de la mascotte dans
 // « Mon jeu » montre le TRAVAIL EN COURS — posé par l'équipe du jeu (at_travail_lire, SQL v161), sinon la dernière étape d'un ticket en
 // cours — avec la mascotte au travail (poses à images, aucune animation CSS), le texte, l'étape et « il y a 5 min » ; relu chaque minute
@@ -17595,9 +17596,107 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
       go.textContent = adm ? '✅ Remarque envoyée' : '✅ Envoyé'; if (adm && r && r.id) O.dataset.remarque = r.id; await anim; await new Promise(ok => setTimeout(ok, 450)); fin(); atlLoad(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
-  row.append(rp, go); O.append(hd, zone, tw, er, row); if (cout) O.appendChild(atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); host.appendChild(O);
+  // 2.1.10 (l'admin, 7 nov.) : « 🎫 Mes demandes » — ses demandes de CE jeu en TICKETS (pas la discussion), sans quitter l'arrêt sur image
+  const tk = atlEl('button', 'btn btn-ghost atl-artkb'); tk.type = 'button'; tk.addEventListener('click', () => atlTickets(O, ficheId));
+  O._tkMaj = () => { const l = atlTkDems(ficheId).filter(x => x.etat !== 'regroupee'), nCh = l.filter(atlTkChoisir).length, nEn = l.filter(x => !atlTkFini(x) && !atlTkChoisir(x)).length;
+    tk.textContent = '🎫 Mes demandes'; if (nCh || nEn) tk.appendChild(atlEl('span', 'atl-tkpast' + (nCh ? ' ch' : ''), nCh ? nCh + ' à choisir' : nEn + ' en cours'));
+    tk.setAttribute('aria-label', 'Mes demandes' + (nCh ? ' : ' + nCh + ' à choisir' : nEn ? ' : ' + nEn + ' en cours' : '')); };
+  O._tkMaj(); if (!atlAdminIci()) atlDemCharger(false).then(() => { try { if (O.isConnected) O._tkMaj(); } catch (e) {} });
+  row.append(tk, rp, go); O.append(hd, zone, tw, er, row); if (cout) O.appendChild(atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); host.appendChild(O);
   ta.focus({ preventScroll: true });   // 2.0.170 (l'admin) : le curseur dans le champ, aussi au téléphone
   return O;
+}
+// ---- 2.1.10 (l'admin, 7 nov. : « un bouton Mes demandes qui montre ses demandes sous forme de TICKETS, différent de la conversation ») :
+// par-dessus l'arrêt sur image, les demandes de CE jeu : onglets 💡 À choisir / 🛠️ En cours / ✅ Faites ; chaque ticket = son état, sa
+// demande, l'étape en cours EN DIRECT (relu toutes les 8 s), « ✅ Livré dans la Vn » ; un toucher le déplie (réponse, questions, étapes,
+// cartes d'offres « Choisir » : les mêmes que partout) ; ← Retour (ou B / Échap) revient à l'image, la partie reste en pause
+const atlTkFini = x => ['faite', 'impossible', 'regroupee'].includes(x.etat);
+const atlTkChoisir = x => !atlTkFini(x) && (atlPropOuverte(x) || atlQAttente(x));
+function atlTkDems(id) {
+  if (atlAdminIci() && ATL.data && ATL.data.fiche && ATL.data.fiche.id === id) return (ATL.data.demandes_projet || []).filter(Boolean);   // l'admin sur le jeu d'un autre : les demandes du joueur
+  return ((((ATL.dem || {}).demandes) || []).filter(x => x && x.fiche === id));
+}
+function atlTickets(O, ficheId) {
+  if (!O || O.querySelector('.atl-tk')) return;
+  const P = atlEl('div', 'atl-tk'); P.setAttribute('role', 'dialog'); P.setAttribute('aria-label', 'Mes demandes');
+  const f0 = ATL.data && ATL.data.fiche && ATL.data.fiche.id === ficheId ? ATL.data.fiche : atlProjets().find(p => p && p.id === ficheId);
+  const hd = atlEl('div', 'atl-tkh'), bk = atlEl('button', 'btn btn-ghost btn-sm atl-tkback', '← Retour'), ht = atlEl('div', 'atl-tkht');
+  bk.type = 'button'; bk.setAttribute('aria-label', 'Retour à l’arrêt sur image');
+  const titre = atlEl('small', 'atl-tkjeu', ''); ht.append(atlEl('h2', '', atlAdminIci() ? '🎫 Demandes du joueur' : '🎫 Mes demandes'), titre);
+  hd.append(bk, ht);
+  const tabs = atlEl('div', 'atl-tktabs'), L = atlEl('div', 'atl-tkl'), pied = atlEl('p', 'atl-tkpied', '💬 Pour en parler avec ' + gNM() + ' : sa discussion, dans ton projet.');
+  P.append(hd, tabs, L, pied); O.appendChild(P);
+  const ouv = new Set(); let ong = '', sig = '', minuterie = 0, vuOuvert = false;
+  const fermer = () => { clearInterval(minuterie); P.remove(); try { O._tkMaj(); } catch (e) {} const b = O.querySelector('.atl-artkb'); if (b && O.isConnected) try { b.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} };
+  const esc = e => {   // Échap (même quand le curseur n'est plus dans la fenêtre, ex. après « Confirmer ») : la fenêtre du dessus d'abord, puis retour à l'image
+    if (e.key !== 'Escape' || e.repeat || (typeof ATL_MIC !== 'undefined' && ATL_MIC)) return;
+    if (!P.isConnected) { document.removeEventListener('keydown', esc, true); return; }
+    e.preventDefault(); e.stopPropagation(); const m = document.querySelector('.atl-ofmod'); if (m) { if (m._fermer) m._fermer(); else m.remove(); return; } fermer();
+  };
+  document.addEventListener('keydown', esc, true);
+  P._fermer = () => { document.removeEventListener('keydown', esc, true); fermer(); }; bk.addEventListener('click', P._fermer);
+  const ligneEtape = x => {   // la dernière étape écrite par l'équipe (« Étape 2 / 5 … »), avec son heure
+    const l = Array.isArray(x.etapes) ? x.etapes.filter(e => e && (e.texte || e.etape)) : [], e = l[l.length - 1]; if (!e) return null;
+    const tx = String(e.texte || e.etape || ''), m = tx.match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i), d0 = new Date(e.at), w = atlEl('span', 'atl-tketape');
+    const bar = atlEl('span', 'atl-travbar' + (m && +m[2] > 0 ? '' : ' indet')), i = atlEl('i'); if (m && +m[2] > 0) i.style.width = Math.round(Math.min(+m[1], +m[2]) / +m[2] * 100) + '%'; bar.appendChild(i);
+    const net = tx.replace(/^\s*[ÉE]tape\s*\d+\s*\/\s*\d+\s*[:·—-]?\s*/i, '').trim();
+    w.append(bar, atlEl('small', '', (m ? 'Étape ' + Math.min(+m[1], +m[2]) + ' / ' + m[2] : '🛠️ En cours') + (net ? ' · ' + (net.length > 90 ? net.slice(0, 88) + '…' : net) : '') + (isNaN(d0) ? '' : ' · ' + d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))));
+    return w;
+  };
+  const EB = { envoyee: '📨 Envoyée', vue: '👀 Lue', choisir: '💡 À choisir', questions: '❓ À répondre', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard', remplacee: '🔁 Remplacée' };
+  const ticket = x => {
+    const ch = atlPropOuverte(x), q = atlQAttente(x), et = ch ? 'choisir' : q ? 'questions' : x.remplacee && !x.choix && !atlTkFini(x) ? 'remplacee' : x.etat;
+    const T = atlEl('div', 'atl-tkt e-' + et + (ouv.has(x.id) ? ' ouv' : '') + (x.nouveau && (x.reponse || ch) ? ' neuf' : '')); T.dataset.id = x.id;
+    const h = atlEl('button', 'atl-tkth'); h.type = 'button'; h.setAttribute('aria-expanded', String(ouv.has(x.id)));
+    const d0 = new Date(x.etat_at || x.at), haut = atlEl('span', 'atl-tktop');
+    haut.append(atlEl('span', 'atl-tkb', EB[et] || et), atlEl('span', 'atl-tkno', 'N° ' + String(x.id || '').slice(0, 4).toUpperCase()), atlEl('span', 'atl-tkd', isNaN(d0) ? '' : d0.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })));
+    const tx = String(x.texte || (x.choix && x.choix.libelle) || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '').split('\n')[0].replace(/^💡 Idée de la discussion : /, '💡 ').trim();
+    h.append(haut, atlEl('span', 'atl-tktx', tx || 'Ma demande'));
+    if (x.etat === 'en_cours' || (x.etat === 'envoyee' && Array.isArray(x.etapes) && x.etapes.length)) { const le = ligneEtape(x); if (le) h.appendChild(le); else h.appendChild(atlEl('small', 'atl-tkinfo', '🛠️ ' + gNM() + ' s’en occupe')); }
+    else if (x.etat === 'envoyee') h.appendChild(atlEl('small', 'atl-tkinfo', '💭 ' + gNM() + ' lit ta demande…'));
+    if (x.etat === 'faite') h.appendChild(atlEl('span', 'atl-tklivre', x.version_livree ? '✅ Livré dans la V' + x.version_livree : '✅ C’est fait'));
+    if (ch) h.appendChild(atlEl('span', 'atl-tkappel', '💡 ' + x.propositions.length + (x.propositions.length > 1 ? ' offres' : ' offre') + ' à choisir'));
+    else if (q) h.appendChild(atlEl('span', 'atl-tkappel', '❓ ' + gNM() + ' te pose ' + (atlQNb(x) > 1 ? atlQNb(x) + ' questions' : 'une question')));
+    if (x.choix) h.appendChild(atlEl('small', 'atl-tkinfo', '✅ Choisi : ' + (x.choix.libelle || '') + ((x.choix.credits | 0) ? ' · ' + (x.choix.credits | 0) + ' 💎' : '')));
+    h.appendChild(atlEl('span', 'atl-tkfl', '▾'));
+    h.addEventListener('click', () => { if (ouv.has(x.id)) ouv.delete(x.id); else ouv.add(x.id); sig = ''; rendre(); const n = L.querySelector('.atl-tkt[data-id="' + x.id + '"] .atl-tkth'); if (n) try { n.focus({ preventScroll: true }); n.scrollIntoView({ block: 'nearest' }); } catch (e) {} });
+    T.appendChild(h);
+    if (ouv.has(x.id)) { const c = atlEl('div', 'atl-tkc'); c.appendChild(atlDemCarte(x)); if (ch && !atlAdminIci()) c.appendChild(atlPropBoutons(x)); T.appendChild(c); }
+    return T;
+  };
+  const rendre = () => {
+    if (!P.isConnected) { clearInterval(minuterie); return; }
+    const tous = atlTkDems(ficheId), l0 = tous.filter(x => x.etat !== 'regroupee'), nRg = tous.length - l0.length;
+    const nCh = l0.filter(atlTkChoisir).length, nFa = l0.filter(atlTkFini).length, nEn = l0.length - nCh - nFa;
+    if (!f0 && l0[0] && l0[0].projet && !titre.textContent) titre.textContent = '« ' + l0[0].projet + ' »';
+    if (!ong) ong = nCh ? 'choisir' : nEn || !nFa ? 'encours' : 'faites';
+    if (ong === 'choisir' && !nCh) ong = 'encours';
+    if (!vuOuvert) { vuOuvert = true; for (const x of l0) if (atlPropOuverte(x) || atlQAttente(x)) ouv.add(x.id); }   // une offre ou une question : dépliée d'office
+    const de = x => atlTkFini(x) ? 'faites' : atlTkChoisir(x) ? 'choisir' : 'encours', recent = (u, v) => String(v.etat_at || v.at || '').localeCompare(String(u.etat_at || u.at || ''));
+    const l = l0.filter(x => de(x) === ong).sort(recent);
+    const s2 = ong + '|' + [...ouv].join(',') + '|' + JSON.stringify(l0.map(x => [x.id, x.etat, x.reponse, (x.etapes || []).length, x.nouveau, !!x.choix, atlPropOuverte(x), x.version_livree, (x.questions || []).map(q => q && q.reponse ? 1 : 0).join(''), x.remplacee ? 1 : 0]));
+    if (s2 === sig) return;
+    if ([...L.querySelectorAll('textarea, input[type=text], .atl-q input')].some(e => e.value.trim() || document.activeElement === e)) return;   // il écrit une réponse : on ne touche à rien
+    sig = s2;
+    tabs.textContent = '';
+    for (const [k, lab, n] of (nCh ? [['choisir', '💡 À choisir', nCh]] : []).concat([['encours', '🛠️ En cours', nEn], ['faites', '✅ Faites', nFa]])) {
+      const b = atlEl('button', 'atl-tktab' + (k === ong ? ' on' : '')); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(k === ong));
+      b.append(lab + ' ', atlEl('span', 'atl-tktabn', String(n))); b.addEventListener('click', () => { ong = k; sig = ''; rendre(); L.scrollTop = 0; try { b.focus({ preventScroll: true }); } catch (e) {} }); tabs.appendChild(b);
+    }
+    const y = L.scrollTop; L.textContent = '';
+    if (!ATL.dem && !atlAdminIci()) L.appendChild(atlEl('p', 'atl-tkvide', 'Je cherche tes demandes…'));
+    else if (!l.length) L.appendChild(atlEl('p', 'atl-tkvide', ong === 'faites' ? 'Pas encore de demande faite pour ce jeu.' : 'Pas de demande en cours. Montre-moi avec mon œil 👁️ ce que tu veux changer, puis envoie-le ' + gA() + '.'));
+    for (const x of l) L.appendChild(ticket(x));
+    if (nRg) L.appendChild(atlEl('p', 'atl-tkvide', '🔗 ' + nRg + (nRg > 1 ? ' demandes regroupées' : ' demande regroupée') + ' avec une autre.'));
+    L.scrollTop = y;
+    try { O._tkMaj(); } catch (e) {}
+  };
+  const relire = async () => { if (!P.isConnected) { clearInterval(minuterie); return; } try { if (atlAdminIci()) await atlLoad(true); else { ATL.demAt = 0; await atlDemCharger(true); } } catch (e) {} rendre();
+    const ae = document.activeElement; if (P.isConnected && (!ae || ae === document.body) && !document.querySelector('.atl-ofmod')) try { const b = P.querySelector('.atl-tktab.on') || bk; b.focus({ preventScroll: true }); } catch (e) {} };   // après « Confirmer » : le curseur (et la manette) reviennent dans la fenêtre
+  if (f0 && f0.titre) titre.textContent = '« ' + f0.titre + ' »';
+  rendre(); relire().then(() => { try { if (!atlAdminIci()) atlDemVues(); } catch (e) {} });
+  minuterie = setInterval(relire, 8000);
+  setTimeout(() => { try { const b = P.querySelector('.atl-tkt .atl-tkth') || P.querySelector('.atl-tktab.on') || bk; b.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 60);
 }
 // ---- 21 h 15 (Benjamin) : « 🎮 Jouer » (la V1) = EXACTEMENT comme une tuile de la borne (plein écran, écran titre, barre, manettes, fin de
 // partie) ; « Quitter » revient à la page du projet. Pendant la partie : le petit guide flottant (déplaçable) et la touche P → arrêt sur image.
@@ -20455,7 +20554,14 @@ function atlPubAdmin(f) {
 function atlConfirmer(titre, phrase, oui) {
   return new Promise(res => {
     const M = ATL.root && ATL.root.querySelector('.atl-mod');
-    if (!M) { res(window.confirm(titre + ' — ' + phrase)); return; }
+    if (!M || !ATL.open || document.querySelector('.atl-arret2 .atl-tk')) {   // 2.1.10 : en pleine partie (« Mes demandes » de l'arrêt sur image), l'Atelier est caché : une fenêtre par-dessus tout
+      const O = atlEl('div', 'atl-ofmod'), k = atlEl('div', 'atl-ofcard'); O.setAttribute('role', 'dialog'); O.setAttribute('aria-modal', 'true'); O.setAttribute('aria-label', titre);
+      k.append(atlEl('b', 'atl-oft', titre), atlEl('p', '', phrase));
+      const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', oui || 'Oui'); no.type = go.type = 'button';
+      const fin = v => { O.remove(); res(v); }; O._fermer = () => fin(false);
+      no.addEventListener('click', () => fin(false)); go.addEventListener('click', () => fin(true)); O.addEventListener('click', e => { if (e.target === O) fin(false); });
+      row.append(no, go); k.appendChild(row); O.appendChild(k); document.body.appendChild(O); no.focus(); return;
+    }
     M.textContent = ''; M.hidden = false;
     const c = atlEl('div', 'atl-mcard atl-conf'); c.append(atlEl('h2', '', titre), atlEl('p', 'atl-aide', phrase));
     const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', oui || '✅ Oui, publier'); no.type = go.type = 'button';
