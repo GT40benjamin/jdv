@@ -8,13 +8,14 @@ const ORDER = ['noisette', 'lune', 'licornes', 'trone', 'jetporte', 'sorcier', '
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  trouve: { kind: 'maj', at: '2026-11-06 00:20' },   // duel : écran-titre (borne 2.0.146)
-  spatial: { kind: 'maj', at: '2026-11-06 00:20' },   // duel : écran-titre (borne 2.0.146)
-  souris: { kind: 'maj', at: '2026-11-06 00:20' },   // duel : écran-titre (borne 2.0.146)
-  palet: { kind: 'maj', at: '2026-11-06 00:20' },   // duel : écran-titre (borne 2.0.146)
-  mots: { kind: 'maj', at: '2026-11-06 00:20' },   // duel : écran-titre (borne 2.0.146)
-  guerre: { kind: 'maj', at: '2026-11-06 00:20' },   // duel : écran-titre (borne 2.0.146)
-  boum: { kind: 'maj', at: '2026-11-06 00:20' },   // duel : écran-titre (borne 2.0.146)
+  briques: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  trouve: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  spatial: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  souris: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  palet: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  mots: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  guerre: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  boum: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
   trone: { kind: 'maj', at: '2026-11-05 13:00' },   // Trôn-e (borne 2.0.126) : « 📣 Inviter mes copains » dans le salon (bouton de la barre du jeu, api.live.inviter)
   remparts: { kind: 'maj', at: '2026-11-04 13:56' },   // Remparts ! (borne 2.0.85 : écran des mondes en accordéon ; borne 2.0.79 : 20 niveaux par monde = 4 régions × 5 ; borne 2.0.69 : la Crypte oubliée = 4 mondes cachés × 5 niveaux ; borne 2.0.27 : progression par salle — mondes ouverts, étoiles, défi ; 2.0.25 : records de la salle aussitôt sur les boutons ; 2.0.24) : records PAR SALLE (« Toi dans la salle », tableau, 👑) et 🌍 Mondial à part ; à la sortie : (tower defense magique 3D) : SORTI POUR TOUS (« Oui, public », Benjamin) ; heure = celle de la sortie ; en essai derrière la porte labo jusqu'à la 1.63.104
   noisette: { kind: 'maj', at: '2026-11-05 02:18' },   // Noisette et ses amis V7 (borne 2.0.115) : 6 mondes, 30 niveaux, carte de la tuile en 6 mondes
@@ -24,24 +25,24 @@ const TILE_NEWS = {
   coffres: { kind: 'maj', at: '2026-11-04 05:13' },   // Coffres à Secrets (borne 2.0.71) : 20 coffres par monde, les « fous furieux » du 15e au 20e ; SORTI POUR TOUS en 1.45 (27 oct. 2026)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'maj', at: '2026-11-06 02:03' },   // borne 2.0.148 : nouvel écran-titre (menu de la borne, image de menu, logo, musique de menu, une seule pause)
-  glouton: { kind: 'maj', at: '2026-10-13 00:55' },
-  empilo: { kind: 'maj', at: '2026-10-14 12:10' },
-  mouches: { kind: 'maj', at: '2026-10-14 12:43' },
+  glouton: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  empilo: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  mouches: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
   rouleaux: { kind: 'maj', at: '2026-10-14 13:32' },
   carreaux: { kind: 'maj', at: '2026-10-14 17:45' },
-  pingpong: { kind: 'maj', at: '2026-11-06 00:20' },
+  pingpong: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
   'coop-boum': { kind: 'new', at: '2026-10-15 06:00' },   // mode Coop : Boum 2 contre 2 (1.14)
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
-  toupies: { kind: 'maj', at: '2026-11-06 00:20' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
-  bolides: { kind: 'maj', at: '2026-11-06 00:20' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
+  toupies: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  bolides: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
   chrono: { kind: 'maj', at: '2026-11-06 02:03' },   // borne 2.0.148 : nouvel écran-titre (menu de la borne, image de menu, logo, musique de menu, une seule pause)
   pleingaz: { kind: 'maj', at: '2026-11-05 00:41' },   // Plein Gaz (borne 2.0.110, retour d'un joueur) : 3 cœurs au lieu d'une seule vie, nouveau tableau ; l'ancien (1 vie) gardé à part sous « pleingaz-1vie »
   neon: { kind: 'maj', at: '2026-11-06 02:03' },   // borne 2.0.148 : nouvel écran-titre (menu de la borne, image de menu, logo, musique de menu, une seule pause)
   flechettes: { kind: 'maj', at: '2026-11-06 02:03' },   // borne 2.0.148 : nouvel écran-titre (menu de la borne, image de menu, logo, musique de menu, une seule pause)
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
-  tirsaubut: { kind: 'maj', at: '2026-11-06 00:20' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
-  kombat: { kind: 'maj', at: '2026-11-06 00:20' },   // Mandale Kombat sorti pour tous (1.17)
+  tirsaubut: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  kombat: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
   pegase: { kind: 'maj', at: '2026-11-04 19:07' }   // Pégase 0.9.9.47 : FPS, caméra, chemin du Clos, arche (borne 2.0.92)
 };
 const NEWS_DAYS = 30;
