@@ -554,3 +554,25 @@
 .crea-vat b{color:#2a1f45}
 .crea-vat p{margin:4px 0 0;color:#3a3150;font-size:14.5px}
 .crea-vat ul{margin:6px 0 0;padding-left:20px;color:#3a3150;font-size:14px}
+/* le modèle des ateliers en MONDE SOMBRE (fenêtres sombres, contraste ≥ 4,5:1) ; le studio reste le studio */
+.crea.nuit .crea-mat-h{border-bottom-color:#3a2f73}
+.crea.nuit .crea-mat-h b{color:#f4edff}
+.crea.nuit .crea-mat-h small{color:#c3b6e2}
+.crea.nuit .crea-mat-pk{background:linear-gradient(135deg,#2e2566,#231b52);border-color:#4a3c94}
+.crea.nuit .crea-mat-pk b{color:#e2d6ff}
+.crea.nuit .crea-mat-pk small{color:#c3b6e2}
+.crea.nuit .crea-mat-b i{background:#2e2566}
+.crea.nuit .crea-mat-b.on{background:#342a70;color:#fff}
+.crea.nuit .crea-mat-ret{color:#e2d6ff}
+.crea.nuit .crea-zone{background:rgba(31,24,70,.92);border-color:#7d68cc}
+.crea.nuit .crea-zone b{color:#f4edff}
+.crea.nuit .crea-zone p{color:#d6cbef}
+.crea.nuit .crea-zone small,.crea.nuit .crea-regard small{color:#c3b6e2}
+.crea.nuit .crea-regard.vu{background:#3a2f12;border-color:#8a6b22}
+.crea.nuit .crea-regard.vu b{color:#ffe3a3}
+.crea.nuit .crea-regard.vu p{color:#f2ecff}
+.crea.nuit .crea-resi{background:#231b52;border-color:#4a3c94}
+.crea.nuit .crea-resi .t b,.crea.nuit .crea-route dt,.crea.nuit .crea-vat b{color:#f4edff}
+.crea.nuit .crea-resi .t small,.crea.nuit .crea-vide-t,.crea.nuit .crea-route dd,.crea.nuit .crea-vat p,.crea.nuit .crea-vat ul{color:#d6cbef}
+.crea.nuit .crea-vat{background:#231b52;border-color:#4a3c94}
+.crea.nuit.studio{background-color:#16141b!important;background-image:radial-gradient(70% 55% at 50% 42%,rgba(190,180,215,.35),rgba(190,180,215,0) 72%),radial-gradient(22% 30% at 6% 14%,rgba(255,236,200,.35),rgba(255,236,200,0) 70%),radial-gradient(22% 30% at 94% 14%,rgba(200,220,255,.32),rgba(200,220,255,0) 70%),linear-gradient(180deg,#3a3642 0%,#57525e 50%,#3a3642 100%)!important}
