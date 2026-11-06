@@ -730,7 +730,7 @@ function menuImage(g, M, scene) {
       const cs = getComputedStyle(cadre), aw = Math.max(40, cadre.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)), ah = Math.max(30, cadre.clientHeight);
       let cw = aw, ch = aw * 3 / 4; if (ch > ah) { ch = ah; cw = ah * 4 / 3; }
       if (ah > aw * 1.05) { cw = aw; ch = Math.min(ah, aw * 4 / 3); }   // portrait : à la largeur de l'écran, plus haute que large
-      if (M.classList.contains('tmenu')) { cw = Math.min(aw * .9, 720); ch = cw * 3 / 4; if (ch > ah * .92) { ch = ah * .92; cw = ch * 4 / 3; } c.classList.add('tm-carte'); }   // 2.0.146 (chef) : carte nette, jamais étirée
+      if (M.classList.contains('tmenu')) { cw = Math.min(aw * .9, 720); ch = cw * 3 / 4; if (ch > ah * .92) { ch = ah * .92; cw = ch * 4 / 3; } c.classList.add('tm-carte'); const ic = M.querySelector(':scope > .tm-icos'), ir = ic && ic.getClientRects().length ? ic.getBoundingClientRect() : null; if (ir && ir.width) { const cr = cadre.getBoundingClientRect(), mx = 2 * (ir.left - 12 - (cr.left + cr.width / 2)); if (mx > 80 && cw > mx) { cw = mx; ch = cw * 3 / 4; } } }   // 2.0.146 (chef) : carte nette, jamais étirée, et jamais sous la colonne d'icônes (12 px d'écart au moins)
       const d = Math.min(2, devicePixelRatio || 1), w = Math.max(1, Math.round(cw * d)), h = Math.max(1, Math.round(ch * d));
       if (c.width !== w || c.height !== h) { c.width = w; c.height = h; c.style.width = Math.round(cw) + 'px'; c.style.height = Math.round(ch) + 'px'; c.style.setProperty('--cw', Math.round(cw) + 'px'); c.style.setProperty('--ch', Math.round(ch) + 'px'); }
       const k = w + 'x' + h; if (k === taille && n > 3) { requestAnimationFrame(tic); return; } taille = k;
