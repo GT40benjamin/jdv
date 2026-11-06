@@ -958,7 +958,7 @@ function mount(root, api) {
     // V3 : chacun garde sa place : deux personnages debout (du même métier) ne se tassent jamais à moins de 44 l'un de l'autre (ils se poussent doucement)
     const V2 = G.gens.filter(g => g.etat !== 'ko' && g.etat !== 'parti');
     for (let i = 0; i < V2.length; i++) for (let j = i + 1; j < V2.length; j++) {
-      const a = V2[i], b = V2[j]; if (aLaPorte(a) || aLaPorte(b)) continue; const D = a.sorte === 'chevalier' ? 58 : 46, dx = b.x - a.x, dy = (b.y - a.y) * 0.79; if (a.sorte !== b.sorte || Math.abs(dx) > D || Math.abs(dy) > D) continue;   // (chevaliers : la largeur d'un corps)   // (entre gens du même métier : un paysan qui fuit se faufile entre les chevaliers)
+      const a = V2[i], b = V2[j]; if (aLaPorte(a) || aLaPorte(b)) { const fx = b.x - a.x, fy = b.y - a.y; if (Math.abs(fx) < 34 && Math.abs(fy) < 44) { const k = (44 - Math.abs(fy)) / 4, sg = fy >= 0 ? 1 : -1; bouger(a, 0, -sg * k, 12); bouger(b, 0, sg * k, 12); } continue; }   /* dans la porte : en file, l'un derrière l'autre, sans se chevaucher */ const D = a.sorte === 'chevalier' ? 58 : 46, dx = b.x - a.x, dy = (b.y - a.y) * 0.79; if (a.sorte !== b.sorte || Math.abs(dx) > D || Math.abs(dy) > D) continue;   // (chevaliers : la largeur d'un corps)   // (entre gens du même métier : un paysan qui fuit se faufile entre les chevaliers)
       const d = Math.hypot(dx, dy) || 0.01; if (d >= D) continue;
       const k = (D - d) / 2, ux = dx / d, uy = dy / d / 0.79;   // (un corps fait ~55 de large et ~70 de profondeur : l'un derrière l'autre = à 73 au moins)   // (corrigé tout de suite : la poursuite ne les retasse que de quelques unités)
       bouger(a, -ux * k, -uy * k, 12); bouger(b, ux * k, uy * k, 12);
@@ -972,10 +972,10 @@ function mount(root, api) {
     for (const g of V2) if (g.marche && g.fx != null && Math.hypot(g.x - g.fx, g.y - g.fy) < 0.6) g.marche = false;
   }
   // V5 : dans le passage d'une porte (et juste devant / derrière), on ne s'écarte pas : on passe en file
-  function aLaPorte(g) { for (const c of CHATEAUX) { const P = c.porte, B = c.box; if (P && B && Math.abs(g.x - P.x) < 70 && Math.abs(g.y - B.y1) < 90) return true; } return false; }
+  function aLaPorte(g) { for (const c of CHATEAUX) { const P = c.porte, B = c.box; if (P && B && Math.abs(g.x - P.x) < 62 && g.y > B.y1 - 56 && g.y < B.y1 + 22) return true;   /* le passage et juste devant / derrière, pas plus : dehors, chacun garde sa place */ } return false; }
   function viaPorte(a, b) {
     for (const c of CHATEAUX) {
-      const B = c.box, dans = p => p.x > B.x0 - 10 && p.x < B.x1 + 10 && p.y > B.y0 - 30 && p.y < B.y1 + 4;
+      const B = c.box, dans = p => p.x > B.x0 - 10 && p.x < B.x1 + 10 && p.y > B.y0 - 30 && p.y < B.y1 + (Math.abs(p.x - c.porte.x) < 62 ? 26 : 4);   /* V5 : dans l'épaisseur de la porte, on est encore dedans : on sort tout droit */
       const da = dans(a), db = dans(b); if (da === db) continue;
       const P = c.porte, dx = Math.abs(a.x - P.x);
       if (da) return dx < 34 && a.y > B.y1 - 70 ? { x: P.x, y: B.y1 + 60 } : { x: P.x, y: B.y1 - 50 };   // sortir : d'abord devant la porte, côté cour
