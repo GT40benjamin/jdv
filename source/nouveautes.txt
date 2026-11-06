@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🛍️ Chaque article de boutique a sa page (borne 2.0.168)
+[borne] 🛍️ Dans la boutique d’un jeu, chaque article montre sa petite phrase ; touche-le (ou A à la manette) : sa page s’ouvre avec la grande image, ses avantages ligne par ligne, son prix et « Acheter ». ← Retour ou B pour revenir.
+[borne] 🏠 Le bouton 🛍️ Boutique de l’écran-titre ouvre seulement la boutique, par-dessus le titre : en la fermant, tu retrouves l’écran-titre.
 [borne] ## 🔎 La discussion lisible partout (borne 2.0.167)
 [borne] 🔎 Toute ta discussion avec {g} passe en clair, texte foncé : cartes de questions (numéro rond, question en gras), tes réponses en petite bulle verte avec « voir plus », offres et prix, récapitulatifs. Sur ordinateur, la discussion s’élargit et descend jusqu’en bas de l’écran.
 [borne] ## ✍️ Les articles de ta boutique et leur description (borne 2.0.166)

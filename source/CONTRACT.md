@@ -404,6 +404,17 @@ ou famille), `liste()` rend `mien: true` et `possede: true` pour TOUS les articl
 fenêtre, un consommable a `stock: 9999` (illimité) et `consommer` rend `{ ok: true, stock: 9999, illimite: true }` sans rien retirer. La vitrine
 montre « ✨ À toi, c'est ton jeu ». Aucun crédit ne bouge, rien n'est inscrit comme vente. → Le jeu débloque tout pour son créateur, comme pour un acheteur. Un article normal reste à vie (`deja`) ; `consommer` le refuse.
 
+**Avantages et page détail (borne 2.0.168, SQL v158, demande de l'admin)** : `at_boutique_poser(…, p_avantages => array['🦄 Comble toute une série d’un coup', '💎 Très rare', …])`
+= la LISTE des avantages, une ligne chacun (8 au plus, 90 caractères, filtrés comme le nom ; `null` = garde, `'{}'` = efface). Une ligne qui commence par
+un emoji le garde comme icône, sinon la vitrine met ✔. `liste()` rend `avantages` (tableau de textes). La tuile de la vitrine montre le nom, la petite
+phrase (`p_texte`, 2 lignes) et « 3 avantages › » ; un toucher (ou A) ouvre la PAGE de l'article : grande image, nom, phrase, avantages en lignes sur
+une carte blanche, prix 💎 (≈ €), « 🔁 Se rachète · il t'en reste N », « ✨ Déjà à toi », et « Acheter · N 💎 » (→ la confirmation). ← Retour / B / Échap
+= la vitrine. Le bouton 🛍️ BOUTIQUE de l'écran-titre ouvre la vitrine PAR-DESSUS le titre, sans monter le jeu ; la fermer ramène au titre. Le jeu
+relit `possede(cle)` à son montage (comme toujours).
+**Retour à l'écran-titre (borne 2.0.168, demande de Noisette)** : `api.retourMenu()` = le jeu quitte et la borne montre SON écran-titre (comme
+« ☰ Menu » de fin de partie) ; sans écran-titre de borne (`menu` absent), retour à la bibliothèque. Pour un bouton « ← Menu » du jeu (et B à la
+manette). Vieilles bornes : tester `api.retourMenu` d'abord (secours : `api.pause.ouvrir()`).
+
 ## Ajout 26 : un jeu de l'Atelier se livre SANS publier la borne (borne 2.0.133, demande de l'admin du 5 nov. 2026)
 La borne ne garde plus de liste des jeux nés à l'Atelier : elle apprend leur id par le SERVEUR (at_fiches.jeu, renvoyé par at_lire,
 at_jeux, at_admin_lire, at_tous_projets ; version, version_publiee, rayon, orientation, titre, vignette viennent aussi de la fiche).
