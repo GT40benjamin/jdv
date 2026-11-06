@@ -64,14 +64,20 @@
   atlRenderProjets = function () {   // eslint-disable-line no-global-assign
     _renderProjets.apply(this, arguments);
     try { decorer(); } catch (e) {}
-    setTimeout(() => { try { if (lireCartes() && AIM.open) renderArbre(); } catch (e) {} }, 0);
+    setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} }, 0);
     if (Date.now() - AIM.typesAt > 15000) chargerTypes().then(() => { try { decorer(); } catch (e) {} });
   };
   // l'admin (6 nov., 2.1) : TOUT le monde arrive sur l'écran « Nouveau projet » sous les nuages dès qu'il ouvre « Crée avec {g} » ;
   // l'ancienne grille de projets reste dessous (ses cartes donnent statuts et bulles à l'arbre), jamais montrée en premier
-  if (typeof atlOpen === 'function') { const _open = atlOpen; atlOpen = function () { const r = _open.apply(this, arguments); try { if (ATL.open && !ATL.cur && !AIM.open) nouveau(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
+  if (typeof atlOpen === 'function') { const _open = atlOpen; atlOpen = function () { if (!ATL.open) { ATL.cur = null; ATL.nouveau = false; } const r = _open.apply(this, arguments); try { if (ATL.open && !ATL.cur && !AIM.open) nouveau(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
   if (typeof atlListe === 'function') { const _liste = atlListe; atlListe = function () { const r = _liste.apply(this, arguments); try { if (ATL.open && !AIM.open) nouveau(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
-  if (typeof jdwBack === 'function') { const _back = jdwBack; jdwBack = function () { if (AIM.open && retour()) return true; return _back.apply(this, arguments); }; }   // eslint-disable-line no-global-assign
+  if (typeof jdwBack === 'function') { const _back = jdwBack; jdwBack = function () { if (AIM.open && retour()) return true; if (AIM.cadre && AIM.root && AIM.root.classList.contains('tiroir')) { AIM.root.classList.remove('tiroir'); return true; } if (AIM.cadre && ATL.root && ![...ATL.root.querySelectorAll('.atl-mod, .atl-zoom, .atl-lv')].some(m => !m.hidden)) { fermerVersProjets(); return true; } return _back.apply(this, arguments); }; }
+  // le chef (6 nov., nuit, frontière avec l'Interface) : un jeu PAS ENCORE jouable (atlAvantV1) se monte dans le NOUVEAU design. On ne réécrit
+  // RIEN du montage : la discussion, les offres, at_dire, le paiement et le micro restent ceux de l'Interface (#jdw-atelier) ; on l'HABILLE
+  // (classe crea-mt : ciel de nuages, feuille blanche, sans barre d'étapes ni feuille de route) et #jdw-crea passe en « cadre » par-dessus
+  // (en-tête « Crée avec … › Mes projets › titre » + l'arbre), rangé DANS #jdw-atelier pour que la manette voie tout. atlJouable → la main
+  // revient à l'Interface (sa révélation des nuages joue)
+  if (typeof atlRender === 'function') { const _rendu = atlRender; atlRender = function () { const r = _rendu.apply(this, arguments); try { cadreMaj(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
 
   // les tuiles « Mes projets » de l'Atelier : un projet Images montre son image et « 🎨 Images · N images »
   function decorer() {
@@ -115,11 +121,59 @@
   }
   function monde() {   // nuages de nuit / nuages de jour (le choix reste sur l'appareil)
     const R = AIM.root; if (!R) return; let n = false; try { n = store.get('jdw.crea.monde', 'jour') === 'nuit'; } catch (e) {}
-    R.classList.toggle('nuit', n); const b = R.querySelector('.crea-monde'); b.textContent = n ? '☀️' : '🌙';
+    R.classList.toggle('nuit', n); try { if (ATL.root) ATL.root.classList.toggle('crea-nuit', n); } catch (e) {} const b = R.querySelector('.crea-monde'); b.textContent = n ? '☀️' : '🌙';
     b.setAttribute('aria-label', n ? 'Monde clair' : 'Monde sombre'); b.title = n ? 'Monde clair' : 'Monde sombre';
   }
+  function ficheMontage() {   // la fiche du projet ouvert dans l'Interface (ou sa ligne dans les listes) ; null = nouveau jeu
+    if (!ATL.cur) return null;
+    let f = null; try { f = atlFiche(); } catch (e) {}
+    if (!f) f = atlProjets().find(x => x && x.id === ATL.cur) || ((ATL.tous && Array.isArray(ATL.tous.l)) ? ATL.tous.l.find(x => x && x.id === ATL.cur) : null);
+    return f;
+  }
+  function enMontage() {
+    if (AIM.open || !ATL.open || !ATL.root || ATL.root.hidden) return false;
+    if (ATL.nouveau && !ATL.cur) return true;
+    if (!ATL.cur || typeDe(ATL.cur) === 'images') return false;
+    const f = ficheMontage(); return !!f && atlAvantV1(f);   // les fonctions de l'Interface, jamais une copie de la règle
+  }
+  function cadreMaj() {
+    const A = ATL.root; if (!A) return;
+    const on = enMontage();
+    A.classList.toggle('crea-mt', on);
+    try { A.classList.toggle('crea-nuit', store.get('jdw.crea.monde', 'jour') === 'nuit'); } catch (e) {}
+    if (on) {
+      const R = construire();
+      if (!AIM.cadre) {
+        AIM.cadre = true; R.classList.remove('tiroir', 'pk-plein', 'nv'); R.classList.add('cadre'); R.removeAttribute('role'); R.style.backgroundImage = '';
+        A.appendChild(R);
+        if (!A.querySelector('.crea-mtciel')) { const c = E('div', 'crea-mtciel'); c.setAttribute('aria-hidden', 'true'); try { atlEspCiel(c, false); } catch (e) {} A.insertBefore(c, A.firstChild); }
+        if (!AIM.obs) montrerObs();
+      }
+      R.hidden = false; monde(); renderCadre();
+    } else if (AIM.cadre) cadreFin();
+  }
+  function cadreFin() {
+    AIM.cadre = false; const R = AIM.root; if (!R) return;
+    R.classList.remove('cadre', 'tiroir'); R.setAttribute('role', 'dialog'); document.body.appendChild(R);
+    if (!AIM.open) R.hidden = true;
+    if (ATL.root) ATL.root.classList.remove('crea-mt');
+  }
+  function renderCadre() {
+    const R = AIM.root, q = s => R.querySelector(s), f = ficheMontage();
+    const fil = q('.crea-fil'); fil.textContent = '';
+    fil.append(E('span', 'lien', '· Mes projets'), E('span', 'lien', ' › '), E('strong', '', (f && f.titre) || 'Nouveau jeu'));
+    q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
+    let so = null; try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {}
+    if (so == null && typeof AIM.solde === 'number') so = AIM.solde;
+    q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + so + (etroit() ? '' : ' crédits') : '';
+    renderArbre();
+  }
+  function montrerObs() {
+    if (!AIM.obs && ATL.root) { try { let t = 0; AIM.obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} }, 250); }); AIM.obs.observe(ATL.root, { childList: true, subtree: true, characterData: true }); } catch (e) {} }
+  }
   function montrer() {
-    if (!AIM.obs && ATL.root) { try { let t = 0; AIM.obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { try { if (lireCartes() && AIM.open) renderArbre(); } catch (e) {} }, 250); }); AIM.obs.observe(ATL.root, { childList: true, subtree: true, characterData: true }); } catch (e) {} }
+    if (AIM.cadre) cadreFin();
+    if (!AIM.obs && ATL.root) { try { let t = 0; AIM.obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} }, 250); }); AIM.obs.observe(ATL.root, { childList: true, subtree: true, characterData: true }); } catch (e) {} }
     construire(); AIM.open = true; AIM.root.hidden = false;
     AIM.root.style.backgroundImage = AIM.vue === 'nouveau' ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
     AIM.root.classList.remove('tiroir', 'pk-plein');
@@ -129,7 +183,7 @@
     try { if (typeof ATL_MIC !== 'undefined' && ATL_MIC && AIM.root && AIM.root.contains(ATL_MIC.field)) atlMicFin(); } catch (e) {}
     if (AIM.root) { AIM.root.hidden = true; modFermer(); }
   }
-  function fermerVersProjets() { if (AIM.vue !== 'nouveau' && AIM.open) { nouveau(); return; } fermer(); try { atlClose(); } catch (e) {} }   // le « Mes projets » de chacun = l'écran sous les nuages
+  function fermerVersProjets() { if (AIM.cadre) { try { atlListe(); } catch (e) {} return; } if (AIM.vue !== 'nouveau' && AIM.open) { nouveau(); return; } fermer(); try { atlClose(); } catch (e) {} }   // le « Mes projets » de chacun = l'écran sous les nuages
   function retour() {   // Android ← et B de la manette
     const R = AIM.root; if (!R) return false;
     if (!R.querySelector('.crea-mod').hidden) { modFermer(); return true; }
@@ -370,7 +424,7 @@
     return ic;
   }
   function ligneProjet(pj, opts) {
-    const img = typeDe(pj.id) === 'images' && !opts.autre, ouvert = img && AIM.fiche === pj.id, ca = AIM.cartes[pj.id] || {};
+    const img = typeDe(pj.id) === 'images' && !opts.autre, ouvert = (img && AIM.fiche === pj.id) || (AIM.cadre && !opts.autre && ATL.cur === pj.id), ca = AIM.cartes[pj.id] || {};
     const n = B('crea-nd crea-proj' + (ouvert ? ' ouvert' : '') + (ca.cls || []).map(k => ' ' + k).join(''), null, () => {
       AIM.root.classList.remove('tiroir');
       if (opts.autre) { fermer(); try { atlVoirProjet(pj.id); } catch (e) {} return; }   // admin : le projet d'un joueur, exactement comme il le voit (fonctions admin existantes)
@@ -393,7 +447,7 @@
     try { lireCartes(); } catch (e) {}
     const ps = atlProjets(), cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
     const h = E('div', 'crea-tarb'); h.append(E('b', '', '📁 MES PROJETS'), E('span', '', ps.length + ' / ' + max)); A.appendChild(h);
-    const nb = B('crea-nouveau' + (AIM.vue === 'nouveau' ? ' on' : ''), '＋ Nouveau projet', () => { AIM.root.classList.remove('tiroir'); atlNouveau(); });
+    const nb = B('crea-nouveau' + (AIM.vue === 'nouveau' && !AIM.cadre ? ' on' : ''), '＋ Nouveau projet', () => { AIM.root.classList.remove('tiroir'); atlNouveau(); });
     if (ps.length >= max) nb.disabled = true;
     A.appendChild(nb);
     for (const pj of ps) {

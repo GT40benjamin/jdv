@@ -302,3 +302,50 @@
 .crea.nuit .crea-arbre{background:rgba(255,255,255,.93)}
 .crea.nuit.nv .crea-ciel{z-index:0}
 @media (max-width:699px){.crea.nuit.nv .crea-ciel::after{width:54px;height:54px;right:6%;top:2%}}
+/* ===== MONTAGE D'UN JEU dans le nouveau design (le chef, 6 nov. nuit ; frontière avec l'Interface : atlAvantV1 = ici, atlJouable = son espace).
+   L'écran de l'Interface (#jdw-atelier) garde TOUT son code (discussion, offres, paiement, micro) ; la classe crea-mt l'habille seulement :
+   ciel de nuages, feuille blanche au centre, sans barre d'étapes ni feuille de route ; #jdw-crea (classe cadre) est rangé dedans par-dessus :
+   en-tête « Crée avec … › Mes projets › titre » + l'arbre ===== */
+.crea-mtciel{display:none}
+#jdw-atelier.crea-mt{background:linear-gradient(180deg,#fde9f6 0%,#f6ecff 55%,#efe4ff 100%);padding-top:calc(env(safe-area-inset-top,0px) + 59px);box-sizing:border-box}
+#jdw-atelier.crea-mt .crea-mtciel{display:block;position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+#jdw-atelier.crea-mt .crea-mtciel .atl-ciel{opacity:.95}
+#jdw-atelier.crea-mt > .atl-bar,#jdw-atelier.crea-mt > .atl-main,#jdw-atelier.crea-mt > .atl-wiz,#jdw-atelier.crea-mt > .atl-bases{position:relative;z-index:1}
+#jdw-atelier.crea-mt > .atl-frise,#jdw-atelier.crea-mt > .atl-route,#jdw-atelier.crea-mt > .atl-projets,#jdw-atelier.crea-mt .atl-main > .atl-fiche{display:none!important}
+/* la barre de l'Interface : seulement ses boutons d'action (Mes demandes, musique, Envoyer…), sur le ciel ; titre, retour et crédits = mon en-tête */
+#jdw-atelier.crea-mt > .atl-bar{background:transparent;border:0;box-shadow:none;justify-content:flex-end;min-height:0;padding:8px 16px 0;gap:8px}
+#jdw-atelier.crea-mt > .atl-bar > .atl-back,#jdw-atelier.crea-mt > .atl-bar > .atl-h,#jdw-atelier.crea-mt > .atl-bar > .atl-cred,#jdw-atelier.crea-mt > .atl-bar > .atl-dot{display:none!important}
+#jdw-atelier.crea-mt > .atl-bar .btn-ghost,#jdw-atelier.crea-mt > .atl-bar .atl-abob{background:#fff;color:#3b1d6e;border:1.5px solid #e2d8ea;box-shadow:0 4px 12px rgba(60,20,110,.1)}
+#jdw-atelier.crea-mt > .atl-bar:not(:has(> button:not([hidden]):not(.atl-back):not(.atl-cred))){display:none}
+/* la feuille blanche au centre */
+#jdw-atelier.crea-mt .atl-main{--ink:#2a1f45;--muted:#6b6280;--line:#e6dcf3;--panel:#fff;--night:#f7f2fd;--steel2:#d9cdea;color:#2a1f45;grid-template-rows:minmax(0,1fr);max-width:900px;padding:14px 16px 16px}
+#jdw-atelier.crea-mt .atl-chat{background:#fff;border:0;border-radius:22px;box-shadow:0 14px 40px rgba(60,20,110,.16)}
+#jdw-atelier.crea-mt .atl-log{background:#fbf8ff}
+#jdw-atelier.crea-mt .atl-comp{background:#fff;border-top:1px solid #efe7f8}
+#jdw-atelier.crea-mt .atl-in{background:#fff;color:#2a1f45;border:2px solid #2a1f45;border-radius:16px}
+#jdw-atelier.crea-mt .atl-in::placeholder{color:#8a8199}
+#jdw-atelier.crea-mt .atl-in:focus{outline:3px solid #b99cf0;outline-offset:1px}
+#jdw-atelier.crea-mt .atl-imgb{color:#3b1d6e;background:#f4eeff;border-color:#e2d8ea}
+#jdw-atelier.crea-mt .atl-banner{background:#fff6dc;border-bottom-color:#f2dc95;color:#6b4a00}
+#jdw-atelier.crea-mt .atl-choix{background:linear-gradient(180deg,#fff6dc,#fff);border-color:#f2d27a;color:#2a1f45}
+#jdw-atelier.crea-mt .atl-choix .atl-cq{color:#7a4b00}
+#jdw-atelier.crea-mt .atl-lock{background:#f4f0fb;color:#5b5368}
+#jdw-atelier.crea-mt .atl-intro{color:#2a1f45}
+#jdw-atelier.crea-mt .atl-cost,#jdw-atelier.crea-mt .atl-err{color:#6b6280}
+/* le cadre (#jdw-crea rangé dans #jdw-atelier) : transparent aux clics, sauf l'en-tête et l'arbre ; sous les fenêtres de l'Interface (z 6) */
+#jdw-atelier > .crea.cadre{position:absolute;z-index:3;background:none!important;pointer-events:none}
+.crea.cadre::before,.crea.cadre .crea-ciel,.crea.cadre .crea-outil,.crea.cadre .crea-masc,.crea.cadre .crea-flot,.crea.cadre .crea-mod{display:none!important}
+.crea.cadre .crea-bar,.crea.cadre .crea-arbre,.crea.cadre.tiroir .crea-voile{pointer-events:auto}
+.crea.cadre .crea-arbre{background:rgba(255,255,255,.95);border-radius:20px;box-shadow:0 10px 28px rgba(30,10,60,.18)}
+@media (min-width: 900px){
+  #jdw-atelier.crea-mt{padding-left:calc(16px * 2 + 268px)}
+  #jdw-atelier.crea-mt > .atl-bar{padding-right:16px}
+}
+/* monde sombre : nuages de nuit derrière la feuille */
+#jdw-atelier.crea-mt.crea-nuit{background:linear-gradient(180deg,#0e1033 0%,#241a52 55%,#3b2466 100%)}
+#jdw-atelier.crea-mt.crea-nuit .crea-mtciel .atl-ciel{opacity:.5}
+#jdw-atelier.crea-mt.crea-nuit .crea-mtciel .atl-nuage{filter:brightness(.62) sepia(1) hue-rotate(208deg) saturate(2.4) brightness(.6)}
+#jdw-atelier.crea-mt.crea-nuit .crea-mtciel::before{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(2px 2px at 12% 14%,#fff 60%,transparent),radial-gradient(1.5px 1.5px at 27% 32%,#fff 60%,transparent),radial-gradient(2.5px 2.5px at 44% 8%,#fff 60%,transparent),radial-gradient(1.5px 1.5px at 61% 26%,#fff 60%,transparent),radial-gradient(2px 2px at 78% 12%,#fff 60%,transparent),radial-gradient(1.5px 1.5px at 90% 38%,#fff 60%,transparent),radial-gradient(2px 2px at 8% 52%,#fff 60%,transparent),radial-gradient(1.5px 1.5px at 35% 58%,#fff 60%,transparent),radial-gradient(2px 2px at 69% 50%,#fff 60%,transparent),radial-gradient(1.5px 1.5px at 95% 64%,#fff 60%,transparent);opacity:.9}
+#jdw-atelier.crea-mt.crea-nuit .crea-mtciel::after{content:"";position:absolute;right:7%;top:9%;width:86px;height:86px;border-radius:50%;z-index:2;background:radial-gradient(circle at 38% 38%,#fffdf2,#f3e7c4 62%,#e2d2a6);box-shadow:0 0 40px 14px rgba(255,244,200,.28),0 0 140px 50px rgba(160,140,255,.22)}
+@media (max-width:699px){#jdw-atelier.crea-mt.crea-nuit .crea-mtciel::after{width:54px;height:54px;right:6%;top:2%}}
+@media (prefers-reduced-motion: reduce){#jdw-atelier.crea-mt .crea-mtciel .atl-nuage{animation:none}}
