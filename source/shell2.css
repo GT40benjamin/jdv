@@ -5852,3 +5852,14 @@ body.atl-on #jdw-lib{content-visibility:hidden}
   .bout-dret{align-self:flex-start}
   .bout-dimg{width:min(100%,320px);align-self:center}
 }
+/* 2.0.170 (l'admin : « le fond est si clair, ça fait fade ») : l'image du jeu garde ses VRAIES couleurs dans son espace — plus de voile
+   blanc, juste une vignette sombre sur les bords pour la profondeur ; la lisibilité vient des cartes (blanches à 94 %, ombre douce, bordure fine) */
+.atl-wiz.atl-espace{--esp-card:rgba(255,255,255,.94);--esp-line:rgba(255,255,255,.95);background-image:none}
+/* l'image sur un calque à part, un peu plus saturée et contrastée (beaucoup d'images de l'Atelier sont peintes en pastel brumeux) ; filtre fixe, calculé une fois */
+.atl-wiz.atl-espace::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:radial-gradient(130% 100% at 50% 40%,rgba(22,12,44,0) 52%,rgba(22,12,44,.32)),var(--esp-fond,linear-gradient(135deg,#ffd6ee,#d9ccff)) center/cover no-repeat;filter:saturate(1.4) contrast(1.1)}
+@media (max-width:900px){.atl-wiz.atl-espace::before{background-position:center,center top}}
+.atl-eshero,.atl-escard,.atl-esnav,.atl-espace .atl-vsortie{background:rgba(255,255,255,.94)!important;border:1px solid rgba(255,255,255,.95);box-shadow:0 10px 32px rgba(22,12,44,.24)}
+#jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-estabs,.atl-estop .atl-espk{background:rgba(255,255,255,.95)!important;box-shadow:0 8px 28px rgba(22,12,44,.28)}
+/* les titres posés sur le fond (titre de l'onglet, familles de la Boutique) : une petite pastille blanche derrière, le fond reste vif */
+.atl-espace .atl-pane > .atl-ph3,.atl-espace .atl-esbfam > h4{display:inline-flex;align-items:center;gap:8px;width:auto;max-width:100%;padding:7px 16px;border-radius:999px;background:rgba(255,255,255,.94);box-shadow:0 6px 20px rgba(22,12,44,.22)}
+.atl-esbart{background:rgba(255,255,255,.95)}

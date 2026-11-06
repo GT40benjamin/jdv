@@ -16927,7 +16927,7 @@ function atlEspace(W, box, f, g, pane) {
   // 2.0.152 (maquette validée par le chef, remarques de l'admin) : fond lumineux du jeu, cartes claires translucides ; mascotte en haut à
   // gauche = la conversation (pas de bouton « Discuter ») ; pas de barre d'étapes ; feuille de route lisible en entier (section du menu) ;
   // « ? » pour les explications ; Boutique grisée sans article ; téléphone : barre d'onglets en bas (Paramètres compris)
-  W.classList.add('atl-espace'); W.style.setProperty('--esp-acc', (g && g.accent) || '#ff7ac8');
+  W.classList.add('atl-espace'); W.style.setProperty('--esp-acc', (g && g.accent) || '#ff7ac8'); atlEspRaz(W, g);   // 2.0.170 : jamais le fond du projet précédent
   const R0 = ATL.root;
   const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, vN = (f.version | 0) || 1;
   const conv = () => { atlEspFermer(); atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} };
@@ -17109,30 +17109,37 @@ function atlEspResume(c, f, st) {
     const go = () => { atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} }; d.addEventListener('click', go); d.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); }
 }
 // le fond de l'espace : l'image générée pour le projet (une fois, refaite si le thème change), sinon les couleurs du jeu ; relu pendant la génération
-async function atlEspFond(W, f, n) {
+// 2.0.170 (l'admin : l'Explorateur avec le fond des Licornes) : l'élément de l'espace sert à TOUS les projets ; à chaque ouverture on efface le
+// fond précédent (classe esp-menu, variables --esp-fond*), on pose le dégradé du jeu en attendant, et un jeton neuf : toute réponse d'un ancien projet est ignorée
+function atlEspRaz(W, g) {
+  W._espJeton = (W._espJeton | 0) + 1; W.classList.remove('esp-menu'); for (const v of ['--esp-fond', '--esp-fond-l', '--esp-fond-p']) W.style.removeProperty(v);
+  const a = g && /^#[0-9a-f]{3,8}$/i.test(String(g.accent || '')) ? g.accent : '#9b7bff'; W.style.setProperty('--esp-fond', 'linear-gradient(160deg,' + a + ',#2a1e45)');
+}
+async function atlEspFond(W, f, n, j) {
+  j = j || W._espJeton; const vif = () => W.isConnected && W._espJeton === j;   // 2.0.170 : réponse d'un ancien projet = ignorée
   // 2.0.163 (l'admin : « une grande image belle, le fond ») : le fond = UNE seule grande image sans texte, plein écran ; d'abord l'IMAGE DE MENU du jeu
   // (menu.* en 16:9 sur PC, menu-portrait.* debout), sinon le fond peint pour l'espace (at_espace_fond), sinon le dégradé du jeu — jamais une planche
-  if (!W.isConnected) return;
-  try { let g = (window.JDW_GAMES || {})[f.jeu]; if (!g || !g.menuImage) { try { g = (await atlModule(f.jeu, (f.version | 0) || (f.version_publiee | 0) || 1)) || g; } catch (e) {} } if (!W.isConnected) return; const ok = x => typeof x === 'string' && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp)$/i.test(x);
+  if (!vif()) return;
+  try { let g = (window.JDW_GAMES || {})[f.jeu]; if (!g || !g.menuImage) { try { g = (await atlModule(f.jeu, (f.version | 0) || (f.version_publiee | 0) || 1)) || g; } catch (e) {} } if (!vif()) return; const ok = x => typeof x === 'string' && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp)$/i.test(x);
     if (g && ok(g.menuImage)) { const b = ROOT + 'assets/jeux/' + f.jeu + '/', ul = b + g.menuImage, up = b + (ok(g.menuImagePortrait) ? g.menuImagePortrait : g.menuImage);
-      W.style.setProperty('--esp-fond-l', 'url("' + ul + '")'); W.style.setProperty('--esp-fond-p', 'url("' + up + '")'); W.classList.add('esp-menu');
+      W.style.removeProperty('--esp-fond'); W.style.setProperty('--esp-fond-l', 'url("' + ul + '")'); W.style.setProperty('--esp-fond-p', 'url("' + up + '")'); W.classList.add('esp-menu');   // 2.0.170 : le dégradé d'attente (en ligne) céderait sinon le pas
       try { const im = new Image(); im.src = matchMedia('(orientation:portrait)').matches ? up : ul; await Promise.race([im.decode(), new Promise(ok2 => setTimeout(ok2, 2500))]); } catch (e) {}
       return; } } catch (e) {}
-  if (isGuest() || !profile.name) return;
+  if (!vif() || isGuest() || !profile.name) return;
   let r = null; try { r = await rpc('at_espace_fond', { p_name: profile.name, p_fiche: f.id }, { quiet: true, quiet404: true }); } catch (e) { r = null; }
-  if (!W.isConnected || !r) return;
+  if (!vif() || !r) return;
   const u0 = r.fond ? atlIaUrl(r.fond) : '', lw = (innerWidth <= 900 || matchMedia('(pointer:coarse)').matches) ? 1280 : 1920;   // 2.0.159 (chef, lenteurs) : webp réduit par le serveur d'images
   const u = u0 && /\/storage\/v1\/object\/public\//.test(u0) ? u0.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + (u0.includes('?') ? '&' : '?') + 'width=' + lw + '&quality=78' : u0; if (u) W.style.setProperty('--esp-fond', 'url("' + u + '")');
   if (u) try { const im = new Image(); im.src = u; await Promise.race([im.decode(), new Promise(ok => setTimeout(ok, 2500))]); } catch (e) {}   // 2.0.160 : décodée avant le moment de la V1
-  if (r.en_cours && (n | 0) < 8) setTimeout(() => atlEspFond(W, f, (n | 0) + 1), 25000);
+  if (r.en_cours && (n | 0) < 8) setTimeout(() => atlEspFond(W, f, (n | 0) + 1, j), 25000);
 }
 // les statistiques : cartes du résumé, section complète, courbe des 7 / 30 derniers jours
 async function atlEspStats(W, f) {
   // 2.0.153 (chef : « une seule source ») : parties et joueurs = les SCORES (chaque partie terminée), jour par jour, sur 7 ou 30 jours (SQL v154) ;
   // le temps de jeu et les visites de la boutique = mesurés par la borne. « Mon jeu » et l'onglet Stats lisent les MÊMES réponses.
-  if (!W.isConnected || !f.jeu || isGuest() || !profile.name) return;
+  const j = W._espJeton; if (!W.isConnected || !f.jeu || isGuest() || !profile.name) return;   // 2.0.170 : jeton du projet ouvert
   const lire = async n => { try { return await rpc('at_stats_lire', { p_name: profile.name, p_jeu: f.jeu, p_jours: n }, { quiet: true, quiet404: true }); } catch (e) { return null; } };
-  const [s30, s7] = await Promise.all([lire(30), lire(7)]);
+  const [s30, s7] = await Promise.all([lire(30), lire(7)]); if (W._espJeton !== j) return;   // 2.0.170
   if (!W.isConnected) return;
   const st = s30;
   if (st) { W._nArt = st.articles | 0; atlEspGris(W); }
