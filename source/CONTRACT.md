@@ -574,4 +574,4 @@ en LOCAL (même écran, contre l'IA), la tuile ouvre l'écran-titre et ▶ JOUER
 (les deux appareils démarrent ensemble) — l'écran-titre se montre avant l'invitation, et ▶ JOUER = « Défier un copain ».
 Sans menuImage, l'aperçu `preview` est montré en CARTE nette dans la bande du héros (jamais étiré au-delà de ~1,5×), le même aperçu flou derrière.
 À FAIRE (équipe Jeux) — logo + menuImage + menuImagePortrait pour chaque duel ; en attendant : bolides, kombat, tirsaubut, toupies n'écrivent pas le titre
-(leur aperçu le porte) ; **briques** est en `menu: false` (DUEL_SANS_MENU de shell2.js : aperçu presque vide) jusqu'à ses images. Planches : pooky/captures/146b-planche-duels-*.jpg.
+(leur aperçu le porte) ; **briques** est en `menu: false` (DUEL_SANS_MENU de shell2.js : aperçu presque vide) jusqu'à ses images. Planches : dossier des captures du chef, 146b-planche-duels-*.jpg.
