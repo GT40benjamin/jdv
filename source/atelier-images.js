@@ -166,7 +166,7 @@
     if (k === 'images') {
       if (AIM.off) { dire({ pk: 1, t: 'L’atelier d’images arrive très bientôt 🎨 (pas encore aujourd’hui). En attendant, je peux t’aider à créer un jeu 🎮' }); render(); return; }
       AIM.nv.choix = 'images';
-      dire({ pk: 1, img: 'joie', t: 'Super idée ! Je te propose un projet Images, avec ton propre atelier de retouche 🎨 Tu y mets ta photo ou ton dessin, tu me dis ce que tu veux changer, et chaque nouvelle image s’ajoute à côté des autres. Voilà ce qu’il y a dedans, et les prix 👇', offre: 1 });
+      dire({ pk: 1, img: 'joie', t: 'Super idée ! Je te propose un projet Images, avec ton propre atelier de retouche 🎨 Tu y mets ta photo ou ton dessin, tu me dis ce que tu veux changer, et chaque nouvelle image s’ajoute à côté des autres. Voilà ce qu’il y a dedans, et combien de 💎 pour chaque chose 👇', offre: 1 });
       render(); return;
     }
     if (k === 'aide') { dire({ pk: 1, img: 'idee', t: DIT_POSSIBLE() }); render(); return; }
@@ -415,7 +415,7 @@
     } else Cd.appendChild(img(act.path));
     S.appendChild(Cd);
     // « Dis ce que tu veux changer »
-    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 400; ta.placeholder = '✨ Dis ce que tu veux changer… « ajoute des lucioles au-dessus de l’eau »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
+    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 400; ta.placeholder = etroit() ? '✨ Dis ce que tu veux changer…' : '✨ Dis ce que tu veux changer… « ajoute des lucioles au-dessus de l’eau »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
     ta.value = AIM.brouillon || ''; ta.addEventListener('input', () => { AIM.brouillon = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) { toast('Le micro ne marche pas ici : écris au clavier'); } }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
@@ -497,7 +497,7 @@
       catch (e) { toast(/filtre/.test(pourquoi(e)) ? 'Ce nom-là, je ne peux pas le garder 🙈' : 'Oups, réessaie'); } finally { ok.disabled = false; }
     });
     row.append(ch, ok); p.append(l, row);
-    p.appendChild(E('p', '', 'Tes images restent privées : personne d’autre ne les voit. Chaque nouvelle image coûte ' + (AIM.prix.image | 0) + ' ' + D + ' ; importer, recadrer, revenir à une version et télécharger sont gratuits.'));
+    p.appendChild(E('p', '', 'Tes images restent privées : personne d’autre ne les voit. Une nouvelle image = ' + (AIM.prix.image | 0) + ' ' + D + ' ; importer, recadrer, revenir à une version et télécharger sont gratuits.'));
     p.lastChild.style.cssText = 'margin:0;color:#6b6280;font-size:14px';
     const del = B('crea-bt rouge', '🗑️ Supprimer ce projet', () => {
       modal('🗑️ Supprimer « ' + (AIM.d.titre || 'ce projet') + ' » ?', 'Ce projet et toutes ses images disparaîtront. Les crédits déjà utilisés ne sont pas rendus.', [['Annuler', 'blanc', modFermer], ['Supprimer', 'rouge', async (b) => {
@@ -585,7 +585,7 @@
     const cle = 'jdw.crea.okprix.' + nom();
     let ok = false; try { ok = !!store.get(cle, false) || (AIM.d && AIM.d.deja_paye); } catch (e) {}
     if (!ok) {
-      modal('✨ Créer une nouvelle image ?', 'Une nouvelle image coûte ' + p + ' ' + D + '.' + (typeof AIM.solde === 'number' ? ' Il te restera ' + (AIM.solde - p) + ' ' + D + '.' : '') + ' Ta version d’avant reste gardée, et si ça rate, tes crédits te sont rendus.',
+      modal('✨ Créer une nouvelle image ?', 'Une nouvelle image = ' + p + ' ' + D + '.' + (typeof AIM.solde === 'number' ? ' Il te restera ' + (AIM.solde - p) + ' ' + D + '.' : '') + ' Ta version d’avant reste gardée, et si ça rate, tes crédits te sont rendus.',
         [['Annuler', 'blanc', modFermer], ['✨ Oui, crée-la', '', () => { try { store.set(cle, true); } catch (e) {} modFermer(); fabriquer(outil, consigne, apres); }]]);
       return;
     }
@@ -605,7 +605,7 @@
   }
   function manque(p) {
     const s = typeof AIM.solde === 'number' ? AIM.solde : 0;
-    modal('💎 Il te manque des crédits', 'Une nouvelle image coûte ' + p + ' ' + D + ' et tu en as ' + s + '. Tu peux recharger tes crédits.', [['Plus tard', 'blanc', modFermer], ['💎 Recharger', 'violet', () => { modFermer(); try { atlRecharger(); } catch (e) {} }]]);
+    modal('💎 Il te manque des crédits', 'Une nouvelle image = ' + p + ' ' + D + ', et tu en as ' + s + '. Tu peux recharger tes crédits.', [['Plus tard', 'blanc', modFermer], ['💎 Recharger', 'violet', () => { modFermer(); try { atlRecharger(); } catch (e) {} }]]);
   }
   const STYLES = [['anime', '🎬', 'Dessin animé'], ['aquarelle', '🎨', 'Aquarelle'], ['pixel', '👾', 'Pixel'], ['manga', '🌸', 'Manga'], ['peinture', '🖼️', 'Peinture'], ['bd', '💬', 'BD'],
     ['crayon', '✏️', 'Crayons de couleur'], ['nuit', '🌙', 'Nuit étoilée'], ['soir', '🌅', 'Coucher de soleil'], ['neige', '❄️', 'Neige']];
