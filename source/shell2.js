@@ -3348,7 +3348,7 @@ function presLabel(game, atl) {
   }
   return gameLabel(game);
 }
-(() => { let avant = ''; setInterval(() => { const k = JSON.stringify(atlPres()); if (k !== avant) { avant = k; try { rtTrack(); } catch (e) {} } }, 2500); })();   // l'état de l'Atelier change : la présence suit
+(() => { let avant = ''; setInterval(() => { const k = JSON.stringify(atlPres()); if (k !== avant) { avant = k; try { rtTrack(); } catch (e) {} } }, 5000); })();   // l'état de l'Atelier change : la présence suit
 function rtUntrack() { const t = roomTopic(); if (t) rtSend(t, 'presence', { type: 'presence', event: 'untrack' }); }
 function presApply(d) {
   for (const [k, v] of Object.entries(d.leaves || {})) {
@@ -3883,10 +3883,11 @@ function refreshAll() {
     : 'Classement de la salle et classement mondial, mis à jour en direct.';
   if (!$('jdw-board').hidden) renderBoardTab();
 }
-let prevT = 0;
+let prevT = 0, prevDefile = 0; const PREV_TEL = matchMedia('(pointer:coarse)').matches;
+try { addEventListener('scroll', () => { prevDefile = performance.now(); }, { passive: true, capture: true }); } catch (e) {}
 function previewLoop(ts) {
   requestAnimationFrame(previewLoop);
-  if ($('jdw-lib').hidden || ts - prevT < 32) return;
+  if ($('jdw-lib').hidden || ts - prevT < (PREV_TEL ? 66 : 32) || ts - prevDefile < 180 || document.body.classList.contains('atl-on')) return;   // 2.0.160 (lenteurs) : 15 i/s au téléphone, en pause pendant le défilement et sous l'Atelier
   prevT = ts;
   const dpr = Math.min(window.devicePixelRatio || 1, 2), t = ts / 1000;
   for (const tl of tiles.concat(duoTiles, coopTiles, coopSoonTiles, coopGoTile.visible ? [coopGoTile] : [])) {
@@ -6570,7 +6571,7 @@ if (PG_TAB) {
     const pick = bs.find(x => x.classList.contains('new')) || bs.find(x => x.classList.contains('maj'));
     bb.hidden = !pick; if (pick) { bb.className = 'mb-soon ' + (pick.classList.contains('new') ? 'new' : 'maj'); bb.textContent = pick.textContent; }
   };
-  arcBadge(); setInterval(arcBadge, 2500);
+  arcBadge(); setInterval(arcBadge, 5000);
 }
 // LE VRAI DÉCOR : des PLANS FIXES filmés dans le jeu (la fontaine, le grand arbre, la prairie…), environ une minute chacun, en fond plein
 // écran et sans son. La liste est dans assets/pegase/decor.json : [{ "id": "decor_01", "titre": "La fontaine" }, …] (on en ajoute ou en
@@ -16886,7 +16887,7 @@ function atlEspace(W, box, f, g, pane) {
     if (jq.tagName === 'IMG') { jq.style.cursor = 'pointer'; jq.addEventListener('click', () => atlJouerVrai(f)); }
     H.append(jq, tx, go); jp.prepend(H); { const vs = box.querySelector('.atl-vsortie'); if (vs) H.insertAdjacentElement('afterend', vs); }
     const c = atlEl('div', 'atl-escards atl-esres'); c.dataset.esp = 'resume'; H.after(c); atlEspResume(c, f, null); } }
-  atlEspFond(W, f); atlEspStats(W, f);
+  W._charge = Promise.all([atlEspFond(W, f), atlEspStats(W, f)]).catch(() => {});   // 2.0.160 : le moment de la V1 attend que tout soit chargé
   // Boutique grisée tant qu'il n'y a aucun article (la sonde de la boutique est lue avec les statistiques)
   setTimeout(() => atlEspGris(W), 0);
   // les nuages s'écartent une seule fois, la 1re fois qu'on arrive dans l'espace de ce jeu
@@ -16926,26 +16927,40 @@ function atlEspCiel(host, dense) {
   C._L = L; host.appendChild(C); return C;
 }
 function atlEspReveler(W, f) {
+  // 2.0.160 (l'admin : « ultra fluide ») : 6 IMAGES de nuages (webp légers, décodés AVANT), seulement transform + opacity (calques composés,
+  // will-change pendant l'animation puis retiré) ; « Mon jeu » est déjà prêt dessous ; les nuages s'écartent en 1,4 s, easing doux
   ATL.revele = Date.now();
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const O = atlEl('div', 'atl-revele'), C = atlEspCiel(O, true), P = atlEl('div', 'atl-revpk'), im = atlEl('img'); im.alt = ''; im.src = ROOT + 'accueil/guide-joie.webp';
-  const bb = atlEl('div', 'atl-revbb', 'Tadaa ! Voici ton jeu !'); P.append(im, bb); O.appendChild(P); document.body.appendChild(O);
-  try { if (typeof sfx === 'function') setTimeout(() => sfx('win'), 900); } catch (e) {}
-  const ease = 'cubic-bezier(.45,.05,.25,1)';
-  P.animate([{ transform: 'translate(-50%,-50%) scale(.4)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1.12)', opacity: 1, offset: .6 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }], { duration: 900, easing: ease, fill: 'forwards' });
-  bb.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 350, delay: 600, fill: 'both' });
-  for (const n of C._L) n.d.animate([{ transform: 'translateX(0) scale(1)', opacity: 1 }, { transform: 'translateX(' + (n.side * 115) + 'vw) scale(1.15)', opacity: .2 }], { duration: 2000, delay: 1500, easing: ease, fill: 'forwards' });
-  O.animate([{ backgroundColor: 'rgba(251,234,246,.9)' }, { backgroundColor: 'rgba(251,234,246,0)' }], { duration: 1800, delay: 1700, fill: 'forwards' });
-  setTimeout(() => {
-    bb.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' });
-    const cible = (W._pk || []).find(x => x && x.getClientRects().length && x.getBoundingClientRect().width), av = cible && cible.querySelector('img');
-    const r = av ? av.getBoundingClientRect() : { left: 20, top: 20, width: 40, height: 40 }, pr = im.getBoundingClientRect();
-    const dx = r.left + r.width / 2 - innerWidth / 2, dy = r.top + r.height / 2 - innerHeight / 2, k = r.width / Math.max(1, pr.width);
-    P.animate([{ transform: 'translate(-50%,-50%) scale(1)' }, { transform: 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px)) scale(' + k.toFixed(3) + ')', opacity: .9 }], { duration: 900, easing: ease, fill: 'forwards' });
-  }, 3700);
-  setTimeout(() => O.remove(), 4800);
-  O.addEventListener('click', () => O.remove());
+  const O = atlEl('div', 'atl-revele'), F = atlEl('div', 'atl-revfond'), P = atlEl('div', 'atl-revpk'), im = atlEl('img'); im.alt = ''; im.src = ROOT + 'accueil/guide-joie.webp';
+  O.appendChild(F); const N = [];
+  for (const [k, cote, x, y, w] of [[1, -1, -18, -6, 78], [2, -1, -26, 34, 86], [3, -1, -14, 70, 80], [2, 1, 44, -10, 82], [3, 1, 52, 30, 84], [1, 1, 40, 68, 86]]) {
+    const n = atlEl('img', 'atl-revn'); n.alt = ''; n.src = ROOT + 'accueil/atelier-nuage-' + k + '.webp'; n.style.left = x + 'vw'; n.style.top = y + 'vh'; n.style.width = w + 'vw'; N.push([n, cote]); O.appendChild(n); }
+  const bb = atlEl('div', 'atl-revbb', 'Tadaa ! Voici ton jeu !'); P.append(im, bb); O.appendChild(P);
+  document.body.appendChild(O);   // les nuages (immobiles) cachent tout de suite la page, qui finit de se préparer dessous
+  for (const [n] of N) n.style.willChange = 'transform, opacity'; P.style.willChange = 'transform, opacity'; F.style.willChange = 'opacity'; P.style.opacity = '.01'; bb.style.opacity = '.01';   // déjà dessinés (presque invisibles) avant le mouvement   // calques préparés AVANT le mouvement (pas de création de calque en pleine animation)
+  const ease = 'cubic-bezier(.33,0,.15,1)', pret = [im, ...N.map(x => x[0])].map(e => (e.decode ? e.decode() : Promise.resolve()).catch(() => {}));
+  let fini = false; const fin = () => { if (fini) return; fini = true; ATL.reveleFin = Date.now(); O.remove(); };
+  O.addEventListener('click', fin);
+  const calme = () => new Promise(ok => { let n = 0, last = performance.now(); const t0 = last; const f = t => { const d = t - last; last = t; n = d < 20 ? n + 1 : 0; if (n >= 10 || t - t0 > 4000) ok(); else requestAnimationFrame(f); }; requestAnimationFrame(f); });   // 10 images rapides de suite : la page est prête
+  Promise.race([Promise.all([...pret, W._charge]), new Promise(ok => setTimeout(ok, 3000))]).then(calme).then(() => {
+    if (fini) return; if (navigator.webdriver) window.__revAnim = performance.now();   // bancs : début du mouvement
+    let vise = null; { const cible = (W._pk || []).find(x => x && x.getClientRects().length && x.getBoundingClientRect().width), av = cible && cible.querySelector('img'), r = av ? av.getBoundingClientRect() : { left: 20, top: 20, width: 40, height: 40 }, pr = im.getBoundingClientRect(); vise = { dx: r.left + r.width / 2 - innerWidth / 2, dy: r.top + r.height / 2 - innerHeight / 2, k: r.width / Math.max(1, pr.width) }; }   // mesuré AVANT (aucune mise en page pendant l'animation)
+    P.animate([{ transform: 'translate(-50%,-50%) scale(.5)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1.06)', opacity: 1, offset: .65 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }], { duration: 650, easing: ease, fill: 'forwards' });
+    bb.animate([{ opacity: 0, transform: 'scale(.7)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 300, delay: 420, easing: ease, fill: 'both' });
+    setTimeout(() => {   // les nuages s'écartent (1,4 s) et le voile s'efface
+      if (fini) return;
+      for (const [n, cote] of N) n.animate([{ transform: 'translate3d(0,0,0) scale(1)', opacity: 1 }, { transform: 'translate3d(' + (cote * 105) + 'vw,0,0) scale(1.1)', opacity: .6 }], { duration: 1400, easing: ease, fill: 'forwards' });
+      F.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, delay: 400, easing: ease, fill: 'forwards' });
+    }, 1300);
+    setTimeout(() => {   // la mascotte file se poser en haut à gauche
+      if (fini) return; bb.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+      const { dx, dy, k } = vise;
+      P.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px)) scale(' + k.toFixed(3) + ')', opacity: .9 }], { duration: 700, easing: ease, fill: 'forwards' });
+    }, 2500);
+    setTimeout(fin, 3250);
+  });
 }
+
 function atlEspAv() { const i = atlEl('img', 'atl-espav'); i.alt = ''; i.src = (typeof ATL_GUIDE !== 'undefined' && ATL_GUIDE.img && atlIaUrl(ATL_GUIDE.img)) || ROOT + 'accueil/guide-portrait.webp'; i.onerror = () => { i.onerror = null; i.src = ROOT + 'accueil/guide-portrait.webp'; }; return i; }
 function atlEspFermer() { const R = ATL.root; if (!R) return; for (const e of R.querySelectorAll('.atl-esscrim, .atl-esnav.sheet')) e.hidden = true; }
 function atlEspElCat(W, lab) {
@@ -16984,6 +16999,7 @@ async function atlEspFond(W, f, n) {
   if (!W.isConnected || !r) return;
   const u0 = r.fond ? atlIaUrl(r.fond) : '', lw = (innerWidth <= 900 || matchMedia('(pointer:coarse)').matches) ? 1280 : 1920;   // 2.0.159 (chef, lenteurs) : webp réduit par le serveur d'images
   const u = u0 && /\/storage\/v1\/object\/public\//.test(u0) ? u0.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + (u0.includes('?') ? '&' : '?') + 'width=' + lw + '&quality=78' : u0; if (u) W.style.setProperty('--esp-fond', 'url("' + u + '")');
+  if (u) try { const im = new Image(); im.src = u; await Promise.race([im.decode(), new Promise(ok => setTimeout(ok, 2500))]); } catch (e) {}   // 2.0.160 : décodée avant le moment de la V1
   if (r.en_cours && (n | 0) < 8) setTimeout(() => atlEspFond(W, f, (n | 0) + 1), 25000);
 }
 // les statistiques : cartes du résumé, section complète, courbe des 7 / 30 derniers jours
@@ -18250,12 +18266,13 @@ function atlTuileVivante(c, g) {
   let last = 0;
   const step = ts => {
     if (!c.isConnected) return; requestAnimationFrame(step);
-    if (ts - last < 32 || !c.offsetParent) return; last = ts;
+    if (ts - last < (PREV_TEL ? 66 : 32) || (c._vu && (ts - prevDefile < 180 || document.querySelector('.atl-revele') || Date.now() - (ATL.reveleFin || 0) < 700)) || !c.offsetParent) return;   // 2.0.160 : 15 i/s au téléphone, en pause pendant le défilement et le moment de la V1
+    { const r = c.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return; } last = ts;
     const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight; if (!w || !h) return;
     if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
     const x = c.getContext('2d'); x.save(); x.setTransform(dpr, 0, 0, dpr, 0, 0);
     try { (c._g || g).preview(x, w, h, ts / 1000); } catch (e) { x.fillStyle = COLORS.night; x.fillRect(0, 0, w, h); }   // c._g : la version chargée (2.0.74)
-    x.restore();
+    x.restore(); c._vu = true;
   };
   setTimeout(() => requestAnimationFrame(step), 30);
 }
@@ -19569,6 +19586,7 @@ const ATL_DOUX = { agit: 0, tape: 0, att: new Map(), t: 0 };
 function atlOccupe() {
   if (!ATL || !ATL.root || !ATL.open) return false;
   if (Date.now() - ATL_DOUX.agit < 2000 || Date.now() - ATL_DOUX.tape < 4000) return true;
+  if (document.querySelector('.atl-revele')) return true;   // 2.0.160 : aucun redessin pendant le moment de la V1
   const z = ATL.root.querySelector('.atl-zoom:not([hidden])'); return !!(z && z.querySelector(':scope > img'));   // l'image en grand (atlZoom) ; « Mes demandes » (même cadre) reste en direct
 }
 const ATL_CLS_ETAT = /^(on|new|open|ouvert|actif|joue|sel|choix|rep|att|neuf|eu|vu|lu|bas|fini|desc|low)$/;
