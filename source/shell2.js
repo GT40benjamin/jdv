@@ -921,6 +921,7 @@ if (PADJ) {
     },
     defaultFocus: (layer, list) => {
       const pick = (...ids) => { for (const id of ids) { const e = $(id); if (e && list.includes(e)) return e; } return null; };
+      { const gm = $('jdw-gmenu'); if (gm && (!layer || layer.contains(gm) || gm.contains(layer))) { const ae = document.activeElement, t = (ae && gm.contains(ae) && list.includes(ae) && ae) || list.find(e => gm.contains(e) && e.matches('.tm-go')) || list.find(e => gm.contains(e) && e.matches('.tm-it')); if (t) return t; } }   // 2.0.148 : écran-titre → ▶ JOUER (jamais ✕ Quitter)
       if (!layer) {
         if (!$('jdw-lib').hidden) { const grid = MODE === 'duel' ? $('jdw-duo-grid') : MODE === 'coop' ? $('jdw-coop-grid') : $('jdw-grid'); const t = list.find(e => grid && grid.contains(e) && e.classList.contains('tile')); if (t) return t; }
         return null;

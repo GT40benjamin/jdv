@@ -373,9 +373,9 @@
     }
     if (S.hooks && S.hooks.onFocus) { try { S.hooks.onFocus(c.t); } catch (e) {} }
   }
-  function current(cands) {
-    const f = S.nav.focus; if (f && f.isConnected) { const c = cands.find(x => x.t === f); if (c) return c; }
+  function current(cands) {   // 2.0.148 : le focus RÉEL d'abord (la page a pu le poser elle-même, ex. ▶ JOUER de l'écran-titre), puis le dernier focus de la manette
     const a = document.activeElement; if (a && a !== document.body) { const c = cands.find(x => x.el === a || x.t === a); if (c) return c; }
+    const f = S.nav.focus; if (f && f.isConnected) { const c = cands.find(x => x.t === f); if (c) return c; }
     return null;
   }
   function pickDefault(layer, cands) {
@@ -384,7 +384,8 @@
     if (want) { const c = cands.find(x => x.t === want || x.el === want); if (c) return c; }
     const pr = cands.find(c => c.el.matches('[data-pad-default], .btn-play:not(.btn-ghost), [aria-selected="true"]'));
     if (pr && layer) return pr;
-    return cands.slice().sort((a, b) => (a.r.top - b.r.top) || (a.r.left - b.r.left))[0];
+    const ok = cands.filter(c => !c.el.closest('[data-pad-jamais-defaut]'));   // 2.0.148 : ✕ Quitter n'est JAMAIS le choix par défaut (un 2e A ferait quitter)
+    return (ok.length ? ok : cands).slice().sort((a, b) => (a.r.top - b.r.top) || (a.r.left - b.r.left))[0];
   }
   function move(dir) {
     const layer = topLayer(), cands = candidates(layer);
