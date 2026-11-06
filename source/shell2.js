@@ -790,7 +790,7 @@ function menuToast(t) { try { toastCheer(t, profile.name, true); } catch (e) {} 
 // la touche Échap pendant une partie = le menu de pause (avant le jeu)
 addEventListener('keydown', e => {
   if (e.key !== 'Escape' || e.repeat || !current || current.coop || current.over || PADP.open || QA.open || $('jdw-play').hidden || !$('jdw-end').hidden || PAD_DOM.has(current.game.id) || aPauseJeu(current.game)) return;
-  if (document.querySelector('.liv-mod, #jdw-howto:not([hidden])') || (typeof HOWTO !== 'undefined' && HOWTO.open)) return;
+  if (document.querySelector('.liv-mod, #jdw-howto:not([hidden]), .atl-arret') || (typeof HOWTO !== 'undefined' && HOWTO.open)) return;   // 2.0.170 : Échap dans l'arrêt sur image = le fermer (pas la pause)
   e.preventDefault(); e.stopImmediatePropagation(); padPauseOpen('clavier');
 }, true);
 // le bouton ⏸ de la barre du jeu (doigt, souris)
@@ -15535,6 +15535,7 @@ function jdwBack() {
   if (PRIV.back && PRIV.back()) return true;
   // 2.0.142 : « Comment jouer » ouvert, ou fermé par ce même appui → rien de plus ; l'écran-titre d'un jeu recule d'un cran
   if (typeof HOWTO !== 'undefined' && (HOWTO.open || Date.now() - (HOWTO.fermeAt || 0) < 450)) { if (HOWTO.open) howtoHide(true); return true; }
+  { const ar = document.querySelector('.atl-arret'); if (ar && ar._fin) { ar._fin(); return true; } }   // 2.0.170 : l'arrêt sur image (B = reprendre)
   { const bm = document.getElementById('jdw-boutmod'); if (bm) { if (bm._fermer) bm._fermer(); else bm.remove(); return true; } }   // 2.0.130 : la fenêtre d'achat
   { const bv = document.getElementById('jdw-vitrine'); if (bv) { if (bv._fermer) bv._fermer(); else bv.remove(); return true; } }   // 2.0.134 : la vitrine (2.0.168 : sa page détail d'abord ; elle passe AVANT l'écran-titre)
   { const gm = document.getElementById('jdw-gmenu'); if (gm && gm._recul) { gm._recul(); return true; } }   // espace privé (fenêtre ouverte par-dessus tout)
@@ -15844,28 +15845,55 @@ function atlJeuxTuiles(l, calme) {
   if (ATL && !ATL.tile && ATL_ON()) { try { atlTile(grid); } catch (e) {} }
 }
 
-// ---------- la tuile « CRÉE TON JEU » (tout en haut de la grille, toute la largeur) ----------
+// 2.0.170 (l'admin : « sur la tuile, on doit comprendre qu'on peut créer ce qu'on veut ») : « CRÉE AVEC <mascotte> », la mascotte joyeuse au centre,
+// entourée d'une manette, d'un tableau, de notes, d'un casque de DJ et d'une baguette magique (violet et doré, comme avant)
+function atlTileSvg(nom, img) {
+  let stars = ''; for (let i = 0; i < 16; i++) stars += '<circle class="atl-tw" cx="' + ((i * 61 + 23) % 400) + '" cy="' + ((i * 37 + 11) % 170) + '" r="' + (1.2 + (i % 3) * 0.8).toFixed(1) + '" style="animation-delay:' + (i * 0.29 % 3).toFixed(2) + 's"/>';
+  const K = '#2a1340';   // le trait foncé de toutes les créations
+  const manette = '<g class="atl-pad" transform="translate(26 136) rotate(-12 50 30)"><rect x="0" y="0" width="100" height="56" rx="28" fill="url(#atl-g2)" stroke="' + K + '" stroke-width="4"/>'
+    + '<rect x="18" y="20" width="9" height="24" rx="2" fill="' + K + '"/><rect x="10.5" y="27.5" width="24" height="9" rx="2" fill="' + K + '"/>'
+    + '<circle cx="72" cy="22" r="6.5" fill="#ff5d73" stroke="' + K + '" stroke-width="2"/><circle cx="84" cy="34" r="6.5" fill="#ffd34d" stroke="' + K + '" stroke-width="2"/><circle cx="60" cy="34" r="6.5" fill="#6dff9c" stroke="' + K + '" stroke-width="2"/></g>';
+  const tableau = '<g class="atl-pen" transform="translate(20 62) rotate(-8 46 34) scale(.8)"><rect x="0" y="0" width="92" height="68" rx="6" fill="url(#atl-g1)" stroke="' + K + '" stroke-width="4"/>'
+    + '<rect x="9" y="9" width="74" height="50" rx="3" fill="#8fe3ff"/><circle cx="64" cy="22" r="7" fill="#fff3a0"/>'
+    + '<path d="M9 59 L30 32 L44 46 L56 36 L83 59 Z" fill="#43c46b" stroke="' + K + '" stroke-width="2.5" stroke-linejoin="round"/></g>';
+  const notes = '<g class="atl-spark" transform="translate(300 128)"><path d="M14 46 V10 L46 2 V38" fill="none" stroke="' + K + '" stroke-width="5" stroke-linejoin="round"/>'
+    + '<path d="M14 10 L46 2" stroke="#ffd34d" stroke-width="3"/>'
+    + '<ellipse cx="8" cy="47" rx="10" ry="8" fill="#ff7ac8" stroke="' + K + '" stroke-width="3.5" transform="rotate(-20 8 47)"/>'
+    + '<ellipse cx="40" cy="39" rx="10" ry="8" fill="#ff7ac8" stroke="' + K + '" stroke-width="3.5" transform="rotate(-20 40 39)"/></g>';
+  const casque = '<g class="atl-pad" transform="translate(280 204) rotate(8 46 40)"><path d="M10 52 C10 10 82 10 82 52" fill="none" stroke="' + K + '" stroke-width="13" stroke-linecap="round"/>'
+    + '<path d="M10 52 C10 10 82 10 82 52" fill="none" stroke="#b07cff" stroke-width="6" stroke-linecap="round"/>'
+    + '<rect x="0" y="44" width="24" height="36" rx="10" fill="#ff5d73" stroke="' + K + '" stroke-width="4"/><rect x="68" y="44" width="24" height="36" rx="10" fill="#ff5d73" stroke="' + K + '" stroke-width="4"/>'
+    + '<rect x="5" y="52" width="7" height="20" rx="3" fill="#ffd0d6"/><rect x="73" y="52" width="7" height="20" rx="3" fill="#ffd0d6"/></g>';
+  const baguette = '<g class="atl-spark s2" transform="translate(310 54)"><path d="M6 66 L40 24" stroke="' + K + '" stroke-width="9" stroke-linecap="round"/><path d="M6 66 L40 24" stroke="#fff" stroke-width="4" stroke-linecap="round"/>'
+    + '<path d="M44 2 l6.5 13.5 14.5 2 -10.5 10 2.5 14.5 -13 -7 -13 7 2.5 -14.5 -10.5 -10 14.5 -2z" fill="url(#atl-g1)" stroke="' + K + '" stroke-width="3.5" stroke-linejoin="round"/></g>';
+  const titre = (t, y, fs) => '<text x="200" y="' + y + '" font-size="' + fs + '" fill="' + K + '" stroke="' + K + '" stroke-width="11" stroke-linejoin="round">' + t + '</text><text x="200" y="' + y + '" font-size="' + fs + '" fill="url(#atl-gt)">' + t + '</text>';
+  const N = String(nom || '').toUpperCase().slice(0, 12), fsN = Math.min(52, Math.floor(330 / Math.max(1, N.length) / 0.78));
+  return '<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>'
+    + '<radialGradient id="atl-bg" cx=".2" cy=".1" r="1.1"><stop offset="0" stop-color="#7a4cff"/><stop offset=".55" stop-color="#2a0f55"/><stop offset="1" stop-color="#4a0f45"/></radialGradient>'
+    + '<radialGradient id="atl-halo" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe9a8" stop-opacity=".75"/><stop offset=".6" stop-color="#ffd34d" stop-opacity=".18"/><stop offset="1" stop-color="#ffd34d" stop-opacity="0"/></radialGradient>'
+    + '<linearGradient id="atl-gt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff9d6"/><stop offset=".55" stop-color="#ffd34d"/><stop offset="1" stop-color="#ff9a3d"/></linearGradient>'
+    + '<linearGradient id="atl-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient>'
+    + '<linearGradient id="atl-g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ef7ff"/><stop offset="1" stop-color="#3a7bff"/></linearGradient></defs>'
+    + '<rect width="400" height="300" fill="url(#atl-bg)"/><circle cx="330" cy="250" r="150" fill="#ff4f9a" opacity=".28"/>' + stars
+    + '<ellipse cx="200" cy="222" rx="104" ry="86" fill="url(#atl-halo)"/>'
+    + manette + tableau + notes + casque + baguette
+    + '<image href="' + img + '" x="118" y="128" width="164" height="164"/>'
+    + '<g class="atl-logo2" font-family="Bungee,Impact,\'Arial Black\',sans-serif" text-anchor="middle">' + titre('CRÉE AVEC', 58, 40) + titre(N, 114, fsN) + '</g></svg>';
+}
+function atlTileNom(b) { if (!b) return; const n = gNM(); if (b.dataset.nom === n) return; b.dataset.nom = n; b.setAttribute('aria-label', 'Crée avec ' + n); const t = b.querySelector('.tile-name'); if (t) t.textContent = 'Crée avec ' + n;
+  const c = b.querySelector('.atl-cover'), sv = c && c.querySelector('svg'); if (sv && sv.dataset.nom !== n) { const tmp = document.createElement('div'); tmp.innerHTML = atlTileSvg(n, ROOT + 'accueil/guide-joie.webp'); tmp.firstChild.dataset.nom = n; sv.replaceWith(tmp.firstChild); } }
+const ATL_TUILE_SOUS = 'Jeux, images, musique… crée ce que tu veux ✨', ATL_ACC_PLUS = ' Un jeu, des images, de la musique… tout ce que tu veux !';   // 2.0.170 : la promesse (décision du chef)
+// ---------- la tuile « CRÉE AVEC … » (avant « CRÉE TON JEU », tout en haut de la grille, toute la largeur) ----------
 function atlTile(grid) {
   // 2 nov. 13 h 20, Benjamin : « une vraie TUILE DE JEU » — même format que les autres (image de couverture 4:3 + pied), en premier
   if (!ATL_ON() || ATL.tile) return;
   const wrap = atlEl('div', 'tile-wrap atl-wrap'); wrap.style.setProperty('--acc', '#ffd34d');
   const b = atlEl('button', 'tile atl-tile'); b.type = 'button'; b.style.setProperty('--acc', '#ffd34d');
-  b.setAttribute('aria-label', 'Crée ton jeu : décris ton idée à l’Atelier des jeux');
-  let stars = ''; for (let i = 0; i < 16; i++) stars += '<circle class="atl-tw" cx="' + ((i * 61 + 23) % 400) + '" cy="' + ((i * 37 + 11) % 170) + '" r="' + (1.2 + (i % 3) * 0.8).toFixed(1) + '" style="animation-delay:' + (i * 0.29 % 3).toFixed(2) + 's"/>';
-  b.innerHTML = '<div class="tile-img atl-cover"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>'
-    + '<radialGradient id="atl-bg" cx=".2" cy=".1" r="1.1"><stop offset="0" stop-color="#7a4cff"/><stop offset=".55" stop-color="#2a0f55"/><stop offset="1" stop-color="#4a0f45"/></radialGradient>'
-    + '<linearGradient id="atl-gt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff9d6"/><stop offset=".55" stop-color="#ffd34d"/><stop offset="1" stop-color="#ff9a3d"/></linearGradient>'
-    + '<linearGradient id="atl-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient>'
-    + '<linearGradient id="atl-g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ef7ff"/><stop offset="1" stop-color="#3a7bff"/></linearGradient></defs>'
-    + '<rect width="400" height="300" fill="url(#atl-bg)"/><circle cx="330" cy="250" r="150" fill="#ff4f9a" opacity=".28"/>' + stars
-    + '<g transform="translate(0 34)"><g class="atl-pad"><rect x="118" y="150" width="164" height="90" rx="45" fill="url(#atl-g2)" stroke="#0b1a3a" stroke-width="5"/><rect x="146" y="180" width="13" height="36" rx="3" fill="#0b1a3a"/><rect x="134" y="192" width="37" height="13" rx="3" fill="#0b1a3a"/>'
-    + '<circle cx="240" cy="183" r="10" fill="#ff5d73"/><circle cx="260" cy="203" r="10" fill="#ffd34d"/><circle cx="220" cy="203" r="10" fill="#6dff9c"/></g>'
-    + '<g class="atl-pen"><path d="M300 92l34 34-78 78-40 10 10-40z" fill="url(#atl-g1)" stroke="#2a1340" stroke-width="4" stroke-linejoin="round"/><path d="M226 174l-10 40 40-10z" fill="#ffe9c4" stroke="#2a1340" stroke-width="4" stroke-linejoin="round"/><path d="M216 214l5-18 13 13z" fill="#2a1340"/><path d="M300 92l34 34-13 13-34-34z" fill="#ff5d73" stroke="#2a1340" stroke-width="4" stroke-linejoin="round"/></g>'
-    + '</g><path class="atl-spark" d="M70 170l5 14 14 5-14 5-5 14-5-14-14-5 14-5z" fill="#fff6c9"/><path class="atl-spark s2" d="M350 60l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="#fff6c9"/><path class="atl-spark s3" d="M96 250l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#fff6c9"/>'
-    + '<g class="atl-logo2" font-family="Bungee,Impact,\'Arial Black\',sans-serif" text-anchor="middle"><text x="200" y="96" font-size="54" fill="#2a1340" stroke="#2a1340" stroke-width="12" stroke-linejoin="round">CRÉE TON</text><text x="200" y="96" font-size="54" fill="url(#atl-gt)">CRÉE TON</text>'
-    + '<text x="200" y="152" font-size="58" fill="#2a1340" stroke="#2a1340" stroke-width="12" stroke-linejoin="round">JEU !</text><text x="200" y="152" font-size="58" fill="url(#atl-gt)">JEU !</text></g></svg>'
+  b.setAttribute('aria-label', 'Crée avec ' + gNM());
+  b.innerHTML = '<div class="tile-img atl-cover">' + atlTileSvg(gNM(), ROOT + 'accueil/guide-joie.webp')   // 2.0.170 (l'admin) : « Crée avec » + la mascotte au centre, entourée de ce qu'on peut créer
     + '<span class="tile-new">Nouveau</span><span class="atl-pill" hidden></span></div>'
-    + '<div class="tile-meta"><div class="tile-name">Crée ton jeu</div><div class="tile-online atl-foot"><i></i><span>Ton idée devient un vrai jeu</span></div></div>';
+    + '<div class="tile-meta"><div class="tile-name"></div><div class="tile-online atl-foot"><i></i><span></span></div></div>';
+  b.querySelector('.atl-foot span').textContent = ATL_TUILE_SOUS; atlTileNom(b);
   b.addEventListener('click', () => { store.set('jdw.atl.vu', true); atlOpen(); atlTileState(); });
   // 23 h 40 (Benjamin : « enlève le test sur la brique de Crée ton jeu ») : pas de ruban TEST (elle reste réservée aux admins et au labo)
   wrap.appendChild(b); grid.insertBefore(wrap, grid.firstChild);
@@ -15887,9 +15915,9 @@ function atlTileState() {
     else if (et === 'complete') { s = '✨ Ta fiche est prête'; k = 'go'; }
     else if (f.joueur_at && (!f.reponse_at || String(f.joueur_at) > String(f.reponse_at))) { s = '⏳ Réponse en route…'; k = 'wait'; }
   }
-  st.hidden = !s; st.textContent = s; st.dataset.k = k;
+  st.hidden = true; st.textContent = s; st.dataset.k = k;   // 2.0.170 (chef) : l'état va SOUS le titre de la carte (plus rien sur l'image : la mascotte reste visible)
   nb.hidden = !!s || !!f || !!store.get('jdw.atl.vu', false);
-  foot.textContent = ps.length > 1 ? 'Continue tes projets' : et === 'complete' ? 'Lance la conception' : f && ATL_ACTIVE.has(et) && !ATL_AFTER.has(et) ? 'Continue ton projet' : 'Ton idée devient un vrai jeu';
+  foot.textContent = s && (nw || ps.length < 2) ? s : ps.length > 1 ? 'Continue tes projets' : et === 'complete' ? 'Lance la conception' : f && ATL_ACTIVE.has(et) && !ATL_AFTER.has(et) ? 'Continue ton projet' : ATL_TUILE_SOUS;
   b.parentNode.classList.toggle('atl-hot', k === 'new' || k === 'go');
 }
 
@@ -15906,6 +15934,7 @@ function atlGuideMaj(g) {
   const nom = t(g.nom, 30); if (!nom) return;
   ATL_GUIDE.nom = nom; ATL_GUIDE.a = t(g.a, 40) || 'à ' + nom; ATL_GUIDE.de = t(g.de, 40) || 'de ' + nom; ATL_GUIDE.img = atlIaUrl(g.img) ? g.img : '';
   try { store.set('jdw.atl.guide', { nom: ATL_GUIDE.nom, a: ATL_GUIDE.a, de: ATL_GUIDE.de, img: ATL_GUIDE.img }); } catch (e) {}
+  try { if (typeof ATL !== 'undefined' && ATL && ATL.tile) atlTileNom(ATL.tile); } catch (e) {}   // 2.0.170 : le nom arrive après la tuile (1re visite)
 }
 try { const g0 = store.get('jdw.atl.guide', null); if (g0 && typeof g0 === 'object' && !/guide/i.test(String(g0.nom || ''))) atlGuideMaj(g0); else setTimeout(async () => { try { atlGuideMaj(await rpc('at_guide', {}, { quiet: true, quiet404: true })); } catch (e) {} }, 2500); } catch (e) {}   // le dernier nom connu, sinon le serveur (at_guide, public)
 // 23 h 25 (Benjamin : « la tête de Benjamin au lieu de celle du guide ») : toastCheer sans nom prend un joueur au hasard → atlToast : le guide
@@ -15949,7 +15978,7 @@ const atlWelcome = () => [
 ];
 function atlBuild() {
   if (ATL.root) return ATL.root;
-  const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
+  const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'Crée avec ' + gNM());
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
     + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><button class="atl-cred" type="button" hidden title="Recharger mes crédits"></button><button class="atl-abob" type="button" hidden title="Mon abonnement Atelier+">⭐ Atelier+</button><button class="btn btn-ghost btn-sm atl-demb" type="button" hidden>📋 Mes demandes</button><button class="btn btn-ghost btn-sm atl-musb" type="button" aria-label="Musique de l’Atelier"></button><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
     + '<div class="atl-frise" hidden></div><details class="atl-route" hidden><summary>🗺️ Feuille de route</summary><div class="atl-rbody"></div></details><div class="atl-projets" hidden></div><div class="atl-bases" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
@@ -16572,7 +16601,7 @@ async function atlDemVues() {
 }
 function atlProjTab(k) {
   const W = ATL.root.querySelector('.atl-wiz'); ATL.tab = k;
-  if (k === 'demandes') { try { atlProjDemListe(W); atlDemVues(); } catch (e) {} setTimeout(() => { try { atlDiscMaj(W, atlFiche()); } catch (e) {} }, 0); }   // 2.0.93 : la discussion vue
+  if (k === 'demandes') { try { atlProjDemListe(W); atlDemVues(); } catch (e) {} setTimeout(() => { try { atlDiscMaj(W, atlFiche()); } catch (e) {} }, 0); atlDiscFocus(); }   // 2.0.93 : la discussion vue
   if (k === 'elements') setTimeout(() => { try { if (ATL.tab === 'elements') { atlElVus(atlFiche()); atlElMaj(W, atlFiche()); } } catch (e) {} }, 2500);   // 2.0.61 : vu
   for (const b of W.querySelectorAll('.atl-ptab')) { const on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); }
   for (const p of W.querySelectorAll('.atl-pane')) p.hidden = p.dataset.k !== k;
@@ -16778,6 +16807,19 @@ function atlAllerNonLu() {
   };
   setTimeout(viser, 250);
 }
+// 2.0.170 (l'admin : « quand je clique sur la mascotte, mon curseur doit être dans la discussion directement ») : chaque entrée qui ouvre la discussion
+// (avatar, onglet, carte de Mon jeu, menu ⋯) pose le curseur à la fin de « Écris à… », APRÈS le rendu (jusqu'à 4 s si le chat charge) ;
+// au téléphone seulement après un toucher (le clavier s'ouvre si le navigateur le permet) ; à la manette, le cadre doré va sur le champ.
+function atlDiscFocus() {
+  const geste = !navigator.userActivation || navigator.userActivation.isActive; if (atlPetit() && !geste) return;
+  const t0 = performance.now(), n = ++ATL_DFOC;
+  const essai = () => { if (n !== ATL_DFOC || ATL.tab !== 'demandes') return;
+    const ta = ATL.root && [...ATL.root.querySelectorAll('.atl-wiz .atl-pane[data-k="demandes"] .atl-disc textarea, .atl-wiz .atl-disc textarea')].find(x => !x.disabled && x.getClientRects().length);
+    if (!ta) { if (performance.now() - t0 < 4000) setTimeout(essai, 120); return; }
+    try { ta.focus({ preventScroll: true }); const L = ta.value.length; ta.setSelectionRange(L, L); if (PADJ) PADJ.autoFocus(); } catch (e) {} };
+  essai(); requestAnimationFrame(() => requestAnimationFrame(essai));   // tout de suite (le toucher ouvre le clavier), puis après le rendu
+}
+let ATL_DFOC = 0;
 function atlDiscOuvrir(on = true, ici) {
   const W = ATL.root && ATL.root.querySelector('.atl-wiz'), f = atlFiche(); if (!W || !f) return;
   ATL.discFerme = on ? '' : f.id;
@@ -16820,7 +16862,7 @@ function atlDiscMaj(W, f, force) {
       if (apres.length) { const su = atlEl('div', 'atl-m atl-msuite'), c2 = atlEl('div', 'atl-mc'); for (const x of apres) c2.appendChild(x); su.appendChild(c2); log.appendChild(su); } }   // 2.0.163 (chef) : boutons sous la bulle, l'avatar reste à côté d'elle
   } catch (e) {} }   // 2.0.137 : data-dk = la clé (ticket retrouvé depuis « Mes demandes »)
   const dj = fil.filter(i => i.t < 9e15).pop();
-  { const ecrit = !!(dj && dj.w) || (ATL.discPend || []).some(x => !x.envoye); const st = b.querySelector('.atl-dstat'); if (st) { st.textContent = ecrit ? 'écrit…' : 'en ligne'; st.classList.toggle('ecrit', ecrit); }
+  { const ecrit = !!(dj && dj.w) || (ATL.discPend || []).some(x => !x.envoye); if (ATL.pkEcrit !== ecrit) { ATL.pkEcrit = ecrit; setTimeout(() => { try { for (const e of document.querySelectorAll('#jdw-atelier .atl-espk')) if (e._maj) e._maj(); } catch (x) {} }, 0); } const st = b.querySelector('.atl-dstat'); if (st) { st.textContent = ecrit ? 'écrit…' : 'en ligne'; st.classList.toggle('ecrit', ecrit); }
     if (ecrit) { const ty = atlEl('div', 'atl-m atl-a atl-dtype'), c = atlEl('div', 'atl-mc'), bu = atlEl('div', 'atl-b'); bu.setAttribute('aria-label', gNM() + ' écrit'); bu.append(atlEl('i'), atlEl('i'), atlEl('i')); c.appendChild(bu); ty.append(atlGuideAv(), c); log.appendChild(ty); } }   // 2.0.162 : « ••• » pendant qu'il répond
   for (const i of fin) { try { const el = i.el(); if (el) log.appendChild(el); } catch (e) {} }
   if (bas) log.scrollTop = log.scrollHeight;
@@ -16917,15 +16959,15 @@ function atlVerMaj(W, f) {
   if (!b) { b = atlEl('button', 'atl-vnew'); b.type = 'button'; b.addEventListener('click', () => { ATL.pSig = ''; atlRender(); }); const box = W.querySelector('.atl-pbox'); (box || W).prepend(b); }
   b.textContent = '🆕 Nouvelle version V' + v + ' · touche pour recharger';
 }
-// ---------- 2.0.142 (l'admin : un vrai « ESPACE DU JEU » pour chaque projet jouable) ----------
-// Menu latéral (PC) / menu flottant au pouce (téléphone) : 🏠 Mon jeu · 💬 Discussion · 🧩 Éléments · 🛍️ Boutique · 🗂️ Versions · 📊 Statistiques
-// · ⚙️ Paramètres ; la mascotte en haut à gauche ; le FOND de l'espace généré pour le projet (at_espace_fond, SQL v148) ; des cartes de résumé
-// et des statistiques RÉELLES (at_stats_lire) — jamais de faux chiffres : zéro = zéro, avec un mot gentil.
+// ---------- 2.0.142 (l'admin : un vrai « ESPACE DU JEU » pour chaque projet jouable) ----------
+// Menu latéral (PC) / menu flottant au pouce (téléphone) : 🏠 Mon jeu · 💬 Discussion · 🧩 Éléments · 🛍️ Boutique · 🗂️ Versions · 📊 Statistiques
+// · ⚙️ Paramètres ; la mascotte en haut à gauche ; le FOND de l'espace généré pour le projet (at_espace_fond, SQL v148) ; des cartes de résumé
+// et des statistiques RÉELLES (at_stats_lire) — jamais de faux chiffres : zéro = zéro, avec un mot gentil.
 const ATL_ESPACE_ON = !(navigator.webdriver && window.JDW_ESPACE_OFF);   // 2.0.152 : en essai sur les bancs, sort pour tous après l'OK du chef   // 2.0.142 : l'espace du jeu sort en 2.0.143 (refait comme la maquette validée)
-const ATL_ESP = [['jeu', '🏠', 'Mon jeu'], ['demandes', '💬', 'Discussion'], ['elements', '🧩', 'Éléments'], ['boutique', '🛍️', 'Boutique'], ['versions', '🗂️', 'Versions'], ['stats', '📊', 'Statistiques'], ['params', '⚙️', 'Paramètres']];
-const ATL_ESP_EL = [['🦸', 'Personnages'], ['🎁', 'Objets'], ['🏞️', 'Décor'], ['🔊', 'Sons'], ['🎵', 'Musiques']];
+const ATL_ESP = [['jeu', '🏠', 'Mon jeu'], ['demandes', '💬', 'Discussion'], ['elements', '🧩', 'Éléments'], ['boutique', '🛍️', 'Boutique'], ['versions', '🗂️', 'Versions'], ['stats', '📊', 'Statistiques'], ['params', '⚙️', 'Paramètres']];
+const ATL_ESP_EL = [['🦸', 'Personnages'], ['🎁', 'Objets'], ['🏞️', 'Décor'], ['🔊', 'Sons'], ['🎵', 'Musiques']];
 const atlNb0 = n => atlNb(Math.round(+n || 0));
-const atlDuree = s => { s = Math.max(0, Math.round(+s || 0)); if (s < 60) return s + ' s'; if (s < 3600) return Math.floor(s / 60) + ' min' + (s % 60 ? ' ' + (s % 60) + ' s' : ''); const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); return h + ' h ' + String(m % 60).padStart(2, '0'); };
+const atlDuree = s => { s = Math.max(0, Math.round(+s || 0)); if (s < 60) return s + ' s'; if (s < 3600) return Math.floor(s / 60) + ' min' + (s % 60 ? ' ' + (s % 60) + ' s' : ''); const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); return h + ' h ' + String(m % 60).padStart(2, '0'); };
 function atlEspace(W, box, f, g, pane) {
   // 2.0.152 (maquette validée par le chef, remarques de l'admin) : fond lumineux du jeu, cartes claires translucides ; mascotte en haut à
   // gauche = la conversation (pas de bouton « Discuter ») ; pas de barre d'étapes ; feuille de route lisible en entier (section du menu) ;
@@ -16935,8 +16977,9 @@ function atlEspace(W, box, f, g, pane) {
   const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, vN = (f.version | 0) || 1;
   const conv = () => { atlEspFermer(); atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} };
   const pk = (cls) => { const b = atlEl('button', 'atl-espk ' + (cls || '')); b.type = 'button'; b.title = 'Parler ' + gA(); b.setAttribute('aria-label', 'Ouvrir la conversation avec ' + gN());
-    const t = atlEl('span'), st = atlEl('small', 'atl-espst', ''); t.append(atlEl('b', '', gNM()), st); b.append(atlEspAv(), t); b.addEventListener('click', conv);
-    const maj = () => { const f2 = atlFiche() && atlFiche().id === f.id ? atlFiche() : f, tv = atlTravaille(f2); st.textContent = tv ? 'prépare ta V' + tv + '…' : 'Je suis là ! Une idée ?'; st.classList.toggle('vif', !!tv); };   // 2.0.155 (chef) : seulement si une demande est vraiment en cours, avec version_jeu + 1
+    const t = atlEl('span'), st = atlEl('small', 'atl-espst', ''), av = atlEspPk(); t.append(atlEl('b', '', gNM()), st); b.append(av, t); b.addEventListener('click', conv);
+    const maj = () => { const f2 = atlFiche() && atlFiche().id === f.id ? atlFiche() : f, tv = atlTravaille(f2); st.textContent = tv ? 'prépare ta V' + tv + '…' : 'Je suis là ! Une idée ?'; st.classList.toggle('vif', !!tv);
+      try { atlEspPkEtat(av, tv ? 'travail' : ATL.pkEcrit ? 'ecrit' : 'repos', (f2.version | 0)); } catch (e) {} };   // 2.0.170 (l'admin : « fais-le bouger selon ce qu'il fait, comme avant »)   // 2.0.155 (chef) : seulement si une demande est vraiment en cours, avec version_jeu + 1
     maj(); b._maj = maj; return b; };
   const aide = () => { const b = atlEl('button', 'atl-esaide', '?'); b.type = 'button'; b.title = 'Comment ça marche ?'; b.setAttribute('aria-label', 'Comment ça marche ?'); b.addEventListener('click', atlEspAide); return b; };
   const nArt = () => { try { return (BOUT && BOUT.r && Array.isArray(BOUT.r.articles) && BOUT.r.articles.length) || (W._nArt | 0); } catch (e) { return W._nArt | 0; } };
@@ -17081,12 +17124,12 @@ function atlEspReveler(W, f) {
 }
 
 function atlEspAv() { const i = atlEl('img', 'atl-espav'); i.alt = ''; i.src = (typeof ATL_GUIDE !== 'undefined' && ATL_GUIDE.img && atlIaUrl(ATL_GUIDE.img)) || ROOT + 'accueil/guide-portrait.webp'; i.onerror = () => { i.onerror = null; i.src = ROOT + 'accueil/guide-portrait.webp'; }; return i; }
-function atlEspFermer() { const R = ATL.root; if (!R) return; for (const e of R.querySelectorAll('.atl-esscrim, .atl-esnav.sheet')) e.hidden = true; }
-function atlEspElCat(W, lab) {
-  atlProjTab('elements');
-  setTimeout(() => { const p = W.querySelector('.atl-pane[data-k="elements"]'); if (!p) return; const h = [...p.querySelectorAll('h4, h3, summary, b')].find(e => e.textContent.includes(lab)); if (h) try { h.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) {} }, 60);
-}
-// les cartes de résumé (« Mon jeu ») : statistiques (si lues), publication, éléments, boutique
+function atlEspFermer() { const R = ATL.root; if (!R) return; for (const e of R.querySelectorAll('.atl-esscrim, .atl-esnav.sheet')) e.hidden = true; }
+function atlEspElCat(W, lab) {
+  atlProjTab('elements');
+  setTimeout(() => { const p = W.querySelector('.atl-pane[data-k="elements"]'); if (!p) return; const h = [...p.querySelectorAll('h4, h3, summary, b')].find(e => e.textContent.includes(lab)); if (h) try { h.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) {} }, 60);
+}
+// les cartes de résumé (« Mon jeu ») : statistiques (si lues), publication, éléments, boutique
 function atlEspResume(c, f, st) {
   // 2.0.152 : 3 cartes (maquette) — ton jeu ce mois-ci (vrais chiffres + courbe), ta boutique, la conversation avec la mascotte ; à zéro : un mot gentil
   c.textContent = '';
@@ -17168,25 +17211,25 @@ async function atlEspStats(W, f) {
   sp.appendChild(atlEl('p', 'atl-esnote', 'Les parties et les joueurs : chaque partie terminée avec un score. Le temps de jeu est mesuré depuis le ' + ((st.total || {}).depuis ? new Date(st.total.depuis).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '5 novembre') + '.'));
 }
 // la courbe (SVG, sans bibliothèque) : parties par jour (trait plein) et joueurs différents (pointillés), vrais chiffres
-function atlEspCourbe(J, mini) {
-  const W0 = 640, H0 = 210, m = { l: 34, r: 14, t: 30, b: 28 }, n = Math.max(1, J.length), vp = d => d.parties != null ? d.parties | 0 : d.lancements | 0, vj = d => d.pjoueurs != null ? d.pjoueurs | 0 : d.joueurs | 0, mx = Math.max(1, ...J.map(vp), ...J.map(vj));
-  const x = i => m.l + (n === 1 ? (W0 - m.l - m.r) / 2 : i * (W0 - m.l - m.r) / (n - 1)), y = v => m.t + (H0 - m.t - m.b) * (1 - v / mx);
-  const ns = 'http://www.w3.org/2000/svg', S = document.createElementNS(ns, 'svg'); S.setAttribute('viewBox', '0 0 ' + W0 + ' ' + H0); S.setAttribute('class', 'atl-escourbe'); S.setAttribute('role', 'img');
-  S.setAttribute('aria-label', 'Parties par jour : ' + J.map(vp).join(', '));
-  const el = (t, a) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); S.appendChild(e); return e; };
-  for (const v of [...new Set([0, Math.round(mx / 2), mx])]) { el('line', { x1: m.l, x2: W0 - m.r, y1: y(v), y2: y(v), class: 'g' }); const t = el('text', { x: m.l - 6, y: y(v) + 4, class: 'ax', 'text-anchor': 'end' }); t.textContent = String(v); }
-  const pts = fn => J.map((d, i) => x(i) + ',' + y(fn(d))).join(' ');
-  el('polyline', { points: pts(vj), class: 'l2' }); el('polyline', { points: pts(vp), class: 'l1' });
+function atlEspCourbe(J, mini) {
+  const W0 = 640, H0 = 210, m = { l: 34, r: 14, t: 30, b: 28 }, n = Math.max(1, J.length), vp = d => d.parties != null ? d.parties | 0 : d.lancements | 0, vj = d => d.pjoueurs != null ? d.pjoueurs | 0 : d.joueurs | 0, mx = Math.max(1, ...J.map(vp), ...J.map(vj));
+  const x = i => m.l + (n === 1 ? (W0 - m.l - m.r) / 2 : i * (W0 - m.l - m.r) / (n - 1)), y = v => m.t + (H0 - m.t - m.b) * (1 - v / mx);
+  const ns = 'http://www.w3.org/2000/svg', S = document.createElementNS(ns, 'svg'); S.setAttribute('viewBox', '0 0 ' + W0 + ' ' + H0); S.setAttribute('class', 'atl-escourbe'); S.setAttribute('role', 'img');
+  S.setAttribute('aria-label', 'Parties par jour : ' + J.map(vp).join(', '));
+  const el = (t, a) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); S.appendChild(e); return e; };
+  for (const v of [...new Set([0, Math.round(mx / 2), mx])]) { el('line', { x1: m.l, x2: W0 - m.r, y1: y(v), y2: y(v), class: 'g' }); const t = el('text', { x: m.l - 6, y: y(v) + 4, class: 'ax', 'text-anchor': 'end' }); t.textContent = String(v); }
+  const pts = fn => J.map((d, i) => x(i) + ',' + y(fn(d))).join(' ');
+  el('polyline', { points: pts(vj), class: 'l2' }); el('polyline', { points: pts(vp), class: 'l1' });
   J.forEach((d, i) => { const v0 = vp(d); el('circle', { cx: x(i), cy: y(v0), r: v0 > 0 ? 7 : 2.5, class: 'p1' + (v0 > 0 ? ' on' : '') });   // 2.0.160 (chef) : un jour joué se voit
-    if (v0 > 0) { const tv = el('text', { x: x(i), y: y(v0) - 12, class: 'ax val', 'text-anchor': 'middle' }); tv.textContent = String(v0); }
-    if (n <= 7 || i % 5 === 0 || i === n - 1) { const t = el('text', { x: x(i), y: H0 - 8, class: 'ax', 'text-anchor': 'middle' }); const d0 = new Date(d.jour); t.textContent = isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); } });
-  const w = atlEl('div', 'atl-escw'); w.appendChild(S); if (mini) w.classList.add('mini'); w.appendChild(atlEl('p', 'atl-esleg', '━ parties par jour · ┅ joueurs différents par jour')); return w;
-}
-// les statistiques envoyées par la borne pour un jeu de l'Atelier (SQL v148) : lancement, temps joué (au démontage), visite de la boutique
-function atlStatEnvoyer(jeu, sorte, v) {
-  if (!jeu || !ATL_NES.has(jeu) || isGuest() || !profile.name || !ONLINE || netOff()) return;
-  try { rpc('at_stats_ecrire', { p_name: profile.name, p_jeu: jeu, p_sorte: sorte, p_valeur: Math.round(+v || 0) }, { quiet: true, quiet404: true }).catch(() => {}); } catch (e) {}
-}
+    if (v0 > 0) { const tv = el('text', { x: x(i), y: y(v0) - 12, class: 'ax val', 'text-anchor': 'middle' }); tv.textContent = String(v0); }
+    if (n <= 7 || i % 5 === 0 || i === n - 1) { const t = el('text', { x: x(i), y: H0 - 8, class: 'ax', 'text-anchor': 'middle' }); const d0 = new Date(d.jour); t.textContent = isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); } });
+  const w = atlEl('div', 'atl-escw'); w.appendChild(S); if (mini) w.classList.add('mini'); w.appendChild(atlEl('p', 'atl-esleg', '━ parties par jour · ┅ joueurs différents par jour')); return w;
+}
+// les statistiques envoyées par la borne pour un jeu de l'Atelier (SQL v148) : lancement, temps joué (au démontage), visite de la boutique
+function atlStatEnvoyer(jeu, sorte, v) {
+  if (!jeu || !ATL_NES.has(jeu) || isGuest() || !profile.name || !ONLINE || netOff()) return;
+  try { rpc('at_stats_ecrire', { p_name: profile.name, p_jeu: jeu, p_sorte: sorte, p_valeur: Math.round(+v || 0) }, { quiet: true, quiet404: true }).catch(() => {}); } catch (e) {}
+}
 function atlRenderProjet(W, f) {
   const R = ATL.root, et = String(f.etat || ''), fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {};
   const jouable = !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(et), g = jouable ? ((window.JDW_GAMES || {})[f.jeu] || (atlNe(f.jeu) ? atlStub(f) : null)) : null;   // 2.0.132 : jeu connu par le serveur
@@ -17395,7 +17438,8 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
   rp.type = 'button'; go.type = 'button';
   const adm = atlAdminIci(); if (adm) { go.textContent = '🛡️ Envoyer ma remarque'; tw.appendChild(atlEl('small', 'atl-noremb', '🛡️ Remarque de l’admin : gratuite, le joueur ne paie rien, l’équipe la reçoit tout de suite.')); }   // 2.0.131 (SQL v140)
   const fin = () => { if (ATL_MIC && ATL_MIC.field === ta) atlMicFin(); O.remove(); reprendre(); };
-  rp.addEventListener('click', fin);
+  rp.addEventListener('click', fin); O._fin = fin;
+  O.addEventListener('keydown', e => { if (e.key === 'Escape' && !e.repeat) { e.preventDefault(); e.stopPropagation(); fin(); } });   // 2.0.170 (chef) : Échap = reprendre la partie
   go.addEventListener('click', async () => {
     atlMicFin();
     const t = ta.value.trim(); if (t.length < 2) { ta.focus(); return; }
@@ -17426,7 +17470,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
   row.append(rp, go); O.append(hd, zone, tw, er, row); if (cout) O.appendChild(atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); host.appendChild(O);
-  if (!TOUCH) ta.focus({ preventScroll: true });   // téléphone : le clavier ne cache pas l'image
+  ta.focus({ preventScroll: true });   // 2.0.170 (l'admin) : le curseur dans le champ, aussi au téléphone
   return O;
 }
 // ---- 21 h 15 (Benjamin) : « 🎮 Jouer » (la V1) = EXACTEMENT comme une tuile de la borne (plein écran, écran titre, barre, manettes, fin de
@@ -17532,6 +17576,7 @@ function atlFinAtelier() {
 }
 function atlRetourProjet(tab) { ATL.retourTab = tab; backToLibrary(); }
 if (window.JDW_PG_TEST) window.__jdwAtl = { fin: sc => showEnd(sc), jouer: () => atlJouerVrai(atlFiche()), son: () => ({ joue: !!(ATL_SON && !ATL_SON.paused), t: ATL_SON ? ATL_SON.currentTime : 0, u: ATL_SON_U }), etat: () => ({ jeu: ATL.jeu, tab: ATL.tab, open: ATL.open }), lire: () => atlLoad(true), dem: () => JSON.stringify(atlDemEnCours().map(x => [x.id, (x.etapes || []).length])) };   // essais seulement
+if (navigator.webdriver) window.JDW_ESSAI_ARRET = () => { if (!ATL.jeu) ATL.jeu = 'essai'; atlArretJeu(); };   // 2.0.170 : bancs seulement (l'arrêt sur image hors Atelier)
 function atlArretJeu() {
   if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2')) return;
   try { if (current && current.inst && current.inst.pause) current.inst.pause(); } catch (e) {}
@@ -17905,7 +17950,7 @@ function atlBrFlush() { if (ATL && ATL.brT) atlBrSave(ATL.cur); }
 function atlNom(liste) {
   const R = ATL.root, n = R.querySelector('.atl-nom'), bt = R.querySelector('.atl-nomb'), nr = R.querySelector('.atl-nomr'); if (!n || nr.querySelector('input')) return;
   const f = atlFiche(), ok = !liste && (ATL.nouveau || (f && f.etat !== 'refusee'));
-  n.textContent = liste ? 'L’Atelier des jeux' : ((f && f.titre) || 'Mon jeu sans nom'); bt.hidden = !ok; n.classList.toggle('edit', !!ok);
+  n.textContent = liste ? 'Crée avec ' + gNM() : ((f && f.titre) || 'Mon jeu sans nom'); n.classList.toggle('liste', !!liste); bt.hidden = !ok; n.classList.toggle('edit', !!ok);
   if (!n.dataset.on) { n.dataset.on = '1'; const go = () => { if (!bt.hidden) atlNomEdit(); }; n.addEventListener('click', go); bt.addEventListener('click', go); }
 }
 function atlNomEdit() {
@@ -17930,7 +17975,7 @@ async function atlNomSave(v) {
 function atlAccueil(box, ps, max) {
   const A = atlEl('div', 'atl-acc'), tx = atlEl('div', 'atl-acct');
   const nom = profile && profile.name ? dispName(profile.name) : '';
-  tx.append(atlEl('b', '', gNM()), atlEl('p', 'atl-accq', 'Bonjour' + (nom ? ' ' + nom : '') + ' ! 👋 Qu’est-ce qu’on fait aujourd’hui ?'));
+  tx.append(atlEl('b', '', gNM()), atlEl('p', 'atl-accq', 'Bonjour' + (nom ? ' ' + nom : '') + ' ! 👋 Qu’est-ce qu’on crée aujourd’hui ?' + ATL_ACC_PLUS));
   // 1 h 25 (Benjamin : « le guide n'est pas à jour en haut ») : 1) un choix à faire 2) une nouvelle réponse 3) une NOUVELLE version (le bon
   // numéro, seulement si c'est nouveau depuis la dernière visite) 4) un projet prêt à construire
   let vus = store.get('jdw.atl.vvu', null);
@@ -18674,6 +18719,7 @@ const ATL_PKOBJ = {
   loupe: ['🔍', '⭐', '✨'], emballe: ['🎀', '✨', '🎁'], cadeau: ['🎁', '🎉', '✨'], danse: ['🎵', '🎉', '✨'], saut: ['⭐', '🎉', '✨'],
   eternue: ['💨', '✨', '💨'], rit: ['😆', '💛', '✨'], coucou: ['👋', '✨', '💬'], repos: ['✨']
 };
+Object.assign(ATL_PKCTX, { esprepos: ['repos'], esptravail: ['bricole', 'clavier', 'puzzle', 'dessine', 'tampon'], especrit: ['ecrit', 'postit', 'gratte', 'idee'] });   // 2.0.170 : l'en-tête de l'espace
 const ATL_PKDUR = { coucou: 2600, surpris: 1500, rit: 2200, eternue: 1900, saut: 3200, sieste: 7000, idee: 3500 };
 const ATL_PKSUITE = { sieste: ['surpris', 1500, 1], gratte: ['idee', 3500, .6], emballe: ['cadeau', 4000, .8] };
 const ATL_PKMOT = [[/\blis\b|lire|relis/i, ['lit']], [/écri/i, ['ecrit', 'postit']], [/question/i, ['gratte', 'postit', 'ecrit']], [/répon/i, ['ecrit', 'postit']],
@@ -18683,8 +18729,10 @@ const ATL_PKMOT = [[/\blis\b|lire|relis/i, ['lit']], [/écri/i, ['ecrit', 'posti
 function atlPkImg(n, cls) { const i = atlEl('img', cls); i.alt = ''; i.decoding = 'async'; i.src = ATL_PK(n); return i; }
 function atlPkPose(w, p, dur) {
   const s = w._pk; if (!s) return;
+  if (p === 'repos' && s.cur === 'repos' && s.lay && s.lay.isConnected) { s.t0 = Date.now(); s.fin = s.t0 + (4000 + Math.random() * 6000) * s.lent; return; }   // 2.0.170 : déjà au repos, rien à recharger
   s.prec = s.cur; s.cur = p; s.t0 = Date.now(); s.fin = s.t0 + (dur || ATL_PKDUR[p] || (4000 + Math.random() * 6000) * s.lent);
   w.dataset.p = p;
+  if (w._mini) { atlPkPoseMini(w, s, p); return; }
   const c = w.querySelector('.atl-pkc'), L = atlEl('span', 'atl-pkly' + (p === 'repos' || p === 'bricole' ? '' : ' np'));
   if (p === 'repos') for (const [n, k] of [['respire1', 'r1'], ['respire2', 'r2'], ['respire3', 'r3'], ['yeuxfermes', 'yf']]) L.appendChild(atlPkImg(n, 'atl-pkl ' + k));
   else if (p === 'bricole') for (const k of ['1', '2', '3']) L.appendChild(atlPkImg('travail' + k, 'atl-pkl t' + k));
@@ -18698,6 +18746,22 @@ function atlPkPose(w, p, dur) {
   }));
   const ob = ATL_PKOBJ[p] || ['✨'];
   w.querySelectorAll('.atl-pkd').forEach((d, i) => { d.textContent = ob[i] || ''; d.classList.toggle('spin', ob[i] === '⚙️'); });
+}
+// 2.0.170 : l'avatar de l'en-tête de l'espace garde chaque pose une fois créée (images décodées une seule fois) : changer de pose = basculer
+// une opacité, sans nouvelle image à décoder ni à composer (mesuré au téléphone, CPU ×6)
+function atlPkPoseMini(w, s, p) {
+  const c = w.querySelector('.atl-pkc'), M = w._lay || (w._lay = {});
+  const montrer = () => { if (s.cur !== p) return; for (const k in M) M[k].classList.toggle('on', k === p); };
+  let L = M[p];
+  if (!L) {
+    L = atlEl('span', 'atl-pkly' + (p === 'repos' || p === 'bricole' ? '' : ' np')); M[p] = L;
+    if (p === 'repos') for (const [n, k] of [['respire1', 'r1'], ['respire2', 'r2'], ['respire3', 'r3'], ['yeuxfermes', 'yf']]) L.appendChild(atlPkImg(n, 'atl-pkl ' + k));
+    else if (p === 'bricole') for (const k of ['1', '2', '3']) L.appendChild(atlPkImg('travail' + k, 'atl-pkl t' + k));
+    else L.appendChild(atlPkImg('p-' + p, 'atl-pkl'));
+    c.appendChild(L);
+    const imgs = [...L.querySelectorAll('img')];
+    Promise.all(imgs.map(i => i.decode ? i.decode().catch(() => {}) : 0)).then(() => requestAnimationFrame(() => { if (imgs.every(i => i.naturalWidth)) montrer(); else { delete M[p]; L.remove(); } }));
+  } else montrer();
 }
 function atlPkTexte(w) { const t = w.parentNode && w.parentNode.querySelector('.atl-pktxt'); return t ? t.textContent : ''; }
 function atlPkMot(x) {
@@ -18747,7 +18811,7 @@ function atlPkRegard() {
   });
 }
 function atlPkInit() {
-  if (!ATL.pkIO && typeof IntersectionObserver === 'function') ATL.pkIO = new IntersectionObserver(es => { for (const e of es) e.target._pkVu = e.isIntersecting; });   // 2.0.159 : en pause hors de l'écran
+  if (!ATL.pkIO && typeof IntersectionObserver === 'function') ATL.pkIO = new IntersectionObserver(es => { for (const e of es) { e.target._pkVu = e.isIntersecting; e.target.classList.toggle('hors', !e.isIntersecting); } });   // 2.0.159 : en pause hors de l'écran
   if (!ATL.pkD) ATL.pkD = setInterval(atlPkTick, 1000);   // 2.0.159 (chef, lenteurs) : 1 s au lieu de 300 ms
   if (ATL.pkEcoute) return; ATL.pkEcoute = true;
   ATL.pkMv = Date.now(); ATL.pkSalut = 0;
@@ -18768,9 +18832,27 @@ function atlPkInit() {
     ATL.pkMv = Date.now(); vise(e);
     const w = e.target.closest && e.target.closest('.atl-pk[data-ctx]'); if (!w || !w._pk) return;
     const now = Date.now(); if (now - w._pk.rit < 1200) return; w._pk.rit = now; w._pk.cc = now;
-    atlPkGeste(w, w._pk.cur === 'sieste' ? 'surpris' : 'rit');   // chatouille
+    atlPkGeste(w, w._pk.cur === 'sieste' ? 'surpris' : w._pk.coucou ? 'coucou' : 'rit');   // chatouille (l'en-tête de l'espace : un coucou)
   }, { passive: true });
 }
+// 2.0.170 : le guide de l'en-tête de l'espace — repos (respire, cligne), travail (bricole, clavier…), écrit (note, réfléchit), joie à la livraison,
+// coucou au survol ou au toucher. Que des changements d'image et des transformations / opacités ; en pause hors de l'écran (ticker 1 s commun).
+function atlEspPk() { const w = atlEl('span', 'atl-pk atl-pkv'); w._mini = true; w.setAttribute('aria-hidden', 'true'); const g = atlEl('span', 'atl-pkg'); g.appendChild(atlEl('span', 'atl-pkc')); w.appendChild(g);
+  w.dataset.ctx = 'esprepos'; w._pk = { ctx: 'esprepos', cur: '', prec: '', fin: 0, t0: 0, txt: null, lent: matchMedia('(prefers-reduced-motion:reduce)').matches ? 1.6 : 1, cc: 0, rit: 0 };
+  atlPkPose(w, 'repos'); atlPkInit(); w.classList.add('atl-espav', 'atl-pkmini'); w._pk.coucou = true;
+  { const q = ['coucou', 'saut', ...ATL_PKCTX.esptravail, ...ATL_PKCTX.especrit]; const pas = () => { if (!w.isConnected && q.length < 11) return; const p = q.shift(); if (!p) return; if (!(w._lay && w._lay[p])) atlPkPoseMini(w, w._pk, p); (window.requestIdleCallback || (f => setTimeout(f, 300)))(() => setTimeout(pas, 1200), { timeout: 4000 }); }; setTimeout(pas, 2500); }   // pré-créées une à une, au calme
+  w._etat = 'repos'; w._v = -1; return w; }
+function atlEspPkEtat(w, etat, v) {
+  const s = w && w._pk; if (!s || w._force) return;   // _force : bancs seulement
+  const avant = w._etat; w._etat = etat;
+  if (w._v >= 0 && v > w._v && etat !== 'travail') { w._v = v; s.ctx = w.dataset.ctx = 'esprepos'; atlPkPose(w, 'saut', 3600); return; }   // une version livrée : il saute de joie
+  if (w._v < 0 || v > w._v) w._v = v;
+  if (avant === etat && s.ctx === 'esp' + etat) return;
+  s.ctx = w.dataset.ctx = 'esp' + etat;
+  if (s.cur === 'saut' && Date.now() < s.fin) return;   // il finit sa joie d'abord
+  atlPkPose(w, etat === 'repos' ? 'repos' : atlPkTire(w));
+}
+if (navigator.webdriver) window.JDW_ESSAI_PK = (etat, v) => { for (const w of document.querySelectorAll('.atl-espk .atl-pk')) { w._force = 0; atlEspPkEtat(w, etat, v == null ? w._v : v); w._force = 1; } return [...document.querySelectorAll('.atl-espk .atl-pk')].map(w => w.dataset.p); };   // bancs seulement
 function atlGuideAnim(mode, ctx, texte) {
   const w = atlEl('span', 'atl-pk atl-pkv'); w.setAttribute('aria-hidden', 'true');
   const g = atlEl('span', 'atl-pkg'); g.appendChild(atlEl('span', 'atl-pkc')); w.appendChild(g);

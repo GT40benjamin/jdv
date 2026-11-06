@@ -5871,3 +5871,11 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-decote b{font:700 14px var(--body)}.atl-decote p{margin:0;font:13px var(--body);color:var(--muted)}.atl-decote .btn{justify-self:start;margin-top:4px}
 .atl-chat .atl-decote{margin-top:6px;padding:8px 12px;border-radius:12px;background:#fff;border:1px dashed #cdbfe8;color:#1f1a2b}
 .atl-chat .atl-decote p{color:#4f4863}
+/* 2.0.170 : le guide VIVANT dans l'en-tête de l'espace (poses atlPk) — pas de filtre ni d'ombre ; arrêté hors de l'écran */
+.atl-espk .atl-pk.atl-espav{width:52px;height:52px;filter:none;flex:none}
+.atl-estop .atl-espk .atl-pk.atl-espav{width:40px;height:40px}
+.atl-pkmini .atl-pkd{display:none}
+.atl-pk.hors .atl-pkc,.atl-pk.hors .atl-pkl,.atl-pk.hors .atl-pkg{animation-play-state:paused!important}
+.atl-pkmini .atl-pkly{transition:none}.atl-pkmini .atl-pkly:not(.on){visibility:hidden}.atl-pkmini .atl-pkly:not(.on) *{animation:none!important}
+/* 2.0.170 : « Crée avec … » en haut de Mes projets, sur deux lignes au téléphone plutôt que coupé */
+@media (max-width:600px){.atl-bar .atl-nom.liste{white-space:normal;overflow:visible;text-overflow:clip;font-size:15px;line-height:1.05}}

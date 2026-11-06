@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## ✨ L’Atelier s’appelle maintenant Crée avec {g} (borne 2.0.171)
+[borne] ✨ L’Atelier s’appelle maintenant « Crée avec {g} » : une nouvelle tuile où {g} t’attend au milieu de tout ce qu’on peut créer.
+[borne] 💤 Une offre que tu as mise de côté (« Plus tard ») ne compte plus comme « à choisir » : tu la retrouves dans « 💤 Mises de côté », avec « Revoir l’offre ».
+[borne] 💬 Quand tu ouvres la discussion avec {g} (son portrait, son onglet, sa carte), ton curseur est déjà dans « Écris à… » : tu n’as plus qu’à taper.
+[borne] 🙂 En haut de l’espace de ton jeu, {g} bouge selon ce qu’il fait : il respire et cligne de l’œil, travaille sur ta version, écrit sa réponse, saute de joie quand elle est livrée, et te fait coucou.
+[borne] ⌨️ Dans l’arrêt sur image, Échap (ou B à la manette) reprend la partie ; flèches, espaces et Entrée marchent dans ton message.
 [borne] ## 🎨 Ton espace de jeu retrouve ses vraies couleurs (borne 2.0.170)
 [borne] 🎨 Dans l'Atelier, l'image de ton jeu n'est plus délavée par un voile blanc : elle garde ses vraies couleurs, vives, et les cartes restent bien lisibles par-dessus.
 [borne] 🛠️ Quand tu passes d'un projet à l'autre, chaque jeu montre bien son propre fond (le fond du projet précédent restait parfois affiché).
