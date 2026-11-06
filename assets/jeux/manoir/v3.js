@@ -296,7 +296,7 @@ function SALLES_DEF(J) {
   const miroirPetit = (num, l) => () => { F['m' + num] = 1; J.lire({ titre: 'Dans ce miroir…', texte: 'Le reflet montre un petit numéro et deux lettres :', dessin: 'reflet', refl: { num, l } }); };
   return [
   /* 1 — le hall d'entrée : déduction sur trois chiffres (la lettre + le jour entouré du calendrier) → 2-4-9 */
-  { nom: 'Le hall d’entrée', img: 'hall', fond: [615, 0.72], sol: 728, xmin: 150, xmax: 1180, x0: 1010, hE: 270, fant: [1190, 205], cible: 90, tictac: true,
+  { nom: 'Le hall d’entrée', img: 'hall', fond: [612, 0.66], sol: 728, xmin: 150, xmax: 1180, x0: 1010, hE: 270, fant: [1190, 205], cible: 90, tictac: true,
     lueurs: [[225, 292, 70], [190, 312, 40], [264, 318, 40], [1128, 290, 70], [1092, 312, 40], [1166, 318, 40]],
     flammes: [[189, 306, 1], [225, 286, 1.25], [264, 310, 1], [1091, 307, 1], [1129, 282, 1.25], [1166, 305, 1]],
     porte: [548, 120, 280, 475],
@@ -330,7 +330,7 @@ function SALLES_DEF(J) {
   },
 
   /* 3 — le laboratoire : transvaser (8, 5, 3 cl) pour obtenir 4 + 4 ; l'armoire, le fusible, la lumière */
-  { nom: 'Le laboratoire', img: 'labo', fond: [652, 0.8], sol: 736, xmin: 150, xmax: 1140, x0: 330, hE: 270, fant: [520, 240], cible: 180,
+  { nom: 'Le laboratoire', img: 'labo', fond: [648, 0.7], sol: 736, xmin: 150, xmax: 1140, x0: 330, hE: 270, fant: [520, 240], cible: 180,
     lueurs: [[1020, 460, 120]],
     porte: [1165, 205, 135, 520],
     intro: 'Ne touche à rien ! La dernière fois, une potion m’a rendu tout transparent… Ah non, ça, c’était déjà comme ça. Hi hi !',
@@ -352,7 +352,7 @@ function SALLES_DEF(J) {
   },
 
   /* 4 — la cuisine : la recette pour 6 → pour 9, les mesures des casseroles (g) → 45 g sur la balance ; le tiroir, la clé */
-  { nom: 'La cuisine', img: 'cuisine', fond: [570, 0.72], sol: 748, xmin: 120, xmax: 1180, x0: 160, hE: 262, fant: [1185, 105], cible: 180,
+  { nom: 'La cuisine', img: 'cuisine', fond: [570, 0.66], sol: 748, xmin: 120, xmax: 1180, x0: 160, hE: 262, fant: [1185, 105], cible: 180,
     lueurs: [[685, 470, 160]],
     flammes: [[668, 549, 1.1, 'feu'], [690, 545, 1.4, 'feu'], [712, 549, 1.1, 'feu']],
     porte: [1078, 215, 160, 335],
@@ -372,7 +372,7 @@ function SALLES_DEF(J) {
   },
 
   /* 5 — le grenier : les rayons des rouages et les écarts entre les axes (calcul) ; le rouage r 45 dans la malle ; le coffre, la clé */
-  { nom: 'Le grenier', img: 'grenier', fond: [628, 0.76], sol: 736, xmin: 290, xmax: 1090, x0: 340, hE: 262, fant: [905, 225], cible: 210,
+  { nom: 'Le grenier', img: 'grenier', fond: [628, 0.68], sol: 736, xmin: 290, xmax: 1090, x0: 340, hE: 262, fant: [905, 225], cible: 210,
     lueurs: [[672, 112, 120]],
     rais: [[600, 125, 745, 125, 900, 760, 450, 760]],
     porte: [1112, 240, 128, 395],
@@ -449,7 +449,7 @@ function SALLES_DEF(J) {
   },
 
   /* 9 — la chambre secrète : le taquin, la loupe (encre invisible), la tête de lit (3 symboles exclus), déduction → étoile, fleur, cœur */
-  { nom: 'La chambre secrète', img: 'chambre', fond: [652, 0.8], sol: 744, xmin: 300, xmax: 1110, x0: 1080, hE: 262, fant: [430, 80], cible: 270,
+  { nom: 'La chambre secrète', img: 'chambre', fond: [652, 0.7], sol: 744, xmin: 300, xmax: 1110, x0: 1080, hE: 262, fant: [430, 80], cible: 270,
     lueurs: [[570, 470, 70], [745, 488, 60], [45, 500, 60]],
     flammes: [[15, 511, 0.8], [46, 489, 1.05], [70, 520, 0.7], [552, 477, 0.75], [571, 455, 1], [588, 484, 0.7], [735, 476, 0.85], [754, 478, 0.8]],
     porte: [1122, 262, 222, 420],
@@ -516,7 +516,7 @@ function SALLES_DEF(J) {
   },
 
   /* 12 — l'observatoire : la lunette montre le ciel RETOURNÉ ; la carte est à l'endroit (dont deux pièges retournés) → Plume, Clé, Chat */
-  { nom: 'L’observatoire', img: 'observatoire', fond: [640, 0.76], sol: 742, xmin: 170, xmax: 1180, x0: 1150, hE: 255, fant: [300, 150], cible: 330,
+  { nom: 'L’observatoire', img: 'observatoire', fond: [640, 0.7], sol: 742, xmin: 170, xmax: 1180, x0: 1150, hE: 255, fant: [300, 150], cible: 330,
     lueurs: [[665, 90, 160]],
     rais: [[590, 20, 740, 20, 840, 660, 560, 660]],
     porte: [860, 290, 300, 420],
@@ -524,7 +524,7 @@ function SALLES_DEF(J) {
     zones: [
       { id: 'meubleD', nom: 'Le petit meuble', r: [1232, 598, 112, 128], x: 1180, bas: true, use() { if (!F.ocu0) { F.ocu0 = 1; J.donner('oculaire'); J.msg('Dans le petit meuble : l’oculaire de la lunette !'); } else J.msg('Le meuble est vide maintenant.'); } },
       { id: 'meubleG', nom: 'Le vieux meuble', r: [30, 588, 150, 128], x: 200, bas: true, use: rien('Un vieux meuble plein de cartes froissées… rien d’utile.') },
-      { id: 'carte', nom: 'La grande carte du ciel', r: [420, 362, 165, 160], x: 500, p: [500, 642], use() { F.carte = 1; J.lire({ titre: 'La grande carte du ciel', texte: 'Les constellations, à l’endroit, avec leurs noms :', dessin: 'ciel' }); } },
+      { id: 'carte', nom: 'La grande carte du ciel', r: [420, 362, 165, 160], x: 500, p: [500, 642], equerre: true, use() { F.carte = 1; J.lire({ titre: 'La grande carte du ciel', texte: 'Les constellations, à l’endroit, avec leurs noms :', dessin: 'ciel' }); } },
       { id: 'croquis', nom: 'Les croquis', r: [50, 290, 120, 135], x: 200, use: rien('Des croquis d’étoiles tout gribouillés. Illisibles !') },
       { id: 'lune', nom: 'La carte de la Lune', r: [1140, 280, 190, 220], x: 1150, use: rien('Une carte de la Lune, avec tous ses cratères.') },
       { id: 'journal', nom: 'Le journal de l’astronome', r: [598, 553, 115, 55], x: 610, use() { F.jour = 1; J.lire({ titre: 'Le journal de l’astronome', texte: 'La chaîne de l’escalier tombe si ma sphère montre :\nanneau du HAUT : la constellation que la lunette voit au NORD ;\nanneau du MILIEU : celle de l’EST ;\nanneau du BAS : celle du SUD.\nAttention : comme toute lunette astronomique, la mienne montre le ciel RETOURNÉ, le haut en bas et la gauche à droite. Ma grande carte, elle, est à l’endroit.' }); } },
@@ -538,7 +538,7 @@ function SALLES_DEF(J) {
   },
 
   /* 13 — la crypte : sincères ou menteurs (4 phrases) → menteurs soleil + lune, secret sous la lune ; les dalles : soleil, lune, trèfle, étoile */
-  { nom: 'La crypte', img: 'crypte', fond: [538, 0.66], sol: 748, xmin: 320, xmax: 1020, x0: 670, hE: 252, fant: [670, 120], cible: 360,
+  { nom: 'La crypte', img: 'crypte', fond: [538, 0.62], sol: 748, xmin: 320, xmax: 1020, x0: 670, hE: 252, fant: [670, 120], cible: 360,
     lueurs: [[140, 215, 120], [405, 322, 60], [930, 322, 60], [1200, 215, 120]],
     flammes: [[140, 222, 1.5], [405, 324, 0.8], [930, 324, 0.8], [1200, 222, 1.5]],
     porte: [578, 318, 190, 185],
@@ -557,7 +557,7 @@ function SALLES_DEF(J) {
 
   /* 14 — la salle des miroirs : la note écrite à l'envers ; 4 miroirs (n° + 2 lettres reflétées) : garder la lettre qu'un miroir ne change
      pas → T, O, I, T ; le coffret à lettres (TOIT) ; le rayon de lune : 4 miroirs, passer par les 2 cristaux */
-  { nom: 'La salle des miroirs', img: 'miroirs', fond: [606, 0.68], sol: 748, xmin: 190, xmax: 1150, x0: 900, hE: 255, fant: [330, 105], cible: 390,
+  { nom: 'La salle des miroirs', img: 'miroirs', fond: [606, 0.64], sol: 748, xmin: 190, xmax: 1150, x0: 900, hE: 255, fant: [330, 105], cible: 390,
     lueurs: [[675, 110, 170]],
     flammes: [[555, 92, 0.55], [598, 70, 0.55], [675, 64, 0.6], [750, 70, 0.55], [793, 92, 0.55], [575, 118, 0.5], [775, 118, 0.5]],
     rais: [[625, 240, 735, 240, 890, 745, 510, 745]],
@@ -566,7 +566,7 @@ function SALLES_DEF(J) {
     zones: [
       { id: 'miroirA', nom: 'Le grand miroir carré', r: [12, 82, 172, 525], x: 220, use() { F.envers = 1; J.lire({ titre: 'Le grand miroir carré', texte: '', dessin: 'envers', envers: 'Quatre miroirs de cette salle gardent chacun un numéro et deux lettres. Dans chacun, garde la lettre qu’un miroir ne change pas. Range-les par numéro : c’est le mot de mon coffret.' }); } },
       { id: 'miroirH', nom: 'Le grand miroir ovale', r: [1160, 142, 150, 432], x: 1130, use: miroirPetit(4, ['T', 'E']) },
-      { id: 'miroirB', nom: 'Un miroir ovale', r: [245, 192, 100, 352], x: 300, p: [345, 652], use: miroirPetit(3, ['N', 'I']) },
+      { id: 'miroirB', nom: 'Un miroir ovale', r: [245, 192, 100, 352], x: 300, p: [462, 652], equerre: true, use: miroirPetit(3, ['N', 'I']) },
       { id: 'miroirE', nom: 'Un miroir doré', r: [770, 305, 125, 205], x: 820, p: [830, 626], use: miroirPetit(1, ['R', 'T']) },
       { id: 'miroirG', nom: 'Un miroir ovale', r: [1005, 190, 95, 370], x: 1040, p: [1000, 652], use: miroirPetit(2, ['O', 'S']) },
       { id: 'coffret', nom: 'Le coffret', r: [292, 628, 140, 108], x: 450, bas: true, use() {
@@ -605,7 +605,7 @@ function SALLES_DEF(J) {
   /* 16 — BONUS « Expert » : l'échiquier (A à E) → le cryptogramme du parchemin (« étoiles du cercle, puis minutes du balancier, puis tomes
      dorés ») → la carte du ciel (17), la pendule (25), la bibliothèque (8) → le coffre-fort 17-25-8 → la clé des verrous → les signes de la
      porte, traduits avec la clé du cryptogramme : SORTIE */
-  { nom: 'Le cabinet de l’Expert', img: 'expert', fond: [540, 0.74], sol: 662, xmin: 300, xmax: 1040, x0: 1000, hE: 228, fant: [240, 120], cible: 900, cadre: [36, 712, 70, 1275], tictac: true,
+  { nom: 'Le cabinet de l’Expert', img: 'expert', fond: [540, 0.68], sol: 662, xmin: 300, xmax: 1040, x0: 1000, hE: 228, fant: [240, 120], cible: 900, cadre: [36, 712, 70, 1275], tictac: true,
     lueurs: [[212, 252, 80], [810, 360, 110]],
     flammes: [[206, 242, 0.7], [229, 242, 0.7], [792, 357, 0.75], [810, 342, 0.85], [831, 357, 0.75]],
     rais: [[640, 230, 712, 230, 830, 640, 540, 640]],
@@ -614,8 +614,8 @@ function SALLES_DEF(J) {
     zones: [
       { id: 'parchemin', nom: 'Le parchemin chiffré', r: [418, 560, 82, 62], x: 470, bas: true, use() { F.crypto = F.crypto || {}; J.gros(J.G.crypto({ etat: F.crypto, fini() { F.dechiffre = 1; } })); } },
       { id: 'echiquier', nom: 'L’échiquier', r: [158, 418, 168, 92], x: 330, use() { F.echecs = 1; J.lire({ titre: 'L’échiquier', texte: 'Sous chaque pièce, un signe est gravé. Sur le bord : « Chaque signe vaut la lettre de sa colonne. »', dessin: 'echiquier' }); } },
-      { id: 'vitrine', nom: 'La bibliothèque vitrée', r: [282, 182, 192, 330], x: 380, p: [380, 545], use() { F.tomes = 1; J.lire({ titre: 'La bibliothèque vitrée', texte: 'Derrière la vitre, deux rayons de livres :', dessin: 'tomes' }); } },
-      { id: 'carteCiel', nom: 'La carte du ciel', r: [766, 152, 138, 162], x: 830, p: [905, 552], use() { F.ciel = 1; J.lire({ titre: 'La carte du ciel', texte: 'Un cercle doré est tracé sur la carte :', dessin: 'cercle' }); } },
+      { id: 'vitrine', nom: 'La bibliothèque vitrée', r: [282, 182, 192, 330], x: 380, p: [380, 545], equerre: true, use() { F.tomes = 1; J.lire({ titre: 'La bibliothèque vitrée', texte: 'Derrière la vitre, deux rayons de livres :', dessin: 'tomes' }); } },
+      { id: 'carteCiel', nom: 'La carte du ciel', r: [766, 152, 138, 162], x: 830, p: [905, 552], equerre: true, use() { F.ciel = 1; J.lire({ titre: 'La carte du ciel', texte: 'Un cercle doré est tracé sur la carte :', dessin: 'cercle' }); } },
       { id: 'pendule', nom: 'L’horloge à balancier', r: [912, 165, 96, 352], x: 960, p: [960, 560], use() { F.pend = 1; J.lire({ titre: 'L’horloge à balancier', texte: 'Le balancier est immobile : l’horloge s’est arrêtée.', dessin: 'pendule' }); } },
       { id: 'coffre', nom: 'Le coffre-fort', r: [470, 242, 110, 118], x: 540, use() {
         if (F.coffre) { if (!F.cleV) { F.cleV = 1; J.donner('cleVerrous'); J.msg('Dans le coffre-fort : une lourde clé à double panneton !'); } else J.msg('Le coffre-fort est vide.'); return; }
@@ -640,6 +640,8 @@ function SALLES_DEF(J) {
    cibles() → [{ id, x, y, r } ou { id, x, y, w, h }] (centres), tap(id), drop(src, dst) (glisser), dir(dx, dy) (croix / flèches,
    vrai = géré), dessiner(c, t, focus), maj(dt). K = le jeu : son(nom, f), fete(x, y), info(texte), reussi(gp), padOn(), lireSur(objet). */
 function fabriquerGros(K) {
+  // V3 : au téléphone debout, aucun texte de gros plan sous 24 px (≥ 13 px réels à l'échelle 0,55)
+  const F = n => K.grandTexte && K.grandTexte() ? Math.max(n, 24) : n;
   const COUL5 = [['rouge', '#c8352b', '#7a1a14'], ['orange', '#e8862a', '#8a4a10'], ['jaune', '#efc534', '#8a6a10'], ['vert', '#3a9a4a', '#1a5022'], ['bleu', '#2f6fd8', '#163a7a']];
 
   /* --- cadenas à roues (chiffres, symboles, mots, lettres) ; style 'coffre' = serrure de coffre ---
@@ -708,9 +710,9 @@ function fabriquerGros(K) {
           for (let k = -2; k <= 2; k++) {
             const VV = valsDe(i), NN = VV.length, val = VV[(v[i] + k + NN * 3) % NN], yy = y + (k + off[i]) * 64, a = 1 - Math.min(1, Math.abs(k + off[i]) * 0.55);
             c.globalAlpha = Math.max(0, a);
-            if (MOTS) { c.fillStyle = '#3a2410'; c.font = '900 ' + Math.round(25 - Math.abs(k + off[i]) * 6) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(val), x, yy + 2, WW - 10); }
+            if (MOTS) { c.fillStyle = '#3a2410'; c.font = '900 ' + F(Math.round(25 - Math.abs(k + off[i]) * 6)) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(val), x, yy + 2, WW - 10); }
             else if (o.symboles) symbole(c, val, x, yy, 26, '#3a2410');
-            else { c.fillStyle = '#3a2410'; c.font = '900 ' + Math.round((n >= 6 ? 46 : 54) - Math.abs(k + off[i]) * 12) + 'px ' + (o.lettres ? TITRE : TEXTE); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(val), x, yy + 3); }
+            else { c.fillStyle = '#3a2410'; c.font = '900 ' + F(Math.round((n >= 6 ? 46 : 54) - Math.abs(k + off[i]) * 12)) + 'px ' + (o.lettres ? TITRE : TEXTE); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(val), x, yy + 3); }
           }
           c.globalAlpha = 1; c.restore();
           c.strokeStyle = focus ? '#fff3c4' : '#5a3d12'; c.lineWidth = focus ? 5 : 3; pill(c, x - WW / 2, y - WH / 2, WW, WH, 10); c.stroke();
@@ -719,7 +721,7 @@ function fabriquerGros(K) {
           c.fillStyle = o.style === 'coffre' ? '#5a3d12' : '#6a4814';
           c.beginPath(); c.moveTo(x, y - WH / 2 - 26); c.lineTo(x - 13, y - WH / 2 - 9); c.lineTo(x + 13, y - WH / 2 - 9); c.fill();
           c.beginPath(); c.moveTo(x, y + WH / 2 + 26); c.lineTo(x - 13, y + WH / 2 + 9); c.lineTo(x + 13, y + WH / 2 + 9); c.fill();
-          if (o.etiquettes) { c.fillStyle = '#f4ead2'; c.font = '900 21px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(o.etiquettes[i], x, WY + WH / 2 + 46); }
+          if (o.etiquettes) { c.fillStyle = '#f4ead2'; c.font = '900 ' + F(21) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(o.etiquettes[i], x, WY + WH / 2 + 46); }
           // le repère du milieu
           c.strokeStyle = 'rgba(160,110,40,0.65)'; c.lineWidth = 2; c.strokeRect(x - WW / 2 + 3, y - 32, WW - 6, 64);
         }
@@ -734,8 +736,8 @@ function fabriquerGros(K) {
   function bouton(c, x, y, w, h, txt, vert, pad) {
     c.save(); c.shadowColor = 'rgba(0,0,0,0.45)'; c.shadowBlur = 10; c.fillStyle = vert ? '#7dd08a' : laiton(c, x - w / 2, y - h / 2, x + w / 2, y + h / 2); pill(c, x - w / 2, y - h / 2, w, h, h / 2); c.fill(); c.restore();
     c.strokeStyle = '#5a3d12'; c.lineWidth = 2.5; pill(c, x - w / 2, y - h / 2, w, h, h / 2); c.stroke();
-    c.fillStyle = '#2a1408'; c.font = '900 21px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, x + (pad ? 12 : 0), y + 1, w - 20 - (pad ? 24 : 0));
-    if (pad) { c.fillStyle = '#2a8a3a'; c.beginPath(); c.arc(x - w / 2 + 22, y, 12, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.font = '900 14px ' + TEXTE; c.fillText('A', x - w / 2 + 22, y + 1); }
+    c.fillStyle = '#2a1408'; c.font = '900 ' + F(21) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, x + (pad ? 12 : 0), y + 1, w - 20 - (pad ? 24 : 0));
+    if (pad) { c.fillStyle = '#2a8a3a'; c.beginPath(); c.arc(x - w / 2 + 22, y, 12, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.font = '900 ' + F(14) + 'px ' + TEXTE; c.fillText('A', x - w / 2 + 22, y + 1); }
   }
 
   /* --- les 5 livres de couleur à ranger (V3 : dans l'ordre déduit des 6 indices de la carte), puis « Pousser l'étagère » --- */
@@ -778,7 +780,7 @@ function fabriquerGros(K) {
       c.fillStyle = OR; for (const f of [0.08, 0.14, 0.86, 0.92]) c.fillRect(x - w / 2 + 4, yb - h + h * f, w - 8, 5);
       // le nom de la couleur sur le dos (lisible même sans les couleurs)
       c.save(); c.translate(x, yb - h * 0.5); c.rotate(-Math.PI / 2); c.fillStyle = 'rgba(255,248,230,0.92)'; pill(c, -h * 0.3, -17, h * 0.6, 34, 8); c.fill();
-      c.fillStyle = fon; c.font = '900 24px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(nom.toUpperCase(), 0, 1, h * 0.56); c.restore();
+      c.fillStyle = fon; c.font = '900 ' + F(24) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(nom.toUpperCase(), 0, 1, h * 0.56); c.restore();
       c.fillStyle = 'rgba(255,255,255,0.22)'; c.fillRect(x - w / 2 + 8, yb - h + 6, 5, h - 12);
     }
     return gp;
@@ -807,7 +809,7 @@ function fabriquerGros(K) {
         // la paillasse et le régulateur en laiton
         bois(c, 20, 400, 600, 40, ['#6a3a2a', '#4a2418', '#2a1408']);
         c.fillStyle = laiton(c, 30, 14, 610, 60); pill(c, 30, 14, 580, 46, 14); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke();
-        c.fillStyle = '#2a1408'; c.font = '900 22px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Versements : ' + n + ' / 10', 320, 38);
+        c.fillStyle = '#2a1408'; c.font = '900 ' + F(22) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Versements : ' + n + ' / 10', 320, 38);
         for (let i = 0; i < 3; i++) {
           if (drag && drag.id === 'f' + i) continue;
           let x = fx(i), y = 0, rot = 0;
@@ -833,7 +835,7 @@ function fabriquerGros(K) {
       c.restore();
       // l'étiquette : la contenance (jamais le contenu : pas de graduation)
       c.fillStyle = '#f4ead2'; pill(c, x - 46, BAS + 4, 92, 34, 8); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke();
-      c.fillStyle = '#3a2410'; c.font = '900 22px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(cap + ' cl', x, BAS + 22);
+      c.fillStyle = '#3a2410'; c.font = '900 ' + F(22) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(cap + ' cl', x, BAS + 22);
     }
     const plus = f => setTimeout(f, 650);
     return gp;
@@ -877,8 +879,8 @@ function fabriquerGros(K) {
             c.fillStyle = '#1e1e26'; c.beginPath(); c.ellipse(ax, Pn.y - 26, 42, 32, 0, 0, TAU); c.fill(); c.fillRect(ax - 44, Pn.y - 50, 88, 12);
             c.fillStyle = '#5ad8e8'; c.beginPath(); c.ellipse(ax, Pn.y - 48, 40, 7, 0, 0, TAU); c.fill();
             for (let k = 0; k < 3; k++) { const p = (t * 0.7 + k / 3) % 1; c.globalAlpha = 1 - p; c.fillStyle = '#a0f4ff'; c.beginPath(); c.arc(ax - 16 + k * 16, Pn.y - 52 - p * 40, 4, 0, TAU); c.fill(); }
-            c.globalAlpha = 1; c.fillStyle = '#f4ead2'; c.font = '900 24px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('?', ax, Pn.y - 22);
-          } else { c.fillStyle = '#f4ead2'; c.font = '900 22px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(somme() + ' g', ax, Pn.y + 38); }
+            c.globalAlpha = 1; c.fillStyle = '#f4ead2'; c.font = '900 ' + F(24) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('?', ax, Pn.y - 22);
+          } else { c.fillStyle = '#f4ead2'; c.font = '900 ' + F(22) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(somme() + ' g', ax, Pn.y + 38); }
         }
         bouton(c, 110, 64, 190, 50, ok ? 'Équilibre !' : 'Tirer le loquet', ok);
         // le plateau à poids (en bas)
@@ -893,7 +895,7 @@ function fabriquerGros(K) {
       c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(x + 3, y + h / 2 + 2, w * 0.6, 6 * k, 0, 0, TAU); c.fill();
       c.fillStyle = laiton(c, x - w / 2, y - h / 2, x + w / 2, y + h / 2); pill(c, x - w / 2, y - h / 2 + 6 * k, w, h - 6 * k, 6 * k); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke();
       c.fillStyle = laiton(c, x - 6, y - h / 2, x + 6, y - h / 2 + 8, true); pill(c, x - 7 * k, y - h / 2 - 2 * k, 14 * k, 10 * k, 4 * k); c.fill();
-      c.fillStyle = '#3a2410'; c.font = '900 ' + Math.round(21 * k) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(p + ' g', x, y + 4 * k);
+      c.fillStyle = '#3a2410'; c.font = '900 ' + F(Math.round(21 * k)) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(p + ' g', x, y + 4 * k);
     }
     return gp;
   }
@@ -950,7 +952,7 @@ function fabriquerGros(K) {
         const AX = [MAN.x].concat(PEGS, [HOR.x]);
         for (let k = 0; k < 4; k++) { const a = AX[k], b = AX[k + 1], yy = 296;
           c.strokeStyle = '#f4ead2'; c.lineWidth = 2; c.beginPath(); c.moveTo(a, yy); c.lineTo(b, yy); c.moveTo(a, yy - 8); c.lineTo(a, yy + 8); c.moveTo(b, yy - 8); c.lineTo(b, yy + 8); c.stroke();
-          c.fillStyle = 'rgba(20,10,4,0.75)'; pill(c, (a + b) / 2 - 24, yy - 30, 48, 26, 8); c.fill(); c.fillStyle = '#ffe9a8'; c.font = '900 20px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(b - a), (a + b) / 2, yy - 16); }
+          c.fillStyle = 'rgba(20,10,4,0.75)'; pill(c, (a + b) / 2 - 24, yy - 30, 48, 26, 8); c.fill(); c.fillStyle = '#ffe9a8'; c.font = '900 ' + F(20) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(b - a), (a + b) / 2, yy - 16); }
         for (const x of PEGS) { c.fillStyle = '#2a1408'; c.beginPath(); c.arc(x, Y, 11, 0, TAU); c.fill(); c.fillStyle = '#9a9aa8'; c.beginPath(); c.arc(x, Y, 6, 0, TAU); c.fill(); }
         // la manivelle et son rouage
         const wig = bloque > 0 ? Math.sin(bloque * 40) * 0.08 : 0;
@@ -969,7 +971,7 @@ function fabriquerGros(K) {
         bois(c, 14, 372, 612, 136, ['#5a321c', '#43230f', '#2a1408']); c.fillStyle = 'rgba(0,0,0,0.3)'; c.fillRect(24, 380, 592, 120);
         G.forEach((g, i) => {
           if (g.manque) { c.save(); c.setLineDash([8, 8]); c.strokeStyle = 'rgba(232,194,122,0.6)'; c.lineWidth = 3; c.beginPath(); c.arc(g.home.x, g.home.y, g.r, 0, TAU); c.stroke(); c.restore();
-            c.fillStyle = 'rgba(232,194,122,0.9)'; c.font = '800 16px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('il en', g.home.x, g.home.y - 9); c.fillText('manque un', g.home.x, g.home.y + 10); return; }
+            c.fillStyle = 'rgba(232,194,122,0.9)'; c.font = '800 ' + F(16) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('il en', g.home.x, g.home.y - 9); c.fillText('manque un', g.home.x, g.home.y + 10); return; }
           if (drag && drag.id === 'g' + i) return;
           const p = gx(g), lev = sel === i && g.pos < 0 ? 8 : 0;
           if (sel === i) { c.save(); c.shadowColor = '#ffd77a'; c.shadowBlur = 26; c.fillStyle = 'rgba(255,215,120,0.25)'; c.beginPath(); c.arc(p.x, p.y, g.r + 10, 0, TAU); c.fill(); c.restore(); }
@@ -979,7 +981,7 @@ function fabriquerGros(K) {
         if (ok) { c.save(); c.globalCompositeOperation = 'lighter'; const g = c.createRadialGradient(DX, Y, 5, DX, Y, 220); g.addColorStop(0, 'rgba(255,220,130,' + (0.6 * Math.max(0, 1 - okT * 0.8)) + ')'); g.addColorStop(1, 'rgba(255,220,130,0)'); c.fillStyle = g; c.fillRect(0, 0, 640, 520); c.restore(); }
       }
     };
-    function etiq(c, x, y, txt) { c.font = '900 19px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; const w = c.measureText(txt).width + 12; c.fillStyle = 'rgba(20,10,4,0.82)'; pill(c, x - w / 2, y - 12, w, 24, 9); c.fill(); c.fillStyle = '#ffe9a8'; c.fillText(txt, x, y + 1); }
+    function etiq(c, x, y, txt) { c.font = '900 ' + F(19) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; const w = c.measureText(txt).width + 12; c.fillStyle = 'rgba(20,10,4,0.82)'; pill(c, x - w / 2, y - 12, w, 24, 9); c.fill(); c.fillStyle = '#ffe9a8'; c.fillText(txt, x, y + 1); }
     return gp;
   }
 
@@ -1017,7 +1019,7 @@ function fabriquerGros(K) {
           if (!ok || okT < 0.6) { c.strokeStyle = 'rgba(255,240,200,0.5)'; c.lineWidth = 2; c.strokeRect(x + 1, y + 1, TW - 2, TH - 2); c.strokeStyle = 'rgba(0,0,0,0.5)'; c.strokeRect(x + 3, y + 3, TW - 6, TH - 6); }
         }
         // le petit modèle
-        c.fillStyle = '#f4ead2'; c.font = '900 20px ' + TITRE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Modèle', 490, 112);
+        c.fillStyle = '#f4ead2'; c.font = '900 ' + F(20) + 'px ' + TITRE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Modèle', 490, 112);
         c.fillStyle = laiton(c, 410, 130, 570, 340); pill(c, 404, 130, 172, 204, 8); c.fill();
         if (im) c.drawImage(im, SRC[0], SRC[1], SRC[2], SRC[3], 414, 140, 152, 184);
         if (ok) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,220,140,' + (0.45 * Math.max(0, 1 - okT)) + ')'; c.fillRect(BX, BY, TW * 3, TH * 3); c.restore(); }
@@ -1028,8 +1030,8 @@ function fabriquerGros(K) {
 
   /* --- le plan de table : V3 : 6 convives, 6 places (tête, bout, 2 côté mur, 2 côté salle), puis « Servir » --- */
   function plan(o) {
-    const PERS = [{ id: 'comte', nom: 'Le comte', src: [56, 128, 96, 150] }, { id: 'comtesse', nom: 'La comtesse', src: [443, 296, 94, 112] }, { id: 'berthe', nom: 'Berthe', src: [811, 276, 96, 112] },
-      { id: 'leon', nom: 'Léon', src: [626, 298, 96, 112] }, { id: 'hector', nom: 'Hector', src: [203, 222, 62, 100] }, { id: 'fantome', nom: 'Le fantôme', fant: true }];
+    const PERS = [{ id: 'comte', nom: 'Comte', src: [56, 128, 96, 150] }, { id: 'comtesse', nom: 'Comtesse', src: [443, 296, 94, 112] }, { id: 'berthe', nom: 'Berthe', src: [811, 276, 96, 112] },
+      { id: 'leon', nom: 'Léon', src: [626, 298, 96, 112] }, { id: 'hector', nom: 'Hector', src: [203, 222, 62, 100] }, { id: 'fantome', nom: 'Fantôme', fant: true }];
     const SIEGES = { T: { x: 92, y: 190, txt: 'tête' }, B: { x: 548, y: 190, txt: 'bout' }, M1: { x: 250, y: 72, txt: 'mur' }, M2: { x: 390, y: 72, txt: 'mur' }, S1: { x: 250, y: 308, txt: 'salle' }, S2: { x: 390, y: 308, txt: 'salle' } };
     const BON = { comte: 'T', comtesse: 'S2', berthe: 'M1', leon: 'B', hector: 'M2', fantome: 'S1' };
     const pos = PERS.map(() => null); let sel = null, ok = false, okT = 0, faux = 0;
@@ -1066,10 +1068,10 @@ function fabriquerGros(K) {
         c.fillStyle = 'rgba(0,0,0,0.35)'; pill(c, 156, 132, 344, 128, 20); c.fill();
         bois(c, 148, 124, 344, 132, ['#8a5530', '#6a3a1c', '#4a2410']); c.fillStyle = '#f2ece0'; pill(c, 160, 136, 320, 108, 14); c.fill();
         for (const k in SIEGES) { const S = SIEGES[k], px = clamp(S.x, 188, 452), py = clamp(S.y, 156, 224); c.fillStyle = '#fff'; c.beginPath(); c.arc(px, py, 13, 0, TAU); c.fill(); c.strokeStyle = '#c8b890'; c.lineWidth = 2; c.stroke(); }
-        c.fillStyle = '#e8dcc0'; c.font = '800 16px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('— côté mur —', 320, 22); c.fillText('— côté salle —', 320, 376);
+        c.fillStyle = '#e8dcc0'; c.font = '800 ' + F(16) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('— côté mur —', 320, 22); c.fillText('— côté salle —', 320, 376);
         // les chaises (places)
         for (const k in SIEGES) { const S = SIEGES[k]; c.fillStyle = 'rgba(120,30,40,0.85)'; c.beginPath(); c.arc(S.x, S.y, 46, 0, TAU); c.fill(); c.strokeStyle = OR2; c.lineWidth = 3; c.stroke();
-          if (!pos.includes(k)) { c.fillStyle = '#f4ead2'; c.font = '900 19px ' + TEXTE; c.fillText(S.txt, S.x, S.y + 1); } }
+          if (!pos.includes(k)) { c.fillStyle = '#f4ead2'; c.font = '900 ' + F(19) + 'px ' + TEXTE; c.fillText(S.txt, S.x, S.y + 1); } }
         bouton(c, 320, 190, 150, 46, ok ? 'Bon appétit !' : 'Servir', ok);
         bois(c, 10, 394, 620, 112, ['#4a2a16', '#3a1e0e', '#2a1408']);
         PERS.forEach((p, i) => { if (drag && drag.id === 'p' + i) return; const q = ou(i), sh = faux > 0 && pos[i] ? Math.sin(faux * 40) * 5 : 0; medaillon(c, q.x + sh, q.y, p, sel === i, true); });
@@ -1087,7 +1089,7 @@ function fabriquerGros(K) {
       else if (im) c.drawImage(im, p.src[0], p.src[1], p.src[2], p.src[3], x - r, y - r * 1.1, r * 2, r * 2.4);
       c.restore();
       c.strokeStyle = on ? '#fff3c4' : '#5a3d12'; c.lineWidth = 3; c.beginPath(); c.arc(x, y, r + 6, 0, TAU); c.stroke();
-      if (nom) { c.font = '900 17px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; const w = c.measureText(p.nom).width + 14; c.fillStyle = 'rgba(20,12,24,0.88)'; pill(c, x - w / 2, y + r + 2, w, 24, 12); c.fill(); c.fillStyle = OR; c.fillText(p.nom, x, y + r + 15); }
+      if (nom) { c.font = '900 ' + F(17) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; const w = Math.min(100, c.measureText(p.nom).width + 14); c.fillStyle = 'rgba(20,12,24,0.88)'; pill(c, x - w / 2, y + r + 2, w, 24, 12); c.fill(); c.fillStyle = OR; c.fillText(p.nom, x, y + r + 15, 94); }
     }
     return gp;
   }
@@ -1114,17 +1116,17 @@ function fabriquerGros(K) {
       dessiner(c, t) {
         // le bois du piano, le pupitre, les notes jouées
         bois(c, 10, 20, 620, 220, ['#4a1e1a', '#3a1412', '#26100c']); c.strokeStyle = '#1a0806'; c.lineWidth = 4; c.strokeRect(10, 20, 620, 220);
-        c.fillStyle = OR; c.font = '900 26px ' + TITRE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Le piano du manoir', 300, 62);
+        c.fillStyle = OR; c.font = '900 ' + F(26) + 'px ' + TITRE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Le piano du manoir', 300, 62);
         for (let k = 0; k < N; k++) { const x = 320 + (k - (N - 1) / 2) * 76, y = 150, n = joue[k];
           c.fillStyle = 'rgba(0,0,0,0.4)'; c.beginPath(); c.arc(x, y, 30, 0, TAU); c.fill();
           c.strokeStyle = faux > 0 ? '#ff5040' : OR2; c.lineWidth = 3; c.stroke();
-          if (n != null) { c.fillStyle = '#f4ead2'; c.beginPath(); c.arc(x, y, 25, 0, TAU); c.fill(); c.fillStyle = '#2a1408'; c.font = '900 19px ' + TEXTE; c.fillText(NOTES[n].nom, x, y + 1); } }
-        c.fillStyle = 'rgba(20,12,24,0.9)'; c.beginPath(); c.arc(560, 62, 28, 0, TAU); c.fill(); c.strokeStyle = OR; c.lineWidth = 3; c.stroke(); c.fillStyle = OR; c.font = '900 28px ' + TEXTE; c.fillText('↺', 560, 64);
+          if (n != null) { c.fillStyle = '#f4ead2'; c.beginPath(); c.arc(x, y, 25, 0, TAU); c.fill(); c.fillStyle = '#2a1408'; c.font = '900 ' + F(19) + 'px ' + TEXTE; c.fillText(NOTES[n].nom, x, y + 1); } }
+        c.fillStyle = 'rgba(20,12,24,0.9)'; c.beginPath(); c.arc(560, 62, 28, 0, TAU); c.fill(); c.strokeStyle = OR; c.lineWidth = 3; c.stroke(); c.fillStyle = OR; c.font = '900 ' + F(28) + 'px ' + TEXTE; c.fillText('↺', 560, 64);
         // les touches blanches (leur nom ; le cahier donne leur numéro)
         for (let i = 0; i < 7; i++) { const x = KX + i * KW, d = appui[i] * 6;
           const g = c.createLinearGradient(0, KY, 0, KY + KH); g.addColorStop(0, '#fffdf6'); g.addColorStop(1, appui[i] > 0.1 ? '#e8d8a8' : '#e0dcd0'); c.fillStyle = g;
           pill(c, x + 2, KY + d, KW - 4, KH - d, 8); c.fill(); c.strokeStyle = '#6a6050'; c.lineWidth = 2; c.stroke();
-          c.fillStyle = '#5a4a3a'; c.font = '900 24px ' + TEXTE; c.textAlign = 'center'; c.fillText(NOTES[i].nom, x + KW / 2, KY + KH - 30 + d); }
+          c.fillStyle = '#5a4a3a'; c.font = '900 ' + F(24) + 'px ' + TEXTE; c.textAlign = 'center'; c.fillText(NOTES[i].nom, x + KW / 2, KY + KH - 30 + d); }
         // les touches noires (décor)
         for (const i of [0, 1, 3, 4, 5]) { const x = KX + (i + 1) * KW; c.fillStyle = '#16120e'; pill(c, x - 18, KY, 36, 140, 5); c.fill(); c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(x - 12, KY + 4, 5, 120); }
         if (ok) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,210,120,' + (0.35 * Math.max(0, 1 - okT)) + ')'; c.fillRect(10, 20, 620, 470); c.restore(); }
@@ -1169,7 +1171,7 @@ function fabriquerGros(K) {
           // la poignée et son numéro de laiton
           c.fillStyle = '#7a3a1a'; pill(c, x1 - 16, y1, 32, 58, 10); c.fill(); c.strokeStyle = '#3a1a0a'; c.lineWidth = 2; c.stroke();
           c.fillStyle = laiton(c, x1 - 24, y1 + 62, x1 + 24, y1 + 96); c.beginPath(); c.arc(x1, y1 + 82, 22, 0, TAU); c.fill(); c.strokeStyle = '#5a3d12'; c.stroke();
-          c.fillStyle = '#2a1408'; c.font = '900 22px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(num), x1, y1 + 83);
+          c.fillStyle = '#2a1408'; c.font = '900 ' + F(22) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(num), x1, y1 + 83);
         });
         if (ok && swing > 0) { c.save(); c.globalCompositeOperation = 'lighter'; for (let k = 0; k < 3; k++) { const r = ((okT * 220 + k * 90) % 330); c.strokeStyle = 'rgba(255,220,150,' + Math.max(0, 0.5 - r / 700) + ')'; c.lineWidth = 6; c.beginPath(); c.arc(320, 160, r, 0, TAU); c.stroke(); } c.restore(); }
       }
@@ -1200,7 +1202,7 @@ function fabriquerGros(K) {
         const g = c.createRadialGradient(CX - 40, CY - 50, 10, CX, CY, R); g.addColorStop(0, '#fffaf0'); g.addColorStop(1, '#e2d4b4'); c.fillStyle = g; c.beginPath(); c.arc(CX, CY, R, 0, TAU); c.fill();
         c.strokeStyle = '#5a3d12'; c.lineWidth = 3; c.stroke();
         for (let k = 0; k < 60; k++) { const a = k / 60 * TAU, r1 = k % 5 ? R - 10 : R - 18; c.strokeStyle = '#5a3d12'; c.lineWidth = k % 5 ? 1.5 : 3; c.beginPath(); c.moveTo(CX + Math.sin(a) * r1, CY - Math.cos(a) * r1); c.lineTo(CX + Math.sin(a) * (R - 4), CY - Math.cos(a) * (R - 4)); c.stroke(); }
-        c.fillStyle = '#3a2410'; c.font = '900 36px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillStyle = '#3a2410'; c.font = '900 ' + F(36) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle';
         for (let k = 1; k <= 12; k++) { const a = k / 12 * TAU; c.fillText(String(k), CX + Math.sin(a) * (R - 46), CY - Math.cos(a) * (R - 46) + 2); }
         // les aiguilles
         aiguille(c, ah.grande / 12 * TAU, R - 40, 9, quelle === 'grande' && !ok, t);
@@ -1209,7 +1211,7 @@ function fabriquerGros(K) {
         // les boutons : petite / grande aiguille, la chaîne
         for (const [id, x, txt] of [['petite', 100, 'Petite aiguille'], ['grande', 540, 'Grande aiguille']]) {
           const on = quelle === id; c.fillStyle = on ? 'rgba(232,194,122,0.95)' : 'rgba(20,12,24,0.85)'; pill(c, x - 90, 458, 180, 48, 24); c.fill(); c.strokeStyle = OR; c.lineWidth = 3; c.stroke();
-          c.fillStyle = on ? '#2a1408' : OR; c.font = '900 19px ' + TEXTE; c.fillText(txt, x, 483, 168);
+          c.fillStyle = on ? '#2a1408' : OR; c.font = '900 ' + F(19) + 'px ' + TEXTE; c.fillText(txt, x, 483, 168);
         }
         bouton(c, 320, 482, 170, 48, ok ? 'Tic… tac !' : 'Tirer la chaîne', ok, K.padOn());
         if (ok) { c.save(); c.globalCompositeOperation = 'lighter'; const gg = c.createRadialGradient(CX, CY, 10, CX, CY, R * 1.4); gg.addColorStop(0, 'rgba(255,220,140,' + (0.5 * Math.max(0, 1 - okT * 0.7)) + ')'); gg.addColorStop(1, 'rgba(255,220,140,0)'); c.fillStyle = gg; c.fillRect(0, 0, 640, 520); c.restore(); }
@@ -1245,7 +1247,7 @@ function fabriquerGros(K) {
         c.strokeStyle = 'rgba(140,100,50,0.35)'; c.lineWidth = 2; c.strokeRect(42, 32, 556, VH - 64);
         const ill = o.dessin ? (o.dessinH || (VH > 700 ? 300 : 220)) : 0, dispo = VH - 84 - (ill ? ill + 10 : 0);
         let f = 34, L = [];
-        for (; f >= 15; f--) { c.font = '800 ' + f + 'px ' + TEXTE; L = texteLignes(c, txt, 540); const hh = L.reduce((s, l) => s + (l ? f * 1.3 : f * 0.6), 0); if (hh <= dispo) break; }
+        for (; f >= 15; f--) { c.font = '800 ' + F(f) + 'px ' + TEXTE; L = texteLignes(c, txt, 540); const hh = L.reduce((s, l) => s + (l ? f * 1.3 : f * 0.6), 0); if (hh <= dispo) break; }
         if (!txt) L = [];
         c.fillStyle = '#4a2a10'; c.textAlign = 'left'; c.textBaseline = 'top';
         c.save(); if (o.envers) { c.translate(640, 0); c.scale(-1, 1); c.fillStyle = '#2a3a5a'; }
@@ -1257,16 +1259,16 @@ function fabriquerGros(K) {
     };
     return gp;
   }
-  function etiquette(c, x, y, txt, fs, fond, coul) { c.font = '900 ' + fs + 'px ' + TEXTE; const w = c.measureText(txt).width + fs * 0.8; c.fillStyle = fond || '#f4ead2'; pill(c, x - w / 2, y - fs * 0.75, w, fs * 1.5, fs * 0.4); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke(); c.fillStyle = coul || '#3a2410'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, x, y + 1); }
+  function etiquette(c, x, y, txt, fs, fond, coul) { c.font = '900 ' + F(fs) + 'px ' + TEXTE; const w = c.measureText(txt).width + fs * 0.8; c.fillStyle = fond || '#f4ead2'; pill(c, x - w / 2, y - fs * 0.75, w, fs * 1.5, fs * 0.4); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke(); c.fillStyle = coul || '#3a2410'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, x, y + 1); }
   function illustration(c, d, x, y, w, h, t, o) {
     c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
     const cx = x + w / 2, cy = y + h / 2;
     if (d === 'calendrier') {   // octobre : le 15 entouré ; le 3 barré et le 22 souligné (pièges d'observation)
       const cw = Math.min(w, 460), ch = Math.min(h, 440), x0 = x + (w - cw) / 2;
-      c.fillStyle = '#2a2c5a'; c.fillRect(x0, y, cw, 52); c.fillStyle = '#f4ead2'; c.font = '900 28px ' + TITRE; c.fillText('OCTOBRE', x0 + cw / 2, y + 28);
+      c.fillStyle = '#2a2c5a'; c.fillRect(x0, y, cw, 52); c.fillStyle = '#f4ead2'; c.font = '900 ' + F(28) + 'px ' + TITRE; c.fillText('OCTOBRE', x0 + cw / 2, y + 28);
       c.fillStyle = '#fffaf0'; c.fillRect(x0, y + 52, cw, ch - 52); const JJ = ['L', 'M', 'M', 'J', 'V', 'S', 'D'], cs = cw / 7, rh = (ch - 86) / 5;
-      c.font = '800 19px ' + TEXTE; JJ.forEach((j, i) => { c.fillStyle = '#8a6a4a'; c.fillText(j, x0 + cs * (i + 0.5), y + 68); });
-      for (let n = 1; n <= 31; n++) { const k = n + 1, col = k % 7, row = (k / 7) | 0; const xx = x0 + cs * (col + 0.5), yy = y + 98 + row * rh; if (yy > y + ch - 6) continue; c.fillStyle = '#3a2410'; c.font = '900 ' + Math.round(Math.min(24, rh * 0.62)) + 'px ' + TEXTE; c.fillText(String(n), xx, yy);
+      c.font = '800 ' + F(19) + 'px ' + TEXTE; JJ.forEach((j, i) => { c.fillStyle = '#8a6a4a'; c.fillText(j, x0 + cs * (i + 0.5), y + 68); });
+      for (let n = 1; n <= 31; n++) { const k = n + 1, col = k % 7, row = (k / 7) | 0; const xx = x0 + cs * (col + 0.5), yy = y + 98 + row * rh; if (yy > y + ch - 6) continue; c.fillStyle = '#3a2410'; c.font = '900 ' + F(Math.round(Math.min(24, rh * 0.62))) + 'px ' + TEXTE; c.fillText(String(n), xx, yy);
         c.strokeStyle = '#d02a1a'; c.lineWidth = 4;
         if (n === 15) { c.beginPath(); c.ellipse(xx, yy, 24, rh * 0.45, -0.15, 0, TAU); c.stroke(); }
         if (n === 3) { c.beginPath(); c.moveTo(xx - 16, yy - 12); c.lineTo(xx + 16, yy + 12); c.moveTo(xx + 16, yy - 12); c.lineTo(xx - 16, yy + 12); c.stroke(); }
@@ -1275,37 +1277,37 @@ function fabriquerGros(K) {
       c.fillStyle = '#23302a'; pill(c, x, y, w, h, 8); c.fill(); c.strokeStyle = '#6a4a2a'; c.lineWidth = 8; c.stroke();
       [[8, 'plein'], [5, 'vide'], [3, 'vide']].forEach(([cap, et], i) => { const xx = x + w * (0.2 + i * 0.3), hb = Math.min(h - 70, 120) * cap / 8, yb = y + h - 46;
         c.strokeStyle = '#eef2ea'; c.lineWidth = 3; pill(c, xx - 30, yb - hb, 60, hb, 12); c.stroke(); if (cap === 8) { c.fillStyle = 'rgba(140,230,190,0.5)'; pill(c, xx - 26, yb - hb + 4, 52, hb - 8, 10); c.fill(); }
-        c.fillStyle = '#eef2ea'; c.font = '800 24px ' + TEXTE; c.fillText(cap + ' cl · ' + et, xx, yb + 22); });
-      c.fillStyle = '#ffe9a8'; c.font = '900 26px ' + TEXTE; c.fillText('→  4 cl + 4 cl', x + w / 2, y + 26);
+        c.fillStyle = '#eef2ea'; c.font = '800 ' + F(24) + 'px ' + TEXTE; c.fillText(cap + ' cl · ' + et, xx, yb + 22); });
+      c.fillStyle = '#ffe9a8'; c.font = '900 ' + F(26) + 'px ' + TEXTE; c.fillText('→  4 cl + 4 cl', x + w / 2, y + 26);
     } else if (d === 'mesures') {   // les étiquettes des casseroles
       [['1 louche', '12 g'], ['1 cuillère', '3 g'], ['1 pincée', '1 g']].forEach(([a, b], i) => { const xx = x + w * (0.18 + i * 0.32), yy = y + Math.min(h, 220) / 2;
         c.strokeStyle = '#8a6420'; c.lineWidth = 2; c.beginPath(); c.moveTo(xx, y); c.lineTo(xx, yy - 50); c.stroke();
         c.fillStyle = '#f6eed8'; pill(c, xx - 78, yy - 50, 156, 110, 12); c.fill(); c.strokeStyle = '#8a6420'; c.lineWidth = 3; c.stroke();
-        c.fillStyle = '#4a2a10'; c.font = '900 26px ' + TEXTE; c.fillText(a, xx, yy - 14); c.font = '900 34px ' + TEXTE; c.fillStyle = '#8a2a1a'; c.fillText('= ' + b, xx, yy + 28); });
+        c.fillStyle = '#4a2a10'; c.font = '900 ' + F(26) + 'px ' + TEXTE; c.fillText(a, xx, yy - 14); c.font = '900 ' + F(34) + 'px ' + TEXTE; c.fillStyle = '#8a2a1a'; c.fillText('= ' + b, xx, yy + 28); });
     } else if (d === 'tonneaux') {   // quatre tonneaux : un chiffre à la craie, un millésime romain gravé
       const T = [[7, 'MDCCXC'], [2, 'MDCCCII'], [9, 'MDCCLXIV'], [4, 'MDCCLXXXIX']], bw = w / 4, r = Math.min(bw * 0.44, h * 0.32);
       T.forEach(([dg, an], i) => { const xx = x + bw * (i + 0.5), yy = y + r + 6;
         const g = c.createLinearGradient(xx - r, 0, xx + r, 0); g.addColorStop(0, '#4a2a14'); g.addColorStop(0.5, '#9a6a3a'); g.addColorStop(1, '#4a2a14'); c.fillStyle = g; c.beginPath(); c.ellipse(xx, yy, r * 0.82, r, 0, 0, TAU); c.fill();
         c.strokeStyle = '#3a3a44'; c.lineWidth = 5; c.beginPath(); c.ellipse(xx, yy, r * 0.82, r, 0, 0, TAU); c.stroke(); for (const f of [-0.6, 0.6]) { c.beginPath(); c.moveTo(xx - r * 0.66, yy + f * r); c.lineTo(xx + r * 0.66, yy + f * r); c.stroke(); }
-        c.fillStyle = '#f4f4ee'; c.font = '900 ' + Math.round(r * 0.95) + 'px ' + TEXTE; c.fillText(String(dg), xx, yy + 2);
-        c.fillStyle = '#3a2410'; c.font = '900 ' + Math.min(24, Math.round(bw / an.length * 1.55)) + 'px ' + TITRE; c.fillText(an, xx, yy + r + 26, bw - 6); });
+        c.fillStyle = '#f4f4ee'; c.font = '900 ' + F(Math.round(r * 0.95)) + 'px ' + TEXTE; c.fillText(String(dg), xx, yy + 2);
+        c.fillStyle = '#3a2410'; c.font = '900 ' + F(Math.min(24, Math.round(bw / an.length * 1.55))) + 'px ' + TITRE; c.fillText(an, xx, yy + r + 26, bw - 6); });
     } else if (d === 'dechiree') {   // la partition déchirée : la portée, le titre, l'opus arraché
       const y0 = y + 50;
-      c.fillStyle = '#3a2a1a'; c.font = '900 26px ' + TITRE; c.fillText('Valse du fantôme — opus', x + w / 2 - 30, y + 16);
+      c.fillStyle = '#3a2a1a'; c.font = '900 ' + F(26) + 'px ' + TITRE; c.fillText('Valse du fantôme — opus', x + w / 2 - 30, y + 16);
       c.fillStyle = '#e4cfa4'; c.beginPath(); c.moveTo(x + w / 2 + 150, y - 4); c.lineTo(x + w, y - 4); c.lineTo(x + w, y + 40); c.lineTo(x + w / 2 + 180, y + 30); c.lineTo(x + w / 2 + 160, y + 44); c.closePath(); c.fill();
       c.strokeStyle = '#3a2a1a'; c.lineWidth = 2; for (let i = 0; i < 5; i++) { c.beginPath(); c.moveTo(x, y0 + i * 16); c.lineTo(x + w * 0.62, y0 + i * 16); c.stroke(); }
       c.font = '900 72px serif'; c.fillStyle = '#3a2a1a'; c.fillText('𝄞', x + 30, y0 + 34);
       c.fillStyle = '#e4cfa4'; c.beginPath(); c.moveTo(x + w * 0.6, y0 - 20); for (let k = 0; k <= 8; k++) c.lineTo(x + w * 0.6 + (k % 2 ? 18 : 0), y0 - 20 + k * 14); c.lineTo(x + w, y0 + 92); c.lineTo(x + w, y0 - 20); c.closePath(); c.fill();
-      c.fillStyle = '#4a2a10'; c.font = '800 22px ' + TEXTE; c.fillText('… le reste est arraché', x + w * 0.8, y0 + 34);
+      c.fillStyle = '#4a2a10'; c.font = '800 ' + F(22) + 'px ' + TEXTE; c.fillText('… le reste est arraché', x + w * 0.8, y0 + 34);
     } else if (d === 'touches') {   // le cahier : DO = 1 … SI = 7
       const cw = w / 7, yy = y + Math.min(h, 180) / 2;
       NOTES.forEach((n, i) => { const xx = x + cw * (i + 0.5); c.fillStyle = '#fffdf6'; pill(c, xx - cw * 0.42, yy - 60, cw * 0.84, 120, 8); c.fill(); c.strokeStyle = '#6a6050'; c.lineWidth = 2; c.stroke();
-        c.fillStyle = '#3a2410'; c.font = '900 22px ' + TEXTE; c.fillText(n.nom, xx, yy - 28); c.fillStyle = '#8a2a1a'; c.font = '900 40px ' + TEXTE; c.fillText(String(i + 1), xx, yy + 22); });
+        c.fillStyle = '#3a2410'; c.font = '900 ' + F(22) + 'px ' + TEXTE; c.fillText(n.nom, xx, yy - 28); c.fillStyle = '#8a2a1a'; c.font = '900 ' + F(40) + 'px ' + TEXTE; c.fillText(String(i + 1), xx, yy + 22); });
     } else if (d === 'disque') {   // l'étiquette du disque
       const r = Math.min(w, h) * 0.46;
       c.fillStyle = '#16120e'; c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.fill(); c.strokeStyle = 'rgba(255,255,255,0.1)'; for (let k = 0.55; k < 1; k += 0.05) { c.beginPath(); c.arc(cx, cy, r * k, 0, TAU); c.stroke(); }
-      c.fillStyle = '#b02a2a'; c.beginPath(); c.arc(cx, cy, r * 0.5, 0, TAU); c.fill(); c.fillStyle = '#f4ead2'; c.font = '900 ' + Math.round(r * 0.15) + 'px ' + TITRE; c.fillText('Valse du fantôme', cx, cy - r * 0.18, r * 0.9);
-      c.font = '900 ' + Math.round(r * 0.2) + 'px ' + TEXTE; c.fillText('opus 53', cx, cy + r * 0.14); c.fillStyle = '#16120e'; c.beginPath(); c.arc(cx, cy + r * 0.36, r * 0.04, 0, TAU); c.fill();
+      c.fillStyle = '#b02a2a'; c.beginPath(); c.arc(cx, cy, r * 0.5, 0, TAU); c.fill(); c.fillStyle = '#f4ead2'; c.font = '900 ' + F(Math.round(r * 0.15)) + 'px ' + TITRE; c.fillText('Valse du fantôme', cx, cy - r * 0.18, r * 0.9);
+      c.font = '900 ' + F(Math.round(r * 0.2)) + 'px ' + TEXTE; c.fillText('opus 53', cx, cy + r * 0.14); c.fillStyle = '#16120e'; c.beginPath(); c.arc(cx, cy + r * 0.36, r * 0.04, 0, TAU); c.fill();
     } else if (d === 'tetelit') {   // le baldaquin du lit : soleil, lune, trèfle brodés
       { const hh = Math.min(h, 200), g = c.createLinearGradient(0, y, 0, y + hh); g.addColorStop(0, '#7a3a44'); g.addColorStop(1, '#4a1e28'); c.fillStyle = g; c.beginPath(); c.moveTo(x + 20, y); c.lineTo(x + w - 20, y); c.lineTo(x + w - 20, y + hh - 20); for (let k = 0; k <= 8; k++) c.lineTo(x + w - 20 - k * (w - 40) / 8, y + hh - (k % 2 ? 0 : 20)); c.closePath(); c.fill(); c.fillStyle = OR2; c.fillRect(x + 20, y + 8, w - 40, 6); }
       ['soleil', 'lune', 'trefle'].forEach((s, i) => { const xx = x + w * (0.22 + i * 0.28), yy = y + Math.min(h, 200) / 2; c.fillStyle = laiton(c, xx - 50, yy - 50, xx + 50, yy + 50); c.beginPath(); c.arc(xx, yy, 52, 0, TAU); c.fill(); symbole(c, s, xx, yy, 38, '#2a1a0a'); });
@@ -1320,27 +1322,27 @@ function fabriquerGros(K) {
       c.fillStyle = '#8a8a92'; c.beginPath(); c.arc(cx, cy, r + 10, 0, TAU); c.fill(); c.fillStyle = '#d8d4c8'; c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.fill();
       c.strokeStyle = '#5a5a62'; c.lineWidth = 2; for (let k = 0; k < 12; k++) { const a = Math.PI + k / 11 * Math.PI; c.beginPath(); c.moveTo(cx + Math.cos(a) * r * 0.55, cy + Math.sin(a) * r * 0.55); c.lineTo(cx + Math.cos(a) * r * 0.92, cy + Math.sin(a) * r * 0.92); c.stroke(); }
       c.fillStyle = '#5a5a62'; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx - r * 0.75, cy - r * 0.5); c.lineTo(cx, cy - r * 0.08); c.fill();
-      c.fillStyle = '#f6eed8'; pill(c, cx - 90, cy + r * 0.25, 180, 50, 8); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke(); c.fillStyle = '#3a2410'; c.font = '900 30px ' + TEXTE; c.fillText('20 avril', cx, cy + r * 0.25 + 26);
+      c.fillStyle = '#f6eed8'; pill(c, cx - 90, cy + r * 0.25, 180, 50, 8); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke(); c.fillStyle = '#3a2410'; c.font = '900 ' + F(30) + 'px ' + TEXTE; c.fillText('20 avril', cx, cy + r * 0.25 + 26);
     } else if (d === 'ciel') {   // la carte du ciel (à l'endroit)
       c.fillStyle = '#16204a'; pill(c, x, y, w, h, 12); c.fill();
       const cols = 3, cw = w / cols, chh = h / 2;
       CONSTELLATIONS.forEach((C, i) => { const S = Math.min(cw - 30, chh - 40), ox = x + (i % cols) * cw + (cw - S) / 2, oy = y + ((i / cols) | 0) * chh + 8;
         c.strokeStyle = 'rgba(200,220,255,0.6)'; c.lineWidth = 2; c.beginPath(); for (const [a, b] of C.l) { c.moveTo(ox + C.pts[a][0] * S, oy + C.pts[a][1] * S); c.lineTo(ox + C.pts[b][0] * S, oy + C.pts[b][1] * S); } c.stroke();
         for (const [px, py] of C.pts) { c.fillStyle = '#fffbe8'; c.beginPath(); c.arc(ox + px * S, oy + py * S, 4.5, 0, TAU); c.fill(); }
-        c.fillStyle = '#ffe9a8'; c.font = '900 22px ' + TEXTE; c.fillText(C.nom, ox + S / 2, oy + S + 18); });
+        c.fillStyle = '#ffe9a8'; c.font = '900 ' + F(22) + 'px ' + TEXTE; c.fillText(C.nom, ox + S / 2, oy + S + 18); });
     } else if (d === 'reflet') {   // un petit miroir : son numéro et deux lettres, tels qu'ils se reflètent (à l'envers)
       const R0 = o.refl, r = Math.min(h / 2 - 6, 150);
       c.fillStyle = laiton(c, cx - r, cy - r, cx + r, cy + r); c.beginPath(); c.ellipse(cx, cy, r * 1.15, r, 0, 0, TAU); c.fill();
       const g = c.createLinearGradient(cx - r, cy - r, cx + r, cy + r); g.addColorStop(0, '#dfeaf8'); g.addColorStop(1, '#9fb4d0'); c.fillStyle = g; c.beginPath(); c.ellipse(cx, cy, r * 1.15 - 12, r - 12, 0, 0, TAU); c.fill();
       c.save(); c.translate(cx, cy); c.scale(-1, 1); c.fillStyle = '#1e2a44';
-      c.font = '900 ' + Math.round(r * 0.32) + 'px ' + TEXTE; c.fillText(String(R0.num), 0, -r * 0.48);
-      c.font = '900 ' + Math.round(r * 0.62) + 'px ' + TITRE; c.fillText(R0.l[0], -r * 0.36, r * 0.16); c.fillText(R0.l[1], r * 0.36, r * 0.16); c.restore();
+      c.font = '900 ' + F(Math.round(r * 0.32)) + 'px ' + TEXTE; c.fillText(String(R0.num), 0, -r * 0.48);
+      c.font = '900 ' + F(Math.round(r * 0.62)) + 'px ' + TITRE; c.fillText(R0.l[0], -r * 0.36, r * 0.16); c.fillText(R0.l[1], r * 0.36, r * 0.16); c.restore();
       c.fillStyle = 'rgba(255,255,255,0.45)'; c.beginPath(); c.ellipse(cx - r * 0.55, cy - r * 0.5, r * 0.22, r * 0.07, -0.6, 0, TAU); c.fill();
     } else if (d === 'echiquier') {   // l'échiquier : colonnes a à h, rangées 1 à 8, cinq pièces et leur signe
       const S = Math.min(w - 60, h - 50), cs = S / 8, x0 = cx - S / 2 + 12, y0 = y + 4;
       for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) { c.fillStyle = (r + q) % 2 ? '#6a4024' : '#e8d4ae'; c.fillRect(x0 + q * cs, y0 + r * cs, cs, cs); }
       c.strokeStyle = '#3a2010'; c.lineWidth = 4; c.strokeRect(x0, y0, S, S);
-      c.fillStyle = '#4a2a10'; c.font = '900 ' + Math.round(Math.min(24, cs * 0.5)) + 'px ' + TEXTE;
+      c.fillStyle = '#4a2a10'; c.font = '900 ' + F(Math.round(Math.min(24, cs * 0.5))) + 'px ' + TEXTE;
       'abcdefgh'.split('').forEach((l, q) => c.fillText(l, x0 + (q + 0.5) * cs, y0 + S + cs * 0.4));
       for (let r = 0; r < 8; r++) c.fillText(String(8 - r), x0 - cs * 0.4, y0 + (r + 0.5) * cs);
       // les pièces : [colonne, rangée (1 = en bas), signe]
@@ -1369,8 +1371,8 @@ function fabriquerGros(K) {
       const r = Math.min(h / 2 - 36, 150), ROM = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
       c.fillStyle = '#f0e2c0'; c.beginPath(); c.arc(cx, cy, r + 44, 0, TAU); c.fill(); c.fillStyle = laiton(c, cx - r, cy - r, cx + r, cy + r); c.beginPath(); c.arc(cx, cy, r + 12, 0, TAU); c.fill();
       c.fillStyle = '#fbf3e0'; c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke();
-      c.fillStyle = '#3a2410'; for (let k = 0; k < 12; k++) { const a = k / 12 * TAU; c.font = '900 ' + Math.round(r * 0.15) + 'px ' + TITRE; c.fillText(ROM[k], cx + Math.sin(a) * r * 0.7, cy - Math.cos(a) * r * 0.7);
-        c.font = '900 ' + Math.max(22, Math.round(r * 0.13)) + 'px ' + TEXTE; c.fillStyle = '#8a4a2a'; c.fillText(String(k * 5 || 60), cx + Math.sin(a) * (r + 30), cy - Math.cos(a) * (r + 30)); c.fillStyle = '#3a2410'; }
+      c.fillStyle = '#3a2410'; for (let k = 0; k < 12; k++) { const a = k / 12 * TAU; c.font = '900 ' + F(Math.round(r * 0.15)) + 'px ' + TITRE; c.fillText(ROM[k], cx + Math.sin(a) * r * 0.7, cy - Math.cos(a) * r * 0.7);
+        c.font = '900 ' + F(Math.max(22, Math.round(r * 0.13))) + 'px ' + TEXTE; c.fillStyle = '#8a4a2a'; c.fillText(String(k * 5 || 60), cx + Math.sin(a) * (r + 30), cy - Math.cos(a) * (r + 30)); c.fillStyle = '#3a2410'; }
       const ah = (3 + 25 / 60) / 12 * TAU, am = 25 / 60 * TAU;
       c.strokeStyle = '#1e1810'; c.lineCap = 'round'; c.lineWidth = 9; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.sin(ah) * r * 0.45, cy - Math.cos(ah) * r * 0.45); c.stroke();
       c.lineWidth = 5; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.sin(am) * r * 0.78, cy - Math.cos(am) * r * 0.78); c.stroke();
@@ -1424,8 +1426,8 @@ function fabriquerGros(K) {
             // l'étiquette du jardinier (grosse, lisible au téléphone)
             c.fillStyle = '#f6eed8'; pill(c, x - 56, y0 + 40, 112, 96, 10); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke();
             c.fillStyle = FLEUR[fl]; c.beginPath(); c.arc(x, y0 + 40, 11, 0, TAU); c.fill(); c.strokeStyle = '#333'; c.lineWidth = 1.5; c.stroke();
-            c.fillStyle = '#3a2410'; c.font = '900 26px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('↻ ' + ry + ' j', x, y0 + 74); c.fillText('le ' + dt0, x, y0 + 110);
-            if (arr) { c.fillStyle = '#7dffa0'; c.font = '900 24px ' + TEXTE; c.fillText(String(fait.indexOf(i) + 1), x + 40, y0 - 90); }
+            c.fillStyle = '#3a2410'; c.font = '900 ' + F(26) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('↻ ' + ry + ' j', x, y0 + 74); c.fillText('le ' + dt0, x, y0 + 110);
+            if (arr) { c.fillStyle = '#7dffa0'; c.font = '900 ' + F(24) + 'px ' + TEXTE; c.fillText(String(fait.indexOf(i) + 1), x + 40, y0 - 90); }
           });
           bouton(c, 320, 482, 230, 48, ok ? 'Merci !' : 'J’ai fini', ok);
         } else {
@@ -1436,7 +1438,7 @@ function fabriquerGros(K) {
             c.strokeStyle = '#1e2226'; c.lineWidth = 3; c.stroke(); c.strokeStyle = 'rgba(255,255,255,0.15)'; c.lineWidth = 2; c.strokeRect(x - 52 + dd / 2, y - 58 + dd, 104, 116);
             symbole(c, sy, x + dd / 2, y + dd, 40, enf ? '#c8b070' : '#2a2e34');
             if (an[i] > 0) { c.fillStyle = 'rgba(255,230,160,' + an[i] * 0.3 + ')'; pill(c, x - 66, y - 72, 132, 144, 10); c.fill(); } });
-          c.fillStyle = '#c8ccd4'; c.font = '800 22px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Dalles enfoncées : ' + fait.length + ' / 4', 320, 482);
+          c.fillStyle = '#c8ccd4'; c.font = '800 ' + F(22) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Dalles enfoncées : ' + fait.length + ' / 4', 320, 482);
         }
         if (ok) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,220,140,' + (0.35 * Math.max(0, 1 - okT)) + ')'; c.fillRect(10, 10, 620, 500); c.restore(); }
       }
@@ -1467,8 +1469,8 @@ function fabriquerGros(K) {
           c.fillStyle = '#fffbe8'; c.beginPath(); c.arc(x, y, 4.6, 0, TAU); c.fill(); }
         c.restore();
         c.strokeStyle = laiton(c, cx - R, cy - R, cx + R, cy + R); c.lineWidth = 16; c.beginPath(); c.arc(cx, cy, R + 8, 0, TAU); c.stroke();
-        c.fillStyle = OR; c.font = '900 30px ' + TITRE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(DIR[d][0], 320, 482);
-        for (const [id, x, a] of [['g', 70, '◀'], ['d', 570, '▶']]) { c.fillStyle = 'rgba(232,194,122,0.92)'; c.beginPath(); c.arc(x, 250, 40, 0, TAU); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 3; c.stroke(); c.fillStyle = '#2a1408'; c.font = '900 30px ' + TEXTE; c.fillText(a, x, 252); }
+        c.fillStyle = OR; c.font = '900 ' + F(30) + 'px ' + TITRE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(DIR[d][0], 320, 482);
+        for (const [id, x, a] of [['g', 70, '◀'], ['d', 570, '▶']]) { c.fillStyle = 'rgba(232,194,122,0.92)'; c.beginPath(); c.arc(x, 250, 40, 0, TAU); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 3; c.stroke(); c.fillStyle = '#2a1408'; c.font = '900 ' + F(30) + 'px ' + TEXTE; c.fillText(a, x, 252); }
       }
     };
     return gp;
@@ -1491,8 +1493,8 @@ function fabriquerGros(K) {
         c.fillStyle = laiton(c, 110, 80, 170, 140); c.beginPath(); c.moveTo(139 - 34, 300); c.lineTo(139 + 34, 300); c.lineTo(139 + 30, 350); c.quadraticCurveTo(139, 380, 139 - 30, 350); c.closePath(); c.fill(); c.strokeStyle = '#3a2410'; c.lineWidth = 2.5; c.stroke();
         symbole(c, S.sym, 139, 330, 20, '#2a1a0a');
         c.fillStyle = '#e6dcc4'; pill(c, 274, 30, 346, 380, 14); c.fill(); c.strokeStyle = '#6a5a3a'; c.lineWidth = 3; c.stroke();
-        c.fillStyle = '#3a2a1a'; c.font = '800 20px ' + TEXTE; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('Gravé sur le socle :', 292, 48);
-        let f = 28, L; for (; f > 18; f--) { c.font = '900 ' + f + 'px ' + TEXTE; L = texteLignes(c, '« ' + S.phrase + ' »', 310); if (L.length * f * 1.3 < 320) break; }
+        c.fillStyle = '#3a2a1a'; c.font = '800 ' + F(20) + 'px ' + TEXTE; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('Gravé sur le socle :', 292, 48);
+        let f = 28, L; for (; f > 18; f--) { c.font = '900 ' + F(f) + 'px ' + TEXTE; L = texteLignes(c, '« ' + S.phrase + ' »', 310); if (L.length * f * 1.3 < 320) break; }
         L.forEach((l, k) => c.fillText(l, 292, 86 + k * f * 1.3));
         bouton(c, 455, 450, 260, 56, ok ? 'Le socle a glissé !' : 'Pousser le socle', ok, K.padOn());
       }
@@ -1525,7 +1527,7 @@ function fabriquerGros(K) {
       return { pts, touche, cr };
     }
     const gp = {
-      type: 'rayons', titre: 'Le rayon de lune', aide: 'Touche un miroir pour le tourner : le rayon doit traverser les deux cristaux, puis toucher la serrure',
+      type: 'rayons', titre: 'Le rayon de lune', aide: 'Tourne les miroirs : le rayon doit traverser les deux cristaux, puis toucher la serrure',
       etat: () => ({ angles: M.map(m => m.a * 45), ok, complet: !M[3].manque }),
       cibles: () => M.map((m, i) => ({ id: 'm' + i, x: m.x, y: m.y, r: 48 })),
       tap(id) { if (ok) return; const m = M[+id.slice(1)]; if (m.manque) { K.info('Il manque un miroir sur ce pivot.'); K.son('tic'); return; } m.a = (m.a + 1) % 4; K.son('cran');
@@ -1535,7 +1537,7 @@ function fabriquerGros(K) {
         // la salle vue de dessus : le carrelage, la fenêtre (à gauche), la porte et sa serrure (à droite)
         for (let y = 10; y < 510; y += 50) for (let x = 10; x < 630; x += 50) { c.fillStyle = ((x + y) / 50) % 2 ? '#2a2e3e' : '#3a3f52'; c.fillRect(x, y, 50, 50); }
         c.strokeStyle = '#151824'; c.lineWidth = 10; c.strokeRect(10, 10, 620, 500);
-        c.fillStyle = '#a8c4ff'; c.fillRect(6, 92, 12, 56); c.fillStyle = '#e8eefc'; c.font = '800 18px ' + TEXTE; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('fenêtre', 22, 74);
+        c.fillStyle = '#a8c4ff'; c.fillRect(6, 92, 12, 56); c.fillStyle = '#e8eefc'; c.font = '800 ' + F(18) + 'px ' + TEXTE; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('fenêtre', 22, 74);
         c.fillStyle = '#5a3420'; c.fillRect(620, 200, 14, 100); c.fillStyle = '#e8eefc'; c.textAlign = 'right'; c.fillText('porte', 612, 300);
         for (const p of PILIERS) { c.fillStyle = '#6a6e7e'; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill(); c.strokeStyle = '#22242c'; c.lineWidth = 3; c.stroke(); c.fillStyle = 'rgba(255,255,255,0.15)'; c.beginPath(); c.arc(p.x - 6, p.y - 6, p.r * 0.5, 0, TAU); c.fill(); }
         const r = tracer();
@@ -1550,7 +1552,7 @@ function fabriquerGros(K) {
         // les miroirs
         M.forEach((m, i) => {
           c.fillStyle = 'rgba(232,194,122,0.25)'; c.beginPath(); c.arc(m.x, m.y, 46, 0, TAU); c.fill(); c.strokeStyle = 'rgba(232,194,122,0.6)'; c.setLineDash([5, 5]); c.lineWidth = 2; c.stroke(); c.setLineDash([]);
-          if (m.manque) { c.fillStyle = 'rgba(232,194,122,0.9)'; c.font = '800 18px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('vide', m.x, m.y + 2); return; }
+          if (m.manque) { c.fillStyle = 'rgba(232,194,122,0.9)'; c.font = '800 ' + F(18) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('vide', m.x, m.y + 2); return; }
           c.save(); c.translate(m.x, m.y); c.rotate(m.a * Math.PI / 4);
           c.fillStyle = laiton(c, -44, -8, 44, 8); pill(c, -45, -8, 90, 16, 6); c.fill(); c.fillStyle = '#cfe0ff'; pill(c, -40, -4, 80, 8, 3); c.fill();
           c.fillStyle = 'rgba(255,255,255,0.8)'; c.fillRect(-30, -3, 20, 2); c.restore();
@@ -1589,7 +1591,7 @@ function fabriquerGros(K) {
         const lv = faux > 0 || ok ? 0.7 : 0;
         c.fillStyle = '#3a3a44'; pill(c, 500, 400, 40, 90, 8); c.fill();
         c.save(); c.translate(520, 410); c.rotate(-0.5 + lv); c.fillStyle = '#5a5a66'; pill(c, -6, -150, 12, 150, 6); c.fill(); c.fillStyle = '#c0392b'; c.beginPath(); c.arc(0, -150, 18, 0, TAU); c.fill(); c.restore();
-        c.fillStyle = '#f4ead2'; c.font = '800 20px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Tirer le levier', 520, 500);
+        c.fillStyle = '#f4ead2'; c.font = '800 ' + F(20) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Tirer le levier', 520, 500);
       }
     };
     return gp;
@@ -1615,10 +1617,10 @@ function fabriquerGros(K) {
         // l'ardoise dans son cadre de bois
         bois(c, 8, 8, 624, 504, ['#6a4a2a', '#4a2a16', '#2a1408']); c.fillStyle = '#26302c'; pill(c, 22, 22, 596, 420, 10); c.fill();
         c.textAlign = 'center'; c.textBaseline = 'middle';
-        GRILLE.groupes.forEach(([g, L], j) => { const x0 = cx(j * 4) - CW / 2, x1 = cx(j * 4 + 3) + CW / 2; c.fillStyle = '#ffe9a8'; c.font = '900 20px ' + TEXTE; c.fillText(g, (x0 + x1) / 2, 40);
+        GRILLE.groupes.forEach(([g, L], j) => { const x0 = cx(j * 4) - CW / 2, x1 = cx(j * 4 + 3) + CW / 2; c.fillStyle = '#ffe9a8'; c.font = '900 ' + F(20) + 'px ' + TEXTE; c.fillText(g, (x0 + x1) / 2, 40);
           c.strokeStyle = 'rgba(240,240,230,0.5)'; c.lineWidth = 2; c.beginPath(); c.moveTo(x0 + 4, 54); c.lineTo(x1 - 4, 54); c.stroke();
-          L.forEach((l, i) => { c.save(); c.translate(cx(j * 4 + i), 104); c.rotate(-Math.PI / 2.6); c.fillStyle = '#eef0e6'; c.font = '800 18px ' + TEXTE; c.fillText(l, 0, 0); c.restore(); }); });
-        GRILLE.noms.forEach((n, r) => { c.fillStyle = '#eef0e6'; c.font = '900 21px ' + TEXTE; c.textAlign = 'right'; c.fillText(n, X0 - 10, cy(r)); c.textAlign = 'center'; });
+          L.forEach((l, i) => { c.save(); c.translate(cx(j * 4 + i), 104); c.rotate(-Math.PI / 2.6); c.fillStyle = '#eef0e6'; c.font = '800 ' + F(18) + 'px ' + TEXTE; c.fillText(l, 0, 0); c.restore(); }); });
+        GRILLE.noms.forEach((n, r) => { c.fillStyle = '#eef0e6'; c.font = '900 ' + F(21) + 'px ' + TEXTE; c.textAlign = 'right'; c.fillText(n, X0 - 10, cy(r)); c.textAlign = 'center'; });
         for (let r = 0; r < 4; r++) for (let k = 0; k < 12; k++) { const x = cx(k), y = cy(r), v = E[r + '_' + k];
           c.strokeStyle = 'rgba(240,240,230,0.45)'; c.lineWidth = 1.5; c.strokeRect(x - CW / 2 + 1, y - RH / 2 + 2, CW - 2, RH - 4);
           if (v === 'x') { c.strokeStyle = '#ff9a8a'; c.lineWidth = 3.5; c.beginPath(); c.moveTo(x - 11, y - 11); c.lineTo(x + 11, y + 11); c.moveTo(x + 11, y - 11); c.lineTo(x - 11, y + 11); c.stroke(); }
@@ -1657,12 +1659,12 @@ function fabriquerGros(K) {
         c.textAlign = 'center'; c.textBaseline = 'middle';
         for (const q of cases) { const on = q.g === sel;
           if (on) { c.fillStyle = 'rgba(232,194,122,0.55)'; pill(c, q.x - 24, q.y - 28, 48, 56, 8); c.fill(); }
-          glyphe(c, q.g, q.x, q.y - 10, 13, ok ? '#7a4a10' : '#3a2410');
+          glyphe(c, q.g, q.x, q.y - 10, K.grandTexte() ? 17 : 13, ok ? '#7a4a10' : '#3a2410');
           c.strokeStyle = 'rgba(90,60,30,0.6)'; c.lineWidth = 2; c.beginPath(); c.moveTo(q.x - 16, q.y + 24); c.lineTo(q.x + 16, q.y + 24); c.stroke();
-          if (E[q.g]) { c.fillStyle = ok ? '#2a7a3a' : '#8a2a1a'; c.font = '900 22px ' + TEXTE; c.fillText(E[q.g], q.x, q.y + 12); } }
+          if (E[q.g]) { c.fillStyle = ok ? '#2a7a3a' : '#8a2a1a'; c.font = '900 ' + F(22) + 'px ' + TEXTE; c.fillText(E[q.g], q.x, q.y + 12); } }
         // le clavier
         CLAV.forEach((l, i) => { const x = KX(i), y = KY(i); c.fillStyle = l === '⌫' ? '#6a3a2a' : 'rgba(30,20,26,0.9)'; pill(c, x - 20, y - 22, 40, 44, 8); c.fill(); c.strokeStyle = OR2; c.lineWidth = 1.5; c.stroke();
-          const pris = l !== '⌫' && Object.values(E).includes(l); c.fillStyle = pris ? 'rgba(232,194,122,0.45)' : OR; c.font = '900 22px ' + TEXTE; c.fillText(l, x, y + 1); });
+          const pris = l !== '⌫' && Object.values(E).includes(l); c.fillStyle = pris ? 'rgba(232,194,122,0.45)' : OR; c.font = '900 ' + F(22) + 'px ' + TEXTE; c.fillText(l, x, y + 1); });
         if (ok) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,220,140,' + (0.3 * Math.max(0, 1 - okT)) + ')'; c.fillRect(10, 8, 620, 388); c.restore(); }
       }
     };
@@ -1696,14 +1698,14 @@ function fabriquerGros(K) {
         c.save(); c.translate(CX, CY); c.rotate(-ang);
         c.fillStyle = '#1e2026'; c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill(); c.strokeStyle = laiton(c, -R, -R, R, R); c.lineWidth = 10; c.stroke();
         for (let k = 0; k < 40; k++) { const a = k / 40 * TAU - Math.PI / 2; c.strokeStyle = '#e8e4d8'; c.lineWidth = k % 5 ? 2 : 4; c.beginPath(); c.moveTo(Math.cos(a) * (R - 10), Math.sin(a) * (R - 10)); c.lineTo(Math.cos(a) * (R - (k % 5 ? 22 : 30)), Math.sin(a) * (R - (k % 5 ? 22 : 30))); c.stroke();
-          if (k % 5 === 0) { c.save(); c.translate(Math.cos(a) * (R - 52), Math.sin(a) * (R - 52)); c.rotate(a + Math.PI / 2); c.fillStyle = '#f4ead2'; c.font = '900 24px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(k), 0, 0); c.restore(); } }
+          if (k % 5 === 0) { c.save(); c.translate(Math.cos(a) * (R - 52), Math.sin(a) * (R - 52)); c.rotate(a + Math.PI / 2); c.fillStyle = '#f4ead2'; c.font = '900 ' + F(24) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(k), 0, 0); c.restore(); } }
         c.fillStyle = laiton(c, -40, -40, 40, 40); c.beginPath(); c.arc(0, 0, 40, 0, TAU); c.fill(); c.restore();
         // le repère et le nombre réglé
         c.fillStyle = '#e8c27a'; c.beginPath(); c.moveTo(CX, CY - R + 2); c.lineTo(CX - 12, CY - R - 20); c.lineTo(CX + 12, CY - R - 20); c.closePath(); c.fill();
-        c.fillStyle = '#2a1408'; c.font = '900 30px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(v), CX, CY + 2);
+        c.fillStyle = '#2a1408'; c.font = '900 ' + F(30) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(v), CX, CY + 2);
         // les trois nombres retenus
         c.fillStyle = 'rgba(20,12,24,0.85)'; pill(c, 486, 36, 100, 140, 12); c.fill(); c.strokeStyle = OR2; c.lineWidth = 2; c.stroke();
-        for (let i = 0; i < 3; i++) { c.fillStyle = mem[i] != null ? OR : 'rgba(232,194,122,0.3)'; c.font = '900 26px ' + TEXTE; c.fillText(mem[i] != null ? String(mem[i]) : '·', 536, 64 + i * 42); }
+        for (let i = 0; i < 3; i++) { c.fillStyle = mem[i] != null ? OR : 'rgba(232,194,122,0.3)'; c.font = '900 ' + F(26) + 'px ' + TEXTE; c.fillText(mem[i] != null ? String(mem[i]) : '·', 536, 64 + i * 42); }
         c.restore();
         BT.forEach(([id, x, txt]) => bouton(c, x, 400, id === 'ret' ? 150 : 96, 50, txt, false));
         bouton(c, 180, 470, 250, 50, 'Effacer les nombres', false); bouton(c, 470, 470, 250, 50, ok ? 'Ouvert !' : 'Tourner la poignée', ok);
@@ -2087,7 +2089,7 @@ function mount(root, api) {
     temps: () => R ? R.tv : 0
   };
   const K = {
-    son, padOn,
+    son, padOn, grandTexte: () => portrait,
     fete(x, y) { for (let i = 0; i < 30; i++) parts.push({ gp: true, x, y, vx: (Math.random() - 0.5) * 420, vy: -Math.random() * 380 - 60, t: 0, d: 0.9 + Math.random() * 0.6, c: Math.random() < 0.5 ? '#ffd77a' : '#fff3c4', r: 3 + Math.random() * 4 }); },
     info(t) { const o = OV[OV.length - 1]; if (o) { o.info = t; o.infoT = 3; } },
     reussi(gp, fin, d) { const o = OV.find(q => q.gp === gp); if (!o) return; o.ferme = d || 1.15; o.fin = fin; if (gp.type !== 'lecture' && Math.random() < 0.6) plus(1500, () => fantDire(fantPique(BRAVOS), 'rit')); for (let i = 0; i < 3; i++) plus(i * 160, () => K.fete(200 + Math.random() * 240, 150 + Math.random() * 200)); try { pad && pad.rumble && pad.rumble('win'); } catch (e) { /* rien */ } },
@@ -2230,23 +2232,39 @@ function mount(root, api) {
   }
   // ---------- l'explorateur (V3 : 2.5D) ----------
   // Il se déplace sur le sol en perspective : x (gauche-droite) et y (profondeur : D.sol devant, D.fond[0] au fond, où sa taille vaut
-  // D.fond[1]). Chemin en équerre : il redescend devant, longe la salle, puis monte droit vers l'objet (la colonne choisie par salle est
-  // libre de meubles du premier plan). Poses : profil droite / 3-4 droite / face / 3-4 gauche / profil gauche / dos ; un changement de
-  // sens passe TOUJOURS par les poses intermédiaires (un cran toutes les 70 ms), jamais de retournement à plat.
-  const POSES = ['pD', 'tD', 'f', 'tG', 'pG', 'd'];
+  // D.fond[1]). Vers un objet du fond, il monte EN BIAIS (3/4 dos, il rapetisse tout au long du trajet) ; la pente est bornée (au plus
+  // 3 px de côté pour 1 px de profondeur), le reste se fait en longeant devant. Zone « equerre » : longer puis monter tout droit (quand le
+  // biais traverserait un meuble). Anneau des poses : profil droite, 3/4 face droite, face, 3/4 face gauche, profil gauche, 3/4 dos gauche,
+  // dos, 3/4 dos droite ; on tourne toujours cran par cran (70 ms), jamais d'un coup ; profil ↔ profil passe par la face.
+  const POSES = ['pD', 'tD', 'f', 'tG', 'pG', 'dG', 'd', 'dD'];
   function kProf(y) { const D = R.def; if (!D.fond) return 1; return lerp(1, D.fond[1], clamp((D.sol - y) / (D.sol - D.fond[0]), 0, 1)); }
   const poseCote = s => s > 0 ? 'pD' : 'pG';
   function prochainePose(a, b, dir) {
-    if (a === b) return a; const ia = POSES.indexOf(a), ib = POSES.indexOf(b);
-    if (a !== 'd' && b !== 'd') return POSES[ia + Math.sign(ib - ia)];   // d'un côté à l'autre : par le 3/4 et la face
-    const fw = (ib - ia + 6) % 6, bw = (ia - ib + 6) % 6, s = fw < bw ? 1 : bw < fw ? -1 : (dir > 0 ? 1 : -1);
-    return POSES[(ia + s + 6) % 6];
+    if (a === b) return a; const N = POSES.length, ia = POSES.indexOf(a), ib = POSES.indexOf(b);
+    if (ia <= 4 && ib <= 4 && (a[0] === 'p' && b[0] === 'p')) return POSES[ia + Math.sign(ib - ia)];   // d'un profil à l'autre : par la face
+    const fw = (ib - ia + N) % N, bw = (ia - ib + N) % N;
+    let s = fw < bw ? 1 : -1;
+    if (fw === bw) { const passe = k => { for (let i = ia; i !== ib; i = (i + k + N) % N) if (POSES[i] === (dir > 0 ? 'pD' : 'pG')) return true; return false; }; s = passe(1) ? 1 : -1; }
+    return POSES[(ia + s + N) % N];
   }
-  function allerA(x, y, apres, poseFin) {
-    const D = R.def, E = R.E, C = []; R.camLibre = 0;
-    if (Math.abs(x - E.x) > 4) { if (E.y < D.sol - 1) C.push({ x: E.x, y: D.sol }); C.push({ x, y: D.sol }); }
-    const y0 = C.length ? D.sol : E.y; if (Math.abs(y - y0) > 1) C.push({ x, y });
-    E.chemin = C; E.apres = apres || null; E.poseFin = poseFin || null; if (C.length) E.etat = 'marche';
+  // la pose voulue pour un pas (dx, dy) : en montant = dos ou 3/4 dos ; en descendant = face ; de côté = profil
+  function poseMarche(dx, dy, dir) {
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    if (ay < 0.12 * ax) return poseCote(Math.sign(dx) || dir);
+    if (dy < 0) return ax < 0.3 * ay ? 'd' : dx > 0 ? 'dD' : 'dG';
+    return 'f';
+  }
+  function allerA(x, y, apres, poseFin, equerre) {
+    const D = R.def, E = R.E, C = [], sol = D.sol; R.camLibre = 0;
+    let cx = E.x, cy = E.y;
+    if (cy < sol - 1 && (Math.abs(x - cx) > 4 || y >= sol - 1)) {   // redescendre devant (en biais vers la cible, ou droit si on était venu droit)
+      const span = E.equerre ? 0 : 3 * (sol - cy), hx = cx + clamp(x - cx, -span, span); C.push({ x: hx, y: sol }); cx = hx; cy = sol;
+    }
+    if (y < sol - 1) {
+      if (equerre) { if (Math.abs(x - cx) > 4) C.push({ x, y: sol }); C.push({ x, y }); }
+      else { const span = 3 * (sol - y); if (Math.abs(x - cx) > span) C.push({ x: x - Math.sign(x - cx) * span, y: sol }); C.push({ x, y }); }
+    } else if (Math.abs(x - cx) > 4) C.push({ x, y: sol });
+    E.chemin = C; E.apres = apres || null; E.poseFin = poseFin || null; E.equerre = !!equerre; if (C.length) E.etat = 'marche';
   }
   function marcherVers(x, apres) { const D = R.def; allerA(clamp(x, D.xmin, D.xmax), D.sol, apres); }
   function majExpl(dt) {
@@ -2259,16 +2277,17 @@ function mount(root, api) {
       if (E.apres && E.pose === E.poseV) { const f = E.apres; E.apres = null; f(); }
       return;
     }
-    const dx = w.x - E.x, dy = w.y - E.y, horiz = Math.abs(dx) >= Math.abs(dy);
-    if (horiz && dx) E.dir = Math.sign(dx);
-    E.poseV = horiz ? poseCote(E.dir) : dy < 0 ? 'd' : 'f'; E.etat = 'marche';
+    const dx = w.x - E.x, dy = w.y - E.y;
+    if (Math.abs(dx) > 1) E.dir = Math.sign(dx);
+    E.poseV = poseMarche(dx, dy, E.dir); E.etat = 'marche';
     if (E.pose !== E.poseV) { E.poids = clamp(E.poids - dt * 6, 0, 1); return; }   // il finit de se tourner, sur place
     E.poids = clamp(E.poids + dt * 8, 0, 1);
-    const k = D.hE / 266 * kProf(E.y), f = horiz ? 1 : 0.55, pas = 2 * MARCHE.S * k * f, v = 2 * MARCHE.S * k / MARCHE.cycle * f;
-    const d = Math.abs(horiz ? dx : dy), m = Math.min(v * dt * Math.max(0.25, E.poids), d), ph0 = E.ph;
-    if (horiz) E.x += Math.sign(dx) * m; else E.y += Math.sign(dy) * m;
+    // la distance « au sol » : la profondeur compte double environ (un pas vers le fond couvre moins d'écran qu'un pas de côté)
+    const k = D.hE / 266 * kProf(E.y), pas = 2 * MARCHE.S * k, v = pas / MARCHE.cycle, ey = dy / 0.55, L = Math.hypot(dx, ey);
+    const m = Math.min(v * dt * Math.max(0.25, E.poids), L), ph0 = E.ph;
+    if (L > 1e-6) { E.x += dx * m / L; E.y += dy * m / L; }
     E.ph += m / pas;   // la phase du pas suit la distance VRAIMENT parcourue (pas de glissement)
-    if (m >= d - 1e-6) { if (horiz) E.x = w.x; else E.y = w.y; E.chemin.shift(); }
+    if (m >= L - 1e-6) { E.x = w.x; E.y = w.y; E.chemin.shift(); }
     if (Math.floor(ph0 * 2) !== Math.floor(E.ph * 2)) son('pas');
     E.vis = E.dir;
   }
@@ -2285,7 +2304,7 @@ function mount(root, api) {
         try { z.use(m); } catch (e) { console.error('Manoir', e); }
       });
     };
-    if (z.p && D.fond) allerA(z.p[0], z.p[1], fin, 'd');
+    if (z.p && D.fond) allerA(z.p[0], z.p[1], fin, 'd', z.equerre);
     else { const x = clamp(sx, D.xmin, D.xmax); allerA(x, D.sol, fin, poseCote(cx >= x ? 1 : -1)); }
   }
   function ouvrirSortie() {
@@ -2298,7 +2317,7 @@ function mount(root, api) {
       if (!R || R.n !== n) return;
       const P = R.def.porte, porteZ = R.def.zones.find(z => z.id === 'porte');
       E.etat = 'debout'; const fin = () => { R.sortie = 0; };
-      if (porteZ && porteZ.p && R.def.fond) allerA(porteZ.p[0], porteZ.p[1], fin, 'd'); else marcherVers(porteZ && porteZ.x != null ? porteZ.x : P[0] + P[2] / 2, fin);
+      if (porteZ && porteZ.p && R.def.fond) allerA(porteZ.p[0], porteZ.p[1], fin, 'd', porteZ.equerre); else marcherVers(porteZ && porteZ.x != null ? porteZ.x : P[0] + P[2] / 2, fin);
     });
     calculerBilan();
   }
@@ -2350,6 +2369,7 @@ function mount(root, api) {
     return best;
   }
   // le sac (inventaire en grand)
+  const Fs = n => portrait ? Math.max(n, 24) : n;
   function sac() {
     let sel = 0;
     const gp = {
@@ -2369,15 +2389,15 @@ function mount(root, api) {
         for (let i = 0; i < 6; i++) { const x = 110 + (i % 3) * 140, y = 82 + ((i / 3) | 0) * 140, id = R.inv[i];
           c.fillStyle = i === sel && id ? 'rgba(232,194,122,0.28)' : 'rgba(255,255,255,0.07)'; pill(c, x - 62, y - 62, 124, 124, 16); c.fill();
           c.strokeStyle = i === sel && id ? OR : 'rgba(255,255,255,0.18)'; c.lineWidth = i === sel && id ? 4 : 2; c.stroke();
-          if (id) { iconeObjet(c, id, x, y, 104, t); if (R.main === id) { c.fillStyle = OR; c.font = '900 22px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('✋', x + 46, y - 46); } } }
+          if (id) { iconeObjet(c, id, x, y, 104, t); if (R.main === id) { c.fillStyle = OR; c.font = '900 ' + Fs(22) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('✋', x + 46, y - 46); } } }
         const id = R.inv[sel]; c.textAlign = 'left'; c.textBaseline = 'top';
         if (id) { const O = OBJETS[id];
-          c.fillStyle = OR; c.font = '900 26px ' + TITRE; c.fillText(O.nom, 450 - 10, 30, 210);
-          c.fillStyle = '#efe4d0'; c.font = '700 17px ' + TEXTE;
+          c.fillStyle = OR; c.font = '900 ' + Fs(26) + 'px ' + TITRE; c.fillText(O.nom, 450 - 10, 30, 210);
+          c.fillStyle = '#efe4d0'; c.font = '700 ' + Fs(17) + 'px ' + TEXTE;
           const L = texteLignes(c, O.desc || (O.lire ? O.lire.texte : ''), 190); let y = 74; for (const l of L.slice(0, 13)) { c.fillText(l, 440, y); y += l ? 24 : 10; } }
-        else { c.fillStyle = '#efe4d0'; c.font = '700 22px ' + TEXTE; c.textAlign = 'center'; c.fillText('Ton sac est vide.', 250, 372); c.textAlign = 'left'; }   /* sous la grille, centré */
+        else { c.fillStyle = '#efe4d0'; c.font = '700 ' + Fs(22) + 'px ' + TEXTE; c.textAlign = 'center'; c.fillText('Ton sac est vide.', 250, 372); c.textAlign = 'left'; }   /* sous la grille, centré */
         this.boutons().forEach((b, i, A) => { const x = 320 + (i - (A.length - 1) / 2) * 210; c.fillStyle = 'rgba(232,194,122,0.92)'; pill(c, x - 100, 443, 200, 54, 27); c.fill(); c.strokeStyle = '#5a3d12'; c.lineWidth = 2; c.stroke();
-          c.fillStyle = '#2a1408'; c.font = '900 18px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(b[1], x, 471, 188); });
+          c.fillStyle = '#2a1408'; c.font = '900 ' + Fs(18) + 'px ' + TEXTE; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(b[1], x, 471, 188); });
       }
     };
     return gp;
@@ -2774,10 +2794,11 @@ function mount(root, api) {
     if (E.etat === 'fouille' && profil) { image('expl_fouille', s < 0); return; }   // (le miroir = la même pose de l'autre côté)
     if (profil && torse()) { ombre(60 * k); R.pieds = dessinerMarcheur(c, E.x, Y, k, s, E.ph, E.poids); return; }
     if (E.pose === 'tD' || E.pose === 'tG') { image('ex_34', E.pose === 'tG'); return; }
-    // face ou dos : debout, ou un pas sur deux en marche (l'autre pas = le miroir), une image debout entre deux pas
     const marche = E.etat === 'marche' && E.chemin.length && E.poids > 0.3, q = Math.floor(E.ph * 4) % 4, pas = marche && (q === 0 || q === 2);
-    const nom = E.pose === 'f' ? (pas ? 'ex_face_m' : 'ex_face') : (pas ? 'ex_dos_m' : 'ex_dos');
-    image(nom, pas && q === 2);
+    if (E.pose === 'dD' || E.pose === 'dG') { image(pas ? (q === 0 ? 'ex_34d_m1' : 'ex_34d_m2') : 'ex_34d', E.pose === 'dG'); return; }   // 3/4 dos (vers le fond à droite ; miroir = à gauche)
+    // face ou dos : debout, ou un pas sur deux en marche (l'autre pas = le miroir), une image debout entre deux pas
+    if (E.pose === 'f') { image(pas ? (q === 0 ? 'ex_face_m1' : 'ex_face_m2') : 'ex_face'); return; }   // face : fw-1, fw-0, fw-2, fw-0 (un seul dessin, sans miroir)
+    image(pas ? 'ex_dos_m' : 'ex_dos', pas && q === 2);
   }
   // le fantôme et sa bulle (près de lui ; jamais sur un objet qui brille)
   function fantome(c, v, dessus) {
@@ -2941,7 +2962,7 @@ function mount(root, api) {
     // l'aide (ou l'info du moment)
     const rs = K.reste(o.gp), txt = o.infoT > 0 ? o.info : rs > 0 ? 'Le mécanisme se réarme… ' + Math.ceil(rs) + ' s' : (padOn() ? aidePad(o.gp) : o.gp.aide);
     c.font = fnt(Math.min(16 * u, 17), 800); c.fillStyle = o.infoT > 0 ? '#ffd3a0' : '#d8c8b0'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    const L = texteLignes(c, txt, B.bw - 40); L.slice(0, 2).forEach((l, i, A) => c.fillText(l, B.bx + B.bw / 2, B.by + B.bh - B.hb / 2 + (i - (A.length - 1) / 2) * 17));
+    const L = texteLignes(c, txt, B.bw - 40), lh = Math.min(17, (B.hb - 6) / Math.min(3, L.length)); L.slice(0, 3).forEach((l, i, A) => c.fillText(l, B.bx + B.bw / 2, B.by + B.bh - B.hb / 2 + (i - (A.length - 1) / 2) * lh));
   }
   function aidePad(gp) {
     const g = b => { try { return api.pad && api.pad.glyph ? api.pad.glyph(b) : b.toUpperCase(); } catch (e) { return b.toUpperCase(); } };
@@ -3092,7 +3113,7 @@ function mount(root, api) {
       // V2 : la marche (film image par image), le fantôme, l'histoire
       figer(on) { FAST = on ? 0 : 1; }, pas(dt) { update(dt); draw(); },
       marche: () => R && { x: +R.E.x.toFixed(2), ph: +R.E.ph.toFixed(4), poids: +R.E.poids.toFixed(2), vis: +R.E.vis.toFixed(2), etat: R.E.etat, pieds: R.pieds || null, ecran: ecranDe(R.E.x, R.def.sol), s: VS().s },
-      aller(x, y) { if (R) { if (y != null) allerA(x, y, null, y < R.def.sol - 1 ? 'd' : null); else marcherVers(x); } }, placerExpl(x, dir, y) { if (R) { R.E.x = x; R.E.dir = R.E.vis = dir || 1; R.E.pose = R.E.poseV = poseCote(R.E.dir); if (y != null) R.E.y = y; } }, tourner(dir) { if (R) { R.E.dir = dir; R.E.poseV = poseCote(dir); } }, expl: () => R && { x: +R.E.x.toFixed(1), y: +R.E.y.toFixed(1), pose: R.E.pose, poseV: R.E.poseV, etat: R.E.etat, k: +kProf(R.E.y).toFixed(3), ph: +R.E.ph.toFixed(3), ecran: ecranDe(R.E.x, R.E.y), s: VS().s * R.def.hE / 266 * kProf(R.E.y) },
+      aller(x, y) { if (R) { if (y != null) allerA(x, y, null, y < R.def.sol - 1 ? 'd' : null); else marcherVers(x); } }, placerExpl(x, dir, y) { if (R) { R.E.x = x; R.E.dir = R.E.vis = dir || 1; R.E.pose = R.E.poseV = poseCote(R.E.dir); if (y != null) R.E.y = y; } }, tourner(dir) { if (R) { R.E.dir = dir; R.E.poseV = poseCote(dir); } }, camera(x) { if (R) { R.cam = x; R.camLibre = 1e9; } }, expl: () => R && { x: +R.E.x.toFixed(1), y: +R.E.y.toFixed(1), pose: R.E.pose, poseV: R.E.poseV, etat: R.E.etat, k: +kProf(R.E.y).toFixed(3), ph: +R.E.ph.toFixed(3), ecran: ecranDe(R.E.x, R.E.y), s: VS().s * R.def.hE / 266 * kProf(R.E.y) },
       fantDit: () => R ? R.fant.dits.slice() : [], taire() { if (R) { R.fant.texte = ''; R.fant.age = 99; R.fant.a = 0; R.fant.rire = 999; } }, fantDire(t) { return fantDire(t, 'rit'); }, fantEtat: () => R && { texte: R.fant.texte, age: +R.fant.age.toFixed(2), d: +R.fant.d.toFixed(2), dernier: R.fant.dernier },
       textesFantome: () => { const L = SALLES_DEF(J).map(d => d.intro).concat(MOQUERIES, RATES, BRAVOS, HISTOIRE.filter(h => h.fant).map(h => h.fant)); return L; },
       histoire: () => HIS && { i: HIS.i, t: +HIS.t.toFixed(2), x: Math.round(HIS.E.x), dir: HIS.E.dir, vis: +HIS.E.vis.toFixed(2) }, lancerHistoire, boutonPasser: () => boutonPasser(), boutonHistoire: () => boutonHistoire(),
@@ -3102,7 +3123,7 @@ function mount(root, api) {
       prog: () => JSON.parse(JSON.stringify(prog)), modes: () => ({ doigt: modeDoigt, pad: padOn() }), curseur: () => R && R.curseur, ov: () => OV.length,
       donner(id) { J.donner(id, true); }, message: () => MSG && MSG.t, temps(t) { if (R) R.t = t; },
       // V3 : ouvrir une zone sans marcher (captures), tout fermer, le réarmement en cours, les drapeaux
-      ouvrirZone(id) { const z = zonesVisibles().find(q => q.id === id); if (z) z.use(R.main); return !!z; }, fermerTout() { OV = []; }, cheminGros(id) { const o = OV[OV.length - 1]; if (!o) return null; return cheminNav(o.gp.cibles().filter(c => !c.cache), o.focus, id); }, cheminZone(id) { return cheminNav(zonesVisibles().map(z => ({ id: z.id, x: z.r[0] + z.r[2] / 2, y: z.r[1] + z.r[3] / 2 })), R && R.curseur, id); }, lireObjet(id) { J.lire(id); }, nRoue: i => { const o = OV[OV.length - 1]; return o && o.gp.nRoue ? o.gp.nRoue(i) : 0; }, poidsPose: k => { const o = OV[OV.length - 1]; return !!(o && o.gp.pose && o.gp.pose(k)); }, cryptoCases: () => { const o = OV[OV.length - 1]; return o && o.gp.solution ? o.gp.solution() : []; }, reste: () => { const o = OV[OV.length - 1]; return o ? K.reste(o.gp) : 0; }, drapeau(k, v) { if (R) R.f[k] = v; }
+      ouvrirZone(id) { const z = zonesVisibles().find(q => q.id === id); if (z) z.use(R.main); return !!z; }, fermerTout() { OV = []; }, polices() { const L = [], f0 = ctx.fillText; ctx.fillText = function (t, x, y, mw) { const m = this.getTransform(), px = parseFloat((/(\d+(?:\.\d+)?)px/.exec(this.font) || [0, 0])[1]); L.push({ t: String(t), px: +(px * Math.hypot(m.c, m.d) / dpr).toFixed(1) }); return f0.call(this, t, x, y, mw); }; try { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); const o = OV[OV.length - 1]; if (o) dessinerOverlay(ctx, o, true); } finally { ctx.fillText = f0; } return L; }, cheminGros(id) { const o = OV[OV.length - 1]; if (!o) return null; return cheminNav(o.gp.cibles().filter(c => !c.cache), o.focus, id); }, cheminZone(id) { return cheminNav(zonesVisibles().map(z => ({ id: z.id, x: z.r[0] + z.r[2] / 2, y: z.r[1] + z.r[3] / 2 })), R && R.curseur, id); }, lireObjet(id) { J.lire(id); }, nRoue: i => { const o = OV[OV.length - 1]; return o && o.gp.nRoue ? o.gp.nRoue(i) : 0; }, poidsPose: k => { const o = OV[OV.length - 1]; return !!(o && o.gp.pose && o.gp.pose(k)); }, cryptoCases: () => { const o = OV[OV.length - 1]; return o && o.gp.solution ? o.gp.solution() : []; }, reste: () => { const o = OV[OV.length - 1]; return o ? K.reste(o.gp) : 0; }, drapeau(k, v) { if (R) R.f[k] = v; }
     }
   };
 }
