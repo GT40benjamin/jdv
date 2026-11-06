@@ -96,7 +96,7 @@
     document.body.appendChild(R); AIM.root = R;
     try { atlEspCiel(R.querySelector('.crea-ciel'), false); } catch (e) {}   // le MÊME ciel que la création d'un jeu (2.0.152 / 2.0.161)
     const q = s => R.querySelector(s);
-    q('.crea-menu').addEventListener('click', () => { R.classList.toggle('tiroir'); });
+    q('.crea-menu').addEventListener('click', () => { R.classList.toggle('tiroir'); if (R.classList.contains('tiroir')) setTimeout(() => { const b = R.querySelector('.crea-arbre button'); if (b) b.focus({ preventScroll: true }); }, 60); });
     q('.crea-voile').addEventListener('click', () => R.classList.remove('tiroir'));
     q('.crea-retour').addEventListener('click', fermerVersProjets);
     q('.crea-flot').addEventListener('click', () => { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); setTimeout(() => { const t = q('.crea-pooky textarea'); if (t) t.focus({ preventScroll: true }); }, 60); });
@@ -329,7 +329,8 @@
     const ti = AIM.vue === 'nouveau' ? 'Nouveau projet' : (AIM.d && AIM.d.titre) || (pj && pj.titre) || 'Mes images';
     fil.append(E('span', 'lien', ' › '), E('strong', '', ti));
     q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
-    q('.crea-cred').textContent = typeof AIM.solde === 'number' ? D + ' ' + AIM.solde + (etroit() ? '' : ' crédits') : '';
+    let so = AIM.solde; if (typeof so !== 'number') { try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {} }   // sans SQL v160 : le solde de l'Atelier (testeurs, 6 nov.)
+    q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + so + (etroit() ? '' : ' crédits') : '';
     renderArbre(); renderOutil(); renderPooky(); renderFlot();
   }
   function renderArbre() {
@@ -476,7 +477,7 @@
       const t = E('span', 't', cr.titre || 'Mon image'); t.appendChild(E('small', '', n + ' version' + (n > 1 ? 's' : '')));
       b.append(i, t); g.appendChild(b);
     }
-    const p = B('crea-gimg plus', null, () => choisirFichier()); p.append(E('span', '', '＋'), E('b', '', 'Importer une image'), E('span', 'crea-prix gratuit', 'gratuit')); p.lastChild.style.fontSize = '12.5px'; g.appendChild(p);
+    const p = B('crea-gimg plus', null, () => choisirFichier()); p.append(E('span', '', '＋'), E('b', '', 'Importer une image'), E('span', 'crea-prix gratuit', 'gratuit')); p.lastChild.style.fontSize = '13px'; g.appendChild(p);
     c.appendChild(g); O.appendChild(c);
   }
   function renderVersions(O) {
