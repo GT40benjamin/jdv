@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra : plus de titre en double (borne 2.0.158)
+[abracadabra] 🪄 Le chargement du monde 3D n'affiche plus le titre une deuxième fois : seulement « Le bâton se réveille… ».
+[ilo] ## 🚀 Galaxy Wars : plus de titre en double (borne 2.0.158)
+[ilo] 🚀 Sur ordinateur, le panneau de gauche pendant la partie s'appelle « LA GALAXIE » (le nom du jeu est déjà sur l'écran-titre).
+[carreaux] ## 🧱 Casse-Carreaux : plus de titre en double (borne 2.0.158)
+[carreaux] 🧱 Sur ordinateur, le panneau de gauche pendant la partie s'appelle « LE TOUR DU MONDE » (le nom du jeu est déjà sur l'écran-titre).
 [abracadabra] ## 🪄 Abracadabra : nouvel écran-titre (borne 2.0.157)
 [abracadabra] 🪄 Un vrai écran-titre : une grande image du jeu, son logo et une musique de menu ; ▶ JOUER lance le jeu tout de suite, avec une seule pause à l'écran.
 [carreaux] ## 🧱 Casse-Carreaux : nouvel écran-titre (borne 2.0.157)
