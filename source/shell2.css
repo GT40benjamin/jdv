@@ -5640,3 +5640,81 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-espace .atl-pane[data-k="elements"] .atl-plc small,.atl-espace .atl-pane[data-k="elements"] .atl-enc small{font-size:13px}
 .atl-espace .atl-esroute dt{font:900 15px var(--body)}.atl-espace .atl-esroute dd{font:600 15px/1.5 var(--body)}
 @media (max-width:760px){.atl-espace .atl-esroute dd{font-size:14px}.atl-espace .atl-pane[data-k="elements"] .atl-plc small{font-size:13px}}
+/* 2.0.162 (l'admin : « une discussion carrée, comme WhatsApp ou Messenger ») — partout où l'on parle à la mascotte (onglet de l'espace,
+   création dans les nuages). En-tête · fil qui défile · barre de saisie collée en bas ; bulles du joueur à droite, de la mascotte à gauche ;
+   pas de flou, rien d'infini sauf les points « ••• » pendant qu'elle écrit (transform/opacity seulement). */
+.atl-disc.atl-chat{display:flex;flex-direction:column;max-width:720px;margin:0 auto;height:min(78vh,820px);border-radius:22px;border:0;overflow:hidden;background:#efe8f6;box-shadow:0 10px 34px rgba(80,40,120,.18);color:#1f1a2b}
+.atl-chat .atl-dischd{flex:none;display:flex;align-items:center;gap:10px;width:auto;padding:8px 12px;background:#fff;border-bottom:1px solid #e6dff0;color:#1f1a2b;cursor:default;text-align:left}
+.atl-chat .atl-dret{flex:none;width:44px;height:44px;border:0;border-radius:50%;background:none;color:#4a2370;font:900 24px/1 var(--body);cursor:pointer}
+.atl-chat .atl-dret:hover,.atl-chat .atl-dret:focus-visible{background:#f1ebfa;outline:none}
+.atl-chat .atl-dav{flex:none;width:42px;height:42px;border-radius:50%;overflow:hidden;background:#fff6e0;display:grid;place-items:center}
+.atl-chat .atl-dav img{width:100%;height:100%;object-fit:cover}
+.atl-chat .atl-dnom{flex:1;min-width:0;display:grid;line-height:1.15}
+.atl-chat .atl-dnom b{font:800 17px var(--body);color:#1f1a2b}
+.atl-chat .atl-dstat{font:600 13px var(--body);color:#2e9e5e}
+.atl-chat .atl-dstat.ecrit{color:#7b55d6;font-style:italic}
+.atl-chat .atl-discgr{flex:none;background:#e3f7ec;border-color:#bfe8d0;color:#16754a}
+.atl-chat .atl-discc{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:0;padding:0}
+.atl-chat .atl-discc[hidden]{display:none}
+.atl-chat .atl-disclog{flex:1;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:2px;padding:12px 10px 16px;margin:0;border:0;border-radius:0;background:#efe8f6;contain:content}
+/* les bulles */
+.atl-chat .atl-m{display:flex;align-items:flex-end;gap:6px;margin:0;max-width:100%}
+.atl-chat .atl-m.atl-a + .atl-m.atl-p,.atl-chat .atl-m.atl-p + .atl-m.atl-a,.atl-chat .atl-djour + .atl-m{margin-top:10px}
+.atl-chat .atl-p{justify-content:flex-end}
+.atl-chat .atl-m > .atl-av{flex:0 0 30px;width:30px;height:30px;border-radius:50%;overflow:hidden;box-shadow:none;background:#fff6e0}
+.atl-chat .atl-m > .atl-av img{width:100%;height:100%;object-fit:cover}
+.atl-chat .atl-m.atl-a:has(+ .atl-m.atl-a) > .atl-av{visibility:hidden}   /* l'avatar seulement au dernier message d'une série */
+.atl-chat .atl-mc{max-width:78%;min-width:0}
+.atl-chat .atl-who{display:none}
+.atl-chat .atl-b{position:relative;padding:8px 11px 6px;border:0;font:15.5px/1.42 var(--body);overflow-wrap:anywhere}
+.atl-chat .atl-a .atl-b{background:#fff;color:#1f1a2b;border-radius:4px 16px 16px 16px;box-shadow:0 1px 1.5px rgba(40,20,70,.12)}
+.atl-chat .atl-p .atl-b{background:#d9fdd3;color:#16271a;border-radius:16px 4px 16px 16px;box-shadow:0 1px 1.5px rgba(20,60,30,.12)}
+.atl-chat .atl-a .atl-b::before{content:'';position:absolute;left:-7px;top:0;border:7px solid transparent;border-top-color:#fff;border-right-color:#fff;border-width:0 7px 9px 0}
+.atl-chat .atl-p .atl-b::before{content:'';position:absolute;right:-7px;top:0;border:7px solid transparent;border-top-color:#d9fdd3;border-left-color:#d9fdd3;border-width:0 0 9px 7px}
+.atl-chat .atl-wel .atl-b{background:#fff;border:0}
+.atl-chat .atl-wel .atl-b p:first-child{font:800 16px/1.3 var(--body);color:#4a2370}
+.atl-chat .atl-b p{margin:0;white-space:pre-wrap}
+.atl-chat .atl-b p + p{margin-top:6px}
+.atl-chat .atl-t.dans{display:block;margin:2px -3px -2px 10px;text-align:right;font:600 11px var(--body);color:#8a8499;float:none}
+.atl-chat .atl-p .atl-t.dans{color:#5e7d63}
+.atl-chat .atl-bimg{display:block;margin:4px -4px 2px}.atl-chat .atl-bimg img,.atl-chat .atl-b img{display:block;max-width:100%;max-height:300px;border-radius:12px;object-fit:cover;cursor:zoom-in}
+.atl-chat .atl-mc > .btn,.atl-chat .atl-mc > button:not(.atl-vplus){margin-top:6px;min-height:44px;border-radius:14px;align-self:flex-start}
+.atl-chat .atl-brille{animation:atlBrilleDoux 1.4s ease-in-out 1}
+@keyframes atlBrilleDoux{0%,100%{opacity:1}30%{opacity:.55}}
+/* séparateurs de date, lignes « système », plus anciens, ↓ */
+.atl-djour{align-self:center;margin:12px auto 6px;padding:5px 12px;border-radius:10px;background:#fff;color:#5b5568;font:800 12.5px var(--body);box-shadow:0 1px 1.5px rgba(40,20,70,.1);text-transform:none}
+.atl-chat .atl-travb,.atl-chat .atl-dthink.atl-travb{align-self:center;max-width:92%;margin:8px auto;padding:5px 12px;border-radius:10px;border:0;background:#e6def2;color:#5b4f73;box-shadow:none}
+.atl-chat .atl-travb .atl-wav{display:none}
+.atl-chat .atl-travb b,.atl-chat .atl-travb .atl-travt{font:700 12.5px var(--body);color:#5b4f73}
+.atl-dplus{align-self:center;margin:4px auto 10px;padding:6px 14px;min-height:36px;border:0;border-radius:999px;background:#fff;color:#4a2370;font:800 13px var(--body);cursor:pointer}
+.atl-dbas{position:absolute;right:14px;bottom:78px;z-index:3;width:42px;height:42px;border:0;border-radius:50%;background:#fff;color:#4a2370;font:900 20px/1 var(--body);box-shadow:0 3px 10px rgba(40,20,70,.25);cursor:pointer}
+.atl-dbas[hidden]{display:none}
+/* « ••• » pendant qu'elle écrit */
+.atl-dtype .atl-b{display:flex;gap:4px;align-items:center;padding:12px 14px}
+.atl-dtype .atl-b i{width:7px;height:7px;border-radius:50%;background:#9a93ad;animation:atlTape 1.2s ease-in-out infinite;will-change:transform,opacity}
+.atl-dtype .atl-b i:nth-child(2){animation-delay:.15s}.atl-dtype .atl-b i:nth-child(3){animation-delay:.3s}
+@keyframes atlTape{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-4px);opacity:1}}
+/* la barre de saisie, collée en bas */
+.atl-chat .atl-discrow{flex:none;display:flex;flex-direction:row;align-items:flex-end;gap:8px;padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 8px);background:#f6f1fb;border-top:1px solid #e6dff0}
+.atl-chat .atl-artw{position:relative;flex:1;min-width:0}
+.atl-chat .atl-discrow textarea{display:block;width:100%;box-sizing:border-box;min-height:46px;max-height:130px;padding:12px 48px 12px 16px;border:1px solid #e2d8ef;border-radius:24px;background:#fff;color:#1f1a2b;font:16px/20px var(--body);resize:none;overflow-y:auto}
+.atl-chat .atl-discrow textarea::placeholder{color:#9a93ad}
+.atl-chat .atl-artw .atl-armic{position:absolute;right:5px;bottom:5px;width:36px;height:36px;min-height:0}
+.atl-chat .atl-dsend{flex:none;width:46px;height:46px;min-height:0;padding:0;border:0;border-radius:50%;background:#c9c2d6;color:#fff;font:900 20px/1 var(--body);display:grid;place-items:center;cursor:pointer;box-shadow:none;transition:background .15s}
+.atl-chat .atl-dsend.on{background:#7b55d6}
+.atl-chat .atl-dnmsg{flex:none;padding:0 14px 6px;background:#f6f1fb;color:#b3261e;font:700 13px var(--body)}
+.atl-chat .atl-dnmsg:empty{display:none}
+/* téléphone : PLEIN ÉCRAN, en 3 bandes, au-dessus du clavier (visualViewport) */
+@media (max-width:900px){
+  .atl-wiz.atl-espace .atl-pane[data-k="demandes"]:not([hidden]) .atl-disc.atl-chat,.atl-wiz.atl-nuages .atl-disc.atl-chat{position:fixed;left:0;right:0;top:var(--vvt,0px);height:var(--vvh,100dvh);max-width:none;z-index:60;margin:0;border-radius:0;box-shadow:none}
+  .atl-chat .atl-dischd{padding-top:calc(env(safe-area-inset-top,0px) + 8px)}
+}
+/* 2.0.162 : dans le chat, les annonces de version sont des bulles blanches comme les autres, titre lisible */
+.atl-chat .atl-b.atl-vsort{background:#fff!important;border:0!important}
+.atl-chat .atl-vst{font:800 16px/1.3 var(--body)!important;color:#c2387f!important;text-shadow:none!important;-webkit-text-stroke:0!important}
+.atl-chat .atl-b small,.atl-chat .atl-b .atl-gobug{color:#6f6880}
+/* téléphone : le chat plein écran passe au-dessus de tout (barre d'onglets et barre du haut cachées pendant la discussion) */
+@media (max-width:900px){#jdw-atelier:has(.atl-pane[data-k="demandes"]:not([hidden]) .atl-chat) .atl-estabs,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden]) .atl-chat) .atl-estabs{display:none!important}
+  .atl-wiz.atl-espace:has(.atl-pane[data-k="demandes"]:not([hidden]) .atl-chat),.atl-wiz.atl-nuages:has(.atl-chat){isolation:auto}
+  .atl-wiz.atl-espace .atl-pane[data-k="demandes"]:not([hidden]) .atl-disc.atl-chat,.atl-wiz.atl-nuages .atl-disc.atl-chat{z-index:90}}
+.atl-chat .atl-mremp{opacity:.85}.atl-chat .atl-mremp .atl-b{background:#f4f1f8!important;color:#5b5568!important}.atl-chat .atl-remp,.atl-chat [class*="atl-remp"]{color:#5b5568}

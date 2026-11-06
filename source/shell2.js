@@ -16635,15 +16635,20 @@ function atlDiscFil(f) {
   return L;
 }
 function atlDiscBloc(f) {
-  const b = atlEl('section', 'atl-disc'), hd = atlEl('button', 'atl-dischd'); hd.type = 'button'; hd.setAttribute('aria-expanded', 'true');
-  hd.append(atlGuideAv(), atlEl('b', '', atlDiscTitre()), atlEl('span', 'atl-discgr', 'Gratuit'), atlEl('i', 'atl-discdot'), atlEl('span', 'atl-discfl', '▾'));
-  hd.addEventListener('click', () => atlDiscOuvrir(ATL.discFerme === f.id, true));
+  // 2.0.162 (l'admin : « une discussion carrée, comme WhatsApp ou Messenger ») : en-tête ← · avatar · nom · « en ligne » / « écrit… »
+  const b = atlEl('section', 'atl-disc atl-chat'), hd = atlEl('div', 'atl-dischd'); hd.setAttribute('aria-expanded', 'true');
+  const ret = atlEl('button', 'atl-dret', '←'); ret.type = 'button'; ret.setAttribute('aria-label', 'Retour');
+  ret.addEventListener('click', () => { if (atlAvantV1(f)) { try { atlListe(); } catch (e) {} } else atlProjTab('jeu'); });
+  const nom = atlEl('div', 'atl-dnom'); nom.append(atlEl('b', '', gNM()), atlEl('small', 'atl-dstat', 'en ligne'));
+  hd.append(ret, atlGuideAv('atl-dav'), nom, atlEl('span', 'atl-discgr', 'Gratuit'), atlEl('i', 'atl-discdot'));
   const corps = atlEl('div', 'atl-discc'); corps.appendChild(atlEl('div', 'atl-pmsgs atl-disclog'));
   {   // 2.0.109 : en mode admin, le fil EXACTEMENT comme le joueur (le wrapper admin envoie at_discuter en message de la mascotte)
     const adm = atlAdminIci(), aide = ATL_DISC_AIDE;
-    const ta = atlEl('textarea', 'atl-dnin atl-discin'); ta.rows = 2;
-    ta.placeholder = 'Pose ta question ou raconte ton idée (ex. « où en est mon jeu ? », « comment rendre mon boss plus dur ? », « tu as des idées de nouveaux mondes ? »)';
-    const go = atlEl('button', 'btn btn-play atl-discgo', '📨 Envoyer'), msg = atlEl('small', 'atl-dnmsg', aide + '.'); go.type = 'button';
+    const ta = atlEl('textarea', 'atl-dnin atl-discin'); ta.rows = 1;
+    ta.placeholder = 'Écris ' + gA() + '… (c’est gratuit)';   // 2.0.162 : l'aide tient dans le champ, en une ligne
+    const go = atlEl('button', 'atl-discgo atl-dsend', '➤'), msg = atlEl('small', 'atl-dnmsg', ''); go.type = 'button'; go.setAttribute('aria-label', 'Envoyer');
+    const grandit = () => { ta.style.height = 'auto'; const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20; ta.style.height = Math.min(ta.scrollHeight, lh * 5 + 20) + 'px'; go.classList.toggle('on', !!ta.value.trim()); };
+    ta.addEventListener('input', grandit);
     // 2.0.100 (l'admin : « pouvoir encore lui parler même quand il réfléchit ») : la case et « Envoyer » ne sont JAMAIS bloqués ; chaque message
     // s'affiche tout de suite et part dans une file (dans l'ordre, un après l'autre) ; un refus remet son texte dans la case
     const W0 = () => ATL.root.querySelector('.atl-wiz'), enBas = () => { const lg = b.querySelector('.atl-disclog'); if (lg) lg.scrollTop = lg.scrollHeight; };   // son propre message : toujours en bas du fil
@@ -16651,7 +16656,7 @@ function atlDiscBloc(f) {
       atlMicFin();
       const t = ta.value.trim(); if (!t) { ta.focus(); return; }
       if (!(ATL.discPend || []).some(x => !x.envoye)) ATL.discErr = false;
-      ta.value = ''; msg.textContent = 'J’envoie…';
+      ta.value = ''; msg.textContent = ''; try { ta.style.height = ''; go.classList.remove('on'); } catch (e) {}
       const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id, atelier: adm };
       ATL.discPend = (ATL.discPend || []).concat([pm]); atlDiscMaj(W0(), f, true); enBas();
       ATL.discFile = (ATL.discFile || Promise.resolve()).then(async () => {
@@ -16661,7 +16666,7 @@ function atlDiscBloc(f) {
         if (ok) pm.envoye = true; else ATL.discPend = (ATL.discPend || []).filter(x => x !== pm);
         if (!(ATL.discPend || []).some(x => !x.envoye)) {   // la file est vide : on relit tout (les messages arrivés, les offres remplacées)
           try { ATL.demAt = 0; await atlDemCharger(true); await atlLoad(true); } catch (e) {}
-          ATL.discPend = (ATL.discPend || []).filter(x => !x.envoye); if (!ATL.discErr) msg.textContent = aide + '.';   // un refus reste affiché
+          ATL.discPend = (ATL.discPend || []).filter(x => !x.envoye); if (!ATL.discErr) msg.textContent = '';   // un refus reste affiché
         }
         atlDiscMaj(W0(), f, true); enBas();
       });
@@ -16671,7 +16676,7 @@ function atlDiscBloc(f) {
     const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
     const rg = atlEl('p', 'atl-discrg'), np = atlEl('button', 'atl-discnp', '＋ Nouveau projet'); np.type = 'button'; np.addEventListener('click', atlNouveau);
     rg.append(document.createTextNode('Ici, on parle seulement de « ' + (f.titre || 'ton jeu') + ' ». Une idée pour un autre jeu ? '), np);
-    row.append(tw, go); corps.append(row, msg, rg);
+    row.append(tw, go); corps.append(row, msg); void rg; void aide;   // 2.0.162 : plus de pavé d'aide sous le champ
   }
   b.append(hd, corps); return b;
 }
@@ -16724,18 +16729,45 @@ function atlDiscMaj(W, f, force) {
   const sig = fil.map(i => i.k + '@' + i.at).join('|');
   if (log.dataset.sig === sig && !force) return;
   if ([...log.querySelectorAll('.atl-q input, .atl-dedit:not([hidden]) textarea')].some(e => e.value.trim() || document.activeElement === e)) return;   // une réponse en cours d'écriture : on ne touche à rien
-  const bas = !log.dataset.sig || log.scrollHeight - log.scrollTop - log.clientHeight < 80; log.dataset.sig = sig; log.textContent = '';
+  const dist = log.scrollHeight - log.scrollTop - log.clientHeight, derK = (fil.filter(i => i.t < 9e15).pop() || {}).k || '', nouveau = !!log.dataset.der && log.dataset.der !== derK; log.dataset.der = derK;
+  const bas = !log.dataset.sig || dist < 80 || (nouveau && dist < 600); log.dataset.sig = sig; log.textContent = '';   // 2.0.162 : un nouveau message fait descendre, sauf si on relit loin au-dessus
   const acc = atlBubble({ atelier: true, texte: ' ', at: f.created_at }), bb = acc.querySelector('.atl-b'), t0 = acc.querySelector('.atl-t'); if (t0) t0.remove();
   acc.classList.add('atl-wel'); bb.textContent = '';
   bb.append(atlEl('p', '', '💬 On parle de « ' + (f.titre || 'ton jeu') + ' » ?'), atlEl('p', '', 'Ici, c’est gratuit : pose-moi tes questions, demande-moi où en est ton jeu, prépare avec moi tes idées de changements, même les gros.'),
     atlEl('p', '', 'Quand une idée demande du travail, je te fais une proposition avec son coût : rien n’est lancé sans ton « oui ». Tout ce que je fais sur ton jeu s’affiche ici.'));
   if (!atlAvantV1(f)) log.appendChild(acc);
   const fin = fil.filter(i => i.t >= 9e15);   // 2.0.124 : la carte de lancement / « je construis ta V1 » reste sous la réponse en préparation
-  for (const i of fil) { if (i.t >= 9e15) continue; try { const el = i.el(); if (el) { el.dataset.dk = i.k; log.appendChild(el); } } catch (e) {} }   // 2.0.137 : data-dk = la clé (ticket retrouvé depuis « Mes demandes »)
+  // 2.0.162 : séparateurs de date, heure DANS la bulle, et seulement les derniers messages (les plus anciens se chargent en remontant)
+  const corpsF = fil.filter(i => i.t < 9e15), nMax = ATL.discN || 60, debut = Math.max(0, corpsF.length - nMax);
+  if (debut > 0) { const plus = atlEl('button', 'atl-dplus', '⤒ Messages plus anciens'); plus.type = 'button'; plus.addEventListener('click', () => atlDiscPlus(log, f)); log.appendChild(plus); }
+  const jourDe = at => { const d = new Date(at); if (isNaN(d)) return ''; const a = new Date(), h = new Date(a - 864e5), m = x => x.toDateString(); return m(d) === m(a) ? 'Aujourd’hui' : m(d) === m(h) ? 'Hier' : d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); };
+  let jour0 = '';
+  for (const i of corpsF.slice(debut)) { try { const el = i.el(); if (!el) continue; el.dataset.dk = i.k;
+    const j = jourDe(i.at); if (j && j !== jour0) { jour0 = j; log.appendChild(atlEl('div', 'atl-djour', j)); }
+    const t = el.querySelector('.atl-mc > .atl-t'), bb = el.querySelector('.atl-mc > .atl-b'); if (t && bb) { t.classList.add('dans'); const d = new Date(i.at); if (!isNaN(d) && !/envoi/.test(t.textContent)) t.textContent = (/🎤/.test(t.textContent) ? '🎤 ' : '') + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); bb.appendChild(t); }
+    log.appendChild(el); } catch (e) {} }   // 2.0.137 : data-dk = la clé (ticket retrouvé depuis « Mes demandes »)
   const dj = fil.filter(i => i.t < 9e15).pop();
-  if (dj && dj.w) log.append(atlGuideScene(['Je lis ton message…', 'Je réfléchis…', 'J’écris ma réponse…'], 'conception'), (() => { const r = atlBubble({ atelier: true, texte: '💭 Je lis ton message et je te réponds juste ici. Tu peux aller jouer en attendant.', at: new Date().toISOString() }), t1 = r.querySelector('.atl-t'); if (t1) t1.remove(); return r; })());
+  { const ecrit = !!(dj && dj.w) || (ATL.discPend || []).some(x => !x.envoye); const st = b.querySelector('.atl-dstat'); if (st) { st.textContent = ecrit ? 'écrit…' : 'en ligne'; st.classList.toggle('ecrit', ecrit); }
+    if (ecrit) { const ty = atlEl('div', 'atl-m atl-a atl-dtype'), c = atlEl('div', 'atl-mc'), bu = atlEl('div', 'atl-b'); bu.setAttribute('aria-label', gNM() + ' écrit'); bu.append(atlEl('i'), atlEl('i'), atlEl('i')); c.appendChild(bu); ty.append(atlGuideAv(), c); log.appendChild(ty); } }   // 2.0.162 : « ••• » pendant qu'il répond
   for (const i of fin) { try { const el = i.el(); if (el) log.appendChild(el); } catch (e) {} }
   if (bas) log.scrollTop = log.scrollHeight;
+  for (const im of log.querySelectorAll('img')) if (!im.complete && bas) im.addEventListener('load', () => { if (log.scrollHeight - log.scrollTop - log.clientHeight < 700) log.scrollTop = log.scrollHeight; }, { once: true });   // 2.0.162 : une image qui arrive ne fait pas quitter le dernier message
+  atlDiscDefile(b, log, f);
+}
+// 2.0.162 : le bouton ↓ quand on remonte, et les anciens messages qui se chargent en arrivant en haut
+// 2.0.162 : la hauteur visible réelle (clavier ouvert compris) pour le chat plein écran du téléphone
+(() => { try { const vv = window.visualViewport; if (!vv) return; const maj = () => { const r = document.documentElement.style; r.setProperty('--vvh', vv.height + 'px'); r.setProperty('--vvt', vv.offsetTop + 'px'); requestAnimationFrame(() => { for (const l of document.querySelectorAll('.atl-chat .atl-disclog')) if (l._bas !== false) l.scrollTop = l.scrollHeight; }); }; vv.addEventListener('resize', maj); vv.addEventListener('scroll', maj); maj(); } catch (e) {} })();
+function atlDiscDefile(b, log, f) {
+  let bas = b.querySelector('.atl-dbas'); if (!bas) { bas = atlEl('button', 'atl-dbas', '↓'); bas.type = 'button'; bas.setAttribute('aria-label', 'Aller au dernier message'); bas.hidden = true; bas.addEventListener('click', () => { log.scrollTo({ top: log.scrollHeight, behavior: 'smooth' }); }); (b.querySelector('.atl-discc') || b).appendChild(bas); }
+  if (log._chat) return; log._chat = true;
+  let raf = 0; log.addEventListener('scroll', () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0;
+    const d = log.scrollHeight - log.scrollTop - log.clientHeight; bas.hidden = d < 120; log._bas = d < 80;
+    if (log.scrollTop < 40 && log.querySelector('.atl-dplus') && !log._charge) atlDiscPlus(log, f); }); }, { passive: true });
+}
+function atlDiscPlus(log, f) {
+  log._charge = true; const avant = log.scrollHeight - log.scrollTop; ATL.discN = (ATL.discN || 60) + 60;
+  try { atlDiscMaj(ATL.root.querySelector('.atl-wiz'), f, true); } catch (e) {}
+  log.scrollTop = log.scrollHeight - avant; setTimeout(() => { log._charge = false; }, 300);
 }
 // 2.0.94 : « 🎉 Ta Vn est sortie ! » en haut de la page du projet, tant que le joueur ne l'a pas essayée (jdw.atl.essaye, sur cet appareil)
 function atlEssaye(f, v) {
