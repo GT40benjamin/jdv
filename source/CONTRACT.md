@@ -567,3 +567,6 @@ L'admin : « on uniformise tout » — chaque jeu passe en `menu: true` (l'équi
 **Duels** (borne 2.0.146) : chaque duel a l'écran-titre (sauf `menu: false`), mêmes champs que les jeux (logo, menuImage, musicMenu, menuStyle…) :
 en LOCAL (même écran, contre l'IA), la tuile ouvre l'écran-titre et ▶ JOUER ouvre le duel ; EN LIGNE, jamais d'écran-titre après la mise en relation
 (les deux appareils démarrent ensemble) — l'écran-titre se montre avant l'invitation, et ▶ JOUER = « Défier un copain ».
+Sans menuImage, l'aperçu `preview` est montré en CARTE nette dans la bande du héros (jamais étiré au-delà de ~1,5×), le même aperçu flou derrière.
+À FAIRE (équipe Jeux) — logo + menuImage + menuImagePortrait pour chaque duel ; en attendant : bolides, kombat, tirsaubut, toupies n'écrivent pas le titre
+(leur aperçu le porte) ; **briques** est en `menu: false` (DUEL_SANS_MENU de shell2.js : aperçu presque vide) jusqu'à ses images. Planches : pooky/captures/146b-planche-duels-*.jpg.

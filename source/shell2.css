@@ -5418,3 +5418,11 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
   #jdw-play .tm-cartoon[data-vue="liste"] .tm-liste > .tm-it:not(.tm-go){height:9.5vh;min-height:0;padding:0 14px!important;font-size:min(15px,4.4vh)!important;display:flex;align-items:center}
 }
 #jdw-play .tm-cartoon .tm-liste > .tm-go.tm-long{font-size:min(clamp(22px,2.8vw,40px),calc((100vh - var(--sh0)) * .055),6.4vw)!important;white-space:nowrap}   /* 2.0.146 : « DÉFIER UN COPAIN » sur une ligne */
+/* 2.0.146 (chef) : l'aperçu en CARTE nette dans la bande du héros, le flou derrière ; les icônes toujours à droite */
+#jdw-play .tmenu .tm-scene .gm-cadre:has(.tm-carte){position:absolute;left:0;right:0;top:calc((100% ) * .28);bottom:calc((100% ) * .30);display:grid;place-items:center;padding:0 12px}
+#jdw-play .tmenu .gm-vif.gm-cv.tm-carte{border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 3px rgba(255,255,255,.22)}
+#jdw-play .tmenu.tm-bouge .gm-cadre:has(.tm-carte),#jdw-play .tmenu .tm-bouge .gm-cadre:has(.tm-carte){animation:none}
+@media (max-aspect-ratio:1/1){#jdw-play .tmenu .tm-scene .gm-cadre:has(.tm-carte){top:22%;bottom:36%}}
+#jdw-play .tm-cartoon > .tm-icos{position:absolute;right:max(10px,env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);display:grid;gap:18px;z-index:2}
+@media (max-width:600px){#jdw-play .tm-cartoon > .tm-icos .tm-ico{width:48px;height:48px;font-size:20px}#jdw-play .tm-cartoon > .tm-icos .tm-ico small{display:none}}
+#jdw-play .tmenu .tm-scene .gm-cadre .gm-vif.gm-cv.tm-carte{width:var(--cw)!important;height:var(--ch)!important;max-width:none!important;max-height:none!important}

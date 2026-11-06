@@ -575,8 +575,10 @@ const MENU = { passe: '' };
 function menuZones() { const debout = matchMedia('(max-aspect-ratio:1/1)').matches; return debout ? { orientation: 'debout', logo: [0, 22], heros: [22, 66], boutons: [66, 100] } : { orientation: 'large', logo: [0, 28], heros: [28, 70], boutons: [70, 100] }; }
 const menuAvoir = g => !!g && g.menu !== false && (g.menu === true || MENU_BORNE.has(g.id) || (navigator.webdriver && Array.isArray(window.JDW_MENU_ESSAI) && window.JDW_MENU_ESSAI.includes(g.id))) && !PAD_DOM.has(g.id) && !g.external && g.id !== 'pegase';   // jeux de l'Atelier : menu: true (leur équipe retire d'abord leur écran titre : jamais deux menus)
 function menuPrecharger(g) { try { for (const f of [g.menuImage, g.menuImagePortrait, g.logo]) if (f && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp|svg)$/i.test(String(f))) { const i = new Image(); i.src = ROOT + (ATL_NES.has(g.id) ? 'assets/jeux/' + g.id + '/' : 'assets/') + f; } } catch (e) {} }
+const APERCU_A_TITRE = new Set(['bolides', 'kombat', 'tirsaubut', 'toupies']);   // 2.0.146 : leur aperçu porte déjà leur titre (relevé sur la planche des 13 duels)
+const DUEL_SANS_MENU = new Set(['briques']);   // 2.0.146 : d'après la planche des 13 duels, aperçu presque vide → pas d'écran-titre tant que l'équipe Jeux n'a pas mis logo + menuImage (CONTRACT)
 function menuDuel(d, lancer, enLigne) {
-  if (!d || d.menu === false) { lancer(); return; }
+  if (!d || d.menu === false || (DUEL_SANS_MENU.has(d.id) && d.menu !== true)) { lancer(); return; }
   $('jdw-lib').hidden = true; $('jdw-play').hidden = false; $('jdw-play').style.setProperty('--acc', d.accent || COLORS.amber); $('jdw-gtitle').textContent = d.title || '';
   for (const id of ['jdw-howto-b', 'jdw-sm-howto']) { const x = $(id); if (x) x.hidden = true; }
   menuMontrer(d, { lancer, duo: true, enLigne: !!enLigne });
@@ -631,7 +633,7 @@ function menuMontrer(g, o) {
   const logo = el('div', 'tm-logo');
   const lu = g.logo && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|webp|svg)$/i.test(String(g.logo)) ? ROOT + (ATL_NES.has(g.id) ? 'assets/jeux/' + g.id + '/' : 'assets/') + g.logo : '';
   if (lu) { const i = el('img'); i.alt = titre; i.src = lu; i.onerror = () => { i.remove(); logo.appendChild(el('h2', 'tm-titre', titre)); }; logo.appendChild(i); }
-  else if (!(g.imageATitre === true || (navigator.webdriver && Array.isArray(window.JDW_IMAGE_A_TITRE) && window.JDW_IMAGE_A_TITRE.includes(g.id)))) logo.appendChild(el('h2', 'tm-titre', titre));   // 2.0.142 : jamais sans titre (sauf logo, ou image qui le porte : imageATitre: true)
+  else if (!(g.imageATitre === true || (APERCU_A_TITRE.has(g.id) && g.titreTexte !== true && !g.menuImage) || (navigator.webdriver && Array.isArray(window.JDW_IMAGE_A_TITRE) && window.JDW_IMAGE_A_TITRE.includes(g.id)))) logo.appendChild(el('h2', 'tm-titre', titre));   // 2.0.142 : jamais sans titre (sauf logo, ou image qui le porte : imageATitre: true)
   haut.appendChild(logo);
   sonJeuActiver(g.id); musicBaseLevel(0.8); MUS.override = false; setMusic(menuMusique(g));   // la musique de MENU, au volume de ce jeu
   let boutique = 0;
@@ -649,7 +651,7 @@ function menuMontrer(g, o) {
     } else if (!quoi) {
       L.appendChild(it(o.enLigne ? '▶ DÉFIER UN COPAIN' : '▶ JOUER', jouer, 'tm-go' + (o.enLigne ? ' tm-long' : '')));
       for (const x of M.querySelectorAll(':scope > .tm-icos')) x.remove();
-      const ico = style === 'cartoon' ? el('div', 'tm-icos') : null; if (ico) (atlPetit() ? bas : M).appendChild(ico);   // PC / couché : sur le côté de l'écran ; téléphone droit : sous les boutons
+      const ico = style === 'cartoon' ? el('div', 'tm-icos') : null; if (ico) M.appendChild(ico);   // PC / couché : sur le côté de l'écran ; téléphone droit : sous les boutons
       const petit = (txt, nom, fn) => { if (!ico) { L.appendChild(it(txt, fn)); return; } const b = it(txt.split(' ')[0], fn, 'tm-ico'); b.setAttribute('aria-label', nom); b.title = nom; b.appendChild(el('small', '', nom)); ico.appendChild(b); };
       if (howtoOf(g, !!o.duo)) L.appendChild(it('❓ COMMANDES', () => howtoShow(g, $('jdw-play'), { duo: !!o.duo, then: () => { const b = M.querySelector('.tm-it'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} } })));
       L.appendChild(it('🔊 SON', () => vue('son')));
@@ -728,9 +730,9 @@ function menuImage(g, M, scene) {
       const cs = getComputedStyle(cadre), aw = Math.max(40, cadre.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)), ah = Math.max(30, cadre.clientHeight);
       let cw = aw, ch = aw * 3 / 4; if (ch > ah) { ch = ah; cw = ah * 4 / 3; }
       if (ah > aw * 1.05) { cw = aw; ch = Math.min(ah, aw * 4 / 3); }   // portrait : à la largeur de l'écran, plus haute que large
-      if (M.classList.contains('tmenu')) { cw = aw; ch = ah; }   // 2.0.142 : l'écran-titre, l'aperçu est dessiné à la taille de l'écran
+      if (M.classList.contains('tmenu')) { cw = Math.min(aw * .9, 720); ch = cw * 3 / 4; if (ch > ah * .92) { ch = ah * .92; cw = ch * 4 / 3; } c.classList.add('tm-carte'); }   // 2.0.146 (chef) : carte nette, jamais étirée
       const d = Math.min(2, devicePixelRatio || 1), w = Math.max(1, Math.round(cw * d)), h = Math.max(1, Math.round(ch * d));
-      if (c.width !== w || c.height !== h) { c.width = w; c.height = h; c.style.width = Math.round(cw) + 'px'; c.style.height = Math.round(ch) + 'px'; }
+      if (c.width !== w || c.height !== h) { c.width = w; c.height = h; c.style.width = Math.round(cw) + 'px'; c.style.height = Math.round(ch) + 'px'; c.style.setProperty('--cw', Math.round(cw) + 'px'); c.style.setProperty('--ch', Math.round(ch) + 'px'); }
       const k = w + 'x' + h; if (k === taille && n > 3) { requestAnimationFrame(tic); return; } taille = k;
       try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, w, h); ctx.save(); ctx.scale(d, d); g.preview(ctx, w / d, h / d, menuImageT(g)); ctx.restore(); } catch (e) { ctx.restore && ctx.restore(); }
       if (!(n++ % 8)) try { fx.drawImage(c, 0, 0, 64, 48); } catch (e) {}
