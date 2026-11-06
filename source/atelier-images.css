@@ -299,7 +299,6 @@
 .crea.nuit.nv .crea-ciel::after{content:"";position:absolute;right:9%;top:7%;width:86px;height:86px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#fffdf2,#f3e7c4 62%,#e2d2a6);box-shadow:0 0 40px 14px rgba(255,244,200,.28),0 0 140px 50px rgba(160,140,255,.22);z-index:2}
 .crea.nuit.nv .crea-ciel::before{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(2px 2px at 21% 27%,#fff 60%,transparent),radial-gradient(1.5px 1.5px at 11% 54%,#fff 60%,transparent),radial-gradient(3px 3px at 14% 25%,#fff 60%,transparent),radial-gradient(3px 3px at 9% 60%,#fff 60%,transparent),radial-gradient(3px 3px at 29% 4%,#fff 60%,transparent),radial-gradient(1.5px 1.5px at 57% 28%,#fff 60%,transparent),radial-gradient(1.5px 1.5px at 32% 7%,#fff 60%,transparent),radial-gradient(3px 3px at 56% 5%,#fff 60%,transparent),radial-gradient(3px 3px at 17% 16%,#fff 60%,transparent),radial-gradient(3px 3px at 9% 38%,#fff 60%,transparent),radial-gradient(3px 3px at 52% 5%,#fff 60%,transparent),radial-gradient(2px 2px at 7% 37%,#fff 60%,transparent),radial-gradient(2px 2px at 39% 28%,#fff 60%,transparent),radial-gradient(2px 2px at 71% 9%,#fff 60%,transparent),radial-gradient(3px 3px at 41% 37%,#fff 60%,transparent),radial-gradient(2px 2px at 15% 39%,#fff 60%,transparent),radial-gradient(3px 3px at 83% 14%,#fff 60%,transparent),radial-gradient(2px 2px at 14% 37%,#fff 60%,transparent),radial-gradient(1.5px 1.5px at 74% 5%,#fff 60%,transparent),radial-gradient(3px 3px at 28% 33%,#fff 60%,transparent),radial-gradient(3px 3px at 56% 51%,#fff 60%,transparent),radial-gradient(2px 2px at 61% 39%,#fff 60%,transparent),radial-gradient(2.5px 2.5px at 48% 21%,#fff 60%,transparent),radial-gradient(2px 2px at 25% 46%,#fff 60%,transparent),radial-gradient(2px 2px at 12% 38%,#fff 60%,transparent),radial-gradient(2px 2px at 69% 33%,#fff 60%,transparent),radial-gradient(2px 2px at 95% 30%,#fff 60%,transparent),radial-gradient(2px 2px at 79% 6%,#fff 60%,transparent);opacity:.9}
 .crea.nuit:not(.nv)::before{box-shadow:inset 0 0 0 9999px rgba(10,6,34,.42),inset 0 0 160px rgba(0,0,0,.5)}
-.crea.nuit .crea-arbre{background:rgba(255,255,255,.93)}
 .crea.nuit.nv .crea-ciel{z-index:0}
 @media (max-width:699px){.crea.nuit.nv .crea-ciel::after{width:54px;height:54px;right:6%;top:2%}}
 /* ===== MONTAGE D'UN JEU dans le nouveau design (le chef, 6 nov. nuit ; frontière avec l'Interface : atlAvantV1 = ici, atlJouable = son espace).
@@ -411,3 +410,86 @@
 #jdw-atelier.crea-nuit .crea-mtet{color:#d6cbef}
 #jdw-atelier.crea-nuit .crea-mtet.der{color:#e2d6ff}
 #jdw-atelier.crea-mt.crea-img .atl-comp > .atl-row2 > .atl-cost{display:none!important}
+/* un projet qui se charge (jeu jouable, projet d'un joueur) : le ciel seul, jamais l'ancien écran de l'Interface (l'admin, 6 nov. soir) */
+#jdw-atelier.crea-charge{background:linear-gradient(180deg,#fde9f6 0%,#f6ecff 55%,#efe4ff 100%)}
+#jdw-atelier.crea-charge.crea-nuit{background:linear-gradient(180deg,#0e1033 0%,#241a52 55%,#3b2466 100%)}
+#jdw-atelier.crea-charge > :not(.crea-mtciel){visibility:hidden!important}
+#jdw-atelier.crea-charge .crea-mtciel{display:block;position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+#jdw-atelier.crea-charge::after{content:"";position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;border:5px solid #e4d7ff;border-top-color:#6a3fc2;animation:creaTourne .8s linear infinite;z-index:2}
+@keyframes creaTourne{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){#jdw-atelier.crea-charge::after{animation-duration:2.4s}}
+/* ===== MONDE SOMBRE : les FENÊTRES aussi (l'admin, 6 nov. soir) — feuille, arbre, bulles, barre d'écriture, en-tête en violet nuit,
+   textes clairs (contraste ≥ 4,5:1) ; le monde clair ne change pas ===== */
+.crea.nuit{--cv:#efe6ff;--cdoux:#c3b6e2;--clav:#1a1440;color:#efe6ff}
+.crea.nuit .crea-carte,.crea.nuit .crea-nv{background:rgba(31,24,70,.97);box-shadow:0 12px 34px rgba(0,0,0,.4)}
+.crea.nuit .crea-arbre{background:rgba(31,24,70,.97)}
+.crea.nuit .crea-nvh,.crea.nuit .crea-pkt{background:#231b52;border-bottom-color:#3a2f73}
+.crea.nuit .crea-nvh h1{color:#f4edff}
+.crea.nuit .crea-nvh .sous,.crea.nuit .crea-pied{color:#c3b6e2}
+.crea.nuit .crea-fil2,.crea.nuit .crea-nv .crea-fil2{background:#1a1440}
+.crea.nuit .crea-b{background:#2e2566;color:#f2ecff;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.crea.nuit .crea-b.moi{background:linear-gradient(#7c4fe0,#6a3fc2);color:#fff}
+.crea.nuit .crea-saisie{background:#231b52;border-top-color:#3a2f73}
+.crea.nuit .crea-champ{background:#150f36;border-color:#9b85e0}
+.crea.nuit .crea-champ textarea{color:#f2ecff}
+.crea.nuit .crea-champ textarea::placeholder{color:#a99cc9}
+.crea.nuit .crea-imgb{background:#2e2566}
+.crea.nuit .crea-nd{color:#f2ecff}
+.crea.nuit .crea-nd:hover{background:#2e2566}
+.crea.nuit .crea-nd.ouvert,.crea.nuit .crea-nd.on{background:#342a70}
+.crea.nuit .crea-nouveau:not(.on){color:#e9dcff;border-color:#6f5cc0}
+.crea.nuit .crea-tarb2{border-top-color:#3a2f73}
+.crea.nuit .crea-proj .nm .bulle{background:#3a2a1c;color:#ffcf9e}
+.crea.nuit .crea-proj .nm .bulle.b-pnew,.crea.nuit .crea-proj .nm .bulle.b-pre{background:#173a2a;color:#9de8bf}
+.crea.nuit .crea-proj .nm .bulle.b-pch,.crea.nuit .crea-proj .nm .bulle.b-pq{background:#46182a;color:#ffb3c6}
+.crea.nuit .crea-proj .nm .bulle.b-pdc{background:#2e2a40;color:#cdc5df}
+.crea.nuit .crea-proj .nm .bulle.b-pprepa{background:#30265f;color:#d6c6ff}
+.crea.nuit .crea-nd .ic.jaq .pastille{border-color:#1f1846}
+.crea.nuit .crea-puce{background:#2e2566;border-color:#5a4aa8;color:#efe6ff}
+.crea.nuit .crea-tag{background:#173a2a;color:#9de8bf}
+.crea.nuit .crea-tag.cours{background:#30265f;color:#d6c6ff}
+.crea.nuit .crea-tag.non{background:#3a2a1c;color:#ffcf9e}
+.crea.nuit .crea-bt.blanc{background:#2e2566;color:#efe6ff;border-color:#5a4aa8;box-shadow:0 3px 0 #120d2b}
+.crea.nuit .crea-bt.blanc .crea-prix{background:#3d3280;color:#e2d6ff}
+.crea.nuit .crea-offre{background:#231b52;border-color:#4a3c94}
+.crea.nuit .crea-offre .haut{background:linear-gradient(120deg,#4a2e5c,#3d2a6e 60%,#26346a)}
+.crea.nuit .crea-ot,.crea.nuit .crea-vign,.crea.nuit .crea-gimg,.crea.nuit .crea-mcarte,.crea.nuit .crea-sty,.crea.nuit .crea-seg,.crea.nuit .crea-type{background:#2a215c;border-color:#4a3c94;color:#efe6ff}
+.crea.nuit .crea-seg button.on{background:#4a3c94;color:#fff}
+.crea.nuit .crea-flot .bb{background:#2e2566;color:#f2ecff}
+/* le montage d'un jeu (chat de l'Interface habillé) */
+#jdw-atelier.crea-mt.crea-nuit .atl-main > .atl-chat:not(.atl-disc){background:#1f1846;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+#jdw-atelier.crea-mt.crea-nuit .atl-log,#jdw-atelier.crea-mt.crea-nuit.ecrire .atl-intro{background:#1a1440}
+#jdw-atelier.crea-mt.crea-nuit .crea-mth{background:#231b52;border-bottom-color:#3a2f73}
+#jdw-atelier.crea-mt.crea-nuit .crea-mth h1{color:#f4edff}
+#jdw-atelier.crea-mt.crea-nuit .crea-mth .sous,#jdw-atelier.crea-mt.crea-nuit .atl-inote,#jdw-atelier.crea-mt.crea-nuit .atl-cost{color:#c3b6e2}
+#jdw-atelier.crea-mt.crea-nuit .atl-ibub > div,#jdw-atelier.crea-mt.crea-nuit .atl-chat .atl-a .atl-b{background:#2e2566;color:#f2ecff}
+#jdw-atelier.crea-mt.crea-nuit .atl-ibq,#jdw-atelier.crea-mt.crea-nuit .atl-is{color:#f2ecff}
+#jdw-atelier.crea-mt.crea-nuit .atl-chat .atl-a .atl-b::before{border-top-color:#2e2566;border-right-color:#2e2566}
+#jdw-atelier.crea-mt.crea-nuit .atl-chat .atl-p .atl-b{background:#1f5a3a;color:#eafff0}
+#jdw-atelier.crea-mt.crea-nuit .atl-chat .atl-p .atl-b::before{border-top-color:#1f5a3a;border-left-color:#1f5a3a}
+#jdw-atelier.crea-mt.crea-nuit .atl-chat .atl-t,#jdw-atelier.crea-mt.crea-nuit .atl-chat .atl-t.dans{color:#b9acd8}
+#jdw-atelier.crea-mt.crea-nuit .atl-comp{background:#231b52;border-top-color:#3a2f73}
+#jdw-atelier.crea-mt.crea-nuit .atl-in{background:#150f36;color:#f2ecff;border-color:#9b85e0}
+#jdw-atelier.crea-mt.crea-nuit .atl-in::placeholder{color:#a99cc9}
+#jdw-atelier.crea-mt.crea-nuit .atl-imgb{background:#2e2566}
+#jdw-atelier.crea-mt.crea-nuit .atl-banner{background:#3a2f12;border-bottom-color:#6b5520;color:#ffe3a3}
+#jdw-atelier.crea-mt.crea-nuit .atl-choix{background:linear-gradient(180deg,#3a2f12,#231b52);border-color:#8a6b22;color:#f2ecff}
+#jdw-atelier.crea-mt.crea-nuit .atl-choix .atl-cq{color:#ffe3a3}
+#jdw-atelier.crea-mt.crea-nuit .atl-lock{background:#2a215c;color:#d6cbef}
+#jdw-atelier.crea-mt.crea-nuit .atl-chat .atl-travb{background:#2a215c;color:#d6cbef}
+#jdw-atelier.crea-mt.crea-nuit .atl-chat .atl-travb b,#jdw-atelier.crea-mt.crea-nuit .atl-chat .atl-travb .atl-travt{color:#d6cbef}
+#jdw-atelier.crea-mt.crea-nuit > .atl-bar .btn-ghost,#jdw-atelier.crea-mt.crea-nuit > .atl-bar .atl-abob{background:#251c52;color:#efe6ff;border-color:#3a2f73}
+.crea.cadre.nuit .crea-arbre{background:rgba(31,24,70,.97)}
+/* contraste ≥ 4,5:1 (banc, 6 nov. soir) : pastilles rouges plus profondes, gris des petites lignes plus foncés en clair, plus clairs en sombre */
+.crea-nd .ic.jaq .pastille{background:#d41f47}
+#jdw-atelier.crea-mt .atl-pastn{background:#c81e45;color:#fff}
+#jdw-atelier.crea-mt .atl-comp > .atl-row2 > .atl-cost,#jdw-atelier.crea-mt.ecrire .atl-inote{color:#6b6280}
+#jdw-atelier.crea-mt.crea-nuit .atl-comp > .atl-row2 > .atl-cost,#jdw-atelier.crea-mt.crea-nuit.ecrire .atl-inote{color:#c9bde6}
+/* contraste ≥ 4,5:1 : étiquettes « gratuit » / « bientôt » et compteur du bouton flottant (clair et sombre) */
+.crea-prix.gratuit{color:#17703f}
+.crea-prix.bientot{color:#5f5874}
+.crea-flot .pk i{background:#d41f47;color:#fff}
+.crea.nuit .crea-prix{background:#30265f;color:#d6c6ff}
+.crea.nuit .crea-prix.gratuit{background:#173a2a;color:#9de8bf}
+.crea.nuit .crea-prix.bientot{background:#2e2a40;color:#cdc5df}
+.crea.nuit .crea-pkrep{background:#2e2566;color:#efe6ff;border-color:#4a3c94}
