@@ -5923,3 +5923,11 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-escrea{min-height:44px;text-transform:none;font:800 14px var(--body);color:#5b3fc0;border-color:#cdbfe8;background:#fff}
 #jdw-crea-band{position:fixed;z-index:2147482000;top:calc(env(safe-area-inset-top,0px) + 60px);left:50%;transform:translateX(-50%);padding:4px 12px;border-radius:999px;background:rgba(91,63,192,.92);color:#fff;font:800 12.5px var(--body);pointer-events:none;white-space:nowrap}
 .recline.recrea{color:#e8dcff!important;font-weight:800}
+/* 2.1.4 (l'admin : « l'image ne va pas tout en bas ») : l'espace DÉFILE en lui-même (overflow auto) ; un calque ::before positionné dedans
+   défilait avec le contenu et s'arrêtait après une hauteur d'écran. Le fond est maintenant celui de l'élément : il reste en place et couvre
+   toujours tout l'écran, quelle que soit la longueur de la page. Sur PC, l'image un peu plus vive (avant : filtre sur le calque) = l'image
+   posée sur elle-même en soft-light, calculée une fois, sans filtre ni animation ; au téléphone, l'image telle quelle. */
+.atl-wiz.atl-espace::before{background:none!important;filter:none!important}
+.atl-wiz.atl-espace{background:radial-gradient(130% 100% at 50% 40%,rgba(22,12,44,0) 52%,rgba(22,12,44,.32)),var(--esp-fond,linear-gradient(135deg,#ffd6ee,#d9ccff)) center/cover no-repeat!important}
+@media (max-width:900px){.atl-wiz.atl-espace{background-position:center,center top!important}}
+@media (pointer:fine) and (min-width:901px){.atl-wiz.atl-espace{background:radial-gradient(130% 100% at 50% 40%,rgba(22,12,44,0) 52%,rgba(22,12,44,.32)),var(--esp-fond,linear-gradient(135deg,#ffd6ee,#d9ccff)) center/cover no-repeat,var(--esp-fond,linear-gradient(135deg,#ffd6ee,#d9ccff)) center/cover no-repeat!important;background-blend-mode:normal,soft-light,normal}}

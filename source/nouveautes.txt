@@ -8,6 +8,7 @@
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
 [borne] ## 🧪 Le mode créateur (borne 2.1.6)
 [borne] 🧪 Dans « Mon jeu », le bouton « Jouer en mode créateur » lance ton jeu pour le tester : ton jeu peut t’y donner des vies illimitées ou le choix du niveau, et rien n’est enregistré (ni score, ni record, ni progression).
+[borne] 🖼️ L’image de fond de l’espace de ton jeu couvre maintenant toute la page, même tout en bas des pages longues.
 [borne] ## 🎮 Crée avec {g} à la manette (borne 2.1.5)
 [borne] 🎮 À la manette, tu peux maintenant atteindre aussi ton compteur de crédits en haut de « Crée avec {g} ».
 [borne] ## ☁️ Crée avec {g} : ton jeu sous les nuages (borne 2.1.4)
