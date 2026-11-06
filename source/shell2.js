@@ -18445,8 +18445,8 @@ function atlTuileVivante(c, g) {
   let last = 0;
   const step = ts => {
     if (!c.isConnected) return; requestAnimationFrame(step);
-    if (ts - last < (PREV_TEL ? 66 : 32) || (c._vu && (ts - prevDefile < 180 || document.querySelector('.atl-revele') || Date.now() - (ATL.reveleFin || 0) < 700)) || !c.offsetParent) return;   // 2.0.160 : 15 i/s au téléphone, en pause pendant le défilement et le moment de la V1
-    { const r = c.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return; } last = ts;
+    if (ts - last < (PREV_TEL ? 66 : 32)) return; last = ts; /* 2.0.174 : offsetParent, rectangle et querySelector APRÈS le rythme ; jaquette cachée = 1 regard / 0,6 s (l'Interface : ~150 recalculs de style / s) */ if (c._vu && (ts - prevDefile < 180 || document.querySelector('.atl-revele') || Date.now() - (ATL.reveleFin || 0) < 700)) return; if (!c.offsetParent) { last = ts + 600; return; }   // 2.0.160 : 15 i/s au téléphone, en pause pendant le défilement et le moment de la V1
+    { const r = c.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) { last = ts + 300; return; } }
     const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight; if (!w || !h) return;
     if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
     const x = c.getContext('2d'); x.save(); x.setTransform(dpr, 0, 0, dpr, 0, 0);
