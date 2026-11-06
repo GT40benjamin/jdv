@@ -1171,6 +1171,7 @@ void main(){
 .pp-tuto p{margin:0 0 10px;font:600 12.5px/1.3 var(--pp-b);color:#9fb3c0}
 .pp-msg{position:absolute;inset:0;display:grid;place-items:center;padding:24px 64px;text-align:center;background:radial-gradient(120% 80% at 50% 40%,#13243a 0%,#070b14 62%,#05070d 100%)}
 .pp-msg div{max-width:300px;display:grid;gap:10px;justify-items:center;padding:22px 20px 20px;border-radius:18px;background:rgba(17,29,39,.94);border:1px solid rgba(94,240,255,.28);box-shadow:0 12px 40px rgba(0,0,0,.55),0 0 24px rgba(79,140,255,.18)}
+.pp-glmsg{pointer-events:auto;z-index:20}.pp-glbtn{margin-top:6px;padding:12px 22px;border:0;border-radius:999px;background:linear-gradient(#5ef0ff,#3a8ad2);color:#06121c;font:800 16px var(--pp-b);cursor:pointer;box-shadow:0 0 0 3px rgba(255,211,77,.9)}
 .pp-msg i{font-style:normal;font-size:42px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
 .pp-msg b{font:400 21px/1.1 var(--pp-d);color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.5)}
 .pp-msg span{font:600 14px/1.4 var(--pp-b);color:#cfe0ea}
@@ -1216,7 +1217,7 @@ void main(){
     box.style.setProperty('--pp-d', FD); box.style.setProperty('--pp-b', FB);
     if (FLIP) box.style.transform = 'rotate(180deg)';   // la bibliothèque tourne l'écran de l'invité : on le remet droit (chacun voit SA vue)
     const st = document.createElement('style'); st.textContent = CSS;
-    const cv = STILL && STILL.canvas ? STILL.canvas : document.createElement('canvas');   // (vignette) le contexte déjà prêt
+    let cv = STILL && STILL.canvas ? STILL.canvas : document.createElement('canvas');   // let : glNeuf() la remplace pour relancer la 3D   // (vignette) le contexte déjà prêt
     const ov = document.createElement('canvas'); ov.style.pointerEvents = 'none';
     const vig = document.createElement('div'); vig.className = 'pp-vig';
     const flash = document.createElement('div'); flash.className = 'pp-flash';
@@ -1229,9 +1230,11 @@ void main(){
     let gl = null, isGL2 = false;
     const glOpt = { antialias: true, alpha: false, depth: true, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: false, powerPreference: STILL ? 'default' : 'high-performance' };
     try { gl = cv.getContext('webgl2', glOpt); isGL2 = !!gl; if (!gl) gl = cv.getContext('webgl', glOpt) || cv.getContext('experimental-webgl', glOpt); } catch (e) { gl = null; }
-    let glOk = !!gl, contextLost = false;
-    on(cv, 'webglcontextlost', (e) => { e.preventDefault(); contextLost = true; });
-    on(cv, 'webglcontextrestored', () => { contextLost = false; try { buildScene(); } catch (e) { glOk = false; } });
+    let glOk = !!gl, contextLost = false, glWhy = '', GLM = null;
+    const glPerte = (e) => { e.preventDefault(); contextLost = true; };
+    const glRetour = () => { contextLost = false; try { buildScene(); } catch (e) { glOk = false; } };
+    on(cv, 'webglcontextlost', glPerte);
+    on(cv, 'webglcontextrestored', glRetour);
     const R = { progs: {}, tex: {}, mesh: {}, enabled: new Set(), prog: null, view: m4(), proj: m4(), vp: m4(), cam: [0, 1, 3], camR: [1, 0, 0], camU: [0, 1, 0], camF: [0, 0, -1], fov: 1, asp: 1, w: 1, h: 1, dpr: 1 };
     const LIGHTS_P = new Float32Array([-0.9, 2.5, 1.25, 0.9, 2.5, 1.25, -0.9, 2.5, -1.25, 0.9, 2.5, -1.25, 0, 0.95, 4.6, 0, 0.95, -4.6]);
     const LIGHTS_C = new Float32Array(18);
@@ -2520,6 +2523,7 @@ void main(){
       if (k === 'ArrowLeft' || k === 'q' || k === 'a') KEYS.l = down;
       if (k === 'ArrowRight' || k === 'd') KEYS.r = down;
       if (!down || e.repeat) return;
+      if (GLM && (k === 'Enter' || k === ' ')) { e.preventDefault(); GLM.go(); return; }   // borne 2.1.7 : le bouton du message de 3D
       if (tuto && tuto.block && (k === ' ' || k === 'Enter')) { tutoClose(); e.preventDefault(); return; }
       const tg = e.target;
       if (tg && tg !== document.body && tg !== document.documentElement && (!root.contains(tg) || /^(BUTTON|A|SELECT|SUMMARY)$/.test(tg.tagName))) return;
@@ -2550,6 +2554,7 @@ void main(){
       if (!PADX) return;
       const pa = PADX.pressed('a', ME), py = PADX.pressed('y', ME), px = PADX.pressed('x', ME), pb = PADX.pressed('b', ME);
       const g = PADX.get(ME);
+      if (GLM && pa) { GLM.go(); return; }   // borne 2.1.7 : A = le bouton du message de 3D
       if (tuto && tuto.block && !!padOn() !== !!tuto.pad) { try { tuto.card.remove(); } catch (e) { /* rien */ } tutoShow(); }   // manette prise (ou posée) pendant le mode d'emploi
       if (!g.on) return;
       if (pa || py || px || pb || Math.hypot(g.rx, g.ry) > 0.5 || Math.hypot(g.lx, g.ly) > 0.5) PADF.used = true;
@@ -2591,7 +2596,12 @@ void main(){
     function onNet(m) {
       if (destroyed || !m || typeof m !== 'object') return;
       if (m.k === 'rdy') { G.readyOpp = true; return; }
-      if (m.k === 'nogl') { G.oppNoGl = true; prompt(PL[OPP].name + ' ne peut pas jouer', 'Son appareil n\'affiche pas la 3D\u00a0: touche ⏸ puis Quitter le duel.', true); return; }
+      if (m.k === 'nogl') { G.oppNoGl = true; const nm = PL[OPP].name;   // borne 2.1.7 : plus jamais « son appareil n'affiche pas la 3D » à tort
+        if (m.why === 'bloque') prompt(nm + ' doit recharger sa page', 'Son navigateur a bloqué la 3D après un souci\u00a0: dès qu\'il recharge, la partie peut commencer.', true);
+        else if (m.why === 'souci') prompt('La 3D de ' + nm + ' redémarre', 'Un petit souci de 3D de son côté\u00a0: elle se relance, patiente un instant.', true);
+        else prompt(nm + ' ne peut pas jouer', 'Sa 3D ne démarre pas\u00a0: touche ⏸ puis Quitter le duel.', true);
+        return; }
+      if (m.k === 'glok') { if (G.oppNoGl) { G.oppNoGl = false; prompt(''); } return; }
       if (m.k === 'go') { if (GUEST && !G.started) { if (tuto && tuto.block) tutoClose(); G.started = true; introThenStart(); } return; }
       if (m.k === 'p0' && GUEST) {
         if (tuto && tuto.block) tutoClose();
@@ -2768,6 +2778,45 @@ void main(){
       while (root.firstChild) root.removeChild(root.firstChild);
     }
 
+    // ------------------------------------------------------------- 3D qui ne démarre pas (borne 2.1.7, l'admin : « LOUIS ne peut pas jouer — son
+    // appareil n'affiche pas la 3D », faux) : son Chrome avait perdu un contexte WebGL dans un autre jeu, puis refusait toute nouvelle 3D jusqu'au
+    // rechargement de la page. On écrit la vraie erreur au journal (avec la carte graphique), on réessaie en WebGL1 si WebGL2 échoue, on relance une
+    // fois tout seul, et on ne dit « bloquée » que si AUCUN contexte ne s'ouvre nulle part (alors : recharger la page, la 3D de l'appareil marche)
+    function glGpu() { try { const x = gl && gl.getExtension('WEBGL_debug_renderer_info'); return x ? String(gl.getParameter(x.UNMASKED_RENDERER_WEBGL)) : '?'; } catch (e) { return '?'; } }
+    function glSonde() { let ok = false; try { const c = document.createElement('canvas'), g = c.getContext('webgl2') || c.getContext('webgl'); ok = !!g && !g.isContextLost(); try { const x = g && g.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); } catch (e) { /* rien */ } } catch (e) { ok = false; } return ok; }
+    function glJournal(m, d) { try { if (api.report) api.report('Ping-pong : ' + m, JSON.stringify(Object.assign({ gpu: glGpu(), gl: gl ? (isGL2 ? 2 : 1) : 0, perdu: !!(gl && gl.isContextLost && gl.isContextLost()), ecran: (innerWidth | 0) + 'x' + (innerHeight | 0) }, d || {}))); } catch (e) { /* rien */ } }
+    function glNeuf(type) {   // une toile neuve : un contexte WebGL ne change pas de version sur la même toile
+      try { cv.removeEventListener('webglcontextlost', glPerte); cv.removeEventListener('webglcontextrestored', glRetour); } catch (e) { /* rien */ }   // (testeur) sinon la perte de l'ANCIENNE toile, qui arrive après, met contextLost = true : image figée
+      try { const x = gl && gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); } catch (e) { /* rien */ }
+      const c = document.createElement('canvas'); c.className = cv.className; c.style.cssText = cv.style.cssText; cv.replaceWith(c); cv = c;
+      on(cv, 'webglcontextlost', glPerte); on(cv, 'webglcontextrestored', glRetour);
+      gl = null; isGL2 = false; contextLost = false;
+      try { if (type !== 'webgl') { gl = cv.getContext('webgl2', glOpt); isGL2 = !!gl; } if (!gl) gl = cv.getContext('webgl', glOpt) || cv.getContext('experimental-webgl', glOpt); } catch (e) { gl = null; }
+      try { resize(); } catch (e) { /* rien */ }
+    }
+    function glDemarrer() {   // true = scène prête ; sinon glWhy = 'bloque' (aucun contexte nulle part) ou 'souci'
+      if (gl) {
+        try { buildScene(); return true; } catch (e) { glJournal('la 3D n\'a pas démarré', { err: String((e && e.message) || e).slice(0, 300) }); }
+        if (isGL2) { glNeuf('webgl'); if (gl) { try { buildScene(); glJournal('3D relancée en WebGL1', {}); return true; } catch (e) { glJournal('WebGL1 aussi en échec', { err: String((e && e.message) || e).slice(0, 300) }); } } }
+      } else glJournal('contexte WebGL refusé', { sonde: glSonde() });
+      glWhy = (gl && !gl.isContextLost()) || glSonde() ? 'souci' : 'bloque'; return false;
+    }
+    function glMsg(titre, sous, lab, fn) {   // le message plein écran, avec son bouton (doigt, souris, Entrée, A de la manette)
+      const m = el('div', 'pp-msg pp-glmsg'), c = el('div'), b = el('button', 'pp-glbtn', lab); b.type = 'button';
+      c.append(el('i', null, '🏓'), el('b', null, titre)); if (sous) c.appendChild(el('span', null, sous)); c.appendChild(b);
+      b.addEventListener('click', (e) => { e.stopPropagation(); fn(); }); m.appendChild(c); hud.appendChild(m);
+      GLM = { el: m, go: fn }; return m;
+    }
+    function glEchec(fin) {
+      const enlever = () => { if (GLM) { try { GLM.el.remove(); } catch (e) { /* rien */ } GLM = null; } };
+      if (ONLINE) { const tell = () => { if (destroyed || glOk) return; send({ k: 'nogl', why: glWhy }); after(2, tell); }; tell(); }
+      const tente = () => { if (destroyed) return true; glNeuf(); glOk = glDemarrer(); if (!glOk) return false; enlever(); if (ONLINE) send({ k: 'glok' }); fin(); return true; };
+      const montrer = () => { enlever(); if (glWhy === 'bloque') glMsg('La 3D est bloquée par le navigateur', 'Après un souci de carte graphique, le navigateur refuse la 3D jusqu’au rechargement de la page. Ton appareil sait l’afficher.', '🔄 Recharger la page', () => location.reload());
+        else glMsg('Oups, la 3D a eu un souci : on relance', '', '🔄 Relancer', () => { if (!tente()) montrer(); }); };
+      glMsg('Un instant, la 3D se prépare…', '', '🔄 Relancer', () => { if (!tente()) montrer(); });
+      setTimeout(() => { if (destroyed || glOk) return; if (!tente()) montrer(); }, 1500);   // une relance toute seule
+    }
+
     // ------------------------------------------------------------- image fixe (vignette) : la salle et la table, sans balle ni raquettes
     if (STILL) {
       resize();
@@ -2783,8 +2832,7 @@ void main(){
     let ro = null;
     if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => resize()); ro.observe(root); } else on(window, 'resize', resize);
     resize();
-    if (glOk) { try { buildScene(); } catch (e) { glOk = false; } }
-    if (!glOk) showMsg('Pas de 3D sur cet appareil', 'Le ping-pong a besoin de WebGL\u00a0: essaie un autre navigateur ou un autre appareil. Touche ⏸ puis Quitter le duel.');
+    glOk = glDemarrer();   // borne 2.1.7 : la vraie erreur au journal, WebGL1 si WebGL2 échoue (le message vient de glEchec)
     on(box, 'pointerdown', onDown); on(box, 'pointermove', onMove); on(box, 'pointerup', onUp); on(box, 'pointercancel', onUp); on(box, 'lostpointercapture', onUp);
     on(box, 'contextmenu', (e) => e.preventDefault());
     on(window, 'keydown', onKey); on(window, 'keyup', onKey);
@@ -2794,9 +2842,8 @@ void main(){
     if (ONLINE) { try { NETAPI.onMessage(onNet); } catch (e) { /* rien */ } netLag(); }
     PADS_SCALE[OPP] = 1.5; PADS_SCALE[ME] = 1.0;
     for (const p of [0, 1]) { const P = PADS[p]; padReady(P, p); P.x = P.tx; P.y = P.ty; P.z = P.tz; }
-    if (!glOk) {
-      if (ONLINE) { const tell = () => { if (destroyed) return; send({ k: 'nogl' }); after(2, tell); }; tell(); }
-    } else if (!TUTO_SEEN) tutoShow(); else { G.readyMe = true; startT = 0; if (ONLINE) send({ k: 'rdy' }); }
+    const glPret = () => { if (!TUTO_SEEN) tutoShow(); else { G.readyMe = true; startT = 0; if (ONLINE) send({ k: 'rdy' }); } };
+    if (glOk) glPret(); else glEchec(glPret);
     if (GUEST) {
       // l'invité redit qu'il est prêt tant que l'hôte n'a pas lancé la partie (messages perdus au montage)
       const again = () => { if (destroyed || G.started) return; if (G.readyMe) send({ k: 'rdy' }); after(1, again); };

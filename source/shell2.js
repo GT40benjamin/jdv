@@ -30,7 +30,7 @@ const TILE_NEWS = {
   mouches: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
   rouleaux: { kind: 'maj', at: '2026-11-06 05:22' },   // nouvel écran-titre (image de menu, logo, musique de menu)
   carreaux: { kind: 'maj', at: '2026-11-06 05:34' },   // plus de titre en double (écran-titre de la borne)
-  pingpong: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
+  pingpong: { kind: 'maj', at: '2026-11-06 23:04' },   // la 3D repart toute seule (relance WebGL)
   'coop-boum': { kind: 'new', at: '2026-10-15 06:00' },   // mode Coop : Boum 2 contre 2 (1.14)
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
