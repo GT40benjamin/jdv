@@ -15564,7 +15564,9 @@ function jdwBack() {
     if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else if (id !== 'jdw-welcome') closeSheet(id); else return true; return true; }
   }
   if (ATL && ATL.open && atlFenOuverte()) { atlFenFermer(); return true; }   // 2.0.63 : une fenêtre de l'Atelier d'abord
-  if (ATL && ATL.open) { if (ATL.rec) atlMicStop(); else if (ATL.letter) atlLetterClose(); else atlClose(); return true; }   // l'Atelier des jeux (sa lettre d'abord)
+  if (ATL && ATL.open) { if (ATL.rec) atlMicStop(); else if (ATL.letter) atlLetterClose();
+    else if (ATL.cur && ATL.root && ATL.root.querySelector('.atl-wiz.atl-espace:not([hidden])') && ATL.tab && ATL.tab !== 'jeu') atlProjTab('jeu');   // 2.1.3 (Études) : retour système dans l'espace = d'abord « Mon jeu »…
+    else if (ATL.cur || ATL.nouveau) atlListe(); else atlClose(); return true; }   // …puis la liste « Crée avec … » (comme ←), jamais tout l'Atelier d'un coup   // l'Atelier des jeux (sa lettre d'abord)
   if (!$('jdw-play').hidden) { quitAsk(); return true; }   // partie en cours (coop comprise) : pause + « Quitter la partie ? » ; sinon direct
   if (PAGE !== 'pegase' && MODE !== 'classique' && !$('jdw-lib').hidden) { setMode('classique', true); return true; }   // les autres modes sont des pages : retour à la page normale
   return false;
