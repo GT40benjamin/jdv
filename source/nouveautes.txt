@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🔁 Des packs à racheter dans les boutiques (borne 2.0.147)
+[borne] 🔁 Dans la boutique d’un jeu, certains articles sont des packs (par exemple 5 boules) : tu peux les racheter quand tu veux, et la boutique te dit combien il t’en reste, sur tous tes appareils.
 [borne] ## ⚔️ Les duels ont leur écran-titre (borne 2.0.146)
 [borne] ⚔️ Chaque duel s’ouvre sur son écran-titre : ▶ JOUER à deux sur le même écran, ou ▶ DÉFIER UN COPAIN en ligne, avec Commandes et Son.
 [borne] ## 🛍️ La boutique depuis le menu, au clavier aussi (borne 2.0.145)

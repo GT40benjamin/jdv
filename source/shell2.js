@@ -10893,11 +10893,17 @@ function boutiqueApi(g, seq) {
   const ok = () => !!current && current.seq === seq && ONLINE && !netOff() && !isGuest() && !!profile.name;
   let cache = null;
   const lire = async () => { if (!ok()) return null; try { cache = await rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true }); } catch (e) { cache = null; } return cache; };
-  const art = a => ({ cle: a.cle, nom: a.nom, image: a.image ? atlIaUrl(a.image) || null : null, prix: a.prix | 0, euros: (+a.euros_cents || 0) / 100, possede: !!a.possede, mien: !!a.mien, conso: !!a.conso, nb: a.nb != null ? a.nb | 0 : (a.possede ? 1 : 0) });   // 2.0.147 (SQL v150) : conso = se rachète, nb = achats
+  const art = a => ({ cle: a.cle, nom: a.nom, image: a.image ? atlIaUrl(a.image) || null : null, prix: a.prix | 0, euros: (+a.euros_cents || 0) / 100, possede: !!a.possede, mien: !!a.mien, conso: !!a.conso, nb: a.nb != null ? a.nb | 0 : (a.possede ? 1 : 0), quantite: Math.max(1, a.quantite | 0), stock: a.stock != null ? a.stock | 0 : (a.possede ? 1 : 0) });   // v151 : quantite = taille du pack, stock = unités qui restent   // 2.0.147 (SQL v150) : conso = se rachète, nb = achats
   return {
     info: () => ({ on: ok() }),
     async liste() { const r = await lire(); return r && Array.isArray(r.articles) ? r.articles.map(art) : []; },
     async possede(cle) { const r = cache || await lire(); return !!(r && Array.isArray(r.articles) && r.articles.some(a => a.cle === cle && a.possede)); },
+    async stock(cle) { const r = await lire(), a = r && Array.isArray(r.articles) ? r.articles.find(x => x.cle === cle) : null; return a ? (a.stock != null ? a.stock | 0 : (a.possede ? 1 : 0)) : 0; },   // v151 : unités qui restent
+    async consommer(cle, n) {   // v151 : le jeu UTILISE n unités (1 par défaut) ; { ok, stock } — ok faux s'il n'y en a pas assez ou hors ligne (rien n'est retiré)
+      if (!ok()) return { ok: false, stock: 0, hors: true };
+      try { const x = await rpc('at_boutique_consommer', { p_name: profile.name, p_jeu: g.id, p_cle: String(cle || ''), p_n: Math.max(1, (n | 0) || 1) }, { quiet: true }); const a = cache && Array.isArray(cache.articles) ? cache.articles.find(q => q.cle === cle) : null; if (a && x) a.stock = x.stock | 0; return { ok: !!(x && x.ok), stock: x ? x.stock | 0 : 0 }; }
+      catch (e) { return { ok: false, stock: 0, erreur: String((e && e.message) || '').slice(0, 60) }; }
+    },
     async nombre(cle) { const r = await lire(), a = r && Array.isArray(r.articles) ? r.articles.find(x => x.cle === cle) : null; return a ? (a.nb != null ? a.nb | 0 : (a.possede ? 1 : 0)) : 0; },   // 2.0.147 : combien de fois acheté (consommables)
     async acheter(cle) {
       if (!ok()) { toastCheer(isGuest() ? 'Crée ton compte pour la boutique 🛍️' : 'Connecte-toi pour la boutique 🛍️', null, true); return false; }
@@ -10906,6 +10912,7 @@ function boutiqueApi(g, seq) {
     }
   };
 }
+try { if (navigator.webdriver) window.JDW_ESSAI_BOUT = () => current ? boutiqueApi(current.game, current.seq) : null; } catch (e) {}   // v151 : bancs seulement (navigateur piloté)
 function boutiqueConfirmer(g, a, r, o) {
   return new Promise(fin => {
     const old = document.getElementById('jdw-boutmod'); if (old && old._fermer) old._fermer();
@@ -10917,7 +10924,9 @@ function boutiqueConfirmer(g, a, r, o) {
     C.append(el('h2', '', '🛍️ Acheter « ' + a.nom + ' » ?'));
     if (a.image && atlIaUrl(a.image)) { const im = el('img', 'bout-img'); im.alt = a.nom; im.src = atlIaUrl(a.image); C.appendChild(im); }
     const pr = el('p', 'bout-prix'); pr.append(el('b', '', (a.prix | 0).toLocaleString('fr-FR') + ' 💎'), ' (≈ ' + eur + ')' + (solde != null ? ' · tu as ' + solde.toLocaleString('fr-FR') + ' crédits' : '')); C.appendChild(pr);
-    C.appendChild(el('p', 'liv-sub', 'Dans « ' + (atlTitre(g) || g.title || g.id) + ' ». ' + (a.conso ? 'Tu peux en racheter quand tu veux' + ((a.nb | 0) ? ' (déjà acheté ' + (a.nb | 0) + ' fois)' : '') + ', et tout revient au créateur du jeu.' : 'C’est à toi pour toujours, et tout revient au créateur du jeu.')));
+    const subTxt = () => 'Dans « ' + (atlTitre(g) || g.title || g.id) + ' ». ' + (a.conso ? ((a.quantite | 0) > 1 ? 'Un pack de ' + (a.quantite | 0) + '. ' : '') + 'Tu peux en racheter quand tu veux' + (a.stock != null && (a.nb | 0) ? ' (il t’en reste ' + (a.stock | 0) + ')' : (a.nb | 0) ? ' (déjà acheté ' + (a.nb | 0) + ' fois)' : '') + ', et tout revient au créateur du jeu.' : 'C’est à toi pour toujours, et tout revient au créateur du jeu.');
+    const sub = el('p', 'liv-sub', subTxt()); C.appendChild(sub);
+    if (a.conso) (async () => { try { const r2 = await rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true }), b2 = r2 && Array.isArray(r2.articles) ? r2.articles.find(x => x.id === a.id) : null; if (b2 && M.isConnected) { a.nb = b2.nb; a.stock = b2.stock; sub.textContent = subTxt(); } } catch (e) {} })();   // v151 : le stock a pu bouger sur un autre appareil
     const msg = el('p', 'liv-msg', ''); C.appendChild(msg);
     const bt = el('div', 'liv-btns'), no = el('button', 'btn btn-ghost', 'Non'), go = el('button', 'btn btn-play', 'Oui, acheter · ' + (a.prix | 0) + ' 💎'); no.type = go.type = 'button'; bt.append(no, go); C.appendChild(bt);
     const sig = el('button', 'bout-sig', '⚑ Signaler cet élément'); sig.type = 'button'; C.appendChild(sig);
@@ -10932,7 +10941,7 @@ function boutiqueConfirmer(g, a, r, o) {
       try {
         const x = await rpc('at_boutique_acheter', { p_name: profile.name, p_article: a.id }, { quiet: true });
         if (x && Number.isFinite(+x.solde)) try { atlSolde(+x.solde); } catch (e) {}
-        a.possede = true; if (x && x.nb != null) a.nb = x.nb | 0; else a.nb = (a.nb | 0) + 1; res = true; msg.textContent = a.conso ? '✅ C’est ajouté !' : '✅ C’est à toi !'; setTimeout(fermer, 900);
+        a.possede = true; if (x && x.nb != null) a.nb = x.nb | 0; else a.nb = (a.nb | 0) + 1; if (x && x.stock != null) a.stock = x.stock | 0; res = true; msg.textContent = a.conso ? '✅ C’est ajouté !' : '✅ C’est à toi !'; setTimeout(fermer, 900);
       } catch (e) {
         go.disabled = false; const m = String((e && e.message) || '');
         msg.textContent = /credits insuffisants/.test(m) ? 'Il te manque des crédits.' : /plafond/.test(m) ? 'Tu as atteint ta limite de ' + (r.plafond_mois | 0) + ' crédits ce mois-ci dans les boutiques.' : /propre jeu/.test(m) ? 'C’est ton jeu : tu as déjà tout !' : /pas en vente/.test(m) ? 'Cet élément n’est plus en vente.' : 'Pas acheté : vérifie le réseau et réessaie.';
@@ -10977,7 +10986,7 @@ async function boutiqueOuvrir() {
     const eu = a.possede && !a.conso, b = el('button', 'bout-va' + (eu ? ' eu' : '') + (boutSpecial(a) ? ' sp' : '')); b.type = 'button';
     const u = a.image ? atlIaUrl(a.image) : '', im = el('div', 'bout-vai'); if (u) { const i = el('img'); i.alt = ''; i.loading = 'lazy'; i.src = u; im.appendChild(i); } else im.textContent = boutSpecial(a) ? '⭐' : '🎁';
     b.append(im, el('b', 'bout-vam', a.nom), el('span', 'bout-vap', eu ? '✓ Acheté' : a.mien ? 'Ton jeu' : (a.prix | 0).toLocaleString('fr-FR') + ' 💎'));
-    if (a.conso) b.appendChild(el('small', 'bout-vnb', (a.nb | 0) ? '🔁 Déjà acheté ' + (a.nb | 0) + ' fois' : '🔁 Se rachète'));   // 2.0.147 : consommable
+    if (a.conso) b.appendChild(el('small', 'bout-vnb', ((a.quantite | 0) > 1 ? 'Pack de ' + (a.quantite | 0) + ' · ' : '') + (a.stock != null && (a.nb | 0) ? '🔁 Il t’en reste ' + (a.stock | 0) : (a.nb | 0) ? '🔁 Déjà acheté ' + (a.nb | 0) + ' fois' : '🔁 Se rachète')));   // 2.0.147 : consommable
     b.disabled = !!(eu || a.mien);
     b.addEventListener('click', async () => { const ok = await boutiqueConfirmer(g, a, r, { vitrine: true }); if (ok) { rendre(r); const c = atlCred(); if (c) sol.textContent = 'Tu as ' + Math.max(0, c.solde | 0).toLocaleString('fr-FR') + ' 💎'; } setTimeout(() => { try { const f = V.querySelector('.bout-va:not([disabled])') || ferme; f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40); });
     return b;

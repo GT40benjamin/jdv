@@ -394,7 +394,10 @@ pour construire sa boutique : `boutique_offerte(p_fiche)` (rôle service, une se
 se RACHÈTE autant de fois qu'on veut (un pack de 5 objets, des vies…) ; chaque achat débite le joueur et crédite le créateur. `liste()` donne
 aussi `conso` (vrai / faux) et `nb` (combien de fois CE joueur l'a acheté, remboursements exclus) ; `await api.boutique.nombre(cle)` → ce
 nombre (0 si jamais acheté) ; `acheter(cle)` d'un consommable rouvre toujours la confirmation. Le JEU compte lui-même ce qu'il a déjà
-utilisé (dans sa partie gardée, `api.save`) : disponible = nombre(cle) × taille du pack − déjà utilisé. Un article normal reste à vie (`deja`).
+utilisé… ou, depuis la SQL v151 (mieux), laisse le SERVEUR compter : `at_boutique_poser(…, p_conso => true, p_quantite => 5)` = un pack de 5 ;
+chaque achat ajoute 5 unités ; `liste()` donne `quantite` (taille du pack) et `stock` (unités qui restent) ; `await api.boutique.stock(cle)` ;
+`await api.boutique.consommer(cle, n = 1)` → `{ ok, stock }` (ok faux = pas assez, ou hors ligne / invité : rien n'est retiré ; le jeu
+n'utilise l'objet que si ok). Le stock suit le joueur sur tous ses appareils. Un article normal reste à vie (`deja`) ; `consommer` le refuse.
 
 ## Ajout 26 : un jeu de l'Atelier se livre SANS publier la borne (borne 2.0.133, demande de l'admin du 5 nov. 2026)
 La borne ne garde plus de liste des jeux nés à l'Atelier : elle apprend leur id par le SERVEUR (at_fiches.jeu, renvoyé par at_lire,
