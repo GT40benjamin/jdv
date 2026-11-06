@@ -5635,3 +5635,8 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-revele{background:none!important;overflow:hidden;contain:strict}
 .atl-revfond{position:absolute;inset:0;background:linear-gradient(180deg,#fde9f6,#efe4ff)}
 .atl-revn{position:absolute;display:block;height:auto;max-width:none;pointer-events:none;user-select:none}
+/* 2.0.161 (chef) : aucun texte de l'espace du jeu sous 13 px ; feuille de route 15 px (14 au téléphone), interligne 1,5, intitulés en gras 15 px */
+.atl-espace .atl-esnum small,.atl-espace .atl-esleg,.atl-espace .atl-esbchip,.atl-espace .atl-dabt{font-size:13px}
+.atl-espace .atl-pane[data-k="elements"] .atl-plc small,.atl-espace .atl-pane[data-k="elements"] .atl-enc small{font-size:13px}
+.atl-espace .atl-esroute dt{font:900 15px var(--body)}.atl-espace .atl-esroute dd{font:600 15px/1.5 var(--body)}
+@media (max-width:760px){.atl-espace .atl-esroute dd{font-size:14px}.atl-espace .atl-pane[data-k="elements"] .atl-plc small{font-size:13px}}
