@@ -157,6 +157,7 @@
 .crea-anneau{width:46px;height:46px;border-radius:50%;border:5px solid rgba(255,255,255,.3);border-top-color:#fff;animation:creaTourne .9s linear infinite;margin:0 auto}
 @keyframes creaTourne{to{transform:rotate(360deg)}}
 .crea-dem{display:flex;gap:9px;align-items:center}
+.crea-champ textarea::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* l'exemple ne passe jamais à la ligne (testeurs, 6 nov.) */
 .crea-dem .crea-champ{border-color:#d9cdea;border-radius:15px}
 .crea-colo{grid-row:1/3;grid-column:2;display:flex;flex-direction:column;gap:var(--cg)}
 .crea-boite{padding:13px}

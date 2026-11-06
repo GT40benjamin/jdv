@@ -415,7 +415,7 @@
     } else Cd.appendChild(img(act.path));
     S.appendChild(Cd);
     // « Dis ce que tu veux changer »
-    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 400; ta.placeholder = etroit() ? '✨ Dis ce que tu veux changer…' : '✨ Dis ce que tu veux changer… « ajoute des lucioles au-dessus de l’eau »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
+    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 400; ta.placeholder = etroit() ? '✨ Que veux-tu changer ?' : '✨ Dis ce que tu veux changer… « ajoute des lucioles au-dessus de l’eau »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
     ta.value = AIM.brouillon || ''; ta.addEventListener('input', () => { AIM.brouillon = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) { toast('Le micro ne marche pas ici : écris au clavier'); } }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
