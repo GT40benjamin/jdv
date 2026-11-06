@@ -1421,7 +1421,7 @@ function mount(root, api) {
     const r = root.getBoundingClientRect();
     W = Math.max(1, r.width); H = Math.max(1, r.height); dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    portrait = H > W * 1.1; U = portrait ? Math.min(W / 470, H / 880) : Math.max(H < 520 ? 0.8 : 0.72, Math.min(W / 1280, H / 720));   // téléphone couché : pas de texte de moins de 9 px
+    portrait = H > W * 1.1; U = portrait ? Math.max(1, Math.min(W / 390, H / 800)) :   /* V17 : au téléphone debout, jamais de texte sous 13 px (le chef) */ Math.max(H < 520 ? 0.8 : 0.72, Math.min(W / 1280, H / 720));   // téléphone couché : pas de texte de moins de 9 px
     Z0 = portrait ? Math.min(W / 500, H / 900) : Math.min(W, H) / (H < 520 ? 600 : 760); Z = Z0 * zf;
   }
   const ro = new ResizeObserver(resize); ro.observe(root); resize();
@@ -1504,6 +1504,17 @@ function mount(root, api) {
       const idx = JSON.parse(new TextDecoder().decode(b.subarray(8, 8 + n))), base = 8 + n;
       for (const [nom, o, l] of idx) { if (dead) return; try { SONS[nom] = await S.decode(b.slice(base + o, base + o + l).buffer); } catch (e) { /* un son illisible : muet */ } }
     } catch (e) { /* pas de son : le jeu marche quand même */ }
+    try {   // V17 : un cri par type d'Astrofaune (ElevenLabs, tour/cris_v17.js)
+      const b = await lirePaquet(ROOT() + 'assets/jeux/lune/v17/cris.bin'); if (!b) return;
+      const n = b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24), idx = JSON.parse(new TextDecoder().decode(b.subarray(8, 8 + n))), base = 8 + n;
+      for (const [nom, o, l] of idx) { if (dead) return; try { SONS[nom] = await S.decode(b.slice(base + o, base + o + l).buffer); } catch (e) { /* rien */ } }
+    } catch (e) { /* rien */ }
+  }
+  // V17 : le cri d'une Astrofaune : le son de son type, plus aigu pour un bébé, plus grave pour un grand stade, et un peu différent pour chaque famille
+  function criDe(esp, vol, x, y) {
+    const a = AF[esp]; if (!a || !SONS['cri_' + a.t[0]]) { son(ESPECES[esp] && ESPECES[esp].gros ? 'rugit' : 'cri', vol, x, y); return; }
+    const h = MONDE.hash(a.fam || esp, 31) % 1000 / 1000, rate = [1.22, 1.0, 0.8][a.st || 0] * (0.92 + h * 0.16);
+    son('cri_' + a.t[0], (vol == null ? 1 : vol) * 0.9, x, y, rate);
   }
   // un bruitage ; (x, y) donné : plus faible avec la distance à l'explorateur ; rate : hauteur variée pour ne pas lasser
   function son(nom, vol, x, y, rate) {
@@ -1555,9 +1566,8 @@ function mount(root, api) {
   function direVite(s, d) { if (msgs.length) msgs[0].d = Math.min(msgs[0].d, msgs[0].t + 0.3); msgs.splice(msgs.length ? 1 : 0, 0, { s, t: 0, d: d || 3 }); }
   function dire(s, d) { if (msgs.length && msgs[msgs.length - 1].s === s) return; msgs.push({ s, t: 0, d: d || 3 }); if (msgs.length > 6) msgs.splice(1, 1); }
   function robotDit(s, d, fini, une) {
-    if (typeof sansRobot === 'function' && sansRobot()) s = '📻 Professeur : ' + s.replace(/^(Bip[ !,.]*)+(bip[ !,.]*)*/i, '').replace(/^\s+/, '');
-    else if (SAVE.crashV17 && !/^bip/i.test(s)) s = 'Bip ! ' + s;   // V17 : le robot choisi parle en robot
     if (une) { SAVE.astuces = SAVE.astuces || []; if (SAVE.astuces.includes(une)) return; SAVE.astuces.push(une); }
+    if (penseeV17()) { penser(s, fini); return; }   // V17 : plus de communication après le crash : c'est l'explorateur qui se parle
     bulle = { s, t: 0, d: d || 3.2, fini };
   }
 
@@ -1571,12 +1581,13 @@ function mount(root, api) {
     e.preventDefault(); auDoigt = e.pointerType === 'touch';
     const p = toLocal(e);
     if (paused) { hitBtn(p, e); return; }
+    if ((state === 'jeu' || state === 'cine') && penseeOuverte() && !(pauseBtn && e.target === pauseBtn)) { fermerPensee(); return; }   // V17 : clic / toucher = la suite
     if (state === 'transi' && passerSaut()) return;   // V15 : toucher l'écran passe le saut   // V15 : le menu pause a ses boutons (Reprendre, Recommencer)
     if (state === 'station' && zoneListe && p.x >= zoneListe.x && p.x <= zoneListe.x + zoneListe.w && p.y >= zoneListe.y && p.y <= zoneListe.y + zoneListe.h) { pendListe = { p, id: e.pointerId, d0: defil, glisse: false }; return; }
     if (hitBtn(p, e)) return;
     if (state === 'carte') { carteDown(p); return; }
     if (toucheBase(p, e.button === 2)) return;
-    if (state === 'jeu' && e.pointerType === 'mouse' && !construire && !sacOuvert && !echange && !transfert && !etabliOuvert) { tirer(camX + (p.x - W / 2) / Z, camY + (p.y - H / 2) / Z); return; }
+    if (state === 'jeu' && e.pointerType === 'mouse' && !construire && !sacOuvert && !echange && !transfert && !etabliOuvert) { if (clicFilon(p)) return; tirer(camX + (p.x - W / 2) / Z, camY + (p.y - H / 2) / Z); return; }
     if (state === 'espace') { if (e.pointerType === 'mouse' && !EVA) { tirerEspace(camX + (p.x - W / 2) / ZS(), camY + (p.y - H / 2) / ZS()); return; } if (!joy.on) { joy.on = true; joy.id = e.pointerId; joy.x0 = p.x; joy.y0 = p.y; joy.x = p.x; joy.y = p.y; } return; }
     if (state === 'creation') { drag = { x: p.x, th: creaTh, id: e.pointerId }; return; }
     if (state === 'arene') { if (!joy.on && p.x < W * 0.6) { joy.on = true; joy.id = e.pointerId; joy.x0 = p.x; joy.y0 = p.y; joy.x = p.x; joy.y = p.y; } return; }
@@ -1600,6 +1611,7 @@ function mount(root, api) {
   function onUp(e) { if (pendListe && e.pointerId === pendListe.id) { const q = pendListe; pendListe = null; if (!q.glisse) hitBtn(q.p, e); } if (e.pointerId === btnId) { btnTenu = false; btnId = -1; } if (state === 'carte' && carte) carteUp(toLocal(e)); if (drag && e.pointerId === drag.id) drag = null; if (joy.on && e.pointerId === joy.id) { joy.on = false; joy.id = -1; } }
   function onKey(e) {
     const k = e.key; keys[k.toLowerCase()] = true; auDoigt = false;
+    if ((state === 'jeu' || state === 'cine') && !paused && penseeOuverte() && [' ', 'Enter', 'e', 'E'].includes(k)) { keys[k.toLowerCase()] = false; fermerPensee(); e.preventDefault(); return; }   // V17 : la pensée attend qu'on la ferme
     if (k === 'p' || k === 'P') { if (['jeu', 'espace', 'combat', 'arene'].includes(state)) setPaused(!paused); return; }
     if (paused) { if (k === 'Escape' && razUI) razUI = null; else if (!razUI && (k === 'Enter' || k === ' ' || k === 'Escape')) setPaused(false); return; }
     if (state === 'combat' && CB) { e.preventDefault(); if (k === ' ' && CB.qte && !CB.qte.res) appuiQte(); else if (k === 'Enter' && CB.phase === 'fin') quitterCombat(); else if (/^[1-9]$/.test(k)) { const L = menuCombat(), b = L[+k - 1]; if (b && !b.off) b.f(); } else if (k === 'Escape' && CB.menu && CB.menu !== 'racine') CB.menu = 'racine'; return; }
@@ -1635,12 +1647,14 @@ function mount(root, api) {
   pauseBtn.addEventListener('pointerdown', onPauseBtn);
 
   function entree() {   // direction voulue (−1..1) et course
+    if (penseeOuverte() && state === 'jeu') return { x: 0, y: 0, run: false };   // V17 : il parle, il ne marche pas
     let x = 0, y = 0, run = false;
     if (keys.arrowleft || keys.q || keys.a) x -= 1; if (keys.arrowright || keys.d) x += 1;
     if (keys.arrowup || keys.z || keys.w) y -= 1; if (keys.arrowdown || keys.s) y += 1;
     if (x || y) { const m = Math.hypot(x, y); x /= m; y /= m; run = !!keys.shift; }
     if (joy.on) { const R = 62 * U; let dx = joy.x - joy.x0, dy = joy.y - joy.y0; const m = Math.hypot(dx, dy); if (m > R) { joy.x0 = joy.x - dx / m * R; joy.y0 = joy.y - dy / m * R; dx = joy.x - joy.x0; dy = joy.y - joy.y0; } const mm = Math.min(1, m / R); if (mm > 0.12) { x = dx / (m || 1) * mm; y = dy / (m || 1) * mm; run = mm > 0.92; } }
     if (pad) { try { const g = pad.get(0); if (g && g.on) { const m = Math.hypot(g.lx, g.ly); if (m > 0.15) { x = g.lx; y = g.ly; run = m > 0.95 || (g.held && g.held.rt) || g.rt > 0.5; } const h = g.held || {}; if (h.left) x = -1; if (h.right) x = 1; if (h.up) y = -1; if (h.down) y = 1; } if (construire) { /* V17 : en construction, A / X / B vont à Construire (poser, retirer, terminer) */ } else { if (pad.pressed && pad.pressed('a')) sautDemande = true; if (pad.pressed && pad.pressed('x')) actionDemande = true; if (state === 'jeu' && pad.pressed && pad.pressed('b')) { const c = cibleAuto(); if (c) tirer(c.x, c.y - ESPECES[c.esp].taille * 0.4); else tirer(J.x + Math.sin(J.th) * 300, J.y - 62 * KP + Math.cos(J.th) * 300); } if (state === 'jeu' && pad.pressed && pad.pressed('y')) rouler(); } } catch (e) { /* rien */ } }
+    if (x || y) autoMine = null; else if (autoMine && state === 'jeu') { const v = versAutoMine(1 / 60); if (v) { x = v.x; y = v.y; } }   // V17 : il va seul au rocher cliqué
     return { x, y, run };
   }
 
@@ -1819,6 +1833,7 @@ function mount(root, api) {
       ctx.restore();
     }
     drawJourNuit(t);   // V17 : le soir, l'aube, les yeux des chasseurs dans la nuit
+    drawPensee(t);
     lueursEtPoussieres(t, lueurs, wx0, wy0, wx1, wy1);
     meteo(t);
     for (const f of apres) f(); apres = [];
@@ -1924,7 +1939,7 @@ function mount(root, api) {
     if (liveOn && AUTRES.size) { ctx.save(); ctx.strokeStyle = 'rgba(122,255,208,0.75)'; ctx.lineWidth = 3 * Z; ctx.beginPath(); ctx.ellipse(x, y, 30 * Z, 9 * Z, 0, 0, TAU); ctx.stroke(); ctx.restore(); }
     if (COMBAT.invuln > 0 && COMBAT.roule <= 0 && Math.floor(t * 20) % 2) ctx.globalAlpha = 0.55;
     if (COMBAT.roule > 0) { const a = (1 - COMBAT.roule / 0.38) * TAU * Math.sign(COMBAT.rdx || 1); ctx.save(); ctx.translate(x, y - 34 * k); ctx.rotate(a); ctx.translate(-x, -(y - 34 * k)); EXPL_PANTIN.draw(ctx, x, y, k, look, { th: J.th, mode: 'accroupi', t }); ctx.restore(); }
-    else EXPL_PANTIN.draw(ctx, x, y, k, look, { th: J.th, mode: J.tirPose > 0 ? 'mine' : J.mode, phase: J.phase, t, z: J.z / KP, foulee: J.fou, sansCasque: sousUnToit(), outil: outilDessin() });
+    else EXPL_PANTIN.draw(ctx, x, y, k, look, { th: J.th, mode: penseeOuverte() ? 'construit' : J.tirPose > 0 ? 'mine' : J.mode, phase: J.phase, t, z: J.z / KP, foulee: J.fou, sansCasque: sousUnToit(), outil: penseeOuverte() ? null : outilDessin() });
     ctx.globalAlpha = 1;
   }
   function etourdi(x, y, t) { for (let i = 0; i < 3; i++) { const a = t * 4 + i * TAU / 3; ctx.fillStyle = '#ffe36a'; ctx.font = (16 * U) + 'px system-ui'; ctx.textAlign = 'center'; ctx.fillText('★', x + Math.cos(a) * 26 * Z, y + Math.sin(a) * 8 * Z); } }
@@ -1938,7 +1953,7 @@ function mount(root, api) {
     if (absent && state === 'cine') { const ci = imageCompagnon(); if (ci) { const hh = 70 * Z, ww = ci.width * hh / ci.height; ctx.save(); ctx.translate(x, y); ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 0, ww * 0.4, 7 * Z, 0, 0, TAU); ctx.fill(); ctx.drawImage(ci, -ww / 2, -hh + Math.sin(t * 6) * 2 * Z, ww, hh); ctx.restore(); } }
     if (!absent) ctx.fillStyle = 'rgba(0,0,0,0.22)'; if (!absent) { ctx.beginPath(); ctx.ellipse(x, y, 26 * Z, 7 * Z, 0, 0, TAU); ctx.fill(); }
     if (im && !absent) { const w = im.width * h / im.height, f = Math.sin(t * 3) * 2 * Z; ctx.save(); ctx.translate(x, y); if (robot.dir < 0) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, -h + f, w, h); ctx.restore(); }
-    if (bulle && bulle.t < bulle.d) { const cote = J && robot.x < J.x ? -1 : 1; const b = bulle; const haut = Math.min(y - h, J ? sy(J.y) - 116 * KP * Z : y - h) - 10 * Z; apres.push(() => bulleTexte(b.s, x + cote * (portrait ? 40 : 120) * U, haut, Math.min(1, b.t * 6, (b.d - b.t) * 3), x)); }
+    if (bulle && !bulle.pensee && bulle.t < bulle.d) { const cote = J && robot.x < J.x ? -1 : 1; const b = bulle; const haut = Math.min(y - h, J ? sy(J.y) - 116 * KP * Z : y - h) - 10 * Z; apres.push(() => bulleTexte(b.s, x + cote * (portrait ? 40 : 120) * U, haut, Math.min(1, b.t * 6, (b.d - b.t) * 3), x)); }
   }
   function bulleTexte(s, x, y, a, px) {
     ctx.save(); ctx.globalAlpha = a; ctx.font = '600 ' + Math.round(15 * U) + 'px ' + FB;
@@ -1964,7 +1979,7 @@ function mount(root, api) {
   // et ne se chevauchent pas ; l'étiquette d'un objet hors de l'écran n'est pas dessinée (les flèches guident déjà)
   let bandRect = null, etiqF = -1, etiqL = [], frameN = 0, flechesR = [], flechesP = [];   // flèches : celles de l'image d'avant (la bulle les évite)
   function zonesHud() {
-    const Z0 = [{ x0: W - 160 * U - 70, y0: 0, x1: W, y1: 122 * U + 46 + 52 * U }, { x0: 0, y0: 0, x1: 190 * U, y1: 190 * U + (J && J.endu < 0.99 ? 14 * U : 0) }];
+    const Z0 = [{ x0: W - 160 * U - 70, y0: 0, x1: W, y1: 122 * U + 46 + 3 * 52 * U }, { x0: 0, y0: 0, x1: 190 * U, y1: 190 * U + (J && J.endu < 0.99 ? 14 * U : 0) }];
     for (const r of flechesP) Z0.push(r);
     { const zc = zoneConstruire(); if (zc) Z0.push(zc); }
     if (bandRect) Z0.push({ x0: bandRect.x - 4, y0: bandRect.y - 4, x1: bandRect.x + bandRect.w + 4, y1: bandRect.y + bandRect.h + 4 });
@@ -1993,15 +2008,16 @@ function mount(root, api) {
   // ---------- le HUD de l'exploration ----------
   function drawHud(t) {
     tapBtns = []; flechesP = flechesR; flechesR = [];
+    if (penseeHud) { penseeHud(); penseeHud = null; }   // V17 : la pensée du héros, au-dessus de tout le monde
     // la planète
     ctx.save(); ctx.font = '700 ' + Math.round(15 * U) + 'px ' + FB; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
     const tx = PL.nom, sub = 'Planète ' + PL.type + ' · gravité ' + PL.grav.toFixed(2).replace('.', ',');
-    const w = Math.max(ctx.measureText(tx).width, ctx.measureText(sub).width * 0.86) + 26 * U;
-    ctx.fillStyle = 'rgba(10,14,30,0.62)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(10 * U, 10 * U, w, 46 * U, 12 * U) : ctx.rect(10 * U, 10 * U, w, 46 * U); ctx.fill();
+    const HJ = texteHeure(), w = Math.max(ctx.measureText(tx).width, ctx.measureText(sub).width * 0.86, ctx.measureText(HJ.s).width * 0.9) + 26 * U;   // V17 : l'heure dans le cadre de la planète
+    ctx.fillStyle = 'rgba(10,14,30,0.62)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(10 * U, 10 * U, w, 66 * U, 12 * U) : ctx.rect(10 * U, 10 * U, w, 66 * U); ctx.fill();
     ctx.fillStyle = '#ffe9a8'; ctx.fillText(tx, 22 * U, 25 * U);
-    ctx.font = '600 ' + Math.round(12.5 * U) + 'px ' + FB; ctx.fillStyle = '#bcd0ff'; ctx.fillText(sub, 22 * U, 43 * U);
-    // endurance (seulement quand elle baisse)
-    if (J.endu < 0.99) { const bw = 120 * U, bx = 10 * U, by = 64 * U; ctx.fillStyle = 'rgba(10,14,30,0.6)'; ctx.fillRect(bx, by, bw, 9 * U); ctx.fillStyle = J.endu > 0.25 ? '#7aff9a' : '#ff8a5a'; ctx.fillRect(bx + 2, by + 2, (bw - 4) * J.endu, 9 * U - 4); }
+    ctx.font = '600 ' + Math.round(13 * U) + 'px ' + FB; ctx.fillStyle = '#bcd0ff'; ctx.fillText(sub, 22 * U, 43 * U);
+    ctx.font = '700 ' + Math.round(13 * U) + 'px ' + FB; ctx.fillStyle = HJ.nuit ? '#d8c8ff' : '#ffe9a8'; ctx.fillText(HJ.s, 22 * U, 60 * U);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(22 * U, 70 * U, w - 34 * U, 2 * U); ctx.fillStyle = HJ.nuit ? '#c9a6ff' : '#ffd23a'; ctx.fillRect(22 * U, 70 * U, (w - 34 * U) * HJ.k, 2 * U);
     ctx.restore();
     // messages
     { // en haut, sauf s'il cacherait le héros ou un bâtiment : alors en bas, au-dessus du bouton d'action
@@ -2018,7 +2034,7 @@ function mount(root, api) {
       ctx.fillStyle = '#fff'; ctx.font = '700 ' + Math.round(14 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('SAUT', bx, by); ctx.restore();
       tapBtns.push({ x: bx - r, y: by - r, w: r * 2, h: r * 2, f: () => { sautDemande = true; } });
     }
-    drawFleches(t); flecheObjectif(t); flecheBase(t); hudPlus(t); hudReseau(t); hudBase(t); hudCombat(t); hudJour(t); hudOutils(t); boutonJournal(); boutonCosmo(); if (!construire) bandeauObjectif(t);
+    drawFleches(t); flecheObjectif(t); flecheBase(t); hudPlus(t); hudReseau(t); hudBase(t); hudCombat(t); hudJour(t); hudOutils(t); ongletsDroite(t); majCurseur(); majAutoMine(); if (!construire) bandeauObjectif(t);
     if (transfert) drawTransfert(t);   // V11 : le panneau sac ⇄ coffre / soute passe par-dessus tout le reste
     if (etabliOuvert) drawEtabli(t);
     drawSommeil(1 / 60); drawGrotteSeq(t);
@@ -2492,9 +2508,10 @@ function mount(root, api) {
   }
 
   // ---------------------------------------------------------------- les actions à pied : miner, ramasser, réparer, monter à bord
-  let mineCible = null, mineT = 0, actionBtn = null, aideT = 0;
+  let mineCible = null, mineT = 0, actionBtn = null, aideT = 0, sacFlash = 0, autoMine = null;   // V17 : sacFlash = le sac clignote ; autoMine = le filon cliqué (il y va et mine seul)
   function actionTenue() {
     if (keys.e || keys.f) return true;
+    if (autoMine && autoMine.arrive) return true;   // V17 : il mine seul le rocher cliqué
     if (pad) { try { const g = pad.get(0); if (g && g.on && g.held && g.held.x) return true; } catch (e) { /* rien */ } }
     return btnTenu;
   }
@@ -2533,16 +2550,17 @@ function mount(root, api) {
     for (const o of filonsAutour(J.x, J.y, 120)) { const d = Math.hypot(o.x - J.x, (o.y - J.y) * 1.4); if (d < 95 && d < bd) { bd = d; best = o; } }
     const dNav = NAV ? Math.hypot(NAV.x - J.x, (NAV.y - J.y) * 1.4) : 1e9;
     if (best && (!actionBtn || (bd < dNav - 5 && actionBtn.ico !== '📜' && !(actionBtn.d != null && actionBtn.d < bd * 1.4 + 10)))) {   // un filon collé à la navette se mine aussi
-      const peut = best.f.m.r <= RAR_LASER[X.amel.laser], multi = outilActif() === 'multi';   // V17 : on mine avec le multi-outil
+      const peut = best.f.m.r <= RAR_LASER[X.amel.laser], multi = outilActif() === 'multi', plein = nb(X.sac) >= CAP_SAC[X.amel.sac];   // V17 : on mine avec le multi-outil
       actionBtn = { txt: !multi ? 'Prends le multi-outil ' + (typeof padVu !== 'undefined' && padVu > 0 ? '(LB / RB)' : auDoigt ? '(touche sa case en bas)' : '(1 ou molette)') : peut ? 'Miner : ' + best.f.m.nom : 'Laser trop faible (' + MONDE.RARETE[best.f.m.r].nom + ')', ico: '⛏', tenir: true, off: !peut || !multi };
       if (!multi && actionTenue()) rappelOutil('multi');
-      if (peut && multi && actionTenue()) {
+      if (plein && peut && multi) { actionBtn = { txt: 'Sac plein : vide-le à l’épave ou jette des minerais', ico: '🎒', f: () => { sacOuvert = true; } }; if (actionTenue()) { sacFlash = 2.4; autoMine = null; } }   // V17 : jamais bloqué
+      if (peut && multi && !plein && actionTenue()) {
         mineCible = best.f; J.mode = 'mine'; J.th += angDiff(J.th, Math.atan2(best.x - J.x, best.y - J.y)) * Math.min(1, dt * 10); J.vx *= 0.5; J.vy *= 0.5;
         mineT += dt * VIT_LASER[X.amel.laser] / (1 + best.f.m.r * 0.6);
         if (Math.random() < dt * 30) parts.push({ x: best.x + (Math.random() - 0.5) * 30, y: best.y - 20 - Math.random() * 20, vx: (Math.random() - 0.5) * 120, vy: -80 - Math.random() * 60, t: 0, d: 0.5, c: best.f.m.c, r: 2 + Math.random() * 2, g: 1 });
         if (mineT >= 0.7) {
           mineT = 0;
-          if (nb(X.sac) >= CAP_SAC[X.amel.sac]) { if (!aideT || tG - aideT > 3) { aideT = tG; dire('🎒 Sac plein ! Va le vider dans la soute de la navette.'); } }
+          if (nb(X.sac) >= CAP_SAC[X.amel.sac]) { sacFlash = 2.4; autoMine = null; if (!aideT || tG - aideT > 3) { aideT = tG; dire('🎒 Sac plein ! Va le vider dans la soute de la navette.'); } }
           else { ajouter('sac', best.f.m.id, 1); evt('mine', best.f.m.id); best.f.qte--; son('mine', 0.6, best.x, best.y); texte('+1 ' + best.f.m.nom, best.f.m.c, best.x, best.y - 70); burst(best.x, best.y - 26, best.f.m.c, 8, 140, 70);
             if (best.f.qte <= 0) { (X.mines[PL.key] = X.mines[PL.key] || []).push(best.f.id); filonEpuise(best.f); if (X.mines[PL.key].length > 400) X.mines[PL.key].shift(); poussiere(best.x, best.y, 12); sauver(); } }
         }
@@ -2586,24 +2604,28 @@ function mount(root, api) {
     const X = E0();
     // astros et sac sous la carte de la planète
     ctx.save(); ctx.font = '800 ' + Math.round(15 * U) + 'px ' + FB; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-    const y = 64 * U + (J.endu < 0.99 ? 14 * U : 0), cap = CAP_SAC[X.amel.sac], n = nb(X.sac);
+    const y = 84 * U, cap = CAP_SAC[X.amel.sac], n = nb(X.sac); sacFlash = Math.max(0, sacFlash - 1 / 60); const fl = sacFlash > 0 && Math.floor(sacFlash * 6) % 2 === 0;
     const s1 = '🪙 ' + X.astros.toLocaleString('fr-FR'), s2 = '🎒 ' + n + ' / ' + cap;
     const w1 = ctx.measureText(s1).width + 20 * U, w2 = ctx.measureText(s2).width + 20 * U;
     ctx.fillStyle = 'rgba(10,14,30,0.62)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(10 * U, y, w1, 30 * U, 10 * U) : ctx.rect(10 * U, y, w1, 30 * U); ctx.fill();
     ctx.fillStyle = '#ffd23a'; ctx.fillText(s1, 20 * U, y + 15 * U);
-    ctx.fillStyle = n >= cap ? 'rgba(160,40,30,0.8)' : 'rgba(10,14,30,0.62)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(18 * U + w1, y, w2, 30 * U, 10 * U) : ctx.rect(18 * U + w1, y, w2, 30 * U); ctx.fill();
+    ctx.fillStyle = fl ? '#ff4a3a' : n >= cap ? 'rgba(160,40,30,0.8)' : 'rgba(10,14,30,0.62)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(18 * U + w1, y, w2, 30 * U, 10 * U) : ctx.rect(18 * U + w1, y, w2, 30 * U); ctx.fill();
+    if (fl) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5 * U; ctx.stroke(); }   // V17 : le sac plein clignote
     ctx.fillStyle = '#fff'; ctx.fillText(s2, 28 * U + w1, y + 15 * U);
     ctx.restore();
     tapBtns.push({ x: 18 * U + w1, y, w: w2, h: 30 * U, f: () => { sacOuvert = !sacOuvert; } });
     // le bouton d'action (doigt) ou l'aide (clavier / manette)
     if (actionBtn && !transfert) {
-      const bw = Math.min(W * (auDoigt ? 0.56 : 0.7), 300 * U), bh = 50 * U, bx = auDoigt ? (W - bw) / 2 - (portrait ? 30 * U : 0) : (W - bw) / 2, by = H - bh - (auDoigt ? 26 : 20) * U - hauteurOutils();
+      const bw = Math.min(W * (auDoigt ? (portrait ? 0.48 : 0.56) : 0.7), 300 * U), bh = 50 * U, bx = auDoigt ? (portrait ? Math.max(10 * U, (W - bw) / 2 - 70 * U) : (W - bw) / 2) : (W - bw) / 2, by = H - bh - (auDoigt ? 26 : 20) * U - hauteurOutils();
       ctx.save(); ctx.globalAlpha = actionBtn.off ? 0.6 : 1;
       const g = ctx.createLinearGradient(bx, by, bx, by + bh); g.addColorStop(0, actionBtn.off ? '#666a80' : '#7affd0'); g.addColorStop(1, actionBtn.off ? '#444858' : '#1fae8a');
       ctx.fillStyle = g; ctx.strokeStyle = '#eafff8'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, bh / 2) : ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
       ctx.fillStyle = actionBtn.off ? '#ffffff' : '#062a22'; ctx.font = '800 ' + Math.round(16 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const aide = actionBtn.off ? '' : auDoigt ? (actionBtn.tenir ? ' (garde le doigt)' : '') : (pad && pad.active && pad.active() ? ' (X)' : ' (E)');
-      ctx.fillText(actionBtn.ico + '  ' + actionBtn.txt + aide, bx + bw / 2, by + bh / 2 + 1);
+      { const s = actionBtn.ico + '  ' + actionBtn.txt + aide, mw = bw - 30 * U; let fz = 16;   // V17 : le texte tient TOUJOURS dans le bouton
+        while (fz > 13 && (ctx.font = '800 ' + Math.round(fz * U) + 'px ' + FB, ctx.measureText(s).width > mw)) fz -= 0.5;
+        if (ctx.measureText(s).width <= mw) ctx.fillText(s, bx + bw / 2, by + bh / 2 + 1);
+        else { ctx.font = '800 ' + Math.round(13 * U) + 'px ' + FB; const L = couper(s, mw).slice(0, 2); L.forEach((l, i) => ctx.fillText(l, bx + bw / 2, by + bh / 2 + (i - (L.length - 1) / 2) * 15 * U + 1)); } }
       if (mineCible) { ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillRect(bx + 20 * U, by + bh - 7 * U, (bw - 40 * U) * Math.min(1, mineT / 0.7), 4 * U); }
       ctx.restore();
       if (!actionBtn.tenir && !actionBtn.off) tapBtns.push({ x: bx, y: by, w: bw, h: bh, f: actionBtn.f });
@@ -2672,7 +2694,7 @@ function mount(root, api) {
     bouton(px + 18 * U, by, bw, 42 * U, 'Fermer', () => { transfert = null; }, false, '✕');
     if (transfert.sorte === 'soute') bouton(px + pw - 18 * U - bw, by, bw, 42 * U, 'Décoller', () => { const n = nb(E0().sac); transfert = null; if (n) dire('🎒 ' + n + ' objet' + (n > 1 ? 's restent' : ' reste') + ' dans ton sac, sur toi.', 3); decoller(); }, true, '🚀');
   }
-  function drawSac() {
+  function drawSacAncien() {   // (V17 : remplacé par drawSac de v17sac.js)
     const X = E0(), pw = Math.min(W - 30 * U, 520 * U), ph = Math.min(H - 120 * U, 420 * U), px = (W - pw) / 2, py = (H - ph) / 2;
     ctx.save(); ctx.fillStyle = 'rgba(5,8,20,0.55)'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = 'rgba(16,22,50,0.96)'; ctx.strokeStyle = 'rgba(160,190,255,0.6)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(px, py, pw, ph, 18 * U) : ctx.rect(px, py, pw, ph); ctx.fill(); ctx.stroke();
@@ -3383,7 +3405,7 @@ function mount(root, api) {
     ctx.fillStyle = 'rgba(10,14,30,0.62)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - w, y - 14 * U, w, 28 * U, 10 * U) : ctx.rect(x - w, y - 14 * U, w, 28 * U); ctx.fill();
     ctx.fillStyle = nb ? '#7affd0' : '#bcd0ff'; ctx.fillText(s, x - 10 * U, y + 1); ctx.restore();
     // bouton des émoticônes
-    const bx = 10 * U, by = state === 'espace' ? 100 * U : 102 * U + (J && J.endu < 0.99 ? 14 * U : 0);
+    const bx = 10 * U, by = state === 'espace' ? 100 * U : barresY() - 3 * U;
     bouton(bx, by, 48 * U, 40 * U, '', () => { emoOuvert = !emoOuvert; }, false, '😀');
     if (emoOuvert) EMOS.forEach((e, i) => bouton(bx + (i + 1) * 54 * U, by, 50 * U, 40 * U, '', () => emoticone(i), false, e));
     // mon émoticône au-dessus de ma tête
@@ -3839,8 +3861,8 @@ function mount(root, api) {
     if (state !== 'jeu' || sacOuvert || echange || transfert) return;
     const bw = 130 * U, bh = 44 * U;
     // en haut à droite (sous la pause et les copains) : jamais sur le bouton d'action du bas
-    bouton(W - bw - 14 * U, construire ? H - 150 * U - (W < 760 * U ? 40 * U : 0) - bh - 40 * U : 122 * U + 46, bw, bh, construire ? 'Terminer' : 'Construire', () => { construire = !construire; bSouris = null; if (construire && !bMat) bMat = matDefaut(); }, construire, construire ? '✓' : '🏠');
-    if (!construire) { const b = maBase(); if (b && b.recolte && Math.hypot(J.x - b.ax, J.y - b.ay) < RAYON_BASE) bouton(W - bw - 14 * U, 122 * U + 46 + bh + 8 * U, bw, bh, 'Récolter ' + b.recolte, () => { ajouter('soute', 'baie', b.recolte); E0().soute.baie = (E0().soute.baie || 0); b.recolte = 0; dire('🍓 Récolte rangée dans la soute !'); evt('cueille'); sauver(); }, true, '🍓'); return; }
+    if (construire) bouton(W - bw - 14 * U, H - 150 * U - (W < 760 * U ? 40 * U : 0) - bh - 40 * U, bw, bh, 'Terminer', () => { construire = !construire; bSouris = null; if (construire && !bMat) bMat = matDefaut(); }, construire, construire ? '✓' : '🏠');
+    if (!construire) { const b = maBase(); if (b && b.recolte && Math.hypot(J.x - b.ax, J.y - b.ay) < RAYON_BASE) bouton(W - bw - 14 * U, 122 * U + 46 + 3 * (44 * U + 8 * U) + 4 * U, bw, bh, 'Récolter ' + b.recolte, () => { ajouter('soute', 'baie', b.recolte); E0().soute.baie = (E0().soute.baie || 0); b.recolte = 0; dire('🍓 Récolte rangée dans la soute !'); evt('cueille'); sauver(); }, true, '🍓'); return; }
     bFantome = caseVisee();
     // la barre : familles, matériaux, couleurs, puis les pièces
     // en portrait (écran étroit) : les familles sur une rangée, matériaux et couleurs sur une 2e rangée, puis les pièces
@@ -4072,12 +4094,18 @@ function mount(root, api) {
     for (const p of COMBAT.tirs) { const a = Math.atan2(p.vy, p.vx), l = 26; ctx.strokeStyle = p.moi ? 'rgba(130,255,235,0.45)' : 'rgba(255,150,60,0.5)'; ctx.lineWidth = 9 * Z; ctx.beginPath(); ctx.moveTo(sx(p.x), sy(p.y)); ctx.lineTo(sx(p.x - Math.cos(a) * l), sy(p.y - Math.sin(a) * l)); ctx.stroke(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3 * Z; ctx.stroke(); }
     ctx.restore();
   }
+  // (la hauteur des barres : sous l'argent et le sac, ou sous le bandeau au téléphone debout ; le bouton 😀 se met à côté)
+  const barresY = () => Math.max(122 * U, portrait && bandRect ? bandRect.y + bandRect.h + 8 * U : 0);
   function hudCombat(t) {
     if (!J) return;
-    const bw = 150 * U, x = 10 * U, y = Math.max((J.endu < 0.99 ? 14 * U : 0) + 152 * U, portrait && bandRect ? bandRect.y + bandRect.h + 8 * U : 0);
-    ctx.save(); ctx.fillStyle = 'rgba(10,14,30,0.6)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, bw + 12 * U, 30 * U, 8 * U) : ctx.rect(x, y, bw + 12 * U, 30 * U); ctx.fill();
-    ctx.fillStyle = '#3a2a3a'; ctx.fillRect(x + 6 * U, y + 6 * U, bw, 9 * U); ctx.fillStyle = COMBAT.vie / VIE_MAX() > 0.3 ? '#ff5a7a' : '#ff2a2a'; ctx.fillRect(x + 6 * U, y + 6 * U, bw * clamp(COMBAT.vie / VIE_MAX(), 0, 1), 9 * U);
-    ctx.fillStyle = '#2a3a4a'; ctx.fillRect(x + 6 * U, y + 18 * U, bw, 6 * U); ctx.fillStyle = '#5ae0ff'; ctx.fillRect(x + 6 * U, y + 18 * U, bw * clamp(COMBAT.bouclier / BOUCLIER_MAX(), 0, 1), 6 * U);   // jamais plus large que son cadre
+    // V17 : sous l'argent et le sac, à droite du bouton 😀 : ❤ la vie, 🛡 le bouclier, ⚡ l'endurance (quand elle baisse)
+    const bw = 130 * U, x = liveOn ? 66 * U : 10 * U, y = barresY(), endu = J.endu < 0.99, hh = endu ? 48 * U : 34 * U;
+    ctx.save(); ctx.fillStyle = 'rgba(10,14,30,0.6)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, bw + 34 * U, hh, 8 * U) : ctx.rect(x, y, bw + 34 * U, hh); ctx.fill();
+    ctx.font = Math.round(13 * U) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const ligne = (yy, ico, k, c, fond, ep) => { ctx.fillStyle = '#fff'; ctx.fillText(ico, x + 13 * U, yy + ep / 2 + 1); ctx.fillStyle = fond; ctx.fillRect(x + 24 * U, yy, bw, ep); ctx.fillStyle = c; ctx.fillRect(x + 24 * U, yy, bw * clamp(k, 0, 1), ep); };   // jamais plus large que son cadre
+    ligne(y + 6 * U, '❤️', COMBAT.vie / VIE_MAX(), COMBAT.vie / VIE_MAX() > 0.3 ? '#ff5a7a' : '#ff2a2a', '#3a2a3a', 9 * U);
+    ligne(y + 20 * U, '🛡️', COMBAT.bouclier / BOUCLIER_MAX(), '#5ae0ff', '#2a3a4a', 7 * U);
+    if (endu) ligne(y + 34 * U, '⚡', J.endu, J.endu > 0.25 ? '#7aff9a' : '#ff8a5a', '#24352a', 7 * U);
     ctx.restore();
     if (COMBAT.degatsT > 0) { ctx.save(); const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7); g.addColorStop(0, 'rgba(255,0,0,0)'); g.addColorStop(1, 'rgba(255,0,0,' + COMBAT.degatsT + ')'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore(); }
     if (COMBAT.mortT > 0) { ctx.fillStyle = 'rgba(10,0,20,' + Math.min(0.85, (3 - COMBAT.mortT)) + ')'; ctx.fillRect(0, 0, W, H); }
@@ -4199,7 +4227,7 @@ function mount(root, api) {
     else if (hostile && dC < vue) {
       // le ver des sables plonge et ressort ; les autres chassent
       if (c.chasseNuit && !c.alerte) { c.alerte = true; alerteChasseur(c); }
-      if (!c.vu) { c.vu = true; if (c.boss || sp.gros) son('rugit', 0.9, c.x, c.y, c.boss ? 0.8 : 1); else if (c.esp === 'araignee') son('cri', 0.6, c.x, c.y); }
+      if (!c.vu) { c.vu = true; if (AF[c.esp] && !c.boss) criDe(c.esp, 0.8, c.x, c.y); else if (c.boss || sp.gros) son('rugit', 0.9, c.x, c.y, c.boss ? 0.8 : 1); else if (c.esp === 'araignee') son('cri', 0.6, c.x, c.y); }
       if (dC < c.portee && c.cool <= 0 && cx === J.x && cy === J.y && combatContact(c)) return;
       if (dC < c.portee && c.cool <= 0) { c.prep = c.boss ? 0.75 : 0.5; c.ax = cx; c.ay = cy; c.clip = 'attaque'; c.tc = 0; c.th += angDiff(c.th, Math.atan2(cx - c.x, cy - c.y)); return; }
       if (P.meta.clips.crache && c.cool <= 0 && dC > 260 && Math.random() < dt * 0.8) { const a = Math.atan2(cx - c.x, (cy - 50) - (c.y - sp.taille * 0.5)); COMBAT.tirs.push({ x: c.x, y: c.y - sp.taille * 0.5, vx: Math.sin(a) * 520, vy: Math.cos(a) * 520, t: 0, moi: false, deg: Math.round(c.degats * 0.7), de: c.esp }); c.cool = 1.2; c.clip = 'crache'; c.tc = 0; return; }
@@ -4628,7 +4656,7 @@ function mount(root, api) {
   function bandeauObjectif(t) {
     bandRect = null; const o = objectif(), ms = missionSuivie(), td = texteDest(); if ((!o && !ms && !td) || journalOuvert || recit) return;
     // en hauteur : sous les cartes du haut à gauche, sans toucher les boutons de droite (journal, carte) ni les barres de vie
-    const haut = portrait ? (state === 'espace' ? 140 * U : 100 * U) : 10 * U, gauche = portrait ? 10 * U : Math.max(250 * U, W * 0.24), droite = portrait ? (state === 'espace' ? 10 * U : 62 + 56 * U) : 330 * U;
+    const haut = portrait ? (state === 'espace' ? 140 * U : 122 * U) : 10 * U, gauche = portrait ? 10 * U : Math.max(250 * U, W * 0.24), droite = portrait ? (state === 'espace' ? 10 * U : 62 + 56 * U) : 330 * U;
     const w = Math.min(W - gauche - droite, 560 * U); if (w < 160) return;
     const x = portrait ? gauche : Math.max(gauche, (W - w) / 2);
     ctx.save(); ctx.font = '700 ' + Math.round(13 * U) + 'px ' + FB;
@@ -6190,6 +6218,8 @@ function mount(root, api) {
   // le hasard du combat : en ligne, une graine partagée (les deux écrans calculent exactement le même combat)
   function rnd() { if (!CB || CB.rs == null) return Math.random(); CB.rs = (CB.rs + 0x6D2B79F5) | 0; let t = CB.rs; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
   // réglages de pantin par bête : vues de face seulement (raie vue de dessus, crabe-forteresse qui marche de côté)
+  // V17 : les profils dessinés tournés vers la GAUCHE (vérifiés un par un sur la planche de tous les profils) : le jeu les retourne
+  const PROFIL_GAUCHE = new Set(['luciver1', 'anguille1', 'bave1']);
   const PANT_OPT = { lamantin3: { sansPattes: true }, cube1: { sansPattes: true }, cube2: { sansPattes: true }, cube3: { sansPattes: true }, poulpe1: { sansPattes: true }, poulpe2: { sansPattes: true }, poulpe3: { sansPattes: true }, glop1: { sansPattes: true }, glop2: { sansPattes: true }, glop3: { sansPattes: true }, bave1: { sansPattes: true }, bave2: { sansPattes: true }, chronorbe: { sansPattes: true }, nebulea: { sansPattes: true }, leviaflot: { sansPattes: true } };   // V16 : tous les stades ont maintenant un vrai profil, une face et un dos (plus de « face seule »)
   // pendant un combat, les décors de l'arène (rochers, cristaux, arbres) s'effacent : on voit les combattants en entier
   const dansArene = (x, y) => !!CB && Math.abs(x - CB.mx) < 420 && y > CB.my - 190 && y < CB.my + 170;
@@ -6197,7 +6227,7 @@ function mount(root, api) {
   for (const id of AF_LISTE) {
     const a = AF[id]; if (ESPECES[id]) continue;
     ESPECES[id] = { nom: a.nom, taille: a.tl, role: a.st === 0 && a.rar < 3 ? 'craintif' : 'chasseur', vie: 40, degats: 8, butin: ['cuivre', 'fer'], af: true, gros: a.tl > 170 ? 1 : 0 };
-    PANTINS[id] = Object.assign({ auto: true, amp: a.vol ? 0 : 0.4, bipede: !!a.bip, sansPattes: !!(a.vol || a.ser), ailes: !!(a.vol && !a.nage && !a.flotte) }, PANT_OPT[id] || {}); PANT_DE[id] = id;
+    PANTINS[id] = Object.assign({ gauche: PROFIL_GAUCHE.has(id), auto: true, amp: a.vol ? 0 : 0.4, bipede: !!a.bip, sansPattes: !!(a.vol || a.ser), ailes: !!(a.vol && !a.nage && !a.flotte) }, PANT_OPT[id] || {}); PANT_DE[id] = id;
   }
   const FAM_PAQ = new Map();
   function chargerFamille(fam) {
@@ -6276,10 +6306,11 @@ function mount(root, api) {
       if (c.boss) { F.pvMax = Math.round(F.pvMax * 2.4); F.pv = F.pvMax; }
       return F;
     });
-    const moi = [herosF(), robotF()]; if (A.sansRobot) { moi[1].ko = true; moi[1].absent = true; }   // V17 : le robot est resté à l'Agence (il ne combat pas) const act = A.equipe.find(b => b.pv > 0); if (act) moi.push(beteF(act, 0));
+    const moi = [herosF(), robotF()]; if (A.sansRobot) { moi[1].ko = true; moi[1].absent = true; }   /* V17 : le robot est resté à l'Agence (il ne combat pas) */
+    for (const b of A.equipe.filter(q => q.pv > 0).slice(0, opt && opt.net ? 1 : 3)) moi.push(beteF(b, 0));   // V17 : les 3 compagnons de l'équipe combattent ensemble
     CB = { t: 0, phase: 'intro', ph: 0, mx, my, ennemis, moi, file: [], qte: null, msg: '', msgT: 0, opt, menu: null, sel: null, nums: [], tour: 0, finT: 0, captures: [], gain: [], zf0: zf, camX0: camX, camY0: camY };
     CB.moi.forEach((F, i) => { F.gid = 'a' + i; }); CB.ennemis.forEach((F, i) => { F.gid = 'e' + i; });
-    placerCombat(); state = 'combat'; stT = 0; son('rugit', 0.7); shake = 0.4; flash = 0.5;
+    placerCombat(); state = 'combat'; stT = 0; { const E1 = CB.ennemis[0]; if (E1 && E1.e && AF[E1.e] && !E1.boss) criDe(E1.e, 0.9); else son('rugit', 0.7); } shake = 0.4; flash = 0.5;
     CB.msg = opt.rival ? '⚔️ ' + opt.rival + ' te défie !' : opt.champion ? '🏟️ Le champion ' + opt.champion + ' te défie !' : c0 && c0.boss ? '☠ ' + ennemis[0].nom + ' t’attaque !' : opt.cache ? '😮 ' + nomsGroupe(ennemis) + (ennemis.length > 1 ? ' surgissent' : ' surgit') + ' ' + { herbe: 'des hautes herbes', eau: 'de l’eau', brouillard: 'du brouillard' }[opt.cache] + ' !' : '⚡ ' + nomsGroupe(ennemis) + (ennemis.length > 1 ? ' sauvages !' : ' sauvage !');
     for (const F of CB.ennemis) if (AF[F.e] && !AF[F.e].ancienne) chargerFamille(AF[F.e].fam);
   }
@@ -6291,11 +6322,12 @@ function mount(root, api) {
     H0.x = J.x; H0.y = J.y;
     if (robot) { robot.x = mx - 270 * kx; robot.y = my + 70 * ky; robot.dir = -1; }
     CB.moi[1].x = mx - 270 * kx; CB.moi[1].y = my + 70 * ky;
-    const B = CB.moi[2]; if (B) poserBete(B, ...posBete());
+    CB.moi.slice(2).forEach((B, i) => poserBete(B, ...posBete(i)));
     CB.ennemis.forEach((F, i) => { const pos = CB.ennemis.length === 1 ? [[210, 0]] : CB.ennemis.length === 2 ? [[180, -50], [250, 55]] : [[150, -85], [290, -5], [175, 95]];
       const [dx, dy] = pos[i], s = F.boss ? 1.5 : 1; F.c.x = mx + dx * s * kx; F.c.y = my + dy * ky; F.c.th = -Math.PI / 2; F.c.clip = 'repos'; F.x = F.c.x; F.y = F.c.y; F.c.x0 = F.c.x; F.c.y0 = F.c.y; });
   }
-  function posBete() { return portrait ? [CB.mx - 30, CB.my - 100] : [CB.mx - 120, CB.my - 46]; }
+  // les places des bêtes alliées (jusqu'à 3) : devant l'explorateur, en arc face aux ennemis
+  function posBete(i) { const P = portrait ? [[-30, -100], [-70, 120], [-130, -210]] : [[-120, -46], [-80, 90], [-180, -150]], q = P[(i || 0) % 3]; return [CB.mx + q[0], CB.my + q[1]]; }
   function poserBete(F, x, y) {
     const c = F.c || (F.c = nouvelle(9000 + (F.b.u || 0), F.e, x, y, Math.random, { allie: true, th: Math.PI / 2 }));
     c.x = x; c.y = y; c.x0 = x; c.y0 = y; c.th = Math.PI / 2; c.clip = 'repos'; c.mort = false; c.echelle = 1; c.teinte = 0; c.vie = 1; c.vieMax = 1;
@@ -6371,7 +6403,7 @@ function mount(root, api) {
     CB.qte = qte;
     if (F.c) { F.c.clip = 'attaque'; F.c.tc = 0; }
     if (F.sorte === 'hero') { J.tirPose = 1.2; J.th = Math.PI / 2; }
-    son(F.sorte === 'hero' || F.sorte === 'robot' ? 'tir' : 'cri', 0.6);
+    if (F.sorte === 'hero' || F.sorte === 'robot') son('tir', 0.6); else criDe(F.e, 0.65);   // V17 : chaque bête a son cri
   }
   function appuiQte() {
     const q = CB && CB.qte; if (!q || q.res) return false;
@@ -6384,7 +6416,7 @@ function mount(root, api) {
     const A = CB.anim; if (!A) return; A.t += dt; if (A.qte) A.qte.t += dt;
     const F = A.F, c = F.c, cible = A.vise[0];
     // la ruée (Clair Obscur) : la bête court vers sa cible, frappe, revient
-    if (c && cible && A.a.p > 0 && F.sorte === 'bete') { const k = A.t < A.tF ? lisse(A.tF * 0.35, A.tF, A.t) : 1 - lisse(A.tF + 0.06, A.d, A.t), tx = cible.x + (F.camp ? 90 : -90), ty = cible.y; c.x = c.x0 + (tx - c.x0) * k * 0.85; c.y = c.y0 + (ty - c.y0) * k * 0.85; c.clip = k > 0.05 && k < 0.95 ? 'course' : 'attaque'; { const st = Math.hypot(c.x - (A.px == null ? c.x : A.px), c.y - (A.py == null ? c.y : A.py)); A.px = c.x; A.py = c.y; if (c.clip === 'course') { c.th = A.t < A.tF ? Math.atan2(tx - c.x, ty - c.y) : Math.atan2(c.x0 - c.x, c.y0 - c.y); avancerPas(c, st, dt, 'course'); } } }
+    if (c && cible && A.a.p > 0 && F.sorte === 'bete') { const k = A.t < A.tF ? lisse(A.tF * 0.35, A.tF, A.t) : 1 - lisse(A.tF + 0.06, A.d, A.t), tx = cible.x + (F.camp ? 90 : -90), ty = cible.y; c.x = c.x0 + (tx - c.x0) * k * 0.85; c.y = c.y0 + (ty - c.y0) * k * 0.85; c.clip = k > 0.05 && k < 0.95 ? 'course' : 'attaque'; { const st = Math.hypot(c.x - (A.px == null ? c.x : A.px), c.y - (A.py == null ? c.y : A.py)); A.px = c.x; A.py = c.y; c.th = Math.atan2(cible.x - c.x0, cible.y - c.y0); if (c.clip === 'course') avancerPas(c, st, dt, 'course'); } }   // V17 : elle REGARDE toujours sa cible (au retour, elle recule)
     if (!A.frappe && A.t >= A.tF) { A.frappe = true; frapper(A); }
     if (A.t >= A.d) { CB.anim = null; CB.qte = null; if (c) { c.x = c.x0; c.y = c.y0; c.clip = 'repos'; c.th = F.camp ? -Math.PI / 2 : Math.PI / 2; } planifier(0.45, tourSuivant); }
   }
@@ -6478,7 +6510,7 @@ function mount(root, api) {
     if (CB.net) for (const L of [CB.moi, CB.ennemis]) L.forEach((F, i) => { if (F.sorte !== 'bete' || !F.own || !F.ko || F.remplacee) return; F.remplacee = true; const q = F.reserve && F.reserve.shift(); if (!q) return; const N = beteF(q, F.camp); N.own = F.own; N.gid = F.gid; N.reserve = F.reserve; if (F.c) { F.c.mort = true; F.c.tm = 9; } L[i] = N; placerNet(); dire2('À toi, ' + N.nom + ' !'); });
     if (!restent.length) { terminer(CB.ennemis.every(F => F.fuit) ? 'fuite' : 'victoire'); return true; }
     // ma bête est K.-O. : la suivante de l'équipe entre (s'il en reste)
-    const B = CB.moi[2]; if (B && B.ko && !B.remplacee) { B.remplacee = true; const A = AFX(), suiv = A.equipe.find(b => b.pv > 0 && b !== B.b); if (suiv) { majBeteSauvee(B); const N = beteF(suiv, 0); N.gid = B.gid; N.reserve = B.reserve; poserBete(N, ...posBete()); B.c.mort = true; CB.moi[2] = N; dire2('À toi, ' + N.nom + ' !'); } }
+    for (let k = 2; k < CB.moi.length; k++) { const B = CB.moi[k]; if (!B || B.sorte !== 'bete' || !B.ko || B.remplacee) continue; B.remplacee = true; const A = AFX(), suiv = A.equipe.find(b => b.pv > 0 && !CB.moi.some(F => F.b === b)); if (suiv) { majBeteSauvee(B); const N = beteF(suiv, 0); N.gid = B.gid; N.reserve = B.reserve; poserBete(N, ...posBete(k - 2)); B.c.mort = true; CB.moi[k] = N; dire2('À toi, ' + N.nom + ' !'); } }   // V17 : chaque place alliée
     return false;
   }
   function majBeteSauvee(F) { if (!F || !F.b) return; F.b.pv = F.pv; F.b.ene = F.ene; }
@@ -6585,11 +6617,11 @@ function mount(root, api) {
     if (CB.menu === 'racine') {
       if (F.sorte === 'hero') {
         L.push({ ico: '🔫', txt: 'Tir', f: () => choisirCible(F, 'tir') }, { ico: '💥', txt: 'Spécial', f: () => { CB.menu = 'special'; } });
-        const dd = [CB.moi[1], CB.moi[2]].filter(P => P && !P.ko && !P.passe && duos(P).some(id => ATT[id].ene <= F.ene));
+        const dd = CB.moi.slice(1).filter(P => P && !P.ko && !P.passe && duos(P).some(id => ATT[id].ene <= F.ene));
         L.push({ ico: '🤝', txt: 'Attaque commune', f: () => { CB.menu = 'duo'; }, off: !dd.length });
         L.push({ ico: '🎒', txt: 'Objet', f: () => { CB.menu = 'objet'; } });
         if (CB.ennemis.some(G => G.sauvage && !G.ko)) L.push({ ico: '🔮', txt: reservePleine() ? 'Astrobal (réserve pleine)' : 'Astrobal', f: () => { CB.menu = 'balle'; }, off: !BALLES.some(b => A.objets[b.id] > 0) || reservePleine() });
-        L.push({ ico: '🔄', txt: 'Changer de bête', f: () => { CB.menu = 'changer'; }, off: !A.equipe.some(b => b.pv > 0 && (!CB.moi[2] || b !== CB.moi[2].b)) });
+        L.push({ ico: '🔄', txt: 'Changer de bête', f: () => { CB.menu = 'changer'; }, off: !A.equipe.some(b => b.pv > 0 && !CB.moi.some(F => F.b === b)) });
         if (!CB.net && !CB.opt.rival && !CB.opt.champion && !CB.ennemis.some(G => G.boss)) L.push({ ico: '🏃', txt: 'Fuir', f: fuir });
         if (CB.net && CB.net.mode === 'pvp') L.push({ ico: '🏳️', txt: 'Abandonner', f: () => { envoyer({ t: 'cq', to: CB.net.autre, cid: CB.net.id }); terminer('defaite'); } });
       } else {
@@ -6600,7 +6632,7 @@ function mount(root, api) {
       for (const id of F.atts.filter(i => i !== 'tir')) { const a = ATT[id]; L.push({ ico: TYPES[a.type].ico, txt: a.nom + ' · ' + a.ene + '⚡', f: () => choisirCible(F, id), off: a.ene > F.ene }); }
       L.push(retour());
     } else if (CB.menu === 'duo') {
-      for (const P of [CB.moi[1], CB.moi[2]]) { if (!P || P.ko || P.passe) continue; for (const id of duos(P)) { const a = ATT[id]; L.push({ ico: P.sorte === 'robot' ? '🤖' : TYPES[a.type].ico, txt: a.nom + ' (avec ' + P.nom + ') · ' + a.ene + '⚡', f: () => choisirCible(F, id, P), off: a.ene > F.ene }); } }
+      for (const P of CB.moi.slice(1)) { if (!P || P.ko || P.passe) continue; for (const id of duos(P)) { const a = ATT[id]; L.push({ ico: P.sorte === 'robot' ? '🤖' : TYPES[a.type].ico, txt: a.nom + ' (avec ' + P.nom + ') · ' + a.ene + '⚡', f: () => choisirCible(F, id, P), off: a.ene > F.ene }); } }
       L.push(retour());
     } else if (CB.menu === 'objet') {
       for (const id in OBJETS) { const o = OBJETS[id]; if (!(A.objets[id] > 0) || o.evo) continue; L.push({ ico: o.ico, txt: o.nom + ' (' + A.objets[id] + ')', f: () => { CB.menu = 'objetCible'; CB.objet = id; } }); }
@@ -6617,7 +6649,7 @@ function mount(root, api) {
       for (const G of CB.ennemis) if (!G.ko && (CB.menu === 'cible' || G.sauvage)) L.push({ ico: '🎯', txt: G.nom + ' · niv. ' + G.n + (CB.menu === 'cibleBalle' ? ' · ' + Math.round(chanceCapture(G, CB.balle) * 100) + ' %' : ''), f: () => CB.menu === 'cible' ? agir(F, CB.att, G, CB.duo) : lancerBalle(F, G, CB.balle), cible: G });
       L.push(retour());
     } else if (CB.menu === 'changer') {
-      for (const b of A.equipe) { if (CB.moi[2] && b === CB.moi[2].b) continue; L.push({ ico: '🐾', txt: AF[b.e].nom + ' niv. ' + b.n + ' · ' + Math.round(b.pv) + ' PV', f: () => changerBete(b), off: b.pv <= 0 }); }
+      for (const b of A.equipe) { if (CB.moi.some(F => F.b === b)) continue; L.push({ ico: '🐾', txt: AF[b.e].nom + ' niv. ' + b.n + ' · ' + Math.round(b.pv) + ' PV', f: () => changerBete(b), off: b.pv <= 0 }); }
       L.push(retour());
     }
     return L;
@@ -6644,7 +6676,7 @@ function mount(root, api) {
   function changerBete(b) {
     if (CB.net) envoyerChoix({ f: CB.moi[2] && CB.moi[2].gid, b: { e: b.e, n: b.n, pv: Math.round(b.pv), att: b.att } });
     const old = CB.moi[2]; if (old) { majBeteSauvee(old); const i = CR.indexOf(old.c); if (i >= 0) CR.splice(i, 1); }
-    const N = beteF(b, 0); N.gid = old && old.gid; N.reserve = old && old.reserve; poserBete(N, ...posBete()); N.jauge = 0; CB.moi[2] = N; dire2('À toi, ' + N.nom + ' !'); son('ok', 0.5); CB.phase = 'anim'; CB.menu = null; planifier(0.8, tourSuivant);
+    const N = beteF(b, 0); N.gid = old && old.gid; N.reserve = old && old.reserve; poserBete(N, ...posBete(0)); N.jauge = 0; CB.moi[2] = N; dire2('À toi, ' + N.nom + ' !'); son('ok', 0.5); CB.phase = 'anim'; CB.menu = null; planifier(0.8, tourSuivant);
   }
   function fuir() {
     const vMoi = CB.moi[0].vit, vEux = Math.max(...CB.ennemis.filter(G => !G.ko).map(G => G.vit)), nE = Math.max(...CB.ennemis.filter(G => !G.ko).map(G => G.n || 0)), p = nE - (AFX().niv || 1) >= 8 ? 0.9 : clamp(0.55 + (vMoi - vEux) / 120, 0.3, 0.95);   // V17 : face à une bête bien trop forte, on arrive presque toujours à fuir
@@ -6673,7 +6705,7 @@ function mount(root, api) {
     ctx.restore();
   }
   function drawCombat(t, dt) {
-    tapBtns = []; if (CB.opt.arene) { drawSolArene(t); acteursArene(t); } else { drawMonde(t); drawBrouillard(t); } drawNetActeurs(t);
+    tapBtns = []; if (CB.opt.arene) { drawSolArene(t); acteursArene(t); } else { drawMonde(t); } drawNetActeurs(t);   /* V17 : pas de brouillard épais en combat (il cacherait les combattants) */
     // l'arène : le reste du monde s'assombrit doucement, un cercle de lumière au sol
     ctx.save(); const cx = sx(CB.mx), cy = sy(CB.my + 20), R = 420 * Z;
     const g = ctx.createRadialGradient(cx, cy, R * 0.35, cx, cy, Math.max(W, H)); g.addColorStop(0, 'rgba(0,0,10,0)'); g.addColorStop(0.5, 'rgba(0,0,12,0.35)'); g.addColorStop(1, 'rgba(0,0,12,0.65)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
@@ -6945,7 +6977,7 @@ function mount(root, api) {
   function peutEchangerEquipe() { return state === 'station' || (state === 'jeu' && maBase() && J && Math.hypot(J.x - maBase().ax, J.y - maBase().ay) < 600); }
   function pageEquipe(px, y0, pw, h0, t) {
     const A = AFX(), ok = peutEchangerEquipe(), cw = portrait ? (pw - 40 * U) / 3 : Math.min(200 * U, (pw - 40 * U) / 3), ch = Math.min(150 * U, h0 * 0.42);
-    ctx.save(); ctx.font = '700 ' + Math.round(12 * U) + 'px ' + FB; ctx.fillStyle = '#ffe9a8'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('⭐ Mon équipe (3 places)', px + 14 * U, y0); ctx.restore();
+    ctx.save(); ctx.font = '700 ' + Math.round(12 * U) + 'px ' + FB; ctx.fillStyle = '#ffe9a8'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('⭐ Mon équipe : les 3 compagnons qui me suivent et combattent avec moi', px + 14 * U, y0); ctx.restore();
     for (let i = 0; i < 3; i++) { const b = A.equipe[i], x = px + 14 * U + i * (cw + 6 * U), y = y0 + 20 * U; carteBete(b, x, y, cw, ch, t, () => { selEq = b ? { b, ou: 'equipe' } : null; }); }
     const ry = y0 + 28 * U + ch, rs = 52 * U, rc = Math.max(4, Math.floor((pw - 28 * U) / rs));
     ctx.save(); ctx.font = '700 ' + Math.round(12 * U) + 'px ' + FB; ctx.fillStyle = '#ffe9a8'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('🏡 Ma réserve, dans les enclos de ma base : ' + A.reserve.length, px + 14 * U, ry); ctx.restore();
@@ -6999,12 +7031,26 @@ function mount(root, api) {
     return out;
   }
   function dansBrume(t) { if (!J) return false; for (const n of nappes(t)) if (Math.hypot(J.x - n.x, (J.y - n.y) * 1.5) < n.r * 0.75) return true; return false; }
+  // V17 : le BROUILLARD est épais : dedans on ne voit presque rien, seule la tête de l'explorateur dépasse ; les Astrofaunes en surgissent.
+  // Une nappe = un cœur presque opaque et un bord doux qui ondule ; la nuit, il est sombre (pas une tache blanche dans le noir).
+  let cvBrume = null;
   function drawBrouillard(t) {
     const L = nappes(t); if (!L.length) return;
-    ctx.save(); for (const n of L) { const x = sx(n.x), y = sy(n.y), R = n.r * Z; if (x < -R || x > W + R || y < -R || y > H + R) continue;
-      for (let k = 0; k < 4; k++) { const ox = Math.sin(t * 0.3 + k * 1.7 + n.h) * R * 0.25, oy = Math.cos(t * 0.25 + k * 2.1) * R * 0.12, rr = R * (0.6 + k * 0.14);
-        ctx.save(); ctx.translate(x + ox, y + oy); ctx.scale(1, 0.55); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rr); g.addColorStop(0, 'rgba(215,222,240,0.24)'); g.addColorStop(0.55, 'rgba(205,212,232,0.12)'); g.addColorStop(1, 'rgba(200,206,225,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.fill(); ctx.restore(); } }
-    ctx.restore();
+    const l = PL ? clamp(PL.lum, 0.2, 1) : 1, c = [Math.round(208 * l + 22), Math.round(214 * l + 22), Math.round(232 * l + 26)].join(',');
+    // le brouillard se dessine à part (une toile), puis on y efface doucement la tête de l'explorateur : elle dépasse, sans bord net
+    if (!cvBrume) cvBrume = document.createElement('canvas');
+    if (cvBrume.width !== canvas.width || cvBrume.height !== canvas.height) { cvBrume.width = canvas.width; cvBrume.height = canvas.height; }
+    const g0 = cvBrume.getContext('2d'); g0.setTransform(1, 0, 0, 1, 0, 0); g0.clearRect(0, 0, cvBrume.width, cvBrume.height); g0.setTransform(dpr, 0, 0, dpr, 0, 0);
+    for (const n of L) { const x = sx(n.x), y = sy(n.y), R = n.r * Z; if (x < -R * 1.4 || x > W + R * 1.4 || y < -R || y > H + R) continue;
+      for (let k = 0; k < 5; k++) { const ox = Math.sin(t * 0.3 + k * 1.7 + n.h) * R * 0.22, oy = Math.cos(t * 0.25 + k * 2.1) * R * 0.1, rr = R * (0.62 + k * 0.12);
+        g0.save(); g0.translate(x + ox, y + oy); g0.scale(1.25, 0.6); const g = g0.createRadialGradient(0, 0, 0, 0, 0, rr);
+        g.addColorStop(0, 'rgba(' + c + ',' + (k < 2 ? 0.78 : 0.4) + ')'); g.addColorStop(0.55, 'rgba(' + c + ',' + (k < 2 ? 0.66 : 0.28) + ')'); g.addColorStop(0.85, 'rgba(' + c + ',0.14)'); g.addColorStop(1, 'rgba(' + c + ',0)');
+        g0.fillStyle = g; g0.beginPath(); g0.arc(0, 0, rr, 0, TAU); g0.fill(); g0.restore(); }
+      for (let k = 0; k < 6; k++) { const a = t * 0.07 + k * 1.05 + n.h, px = x + Math.cos(a) * R * 0.55, py = y + Math.sin(a * 1.3) * R * 0.22, pr = R * (0.18 + (k % 3) * 0.05);
+        const g = g0.createRadialGradient(px, py, 0, px, py, pr); g.addColorStop(0, 'rgba(255,255,255,' + 0.18 * l + ')'); g.addColorStop(1, 'rgba(255,255,255,0)'); g0.fillStyle = g; g0.beginPath(); g0.arc(px, py, pr, 0, TAU); g0.fill(); } }
+    if (J && dansBrume(t)) { const hx = sx(J.x), hy = sy(J.y) - 90 * KP * Z, hr = 27 * KP * Z; g0.globalCompositeOperation = 'destination-out';
+      const g = g0.createRadialGradient(hx, hy, hr * 0.8, hx, hy, hr * 1.08); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)'); g0.fillStyle = g; g0.beginPath(); g0.arc(hx, hy, hr * 1.08, 0, TAU); g0.fill(); g0.globalCompositeOperation = 'source-over'; }
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(cvBrume, 0, 0); ctx.restore();
   }
   function ouCache(t) {
     if (J.nage) return 'eau';
@@ -7019,13 +7065,13 @@ function mount(root, api) {
     const ou = ouCache(t); if (!ou) return;
     // en moyenne une rencontre toutes les 8 s de marche dans les herbes (un peu moins souvent dans l'eau et le brouillard)
     if (Math.random() > dt * (ou === 'herbe' ? 0.13 : 0.1)) return;
-    if (crashV17()) { const L = cacheesCrash(ou); if (L.length) { cacheT = 25; surprise = { t: 0, cache: ou, L }; son('cri', 0.7); dire('❗ Ça bouge ' + { herbe: 'dans les herbes', eau: 'sous l’eau', brouillard: 'dans le brouillard' }[ou] + '…', 1.5); } return; }
+    if (crashV17()) { const L = cacheesCrash(ou); if (L.length) { cacheT = 25; surprise = { t: 0, cache: ou, L }; criDe(L[0].esp, 0.8); dire('❗ Ça bouge ' + { herbe: 'dans les herbes', eau: 'sous l’eau', brouillard: 'dans le brouillard' }[ou] + '…', 1.5); } return; }
     const pref = { eau: ['maree', 'givre'], brouillard: ['ombre', 'tempete', 'lueur'], herbe: ['seve', 'foudre', 'roc', 'brasier'] }[ou];
     const tous = (FAUNE[PL.bid] || ['renard']).concat(fauneDe(PL.bid, PL.danger).filter(dessinee)).filter(id => AF[id] && ESPECES[id] && !['ver', 'dragon', 'gardien', 'trex', 'apatosaure'].includes(id));
     const bons = tous.filter(id => AF[id].t.some(x => pref.includes(x))), L0 = bons.length ? bons : tous; if (!L0.length) return;
     const n = Math.random() < 0.6 ? 1 : Math.random() < 0.75 ? 2 : 3, r = Math.random, L = [];
     for (let i = 0; i < n; i++) { const e = L0[Math.floor(r() * L0.length)], c = nouvelle(7000 + Math.floor(r() * 9999), e, J.x + 150 + i * 30, J.y + (i - 1) * 50, r); paquet(e); L.push(c); }
-    cacheT = 25; surprise = { t: 0, cache: ou, L }; son('cri', 0.7); dire('❗ Ça bouge ' + { herbe: 'dans les herbes', eau: 'sous l’eau', brouillard: 'dans le brouillard' }[ou] + '…', 1.5);
+    cacheT = 25; surprise = { t: 0, cache: ou, L }; criDe(L[0].esp, 0.8); dire('❗ Ça bouge ' + { herbe: 'dans les herbes', eau: 'sous l’eau', brouillard: 'dans le brouillard' }[ou] + '…', 1.5);
   }
   function drawSurprise(t) { if (!surprise || !J) return; const x = sx(J.x), y = sy(J.y) - 135 * KP * Z - Math.abs(Math.sin(surprise.t * 9)) * 8 * U; ctx.save(); ctx.font = '900 ' + Math.round(34 * U) + 'px ' + FT; ctx.textAlign = 'center'; ctx.lineWidth = 6; ctx.strokeStyle = '#1a1030'; ctx.fillStyle = '#ffd23a'; ctx.strokeText('!', x, y); ctx.fillText('!', x, y); ctx.restore(); }
   // ---------------------------------------------------------------- mon compagnon me suit à pied ; la réserve se promène dans les enclos de ma base
@@ -7811,6 +7857,7 @@ function mount(root, api) {
   function padNav(dt) {
     if (!pad) return; const on = padOk(); padVu = on ? 4 : Math.max(0, padVu - dt); if (!on) { padF = null; return; }
     if (padP('start')) { if (paused) setPaused(false); else if (['jeu', 'espace', 'combat', 'arene'].includes(state)) setPaused(true); return; }
+    if (!paused && (state === 'jeu' || state === 'cine') && penseeOuverte()) { if (padP('a') || padP('b') || padP('x')) fermerPensee(); return; }   // V17 : A (ou B, X) ferme la pensée du héros
     if (state === 'prologue' && PRO && !PRO.choix) { if (padP('a')) suitePrologue(); else if (padP('b')) passerPrologue(); return; }   // V17 : A = la suite, B = passer (jusqu'au choix du compagnon)
     if (!padMenu()) {
       padF = null;
@@ -7854,6 +7901,7 @@ function mount(root, api) {
   }
   function padDessin(t) {
     if (pad && padVu > 0 && state === 'creation') { padAide([['dpad', 'Choisir'], ['y', 'Au hasard'], ['a', 'C’est moi !']]); return; }   // la création a ses propres touches
+    if (pad && padVu > 0 && (state === 'jeu' || state === 'cine') && penseeOuverte()) return;   // la pensée a sa propre aide (Ⓐ pour continuer)
     if (pad && padVu > 0 && state === 'cine') { padAide([['a', 'Passer']]); return; }
     if (pad && padVu > 0 && state === 'prologue' && PRO && !PRO.choix) { padAide([['a', 'Suite'], ['b', 'Passer']]); return; }
     if (!pad || padVu <= 0 || !padMenu() || !padF || !padF.b) return;
@@ -8128,17 +8176,13 @@ function mount(root, api) {
     X.heure = CYCLE - CREP + 1; phaseAvant = 'aube'; if (crashV17()) remplacerFaune(false); return true;
   }
   // le petit cadran du jour (en haut, au milieu) : soleil ou lune, et le temps qui reste
-  function hudJour(t) {
-    if (state !== 'jeu' || !PL || !J || construire) return;
+  // V17 : l'heure du jour, écrite dans le cadre de la planète (en haut à gauche)
+  function texteHeure() {
     const h = heure(), ph = phaseJour(h), nuit = ph === 'nuit' || ph === 'soir';
     const reste = ph === 'jour' ? JOUR_F - h : ph === 'soir' ? JOUR_F + CREP - h : ph === 'nuit' ? CYCLE - CREP - h : CYCLE - h;
-    const txt = { jour: '☀️ Jour', soir: '🌆 Le soir tombe', nuit: '🌙 Nuit', aube: '🌅 Aube' }[ph] + ' · ' + Math.max(1, Math.ceil(reste / 60)) + ' min';
-    ctx.save(); ctx.font = '800 ' + Math.round(12 * U) + 'px ' + FB; const w = ctx.measureText(txt).width + 22 * U, x = 10 * U, y = (W < H ? 178 : 126) * U, hh = 22 * U;
-    ctx.fillStyle = nuit ? 'rgba(20,16,50,0.78)' : 'rgba(30,50,80,0.55)'; ctx.beginPath(); ctx.roundRect(x, y, w, hh, hh / 2); ctx.fill();
-    // la course du soleil (ou de la lune) sur la journée
-    const k = h / CYCLE; ctx.fillStyle = nuit ? '#c9a6ff' : '#ffd23a'; ctx.fillRect(x + 8 * U, y + hh - 4 * U, (w - 16 * U) * k, 2 * U);
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x + w / 2, y + hh / 2 - 1 * U); ctx.restore();
+    return { s: { jour: '☀️ Jour', soir: '🌆 Le soir tombe', nuit: '🌙 Nuit', aube: '🌅 Aube' }[ph] + ' · encore ' + Math.max(1, Math.ceil(reste / 60)) + ' min', nuit, k: h / CYCLE };
   }
+  function hudJour(t) { /* (l'heure est maintenant dans le cadre de la planète) */ }
   // le ciel du soir et de l'aube : une teinte orangée douce par-dessus le monde ; la nuit, les yeux des chasseurs brillent dans le noir
   function drawJourNuit(t) {
     if (!PL || !J) return;
@@ -8198,12 +8242,12 @@ function mount(root, api) {
   // les bêtes « de l'autre moment » qui étaient près de toi : elles s'éloignent puis disparaissent
   function majCrash(dt) {
     for (let i = CR.length - 1; i >= 0; i--) { const c = CR[i]; if (!c.part) continue; c.partT -= dt; if (c.partT <= 0 || Math.hypot(c.x - J.x, c.y - J.y) > 1400) CR.splice(i, 1); }
-    if (estNuit()) for (const c of CR) if (c.chasseNuit && !c.preAlerte && !c.alerte && !c.mort && Math.hypot(c.x - J.x, c.y - J.y) < 950) { c.preAlerte = true; son('rugit', 0.4, c.x, c.y, 1.3); dire('👀 Des yeux brillent dans le noir, pas loin… Cache-toi ou éloigne-toi !', 4); break; }
+    if (estNuit()) for (const c of CR) if (c.chasseNuit && !c.preAlerte && !c.alerte && !c.mort && Math.hypot(c.x - J.x, c.y - J.y) < 950) { c.preAlerte = true; criDe(c.esp, 0.5, c.x, c.y); dire('👀 Des yeux brillent dans le noir, pas loin… Cache-toi ou éloigne-toi !', 4); break; }
     majRadar(dt); majGrotte(dt); majBrumeRep(dt);
   }
   function alerteChasseur(c) {
     const b = c.bete || null, n = c.nivFixe || (b && b.n) || '?';
-    son('rugit', 0.8, c.x, c.y); dire('⚠️ ' + (AF[c.esp] ? AF[c.esp].nom : 'Une bête') + ' (niv. ' + n + ') t’a repéré ! Bien trop fort pour toi : fuis, ou cache-toi dans les herbes, l’eau ou la brume !', 5);
+    criDe(c.esp, 0.9, c.x, c.y); dire('⚠️ ' + (AF[c.esp] ? AF[c.esp].nom : 'Une bête') + ' (niv. ' + n + ') t’a repéré ! Bien trop fort pour toi : fuis, ou cache-toi dans les herbes, l’eau ou la brume !', 5);
   }
   // les rencontres cachées du crash (herbes, eau, brume) : surtout des bébés… et parfois bien pire
   function cacheesCrash(ou) {
@@ -8255,14 +8299,22 @@ function mount(root, api) {
     const X = E0(); if (!X.navette || !epave) return; NAV.x = epave.x; NAV.y = epave.y + 2; epave.repare = true; epave.fume = 0;
   }
   // près de l'épave : installer les pièces trouvées (une par une, avec des minerais)
+  function viderSacEpave() {
+    const X = E0(), place = capSoute() - nb(X.soute); if (place <= 0 || !nb(X.sac)) return 0; let n = 0;
+    for (const id of Object.keys(X.sac)) { const k = Math.min(X.sac[id], place - n); if (k <= 0) break; X.soute[id] = (X.soute[id] || 0) + k; X.sac[id] -= k; if (!X.sac[id]) delete X.sac[id]; n += k; }
+    if (n) { dire('📦 ' + n + ' minerai' + (n > 1 ? 's' : '') + ' rangé' + (n > 1 ? 's' : '') + ' dans l’épave : mon sac est libre !', 3.5); son('piece', 0.6); burst(NAV.x, NAV.y - 50, '#ffe9a8', 14, 160, 80); sauver(); }
+    return n;
+  }
   function actionEpave() {
     const X = E0(); if (!NAV || !NAV.epave || !NAV.cassee || NAV.brume) return false;
     if (Math.hypot(NAV.x - J.x, (NAV.y - J.y) * 1.2) > 230) return false;
+    viderSacEpave();   // V17 : le sac se range tout seul dans l'épave
     const id = X.pieces[0]; if (!id) return false;
-    const q = PV(id), manq = Object.keys(q.cout).filter(m => !peutPayer({ [m]: q.cout[m] }));
-    const cout = Object.keys(q.cout).map(m => q.cout[m] + ' ' + MIN[m].nom.toLowerCase()).join(' + ');
-    actionBtn = { txt: 'Installer ' + q.nom + ' (' + cout + ')', ico: '🔧', f: () => {
-      if (!peutPayer(q.cout)) { dire('⛏️ Pour installer ' + q.nom + ', il te faut ' + cout + '. Mine les filons brillants !', 4); return; }
+    const q = PV(id), aMoi = m => (X.soute[m] || 0) + (X.sac[m] || 0) + coffreQte(m), manq = Object.keys(q.cout).filter(m => aMoi(m) < q.cout[m]);
+    const cout = Object.keys(q.cout).map(m => q.cout[m] + ' ' + MIN[m].nom.toLowerCase()).join(' + '), court = q.nom.replace(/^(le |la |l’)/, '');
+    const reste = manq.map(m => (q.cout[m] - aMoi(m)) + ' ' + MIN[m].nom.toLowerCase()).join(' et ');
+    actionBtn = { txt: manq.length ? 'Il te manque ' + reste + ' pour ' + q.nom : 'Installer ' + q.nom + ' (' + cout + ')', ico: manq.length ? '⛏' : '🔧', f: () => {
+      if (!peutPayer(q.cout)) { dire('⛏ Pour ' + court + ', il te manque ' + reste + '. Mine les rochers qui brillent !', 4); return; }
       payer(q.cout); X.pieces.shift(); X.posees.push(id); epave.fume = Math.max(0.15, 1 - X.posees.length / 6);
       burst(NAV.x, NAV.y - 60, '#7aff9a', 30, 260, 120); son('construit', 0.9); son('ok', 0.7);
       if (X.posees.length >= 6) { X.navette = true; NAV.brume = { t: 0 }; sauver(); return; }
@@ -8271,7 +8323,6 @@ function mount(root, api) {
       if (n === 3 && !X.radar) setTimeout(() => { if (!dead) robotDit('Il manque encore 3 pièces… elles ont été projetées très loin. Construis un radar 📡 dans ta base (machines) : il captera les autres épaves !', 7); }, 1500);
       sauver();
     } };
-    if (manq.length) actionBtn.txt += ' · il manque ' + manq.map(m => MIN[m].nom.toLowerCase()).join(', ');
     return true;
   }
   // la réparation finie : un brouillard enveloppe l'épave, puis se dissipe… et le vaisseau est prêt
@@ -8417,9 +8468,169 @@ function mount(root, api) {
       tapBtns.push({ x, y, w: cs, h: cs, f: () => choisirOutil(i) });
     });
     // le nom de l'outil choisi (toujours au-dessus, un peu plus fort juste après un changement)
-    const o = OUTILS[sel], s = o.nom + ' · ' + o.sert; ctx.font = '800 ' + Math.round(12 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    const o = OUTILS[sel], s = o.nom + ' · ' + o.sert; ctx.font = '800 ' + Math.round(13 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.globalAlpha = 0.75 + 0.25 * Math.min(1, outilT); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(8,12,30,0.85)'; ctx.strokeText(s, W / 2, y0 - 3 * U); ctx.fillStyle = o.c; ctx.fillText(s, W / 2, y0 - 3 * U);
     ctx.restore();
+  }
+  // =================================================================== V17 : LES PENSÉES DU HÉROS (nouvelles parties)
+  // Après le crash, plus aucune communication : ni robot, ni Agence, ni Astrofaune ne parle. C'est l'explorateur qui se dit les choses.
+  // La bulle reste jusqu'à un clic, un toucher, une touche ou A ; pendant ce temps il se tourne vers nous et parle avec les mains (pas figé).
+  const penseeV17 = () => !!SAVE.crashV17;
+  const sansBip = s => s.replace(/^(Bip[ !,.]*)+(bip[ !,.]*)*/i, '').replace(/^\s+/, '');
+  // les phrases du robot (ou de la radio) réécrites comme des pensées, à la 1re personne
+  const PENSEES = {
+    'Tu n’as rien de cassé ? On s’est écrasés…': 'Aïe… Je n’ai rien de cassé ? Je me suis écrasé…',
+    'Tu es vivant !': 'Ouf… Je suis vivant !',
+    'Notre maison ! Pose d’abord un sol, puis des murs.': 'Ma base ! D’abord un sol, puis des murs.',
+    'Tes coffres sont reliés : ce que tu ranges ici, tu le retrouves dans le coffre de chaque base.': 'Mes coffres sont reliés : ce que je range ici, je le retrouve dans le coffre de chaque base.',
+    'Regarde, des filons brillants à miner !': 'Oh, des filons brillants à miner !',
+    'Ce monde est tout nouveau pour nous.': 'Ce monde est tout nouveau pour moi…',
+    'Alerte ! Protège la maison !': 'Alerte ! Je dois protéger ma base !',
+    'J’aspire les dernières gouttes de la réserve… Saut de secours vers la station !': 'J’utilise les dernières gouttes de la réserve… Saut de secours vers la station !',
+    'Notre vaisseau est en morceaux… mais on peut le réparer ! 3 pièces sont tombées tout près : suis les flèches jaunes. Attention, ici les nuits sont dangereuses !': 'Mon vaisseau est en morceaux… mais je peux le réparer ! 3 pièces sont tombées tout près : je suis les flèches jaunes. Et ici, les nuits ont l’air dangereuses…',
+    'Vite ! Il nous faut un abri : des murs, une porte… et un lit pour passer la nuit !': 'Vite ! Il me faut un abri : des murs, une porte… et un lit pour passer la nuit !',
+    'Rapportons-la à l’épave ! Pour l’installer, il faudra aussi des minerais : mine les filons brillants.': 'Je la rapporte à l’épave ! Pour l’installer, il me faudra aussi des minerais : je dois miner les filons brillants.',
+    'C’est tout ce qu’il y a par ici. Retournons à l’épave pour tout installer !': 'C’est tout ce qu’il y a par ici. Je retourne à l’épave pour tout installer !',
+    'Il manque encore 3 pièces… elles ont été projetées très loin. Construis un radar 📡 dans ta base (machines) : il captera les autres épaves !': 'Il me manque encore 3 pièces… elles ont été projetées très loin. Je vais construire un radar 📡 dans ma base (machines) : il captera les autres épaves !',
+    'On a réussi ! Il est comme neuf… Monte à bord : les étoiles nous attendent !': 'J’ai réussi ! Il est comme neuf… Je monte à bord : les étoiles m’attendent !',
+    'L’ordinateur de bord et le propulseur sont dans ces épaves. Et cette énergie… c’est sûrement le cœur du réacteur ! Regarde la carte.': 'L’ordinateur de bord et le propulseur sont dans ces épaves. Et cette énergie… c’est sûrement le cœur du réacteur ! Je regarde la carte.'
+  };
+  function versPensee(s) {
+    const b = sansBip(s); if (PENSEES[b]) return PENSEES[b];
+    if (/^Gravité /.test(b)) return b.replace(': attention aux sauts !', ': attention à mes sauts !');
+    return b;
+  }
+  let PENS_FILE = [], penseeHud = null;
+  // (appelée par robotDit) : une pensée à afficher ; si une pensée est déjà là, elle attend son tour
+  function penser(s, fini) {
+    const q = { s: versPensee(s), fini };
+    if (bulle && bulle.pensee) { if (!PENS_FILE.some(x => x.s === q.s) && bulle.s !== q.s) PENS_FILE.push(q); return; }
+    bulle = { s: q.s, t: 0, d: 1e9, fini: q.fini, pensee: true };
+  }
+  const penseeOuverte = () => !!(bulle && bulle.pensee);
+  // fermer la pensée (clic, toucher, touche, A) : la suivante s'affiche
+  function fermerPensee() {
+    if (!penseeOuverte()) return false;
+    if (bulle.t < 0.35) return true;   // on laisse le temps de la voir s'ouvrir
+    const n = PENS_FILE.shift(); bulle = n ? { s: n.s, t: 0, d: 1e9, fini: n.fini, pensee: true } : null; son('ui', 0.4); return true;
+  }
+  // la bulle elle-même : centrée sur l'explorateur, juste au-dessus du casque, la pointe vers lui (jamais déplacée ailleurs)
+  function bullePensee(s, x, yTete, a) {
+    ctx.save(); ctx.globalAlpha = a; ctx.font = '600 ' + Math.round(15 * U) + 'px ' + FB;
+    const lines = couper(s, Math.min(300 * U, W * 0.86)), lh = 20 * U, toucher = auDoigt || (() => { try { return (api.appareil && api.appareil() === 'toucher') || matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } })(), aide = '▸ ' + (padVu > 0 ? 'Ⓐ' : toucher ? 'touche l’écran' : 'clique') + ' pour continuer';
+    const w = Math.max(...lines.map(l => ctx.measureText(l).width), 190 * U) + 24 * U, h = lines.length * lh + 36 * U;
+    const bx = clamp(x - w / 2, 8, W - w - 8), by = Math.max(8, yTete - 14 * U - h), px = clamp(x, bx + 16 * U, bx + w - 16 * U);
+    ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.beginPath(); ctx.roundRect(bx + 2, by + 3, w, h, 14 * U); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#2d2433'; ctx.lineWidth = 2.2 * U; ctx.beginPath(); ctx.roundRect(bx, by, w, h, 14 * U); ctx.fill(); ctx.stroke();
+    // la pointe vers sa tête
+    ctx.beginPath(); ctx.moveTo(px - 9 * U, by + h - 1); ctx.lineTo(px, Math.min(yTete - 2 * U, by + h + 12 * U)); ctx.lineTo(px + 9 * U, by + h - 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillRect(px - 8 * U, by + h - 3 * U, 16 * U, 3.5 * U);
+    ctx.fillStyle = '#1e1a2e'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; lines.forEach((l, i) => ctx.fillText(l, bx + w / 2, by + 8 * U + i * lh));
+    ctx.globalAlpha = a * (0.55 + 0.45 * Math.abs(Math.sin(tG * 2.5))); ctx.font = '800 ' + Math.round(13 * U) + 'px ' + FB; ctx.fillStyle = '#8a5a00'; ctx.fillText(aide, bx + w / 2, by + h - 18 * U);
+    ctx.restore();
+  }
+  // la bulle de pensée, au-dessus de la tête de l'explorateur, et l'aide pour continuer en bas
+  function drawPensee(t) {
+    if (!penseeOuverte() || !J || (state !== 'jeu' && state !== 'cine')) return;
+    const b = bulle, x = sx(J.x), y = sy(J.y) - 150 * KP * Z - 14 * U;   // juste au-dessus de la tête (la bulle évite la zone de la tête)
+    penseeHud = () => bullePensee(b.s, x, sy(J.y) - 104 * KP * Z, Math.min(1, b.t * 6));   // dessinée avec l'interface, par-dessus la fumée et le brouillard
+  }
+
+  // =================================================================== V17 : les ONGLETS à droite (Construire, Cosmodex), le CURSEUR de la souris, MINER D'UN CLIC
+  // Les onglets sont collés au bord droit de l'écran ; les missions s'ouvrent en touchant le bandeau de l'objectif en haut.
+  function ongletsDroite(t) {
+    if (state !== 'jeu' || !J || construire || sacOuvert || echange || transfert || etabliOuvert || penseeOuverte()) return;
+    const L = [{ ico: '🏠', txt: 'Construire', f: () => { construire = true; bSouris = null; if (!bMat) bMat = matDefaut(); son('ui', 0.5); }, on: false, c: '#ffb34a' },
+      { ico: '⭐', txt: 'Équipe', f: () => { ongletC = 'equipe'; selEq = null; ouvrirCosmo(true); }, on: cosmoOuvert && ongletC === 'equipe', c: '#ffd23a' },
+      { ico: '📖', txt: 'Cosmodex', f: () => { if (ongletC === 'equipe') ongletC = 'faune'; ouvrirCosmo(true); }, on: cosmoOuvert && ongletC !== 'equipe', c: '#5ef0ff' }];
+    const tw = portrait ? 56 * U : 150 * U, th = 44 * U, gap = 8 * U, y0 = portrait ? barresY() + 56 * U : 122 * U + 46;
+    ctx.save();
+    L.forEach((o, i) => {
+      const y = y0 + i * (th + gap), x = W - tw, r = 14 * U;
+      ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.roundRect(x - 3, y + 3, tw + 3, th, [r, 0, 0, r]); ctx.fill();
+      ctx.fillStyle = o.on ? 'rgba(40,52,90,0.92)' : 'rgba(10,14,30,0.82)'; ctx.beginPath(); ctx.roundRect(x, y, tw, th, [r, 0, 0, r]); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = o.c; ctx.beginPath(); ctx.roundRect(x, y + 6 * U, 5 * U, th - 12 * U, 3 * U); ctx.fill();   // la languette de couleur
+      ctx.font = Math.round(19 * U) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.fillText(o.ico, x + (portrait ? 30 : 26) * U, y + th / 2 + 1);
+      if (!portrait) { ctx.font = '800 ' + Math.round(15 * U) + 'px ' + FB; ctx.textAlign = 'left'; ctx.fillText(o.txt, x + 44 * U, y + th / 2 + 1); }
+      tapBtns.push({ x, y, w: tw, h: th, f: o.f });
+    });
+    ctx.restore();
+  }
+  // le curseur : un viseur de la couleur de l'outil (cyan = multi-outil, rouge = laser), une pioche orange sur un rocher qu'on peut miner
+  const curSVG = (c, pioche) => 'url("data:image/svg+xml;utf8,' + encodeURIComponent(pioche
+    ? '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><path d="M6 9 Q16 1 27 7 L25 10 Q16 6 8 12 Z" fill="' + c + '" stroke="#2d2433" stroke-width="1.6"/><path d="M15 8 L18 9 L9 29 L6 28 Z" fill="#a8743e" stroke="#2d2433" stroke-width="1.6"/><circle cx="7" cy="28" r="2.4" fill="#fff" stroke="#2d2433"/></svg>'
+    : '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="10" fill="none" stroke="#2d2433" stroke-width="5"/><circle cx="16" cy="16" r="10" fill="none" stroke="' + c + '" stroke-width="2.6"/><path d="M16 1v8M16 23v8M1 16h8M23 16h8" stroke="#2d2433" stroke-width="4.5"/><path d="M16 2v7M16 23v7M2 16h7M23 16h7" stroke="' + c + '" stroke-width="2"/><circle cx="16" cy="16" r="2.2" fill="' + c + '"/></svg>') + '") ' + (pioche ? '6 28' : '16 16') + ', crosshair';
+  const CURSEURS = { multi: curSVG('#5ef0ff'), laser: curSVG('#ff5a6a'), pioche: curSVG('#ffb34a', true) };
+  let sourisP = null, curseurActuel = '';
+  function filonSous(p) {
+    if (!p || !J) return null; const wx = camX + (p.x - W / 2) / Z, wy = camY + (p.y - H / 2) / Z; let b = null, bd = 46;
+    for (const o of filonsAutour(wx, wy, 80)) { if (!(o.f.qte > 0)) continue; const d = Math.hypot(o.x - wx, (o.y - 20 - wy) * 1.1); if (d < bd) { bd = d; b = o; } }
+    return b;
+  }
+  function majCurseur() {
+    let c = '';
+    if (state === 'jeu' && J && !construire && !paused && !penseeOuverte() && sourisP && !sacOuvert && !transfert && !etabliOuvert && !cosmoOuvert && !journalOuvert) c = filonSous(sourisP) ? 'pioche' : outilActif();
+    if (c === curseurActuel) return; curseurActuel = c; try { canvas.style.cursor = c ? CURSEURS[c] : ''; } catch (e) { /* rien */ }
+  }
+  try { canvas.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { const r = canvas.getBoundingClientRect(); sourisP = { x: e.clientX - r.left, y: e.clientY - r.top }; } }); canvas.addEventListener('pointerleave', () => { sourisP = null; }); } catch (e) { /* rien */ }
+  // un clic sur un rocher (filon) : l'explorateur y va tout seul, prend le multi-outil devant et mine jusqu'au bout
+  function clicFilon(p) { const o = filonSous(p); if (!o) return false; autoMine = { x: o.x, y: o.y, t: 0, d0: 1e9 }; son('ui', 0.4); return true; }
+  function versAutoMine(dt) {
+    const A = autoMine; if (!A || !J) return null;
+    const dx = A.x - J.x, dy = A.y - J.y, d = Math.hypot(dx, dy * 1.4);
+    if (d < 84) { if (!A.arrive) { A.arrive = true; if (outilActif() !== 'multi') choisirOutil(0); } return { x: 0, y: 0 }; }
+    A.t += dt || 0.016; if (A.t > 1.2) { if (d > A.d0 - 20) { autoMine = null; dire('⛏ Je n’arrive pas jusqu’à ce rocher…', 2.5); return null; } A.t = 0; A.d0 = d; }   // bloqué (eau, mur) : on abandonne
+    const m = Math.hypot(dx, dy) || 1; return { x: dx / m, y: dy / m };
+  }
+  // le rocher est vide : fini
+  function majAutoMine() { const A = autoMine; if (!A) return; if (A.arrive && !filonsAutour(A.x, A.y, 40).some(o => o.f.qte > 0 && Math.hypot(o.x - A.x, o.y - A.y) < 6)) autoMine = null; }
+  // =================================================================== V17 : LE SAC (plus beau, plus clair) — une grille de cases, chaque objet se JETTE (1 ou tout)
+  // Une case par sorte de minerai (icône, nom, quantité) ; toucher une case la choisit ; en bas : « Jeter 1 » et « Tout jeter ».
+  let sacSel = null, sacMsg = null;
+  function jeterSac(id, n) {
+    const X = E0(), q = X.sac[id] || 0; if (!q) return; const k = Math.min(n, q); X.sac[id] = q - k; if (!X.sac[id]) { delete X.sac[id]; sacSel = null; }
+    sacMsg = { s: '🗑️ ' + k + ' ' + MIN[id].nom.toLowerCase() + ' jeté' + (k > 1 ? 's' : ''), t: 0 }; son('ui', 0.5); if (J) burst(J.x, J.y - 40, MIN[id].c, 6, 120, 60); sauver();
+  }
+  function drawSac() {
+    const X = E0(), L = listeObjets(X.sac), cap = CAP_SAC[X.amel.sac], n = nb(X.sac);
+    const pw = Math.min(W - 24 * U, 560 * U), cs = portrait ? 76 * U : 92 * U, gap = 10 * U, cols = Math.max(3, Math.floor((pw - 36 * U + gap) / (cs + gap))), rows = Math.max(2, Math.ceil(Math.max(1, L.length) / cols));
+    const ph = Math.min(H - 40 * U, 132 * U + rows * (cs + gap) + 70 * U), px = (W - pw) / 2, py = (H - ph) / 2;
+    ctx.save(); ctx.fillStyle = 'rgba(5,8,20,0.6)'; ctx.fillRect(0, 0, W, H);
+    const g = ctx.createLinearGradient(0, py, 0, py + ph); g.addColorStop(0, 'rgba(30,40,80,0.98)'); g.addColorStop(1, 'rgba(14,18,42,0.98)');
+    ctx.fillStyle = g; ctx.strokeStyle = 'rgba(160,190,255,0.55)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 20 * U); ctx.fill(); ctx.stroke();
+    // l'en-tête : le sac et sa jauge de remplissage
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = Math.round(26 * U) + 'px system-ui'; ctx.fillStyle = '#fff'; ctx.fillText('🎒', px + 18 * U, py + 32 * U);
+    ctx.font = '800 ' + Math.round(19 * U) + 'px ' + FB; ctx.fillStyle = '#ffe9a8'; ctx.fillText('Mon sac', px + 56 * U, py + 26 * U);
+    const jx = px + 56 * U, jw = pw - 56 * U - 120 * U, jy = py + 42 * U, k = clamp(n / cap, 0, 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.beginPath(); ctx.roundRect(jx, jy, jw, 9 * U, 5 * U); ctx.fill();
+    ctx.fillStyle = k >= 1 ? '#ff5a4a' : k > 0.75 ? '#ffb34a' : '#7affd0'; ctx.beginPath(); ctx.roundRect(jx, jy, Math.max(9 * U, jw * k), 9 * U, 5 * U); ctx.fill();
+    ctx.font = '800 ' + Math.round(14 * U) + 'px ' + FB; ctx.fillStyle = k >= 1 ? '#ffb0a0' : '#fff'; ctx.textAlign = 'right'; ctx.fillText(n + ' / ' + cap + (k >= 1 ? '  plein !' : ''), px + pw - 18 * U, py + 30 * U);
+    // la grille des objets
+    const gx = px + (pw - (cols * cs + (cols - 1) * gap)) / 2, gy = py + 70 * U;
+    for (let i = 0; i < Math.max(L.length, cols * rows); i++) {
+      const x = gx + (i % cols) * (cs + gap), y = gy + Math.floor(i / cols) * (cs + gap); if (y + cs > py + ph - 70 * U) break;
+      const o = L[i], on = o && sacSel === o.id;
+      ctx.fillStyle = on ? 'rgba(122,255,208,0.22)' : o ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)'; ctx.beginPath(); ctx.roundRect(x, y, cs, cs, 14 * U); ctx.fill();
+      ctx.strokeStyle = on ? '#7affd0' : o ? MONDE.RARETE[o.m.r].c + '99' : 'rgba(255,255,255,0.08)'; ctx.lineWidth = on ? 3 * U : 1.5; ctx.stroke();
+      if (!o) continue;
+      iconeMinerai(x + cs / 2, y + cs * 0.4, cs * 0.2, o.m);
+      ctx.textAlign = 'center'; ctx.font = '700 ' + Math.round(11 * U) + 'px ' + FB; ctx.fillStyle = MONDE.RARETE[o.m.r].c; ctx.fillText(o.m.nom, x + cs / 2, y + cs * 0.76, cs - 8 * U);
+      ctx.font = '800 ' + Math.round(13 * U) + 'px ' + FB; ctx.fillStyle = '#062a22'; const qs = '×' + o.q, qw = ctx.measureText(qs).width + 12 * U;
+      ctx.fillStyle = '#ffe9a8'; ctx.beginPath(); ctx.roundRect(x + cs - qw - 4 * U, y + 4 * U, qw, 20 * U, 10 * U); ctx.fill(); ctx.fillStyle = '#1e1a2e'; ctx.fillText(qs, x + cs - qw / 2 - 4 * U, y + 14 * U);
+      tapBtns.push({ x, y, w: cs, h: cs, f: () => { sacSel = sacSel === o.id ? null : o.id; son('ui', 0.4); } });
+    }
+    if (!L.length) { ctx.textAlign = 'center'; ctx.font = '600 ' + Math.round(14 * U) + 'px ' + FB; ctx.fillStyle = '#dfe6ff'; ctx.fillText('Vide. Clique un rocher qui brille pour le miner !', px + pw / 2, gy + cs / 2); }
+    // le message (« 2 fer jetés »)
+    if (sacMsg) { sacMsg.t += 1 / 60; if (sacMsg.t > 2) sacMsg = null; else { ctx.textAlign = 'center'; ctx.font = '700 ' + Math.round(13 * U) + 'px ' + FB; ctx.fillStyle = '#ffd0b8'; ctx.globalAlpha = Math.min(1, 2 - sacMsg.t); ctx.fillText(sacMsg.s, px + pw / 2, py + ph - 76 * U); ctx.globalAlpha = 1; } }
+    ctx.restore();
+    // les boutons : jeter (si une case est choisie) et fermer
+    const by = py + ph - 56 * U, sel = sacSel && X.sac[sacSel] > 0 ? sacSel : null;
+    if (sel) {
+      bouton(px + 16 * U, by, 130 * U, 42 * U, 'Jeter 1', () => jeterSac(sel, 1), false, '🗑️');
+      bouton(px + 154 * U, by, 140 * U, 42 * U, 'Tout jeter', () => jeterSac(sel, 1e9), false, '🗑️');
+    } else { ctx.save(); ctx.font = '600 ' + Math.round(12 * U) + 'px ' + FB; ctx.fillStyle = '#9fb0d8'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(L.length ? 'Touche un objet pour le jeter' : '', px + 18 * U, by + 21 * U); ctx.restore(); }
+    bouton(px + pw - 136 * U, by, 120 * U, 42 * U, 'Fermer', () => { sacOuvert = false; sacSel = null; }, false, '✕');
   }
 
 
@@ -8430,6 +8641,8 @@ function mount(root, api) {
     if (state === 'jeu' && !paused && !recit) {
       majJ(dt); majRobot(dt); majCam(dt); majParts(dt); majBase(dt); majCreatures(dt); majCombat(dt); majRaids(dt); majCaches(dt, tG); majCompagnons(dt); majIncubateur(dt); majJourNuit(dt); majFruitsSol(dt); majRival(dt); majLieu(dt);
       majMsgs(dt);
+      if (penseeOuverte() && J) J.th += angDiff(J.th, 0) * Math.min(1, dt * 6);   // V17 : il se tourne vers nous pour parler
+      if (!bulle && PENS_FILE.length) { const n = PENS_FILE.shift(); bulle = { s: n.s, t: 0, d: 1e9, fini: n.fini, pensee: true }; }
       if (bulle) { bulle.t += dt; if (bulle.fini && bulle.t < bulle.d - 0.35) { try { if (bulle.fini()) bulle.t = bulle.d - 0.35; } catch (e) { /* rien */ } } if (bulle.t > bulle.d) bulle = null; }
     }
     if (state === 'combat' && !paused && !recit) { majCombatTour(dt); majMsgs(dt); }
@@ -8445,7 +8658,7 @@ function mount(root, api) {
     if (state === 'charge') { ciel(ctx, W, H, t, 0, 0, 0); ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(16 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.fillText('Chargement…', W / 2, H / 2); return; }
     if (state === 'titre') return drawTitre(t);
     if (state === 'creation') return drawCreation(t, dt);
-    if (state === 'cine') return drawCine(t, dt);
+    if (state === 'cine') { drawCine(t, dt); if (penseeHud) { penseeHud(); penseeHud = null; } return; }   // V17 : la pensée aussi pendant la fin du crash
     if (state === 'espace') { drawEspace(t, dt); hudEspace(t); if (flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + flash + ')'; ctx.fillRect(0, 0, W, H); } if (paused) ecranPause2(t, dt); return; }
     if (state === 'transi') return drawTransi(t, dt);
     if (state === 'combat' && CB) { drawCombat(t, dt); if (paused) ecranPause2(t, dt); return; }
@@ -8508,7 +8721,7 @@ function mount(root, api) {
     _test: {
       state: () => state, J: () => J, PL: () => PL, look: () => look, cine: () => cine,
       crash: () => ({ dep: GAL.depart.i, v17: crashV17(), bid: PL && PL.bid, heure: heure(), phase: phaseJour(heure()), lum: PL && PL.lum, nav: NAV && { x: NAV.x, y: NAV.y, cassee: NAV.cassee, epave: NAV.epave, brume: !!NAV.brume }, epave: epave && { x: epave.x, y: epave.y, repare: !!epave.repare }, pieces: E0().pieces.slice(), posees: E0().posees.slice(), sol: piecesSol.map(q => ({ id: q.id, x: Math.round(q.x), y: Math.round(q.y) })), lieux: lieuxCrash(), radar: E0().radar, radarT: E0().radarT, faune: CR.map(c => ({ e: c.esp, s: c.crash, n: c.nivFixe, nuit: !!c.chasseNuit, x: Math.round(c.x), y: Math.round(c.y) })), cache: CRASH.cache, abri: CRASH.abri, action: actionBtn && actionBtn.txt, etape: crashV17() ? etapeCrash() : null }),
-      setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, ecran: (x, y) => [sx(x), sy(y)], dpr: () => dpr, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
+      setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, sonsT: () => Object.keys(SONS), nappesT: () => nappes(tG).map(n => ({ x: n.x, y: n.y, r: n.r })), dansBrumeT: () => dansBrume(tG), echelleUI: () => ({ W, H, U, dpr, portrait }), sacOuvrir(v) { sacOuvert = v; }, sacSelT: () => sacSel, jeterSac, ongletT: () => ongletC, cosmoT: () => cosmoOuvert, autoMineT: () => autoMine && { arrive: !!autoMine.arrive }, sacFlashT: () => sacFlash, curseur: () => curseurActuel, sac: () => nb(E0().sac), remplirSac(n) { E0().sac.fer = (E0().sac.fer || 0) + n; }, bulleTest: () => bulle && { s: bulle.s, pensee: !!bulle.pensee, t: +bulle.t.toFixed(1) }, fileP: () => PENS_FILE.length, ecran: (x, y) => [sx(x), sy(y)], dpr: () => dpr, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
       objectif() { const o = objectif(); return o && { id: o.c.id, etape: o.etape, lieu: o.lieu, sys: o.sys, k: o.k, saut: o.saut && o.saut.nom }; },
       transfert: () => transfert, transi: () => transi, passerSaut, sauter(i, sec) { transi = sec ? { sorte: 'saut', t: 0, d: 5, vers: i, cout: 0 } : { sorte: 'saut', t: 0, d: 2, vers: i, cout: 1 }; state = 'transi'; stT = 0; }, razUI: () => razUI, setRaz(v) { razUI = v; }, recommencer, recupererAncienne, pause(v) { setPaused(v); }, sauver, carte: () => carte, dest: () => dest, poserDest, carteCibles: () => carteCibles, toucherCarte(x, y) { toucherCarteLocale({ x, y }); }, objSel: () => carte && carte.objSel, infos(v) { if (carte) carte.infos = v; }, carteVue(v) { if (carte) carte.vue = v; }, utiliserBidons, nbBidons, estCoupee, coupees, capSoute, stockRelie, capRelie, dangerFaune, misEtat, evt, CHAINES, missionSuivie, etabli: () => etabliOuvert, ouvrirEtabli() { etabliOuvert = true; }, onglet2(o) { ongletJ = o; }, raidMaintenant() { const b = maBase(); if (b) b.raidT = 0; }, sommeil: () => sommeil, fabriquer(id) { fabriquer(RECETTES.find(r => r.id === id)); }, ouvrirTransfert, fermerTransfert() { transfert = null; }, action: () => actionBtn && actionBtn.txt, faireAction() { if (actionBtn && actionBtn.f) actionBtn.f(); }, NAVp: () => NAV, base: () => maBase(),
       jouer, creation() { state = 'creation'; stT = 0; }, cineT(x) { if (!cine) lancerCine(); cine.t = x; }, finCine, decoller,
