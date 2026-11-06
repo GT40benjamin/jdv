@@ -5578,3 +5578,47 @@ span.atl-esjaq{display:grid;place-items:center;font-size:60px}
 }
 /* 2.0.159 : sous l'Atelier (plein écran), la bibliothèque de la borne ne se dessine plus (ses tuiles et badges animés tournaient encore derrière) */
 body.atl-on #jdw-lib{content-visibility:hidden}
+/* 2.0.160 (équipe Jeux, demande de l'admin) : l'onglet BOUTIQUE de l'espace du jeu — toute la largeur sur PC, stats sur une ligne, articles en cartes */
+.atl-espace:is(:has(.atl-pane[data-k="boutique"]:not([hidden])),:has(.atl-pane[data-k="elements"]:not([hidden])),:has(.atl-pane[data-k="stats"]:not([hidden])),:has(.atl-pane[data-k="route"]:not([hidden]))) > .atl-pbox{max-width:1400px;width:100%}
+/* 2.0.160 (l'admin : « les éléments pleine page au maximum ») : grille des éléments qui s'adapte à la largeur, onglets sur une ligne, bulle d'aide pleine largeur, 3 colonnes au téléphone */
+.atl-espace .atl-pane[data-k="elements"] .atl-libg,.atl-espace .atl-pane[data-k="elements"] .atl-pl{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.atl-espace .atl-pane[data-k="elements"] .atl-libnav{flex-wrap:nowrap}
+.atl-espace .atl-pane[data-k="elements"] .atl-plc small,.atl-espace .atl-pane[data-k="elements"] .atl-enc small{color:rgba(255,255,255,.9);font:600 12.5px/1.25 var(--body);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.atl-escourbe .p1.on{fill:var(--esp-acc)!important;stroke:#4a2370;stroke-width:2.5}.atl-escourbe .ax.val{fill:#4a2370;font:900 14px var(--body)}
+.atl-espace .atl-pane[data-k="elements"] .atl-libmasc{width:100%;max-width:none;box-sizing:border-box}
+@media (max-width:760px){.atl-espace .atl-pane[data-k="elements"] .atl-libg,.atl-espace .atl-pane[data-k="elements"] .atl-pl{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:6px}.atl-espace .atl-pane[data-k="elements"] .atl-plc{grid-template-rows:auto auto;padding:4px;min-width:0}.atl-espace .atl-pane[data-k="elements"] .atl-plv{width:100%;height:auto;aspect-ratio:1}.atl-espace .atl-pane[data-k="elements"] .atl-plv .atl-crop{width:92%;height:92%}.atl-espace .atl-pane[data-k="elements"] .atl-plc small{font-size:11.5px;overflow-wrap:anywhere}}
+.atl-esbnums{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:4px}
+.atl-esbnums .atl-esnum{padding:14px 10px;border-radius:18px;background:var(--esp-card);border:1.5px solid var(--esp-line);box-shadow:0 8px 24px rgba(130,60,150,.12)}
+.atl-esbout{display:grid;gap:18px}
+.atl-esbfam{display:grid;gap:10px}
+.atl-esbfam > h4{margin:4px 2px 0;font:400 20px var(--display,inherit);letter-spacing:.3px;color:#4a2370}
+.atl-esbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:12px}
+.atl-esbart{position:relative;display:grid;grid-template-columns:88px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 12px 12px 14px;border-radius:20px;background:rgba(255,255,255,.86);border:1.5px solid rgba(255,255,255,.95);box-shadow:0 6px 20px rgba(130,60,150,.12);color:var(--esp-ink)}
+.atl-esbart.off{opacity:.7}
+.atl-esbimg{width:88px;height:88px;border-radius:16px;object-fit:contain;background:radial-gradient(circle at 50% 40%,#fff,color-mix(in srgb,var(--esp-acc) 14%,#f4ecff));box-shadow:inset 0 0 0 1.5px rgba(74,35,112,.08);display:block}
+.atl-esbimg.vide{display:grid;place-items:center;font-size:40px}
+.atl-esbtx{min-width:0;display:grid;gap:6px}
+.atl-esbhd{display:flex;align-items:flex-start;gap:10px}
+.atl-esbhd b{flex:1;min-width:0;font:900 16.5px/1.2 var(--body);color:#2a1e45;overflow-wrap:anywhere}
+.atl-esbprix{flex:none;padding:4px 10px;border-radius:999px;background:linear-gradient(180deg,#fff4c4,#ffd84d);color:#5a3a00;font:900 14px var(--body);box-shadow:0 2px 0 #d9a520}
+.atl-esbph{margin:0;color:var(--esp-soft);font:600 13.5px/1.35 var(--body)}
+.atl-esbchips{display:flex;flex-wrap:wrap;gap:6px}
+.atl-esbchip{padding:3px 9px;border-radius:999px;background:#f1ebfa;color:#5b4a7a;font:800 12px var(--body)}
+.atl-esbchip.ok{background:#e3f7ec;color:#16754a}
+.atl-esbchip.conso{background:#e4f1ff;color:#1f5fa8}
+.atl-esbchip.att{background:#fff1dc;color:#9a5a00}
+.atl-esbmenu{align-self:start;width:44px;height:44px;border-radius:14px;border:0;background:rgba(74,35,112,.07);color:#4a2370;font:900 22px/1 var(--body);cursor:pointer}
+.atl-esbmenu:hover,.atl-esbmenu:focus-visible{background:rgba(74,35,112,.15);outline:none}
+.atl-esbpop{position:fixed;z-index:120;display:grid;gap:4px;padding:6px;border-radius:16px;background:#fff;box-shadow:0 16px 40px rgba(40,20,70,.28)}
+.atl-esbpop button{display:flex;align-items:center;gap:8px;min-height:46px;padding:10px 12px;border:0;border-radius:12px;background:none;color:#2a1e45;font:800 14.5px var(--body);text-align:left;cursor:pointer}
+.atl-esbpop button:hover,.atl-esbpop button:focus-visible{background:#f3ecfc;outline:none}
+.atl-esbpop button:last-child{color:#b3261e}
+.atl-esbvide{display:flex!important;align-items:center;gap:14px}
+.atl-esbvide .ic{font-size:40px}.atl-esbvide p{margin:0;font:700 15px/1.45 var(--body);color:var(--esp-ink)}
+@media (max-width:760px){
+  .atl-esbnums{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .atl-esbgrid{grid-template-columns:minmax(0,1fr)}
+  .atl-esbart{grid-template-columns:72px minmax(0,1fr) auto;gap:10px;padding:10px}
+  .atl-esbimg{width:72px;height:72px;border-radius:14px}
+  .atl-esbhd{flex-wrap:wrap;gap:6px}
+}

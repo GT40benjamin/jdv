@@ -11045,6 +11045,87 @@ async function atlMaBoutique(box, f) {
   d.appendChild(atlEl('small', 'atl-boutn', 'Chaque vente te revient en entier, en crédits : pour créer d’autres jeux et acheter dans la borne. Les crédits ne se changent pas en euros.'));
   box.appendChild(d);
 }
+// 2.0.160 (équipe Jeux, demande de l'admin) : l'onglet BOUTIQUE de l'espace du jeu — les articles en cartes (vraie image, nom, phrase, prix,
+// ventes, crédits gagnés, « 🔁 se rachète »), groupés par famille, 2 colonnes sur PC ; « ⋯ » : demander une modification à Pooky (message
+// prérempli dans la discussion) ou retirer l'article de la vente (at_boutique_retirer, SQL v155 : les joueurs qui l'ont acheté le gardent)
+function atlEspBoutFamille(x) {
+  if (x.conso) return [0, '🔁 Packs à racheter'];
+  const m = String(x.cle || '').toLowerCase().split(/[_-]/)[0];
+  if (/^(tenue|costume|habit|skin|chapeau|look)/.test(m)) return [1, '👕 Tenues'];
+  if (/^(deco|decor|meuble|maison)/.test(m)) return [2, '🏡 Décor'];
+  return [3, '🎁 Objets'];
+}
+async function atlEspBoutique(box, f) {
+  if (!box || !f || isGuest()) return;
+  box.textContent = ''; box.appendChild(atlEl('p', 'atl-chv', 'Un instant…'));
+  let l = null; if (!atlAdminIci()) { try { l = await rpc('at_boutique_mes_ventes', { p_name: profile.name }, { quiet: true, quiet404: true }); } catch (e) { l = null; } }
+  if (!box.isConnected) return; box.textContent = '';
+  const mine = Array.isArray(l) ? l.filter(x => x && x.fiche === f.id) : [];
+  if (!mine.length) {
+    const v = atlEl('div', 'atl-escard atl-esbvide');
+    v.append(atlEl('span', 'ic', '🛍️'), atlEl('p', '', atlAdminIci() ? 'La boutique de ce jeu se voit dans la borne.' : 'Ton jeu n’a pas encore de boutique. Demande ' + gA() + ' d’en avoir une : tes joueurs pourront acheter des tenues ou des objets, et chaque vente te revient en crédits !'));
+    box.appendChild(v); return;
+  }
+  const G = new Map(); for (const x of mine) { const [o, lab] = atlEspBoutFamille(x); if (!G.has(o)) G.set(o, { lab, l: [] }); G.get(o).l.push(x); }
+  for (const o of [...G.keys()].sort()) {
+    const g = G.get(o), sec = atlEl('section', 'atl-esbfam'); sec.appendChild(atlEl('h4', '', g.lab + ' · ' + g.l.length));
+    const grid = atlEl('div', 'atl-esbgrid');
+    for (const x of g.l) grid.appendChild(atlEspBoutCarte(x, f, box));
+    sec.appendChild(grid); box.appendChild(sec);
+  }
+  box.appendChild(atlEl('p', 'atl-esnote', 'Chaque vente te revient en entier, en crédits : pour créer d’autres jeux et acheter dans la borne. Les crédits ne se changent pas en euros.'));
+}
+function atlEspBoutCarte(x, f, box) {
+  const c = atlEl('article', 'atl-esbart' + (x.en_vente ? '' : ' off'));
+  const u = atlIaUrl(x.image), im = u ? atlEl('img', 'atl-esbimg') : atlEl('span', 'atl-esbimg vide', '🎁');
+  if (u) { im.src = u; im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; }
+  const tx = atlEl('div', 'atl-esbtx'), hd = atlEl('div', 'atl-esbhd');
+  hd.append(atlEl('b', '', x.nom || 'Article'), atlEl('span', 'atl-esbprix', (x.prix | 0) + ' 💎'));
+  tx.appendChild(hd); if (x.texte) tx.appendChild(atlEl('p', 'atl-esbph', String(x.texte)));
+  const ch = atlEl('div', 'atl-esbchips'), nv = x.ventes | 0;
+  ch.append(atlEl('span', 'atl-esbchip', '🧾 ' + nv + ' vente' + (nv > 1 ? 's' : '')), atlEl('span', 'atl-esbchip ok', '💰 ' + atlNb0(x.gagne) + ' 💎 pour toi'));
+  if (x.conso) ch.appendChild(atlEl('span', 'atl-esbchip conso', '🔁 se rachète' + ((x.quantite | 0) > 1 ? ' · ×' + (x.quantite | 0) : '')));
+  if (!x.en_vente) ch.appendChild(atlEl('span', 'atl-esbchip att', x.filtre_ok ? '⏸️ pas en vente' : '⏳ en vérification'));
+  tx.appendChild(ch);
+  const mb = atlEl('button', 'atl-esbmenu', '⋯'); mb.type = 'button'; mb.title = 'Que faire avec cet article ?';
+  mb.setAttribute('aria-label', 'Que faire avec « ' + (x.nom || 'cet article') + ' » ?'); mb.setAttribute('aria-haspopup', 'menu');
+  mb.addEventListener('click', ev => { ev.stopPropagation(); atlEspBoutMenu(mb, x, f, box); });
+  c.append(im, tx, mb); return c;
+}
+function atlEspBoutMenu(btn, x, f, box) {
+  for (const o of document.querySelectorAll('.atl-esbpop')) o.remove();
+  const P = atlEl('div', 'atl-esbpop'); P.setAttribute('role', 'menu');
+  let fin = null;
+  const it = (t, fn) => { const b = atlEl('button', '', t); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.addEventListener('click', () => { fin(); fn(); }); P.appendChild(b); return b; };
+  it('💬 Demander une modification ' + gA(), () => {
+    const msg = 'Pour l’article « ' + (x.nom || '') + ' » (' + (x.prix | 0) + ' 💎), je voudrais : ';
+    atlEspFermer(); atlProjTab('demandes'); try { atlDiscOuvrir(true); } catch (e) {}
+    let n = 0; const go = () => {
+      const W = ATL.root && ATL.root.querySelector('.atl-wiz'), ta = W && W.querySelector('.atl-disc textarea');
+      if (!ta || !ta.getClientRects().length) { if (++n < 25) setTimeout(go, 120); return; }
+      ta.value = msg; ta.dispatchEvent(new Event('input', { bubbles: true }));
+      try { ta.focus({ preventScroll: true }); ta.setSelectionRange(msg.length, msg.length); } catch (e) {}
+    };
+    setTimeout(go, 150);
+  });
+  it('🗑️ Retirer cet article de la vente', async () => {
+    const ok = await atlConfirmer('Retirer « ' + (x.nom || 'cet article') + ' » ?', 'Il ne sera plus en vente dans ton jeu. Les joueurs qui l’ont acheté le gardent.', '🗑️ Oui, le retirer');
+    if (!ok) return;
+    let r = null; try { r = await rpc('at_boutique_retirer', { p_name: profile.name, p_article: x.id }); } catch (e) { r = null; }
+    if (!r || !r.ok) { atlToast('Je n’ai pas pu retirer l’article : réessaie dans un moment.'); return; }
+    atlToast('« ' + (x.nom || 'L’article') + ' » n’est plus en vente.'); try { BOUT.r = null; } catch (e) {}
+    atlEspBoutique(box, f);
+  });
+  document.body.appendChild(P);
+  const r = btn.getBoundingClientRect(), w = Math.min(300, innerWidth - 16);
+  P.style.width = w + 'px'; P.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px';
+  const h = P.offsetHeight; P.style.top = (r.bottom + 6 + h > innerHeight - 8 ? Math.max(8, r.top - 6 - h) : r.bottom + 6) + 'px';
+  const dehors = e => { if (P.contains(e.target) || e.target === btn) return; fin(); };
+  const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); fin(); btn.focus(); } };
+  fin = () => { P.remove(); document.removeEventListener('pointerdown', dehors, true); document.removeEventListener('keydown', esc, true); removeEventListener('scroll', fin, true); };
+  setTimeout(() => { document.addEventListener('pointerdown', dehors, true); document.addEventListener('keydown', esc, true); addEventListener('scroll', fin, true); }, 0);
+  try { P.firstChild.focus({ preventScroll: true }); } catch (e) {}
+}
 // 2.0.56 (équipe de L'Explorateur de l'espace) : le MONDE PARTAGÉ DE LA SALLE d'un jeu qui déclare « monde: true » — des documents JSON
 // par jeu et par salle qui restent quand tout le monde est parti (at_monde_docs, SQL v87) et les échanges entre joueurs en 3 temps
 // (proposer → l'autre accepte → on reconfirme = « conclu », 5 min au plus). Promesses ; null pour un invité, hors ligne ou hors salle.
@@ -16772,11 +16853,16 @@ function atlEspace(W, box, f, g, pane) {
   { const p = pane('route'); p.appendChild(atlEl('h3', 'atl-ph3', '🗺️ La feuille de route de ton jeu'));
     const c = atlEl('section', 'atl-escard atl-esroute'), dl = atlEl('dl');
     const L = [['idee', '💡 L’idée'], ['but', '🎯 Le but'], ['heros', '🦸 Les héros'], ['monde', '🏞️ Le monde'], ['commandes', '🕹️ Les commandes'], ['score', '🏆 Le score'], ['style', '🎨 Le style'], ['personnages', '🧑‍🤝‍🧑 Personnages'], ['objets', '🎁 Objets'], ['decor', '🏡 Décor'], ['sons', '🔊 Sons et musique']];
-    let n = 0; for (const [k, lab] of L) { const v = fi[k]; const t = Array.isArray(v) ? v.filter(Boolean).map(x => typeof x === 'object' ? (x.nom || x.texte || '') : String(x)).filter(Boolean).join(' · ') : typeof v === 'string' ? v : ''; if (!t.trim()) continue; dl.append(atlEl('dt', '', lab), atlEl('dd', '', t.trim())); n++; }
+    const B = fi.bases && typeof fi.bases === 'object' ? fi.bases : {}, fx = Object.assign({}, fi);   // 2.0.160 : la fiche range souvent le type, le score et le style dans « bases »
+    if (!fx.score && B.score) fx.score = B.score; if (!fx.style && B.style) fx.style = B.style;
+    { const t = [B.type, B.dim, B.vue, B.avec].filter(x => typeof x === 'string' && x.trim()); if (t.length) fx.type = t.join(' · '); }
+    if (typeof fi.collection === 'string' && fi.collection.trim()) fx.collection = fi.collection;
+    L.splice(1, 0, ['type', '🎮 Le type de jeu']); L.push(['collection', '📖 La collection']);
+    let n = 0; for (const [k, lab] of L) { const v = fx[k]; const t = Array.isArray(v) ? v.filter(Boolean).map(x => typeof x === 'object' ? (x.nom || x.texte || '') : String(x)).filter(Boolean).join(' · ') : typeof v === 'string' ? v : ''; if (!t.trim()) continue; dl.append(atlEl('dt', '', lab), atlEl('dd', '', t.trim())); n++; }
     if (!n) c.appendChild(atlEl('p', 'atl-chv', 'La feuille de route se remplit avec ' + gN() + ' au fil de vos discussions.')); else c.appendChild(dl);
     c.appendChild(atlEl('p', 'atl-esnote', 'Une envie de changer quelque chose ? Dis-le ' + gA() + ' : il met la feuille de route à jour.')); p.appendChild(c); }
   // 🛍️, 🗂️, 📊, ⚙️ : les sections
-  { const p = pane('boutique'); p.appendChild(atlEl('h3', 'atl-ph3', '🛍️ La boutique de ton jeu')); const st = atlEl('div', 'atl-escards atl-esnums'); st.dataset.esp = 'boutique'; p.appendChild(st); const c = atlEl('div', 'atl-escard'); p.appendChild(c); atlMaBoutique(c, f); }
+  { const p = pane('boutique'); p.appendChild(atlEl('h3', 'atl-ph3', '🛍️ La boutique de ton jeu')); const st = atlEl('div', 'atl-esnums atl-esbnums'); st.dataset.esp = 'boutique'; p.appendChild(st); const c = atlEl('div', 'atl-esbout'); p.appendChild(c); atlEspBoutique(c, f); }
   { const p = pane('versions'); p.appendChild(atlEl('h3', 'atl-ph3', '🗂️ Les versions de ton jeu'));
     const vs = (Array.isArray(f.versions) ? f.versions.slice() : []).filter(v => v && (v.v | 0)).sort((a, b) => (b.v | 0) - (a.v | 0));
     if (!vs.length) p.appendChild(atlEl('p', 'atl-chv', 'Ta première version arrive : elle s’affichera ici.'));
@@ -16933,7 +17019,7 @@ async function atlEspStats(W, f) {
 }
 // la courbe (SVG, sans bibliothèque) : parties par jour (trait plein) et joueurs différents (pointillés), vrais chiffres
 function atlEspCourbe(J, mini) {
-  const W0 = 640, H0 = 200, m = { l: 34, r: 12, t: 14, b: 28 }, n = Math.max(1, J.length), vp = d => d.parties != null ? d.parties | 0 : d.lancements | 0, vj = d => d.pjoueurs != null ? d.pjoueurs | 0 : d.joueurs | 0, mx = Math.max(1, ...J.map(vp), ...J.map(vj));
+  const W0 = 640, H0 = 210, m = { l: 34, r: 14, t: 30, b: 28 }, n = Math.max(1, J.length), vp = d => d.parties != null ? d.parties | 0 : d.lancements | 0, vj = d => d.pjoueurs != null ? d.pjoueurs | 0 : d.joueurs | 0, mx = Math.max(1, ...J.map(vp), ...J.map(vj));
   const x = i => m.l + (n === 1 ? (W0 - m.l - m.r) / 2 : i * (W0 - m.l - m.r) / (n - 1)), y = v => m.t + (H0 - m.t - m.b) * (1 - v / mx);
   const ns = 'http://www.w3.org/2000/svg', S = document.createElementNS(ns, 'svg'); S.setAttribute('viewBox', '0 0 ' + W0 + ' ' + H0); S.setAttribute('class', 'atl-escourbe'); S.setAttribute('role', 'img');
   S.setAttribute('aria-label', 'Parties par jour : ' + J.map(vp).join(', '));
@@ -16941,7 +17027,8 @@ function atlEspCourbe(J, mini) {
   for (const v of [...new Set([0, Math.round(mx / 2), mx])]) { el('line', { x1: m.l, x2: W0 - m.r, y1: y(v), y2: y(v), class: 'g' }); const t = el('text', { x: m.l - 6, y: y(v) + 4, class: 'ax', 'text-anchor': 'end' }); t.textContent = String(v); }
   const pts = fn => J.map((d, i) => x(i) + ',' + y(fn(d))).join(' ');
   el('polyline', { points: pts(vj), class: 'l2' }); el('polyline', { points: pts(vp), class: 'l1' });
-  J.forEach((d, i) => { el('circle', { cx: x(i), cy: y(vp(d)), r: 3.5, class: 'p1' });
+  J.forEach((d, i) => { const v0 = vp(d); el('circle', { cx: x(i), cy: y(v0), r: v0 > 0 ? 7 : 2.5, class: 'p1' + (v0 > 0 ? ' on' : '') });   // 2.0.160 (chef) : un jour joué se voit
+    if (v0 > 0) { const tv = el('text', { x: x(i), y: y(v0) - 12, class: 'ax val', 'text-anchor': 'middle' }); tv.textContent = String(v0); }
     if (n <= 7 || i % 5 === 0 || i === n - 1) { const t = el('text', { x: x(i), y: H0 - 8, class: 'ax', 'text-anchor': 'middle' }); const d0 = new Date(d.jour); t.textContent = isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); } });
   const w = atlEl('div', 'atl-escw'); w.appendChild(S); if (mini) w.classList.add('mini'); w.appendChild(atlEl('p', 'atl-esleg', '━ parties par jour · ┅ joueurs différents par jour')); return w;
 }
