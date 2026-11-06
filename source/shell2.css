@@ -5864,7 +5864,7 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-espace .atl-pane > .atl-ph3,.atl-espace .atl-esbfam > h4{display:inline-flex;align-items:center;gap:8px;width:auto;max-width:100%;padding:7px 16px;border-radius:999px;background:rgba(255,255,255,.94);box-shadow:0 6px 20px rgba(22,12,44,.22)}
 .atl-esbart{background:rgba(255,255,255,.95)}
 /* 2.0.171 : les offres mises de côté (« ⏸️ Plus tard ») — à part, en gris discret */
-.atl-patt.atl-pdc{background:rgba(120,112,140,.85);color:#fff;font-weight:700}
+.atl-patt.atl-pdc{background:rgba(96,90,112,.88);color:#fff;font-weight:700;border-color:rgba(255,255,255,.3);box-shadow:none;animation:none}
 .atl-decotes{margin:14px 0 4px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.22)}
 .atl-decotes h4{margin:0 0 8px;font:800 14px var(--body);color:var(--muted)}
 .atl-decote{display:grid;gap:4px;padding:8px 0}.atl-decote + .atl-decote{border-top:1px solid rgba(255,255,255,.1)}
