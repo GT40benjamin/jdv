@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 💬 {g} dit ce qu’il fait (borne 2.0.173)
+[borne] 💬 En haut de l’espace de ton jeu, sous le nom de {g}, la petite phrase suit ce qu’il fait : « prépare ta V… » quand il travaille, « t’écrit… » quand il te répond.
 [borne] ## ⚡ L’espace de ton jeu plus fluide au téléphone (borne 2.0.172)
 [borne] ⚡ Au téléphone, l'espace de ton jeu dans l'Atelier défile plus légèrement : le fond garde ses belles couleurs sans effet coûteux.
 [borne] ## ✨ L’Atelier s’appelle maintenant Crée avec {g} (borne 2.0.171)

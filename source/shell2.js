@@ -16978,7 +16978,7 @@ function atlEspace(W, box, f, g, pane) {
   const conv = () => { atlEspFermer(); atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {} };
   const pk = (cls) => { const b = atlEl('button', 'atl-espk ' + (cls || '')); b.type = 'button'; b.title = 'Parler ' + gA(); b.setAttribute('aria-label', 'Ouvrir la conversation avec ' + gN());
     const t = atlEl('span'), st = atlEl('small', 'atl-espst', ''), av = atlEspPk(); t.append(atlEl('b', '', gNM()), st); b.append(av, t); b.addEventListener('click', conv);
-    const maj = () => { const f2 = atlFiche() && atlFiche().id === f.id ? atlFiche() : f, tv = atlTravaille(f2); st.textContent = tv ? 'prépare ta V' + tv + '…' : 'Je suis là ! Une idée ?'; st.classList.toggle('vif', !!tv);
+    const maj = () => { const f2 = atlFiche() && atlFiche().id === f.id ? atlFiche() : f, tv = atlTravaille(f2); st.textContent = tv ? 'prépare ta V' + tv + '…' : ATL.pkEcrit ? 't’écrit…' : 'Je suis là ! Une idée ?'; st.classList.toggle('vif', !!tv || !!ATL.pkEcrit);   /* 2.0.172 : la phrase suit la pose */
       try { atlEspPkEtat(av, tv ? 'travail' : ATL.pkEcrit ? 'ecrit' : 'repos', (f2.version | 0)); } catch (e) {} };   // 2.0.170 (l'admin : « fais-le bouger selon ce qu'il fait, comme avant »)   // 2.0.155 (chef) : seulement si une demande est vraiment en cours, avec version_jeu + 1
     maj(); b._maj = maj; return b; };
   const aide = () => { const b = atlEl('button', 'atl-esaide', '?'); b.type = 'button'; b.title = 'Comment ça marche ?'; b.setAttribute('aria-label', 'Comment ça marche ?'); b.addEventListener('click', atlEspAide); return b; };
