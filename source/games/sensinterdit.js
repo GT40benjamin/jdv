@@ -9,13 +9,16 @@
 // Une seule variable globale en plus : window.JDW_SI. Atelier : ~/jdv-tools/duotest/sensinterdit (sources, outils, essais ; REPRISE.md).
 const ROOT = () => window.JDW_ROOT || '';
 const STORE = { engine: null, pack: null };
-async function fetchBytes(url, onProg, guess, signal) {
-  const r = await fetch(url, { signal });
-  if (!r.ok) throw new Error(url.split('/').pop() + ' ' + r.status);
+// 2.1.x : chaque erreur dit sa nature (e.kind = 'reseau' | 'fichier' | 'vieux') pour un message juste ; 2 nouveaux essais en cas de réseau
+const ERR = (m, kind) => { const e = new Error(m); e.kind = kind; return e; };
+async function fetchBytes(url, onProg, guess, signal, essai) {
+  let r = null; const u = essai ? url + (url.includes('?') ? '&' : '?') + 'r=' + Date.now() : url;
+  try { r = await fetch(u, { signal, cache: essai ? 'reload' : 'default' }); } catch (e) { if (signal && signal.aborted) throw e; throw ERR(url.split('/').pop() + ' : ' + ((e && e.message) || 'réseau'), 'reseau'); }
+  if (!r.ok) throw ERR(url.split('/').pop() + ' ' + r.status, r.status === 404 ? 'fichier' : 'reseau');
   const total = +(r.headers.get('content-length') || 0) || guess;
   if (!r.body || !r.body.getReader) { const b = new Uint8Array(await r.arrayBuffer()); onProg(1); return b; }
   const rd = r.body.getReader(), parts = []; let got = 0;
-  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; onProg(Math.min(1, got / Math.max(total, got))); }
+  for (;;) { let x; try { x = await rd.read(); } catch (e) { if (signal && signal.aborted) throw e; throw ERR(url.split('/').pop() + ' coupé : ' + ((e && e.message) || ''), 'reseau'); } const { done, value } = x; if (done) break; parts.push(value); got += value.length; onProg(Math.min(1, got / Math.max(total, got))); }
   const out = new Uint8Array(got); let k = 0; for (const p of parts) { out.set(p, k); k += p.length; }
   return out;
 }
@@ -23,15 +26,15 @@ function loadEngine(onProg, signal) {
   if (window.JDW_SI && window.JDW_SI.game) return Promise.resolve(window.JDW_SI);
   if (STORE.engine) return STORE.engine;
   STORE.engine = (async () => {
-    if (typeof DecompressionStream === 'undefined') throw new Error('navigateur trop ancien');
-    const gz = await fetchBytes(ROOT() + 'assets/sensinterdit.moteur.bin', onProg, 280000, signal);
+    if (typeof DecompressionStream === 'undefined') throw ERR('navigateur trop ancien', 'vieux');
+    const gz = await fetchBytes(ROOT() + 'assets/sensinterdit.moteur.bin', onProg, 280000, signal, loadEngine.essai | 0);
     const code = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
     await new Promise((res, rej) => {
       const s = document.createElement('script'), u = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
-      s.onload = () => { URL.revokeObjectURL(u); res(); }; s.onerror = () => { URL.revokeObjectURL(u); rej(new Error('moteur illisible')); };
+      s.onload = () => { URL.revokeObjectURL(u); res(); }; s.onerror = () => { URL.revokeObjectURL(u); rej(ERR('moteur illisible', 'fichier')); };
       s.src = u; document.head.appendChild(s);
     });
-    if (!window.JDW_SI || !window.JDW_SI.game) throw new Error('moteur absent');
+    if (!window.JDW_SI || !window.JDW_SI.game) throw ERR('moteur absent', 'fichier');
     return window.JDW_SI;
   })();
   STORE.engine.catch(() => { STORE.engine = null; });
@@ -41,10 +44,10 @@ function loadEngine(onProg, signal) {
 function loadPack(onProg, signal) {
   if (STORE.pack) return STORE.pack;
   STORE.pack = (async () => {
-    const buf = await fetchBytes(ROOT() + 'assets/sensinterdit.voitures.bin', onProg, 1000000, signal);
+    const buf = await fetchBytes(ROOT() + 'assets/sensinterdit.voitures.bin', onProg, 1000000, signal, loadPack.essai | 0);
     const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(window.JDW_ASSET_KEY || ''), 'PBKDF2', false, ['deriveKey']);
     const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: buf.slice(0, 16), iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
-    const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
+    let plain; try { plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28))); } catch (e) { throw ERR('paquet illisible (' + ((e && e.name) || '') + ')', 'fichier'); }
     const hl = new DataView(plain.buffer, plain.byteOffset, plain.byteLength).getUint32(0, true);
     const head = JSON.parse(new TextDecoder().decode(plain.subarray(4, 4 + hl))), base = 4 + hl;
     const glb = {}, img = {};
@@ -141,7 +144,8 @@ function preview(ctx, w, h, t) {
    - mode léger d'office sur les puces graphiques d'entrée de gamme (Adreno ≤ 61x, Mali G31/G51/G52, PowerVR) ou ?leger ;
    - chargement trop long (90 s) → écran « Oups » + rapport, au lieu d'attendre pour toujours. */
 const LS = { get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* rien */ } } };
-const TRK = 'jdw.si.trace', LEGER = 'jdw.si.leger';
+const TRK = 'jdw.si.trace', LEGER = 'jdw.si.leger', GLVU = 'jdw.gl.vu';
+const SS = { get: (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { /* rien */ } } };
 const rep = (api, m, d) => { try { const f = api.report || api.reportError; if (f) f(m, d); } catch (e) { /* rien */ } };
 let GPUI = null;
 function gpuInfo() {
@@ -151,7 +155,8 @@ function gpuInfo() {
     if (!gl) return (GPUI = { gpu: 'sans WebGL 2', weak: false });
     const x = gl.getExtension('WEBGL_debug_renderer_info'), g = String(x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).slice(0, 80);
     const l = gl.getExtension('WEBGL_lose_context'); if (l) l.loseContext();
-    GPUI = { gpu: g, weak: /Adreno \(TM\) ([345]\d\d|6[01]\d)\b|Mali-(4\d\d|T\d|G31|G51|G52)\b|PowerVR|SGX/i.test(g) || (navigator.deviceMemory > 0 && navigator.deviceMemory < 4) };
+    LS.set(GLVU, '1');   // 2.1.7 : la 3D a déjà marché sur cet appareil → un refus plus tard = navigateur bloqué, pas « appareil sans 3D »
+    GPUI = { gpu: g, weak: /Adreno \(TM\) ([345]\d\d|6[01]\d)\b|Mali-(4\d\d|T\d|G31|G51|G52)\b|PowerVR|SGX|Intel.{0,24}(Iris|UHD|HD Graphics)/i.test(g) || (navigator.deviceMemory > 0 && navigator.deviceMemory < 4) };
   } catch (e) { GPUI = { gpu: '?', weak: false }; }
   return GPUI;
 }
@@ -181,7 +186,24 @@ function mount(root, api, mo) {
     for (const k of ['destroy', 'pause', 'resume', 'currentScore', 'currentLevel', 'mapSpot', 'endInfo']) proxy[k] = n[k];
     Object.defineProperty(proxy, '_d', { get: () => n._d, configurable: true });
   };
-  const onLost = lite ? null : () => { LS.set(LEGER, '1'); remount({ lite: true }); };
+  // 2.1.x : une 3D perdue → on relance toute seule en léger (2 fois au plus par page) ; si AUCUN contexte ne s'ouvre plus (Chrome bloque la 3D
+  // de la page après un souci de carte graphique), on le dit et on propose de recharger la page — l'appareil, lui, sait afficher la 3D
+  const glSonde = () => { let ok = false; try { const c = document.createElement('canvas'), g = c.getContext('webgl2') || c.getContext('webgl'); ok = !!g && !g.isContextLost(); try { const x = g && g.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); } catch (e) { /* rien */ } } catch (e) { ok = false; } return ok; };
+  const ecran = (titre, texte, boutons) => {
+    if (dead) return; root.innerHTML = ''; root.appendChild(box);
+    box.innerHTML = '<div data-pad-layer style="max-width:360px;text-align:center;padding:20px"><div style="font:400 22px ' + FD + ';color:#ffb8b8;margin-bottom:8px">' + titre + '</div><div style="font:600 14px ' + FB + ';color:#e8c8d8;margin-bottom:14px">' + texte + '</div></div>';
+    for (const [lab, fn] of boutons) { const b = document.createElement('button'); b.type = 'button'; b.textContent = lab; b.style.cssText = 'margin:4px;font:400 15px ' + FD + ';color:#1a0e2a;background:#ffc75a;border:0;border-radius:12px;padding:10px 20px;cursor:pointer'; b.addEventListener('click', fn); box.firstChild.appendChild(b); }
+    const b0 = box.querySelector('button'); if (b0) try { b0.focus(); } catch (e) { /* rien */ }
+  };
+  const recharger = () => { try { location.reload(); } catch (e) { /* rien */ } };
+  const bloquee = () => { rep(api, 'Sens Interdit : 3D bloquée par le navigateur (aucun contexte WebGL)', G.gpu + (lite ? ' (léger)' : ''));
+    ecran('La 3D est bloquée par le navigateur', 'Après un souci de carte graphique, le navigateur refuse la 3D jusqu’au rechargement de la page. Ton appareil sait l’afficher.', [['🔄 Recharger la page', recharger]]); };
+  const onLost = () => { LS.set(LEGER, '1'); const n = +(SS.get('jdw.si.relances') || 0); SS.set('jdw.si.relances', String(n + 1));
+    if (!glSonde()) { bloquee(); return; } if (n >= 2) { ecran('Oups, la 3D s’est arrêtée', 'Elle s’est coupée plusieurs fois : recharger la page lui redonne toute sa mémoire.', [['🔄 Recharger la page', recharger], ['Relancer', () => remount({ lite: true })]]); return; }
+    remount({ lite: true }); };
+  const onNoGL = () => { if (glSonde()) { setTimeout(() => remount({ lite: true }), 600); return; }   // un contexte s'ouvre ailleurs : simple relance
+    if (SS.get('jdw.si.relances') || mo.lite || LS.get(GLVU)) bloquee();   // 2.1.7 : déjà vue marcher ici (LOUIS) → « recharger la page », jamais « ton appareil ne sait pas »
+    else { rep(api, 'Sens Interdit : pas de WebGL', G.gpu); ecran('Oups !', 'Ton appareil ne sait pas afficher la 3D de ce jeu. Essaie un autre navigateur (Chrome, Edge, Safari à jour).', [['Réessayer', () => remount({ lite: true })]]); } };
   const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const FD = (api.fonts && api.fonts.display) || 'Impact', FB = (api.fonts && api.fonts.body) || 'sans-serif';
   root.innerHTML = '';
@@ -193,11 +215,20 @@ function mount(root, api, mo) {
   root.appendChild(box);
     if (!document.getElementById('jdw-si-menu')) { const css = document.createElement('style'); css.id = 'jdw-si-menu'; css.textContent = '#si-load>b{display:none!important}'; document.head.appendChild(css); }   // 2.0.156 : plus de titre en double (écran-titre de la borne)
   const bar = box.querySelector('u');
-  const prog = { e: 0, p: 0 }, upd = () => { bar.style.width = Math.round((prog.e * 0.2 + prog.p * 0.8) * 100) + '%'; };
+  let vu = Date.now();   // 2.1.x : dernier progrès du téléchargement
+  const prog = { e: 0, p: 0 }, upd = () => { vu = Date.now(); bar.style.width = Math.round((prog.e * 0.2 + prog.p * 0.8) * 100) + '%'; };
   let failed = false;
   const fail = (e) => {
-    if (dead || failed) return; failed = true;
-    rep(api, 'Sens Interdit : chargement raté (' + (e && e.message) + ')', G.gpu + (lite ? ' (léger)' : '') + ' ' + (navigator.connection ? navigator.connection.effectiveType : ''));
+    if (dead || failed) return;
+    const kind = (e && e.kind) || 'reseau', essai = mo.essai | 0;
+    if (kind === 'reseau' && essai < 2) { failed = true; rep(api, 'Sens Interdit : chargement raté, nouvel essai ' + (essai + 1) + ' (' + (e && e.message) + ')', G.gpu + (lite ? ' (léger)' : '') + ' ' + (navigator.connection ? navigator.connection.effectiveType : ''));   // 2.1.x : 2 nouveaux essais tout seuls
+      loadEngine.essai = loadPack.essai = essai + 1; ecran('La connexion est lente, on réessaie…', 'Le jeu se recharge tout seul.', []); setTimeout(() => remount({ lite, essai: essai + 1 }), 1200); return; }
+    failed = true;
+    rep(api, 'Sens Interdit : chargement raté (' + (e && e.message) + ')', G.gpu + (lite ? ' (léger)' : '') + ' ' + (navigator.connection ? navigator.connection.effectiveType : '') + ' [' + kind + ']');
+    loadEngine.essai = loadPack.essai = 1;
+    if (kind === 'reseau') { ecran('La connexion est trop lente', 'Le jeu n’a pas pu se télécharger. Vérifie ta connexion, puis réessaie.', [['Réessayer', () => remount({ lite, essai: 0 })]]); return; }
+    if (kind === 'vieux') { ecran('Ton navigateur est trop ancien', 'Mets-le à jour (ou essaie Chrome, Edge, Safari) pour jouer à Sens Interdit.', [['Réessayer', () => remount({ lite, essai: 0 })]]); return; }
+    ecran('Le jeu n’a pas pu se charger', 'Un fichier du jeu est arrivé abîmé. Réessaie : il sera téléchargé à nouveau.', [['Réessayer', () => remount({ lite, essai: 0 })]]); return;
     box.innerHTML = '<div style="max-width:340px;text-align:center;padding:20px"><div style="font:400 22px ' + FD + ';color:#ffb8b8;margin-bottom:8px">Oups !</div>' +
       '<div style="font:600 14px ' + FB + ';color:#e8c8d8;margin-bottom:14px">Ton appareil n\'arrive pas à charger ce jeu 3D.</div><button type="button" style="font:400 15px ' + FD + ';color:#1a0e2a;background:#ffc75a;border:0;border-radius:12px;padding:10px 18px;cursor:pointer">Réessayer</button></div>';
     box.querySelector('button').addEventListener('click', () => remount({ lite }));
@@ -205,10 +236,10 @@ function mount(root, api, mo) {
   Promise.all([loadEngine((k) => { prog.e = k; upd(); }, ac && ac.signal), loadPack((k) => { prog.p = k; upd(); }, ac && ac.signal)]).then(([SI, pack]) => {
     if (dead) return;
     root.innerHTML = '';
-    clearTimeout(slowT); inst = SI.game(root, api, { pack, lite, stage, onLost });
+    clearTimeout(slowT); inst = SI.game(root, api, { pack, lite, stage, onLost, onNoGL, autoLost: true });
     if (paused && inst.pause) inst.pause();
   }).catch(fail);
-  const slowT = setTimeout(() => { if (!inst && !dead) { if (ac) try { ac.abort(); } catch (e) { /* rien */ } fail(new Error('chargement trop long (90 s)')); } }, 90000);
+  let slowT = 0; const veille = () => { slowT = setTimeout(() => { if (inst || dead) return; if (Date.now() - vu < 45000) { veille(); return; } if (ac) try { ac.abort(); } catch (e) { /* rien */ } fail(ERR('chargement arrêté (45 s sans progrès)', 'reseau')); }, 5000); }; veille();   // 2.1.x : plus de coupure à 90 s si ça avance
   const proxy = {
     destroy() { gone(); document.removeEventListener('visibilitychange', hide); removeEventListener('pagehide', gone); clearTimeout(stT); clearTimeout(slowT); dead = true; if (ac) try { ac.abort(); } catch (e) { /* rien */ } if (inst) inst.destroy(); root.innerHTML = ''; },
     pause() { paused = true; if (inst) inst.pause(); },

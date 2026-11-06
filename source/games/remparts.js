@@ -166,7 +166,7 @@ function mount(root, api) {
     // la cause part au journal de la borne (appareil, mémoire, 3D possible ?) : un « Oups » qu'on peut enfin expliquer
     try {
       const f = api.report || api.reportError; let gl = '?';
-      try { const c = document.createElement('canvas'); gl = c.getContext('webgl2') ? 'webgl2' : c.getContext('webgl') ? 'webgl1' : 'AUCUN'; } catch (x) { gl = 'erreur'; }
+      try { const c = document.createElement('canvas'); let g = c.getContext('webgl2'); gl = g ? 'webgl2' : (g = c.getContext('webgl')) ? 'webgl1' : 'AUCUN'; try { const l = g && g.getExtension('WEBGL_lose_context'); if (l) l.loseContext(); } catch (x) { /* rien */ } } catch (x) { gl = 'erreur'; }   // 2.1.7 : la sonde rend son contexte (Chrome n'en garde que 16 : les vieux se perdent)
       if (f) f(NOM + ' : chargement raté (' + ((e && e.message) || e || 'inconnu') + ')', String((e && e.stack) || '').slice(0, 1500) + ' | 3D : ' + gl + ' · mémoire ' + (navigator.deviceMemory || '?') + ' Go · cœurs ' + (navigator.hardwareConcurrency || '?') + ' · DecompressionStream ' + (typeof DecompressionStream !== 'undefined') + ' · moteur ' + Math.round(pe * 100) + ' % · paquet ' + Math.round(pp * 100) + ' %');
     } catch (x) { /* rien */ }
     if (inst && inst.destroy) { try { inst.destroy(); } catch (x) { /* rien */ } inst = null; }

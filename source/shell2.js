@@ -17,11 +17,11 @@ const TILE_NEWS = {
   guerre: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
   boum: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
   trone: { kind: 'maj', at: '2026-11-05 13:00' },   // Trôn-e (borne 2.0.126) : « 📣 Inviter mes copains » dans le salon (bouton de la barre du jeu, api.live.inviter)
-  remparts: { kind: 'maj', at: '2026-11-06 05:22' },   // nouvel écran-titre (image de menu, logo, musique de menu)
+  remparts: { kind: 'maj', at: '2026-11-06 23:21' },   // la 3D repart toute seule (relance WebGL)
   noisette: { kind: 'maj', at: '2026-11-05 02:18' },   // Noisette et ses amis V7 (borne 2.0.115) : 6 mondes, 30 niveaux, carte de la tuile en 6 mondes
   licornes: { kind: 'new', at: '2026-11-02 17:30' },   // La Maison des Licornes (1er jeu né à l'Atelier, projet de PATOU, version alpha, en essai derrière la porte labo : …/jouer/?labo=licornes)
   abracadabra: { kind: 'maj', at: '2026-11-06 05:34' },   // plus de titre en double (écran-titre de la borne)
-  sensinterdit: { kind: 'maj', at: '2026-11-06 05:22' },   // nouvel écran-titre (image de menu, logo, musique de menu)
+  sensinterdit: { kind: 'maj', at: '2026-11-06 23:21' },   // la 3D repart toute seule (relance WebGL)
   coffres: { kind: 'maj', at: '2026-11-06 05:22' },   // nouvel écran-titre (image de menu, logo, musique de menu)
   magic: { kind: 'maj', at: '2026-11-06 05:22' },   // nouvel écran-titre (image de menu, logo, musique de menu)
   ilo: { kind: 'maj', at: '2026-11-06 05:34' },   // plus de titre en double (écran-titre de la borne)

@@ -7918,7 +7918,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       $.ear.style.transform = `translate(${ex.toFixed(1)}px,${(NAMEXY.y - nh / 2 - 17).toFixed(1)}px)`;
     }
     function hintOff() { if (!hintDone) { hintDone = true; store.set('jdw.pegase.hubhint', '1'); } $.hint.classList.remove('on'); }
-    function noGL() { try { const c = document.createElement('canvas'); return !(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return true; } }
+    function noGL() { try { const c = document.createElement('canvas'), g = c.getContext('webgl2') || c.getContext('webgl'); try { const l = g && g.getExtension('WEBGL_lose_context'); if (l) l.loseContext(); } catch (e) { /* rien */ } return !g; } catch (e) { return true; } }   // 2.1.7 : la sonde rend son contexte (Chrome n'en garde que 16 : les vieux se perdent)
     function fallback(why) {
       stgFail = true; $.wait.classList.remove('on'); $.gl.style.display = 'none';
       $.emotes.style.display = 'none'; $.name.classList.remove('on');
