@@ -11046,7 +11046,7 @@ async function atlMaBoutique(box, f) {
   box.appendChild(d);
 }
 // 2.0.160 (équipe Jeux, demande de l'admin) : l'onglet BOUTIQUE de l'espace du jeu — les articles en cartes (vraie image, nom, phrase, prix,
-// ventes, crédits gagnés, « 🔁 se rachète »), groupés par famille, 2 colonnes sur PC ; « ⋯ » : demander une modification à Pooky (message
+// ventes, crédits gagnés, « 🔁 se rachète »), groupés par famille, 2 colonnes sur PC ; « ⋯ » : demander une modification à la mascotte (message
 // prérempli dans la discussion) ou retirer l'article de la vente (at_boutique_retirer, SQL v155 : les joueurs qui l'ont acheté le gardent)
 function atlEspBoutFamille(x) {
   if (x.conso) return [0, '🔁 Packs à racheter'];
