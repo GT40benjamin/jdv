@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🖼️ L’espace de ton jeu en grand (borne 2.0.165)
+[borne] 🖼️ Dans l'Atelier, l'espace de ton jeu a un vrai fond : la grande image du menu de ton jeu (ou un beau paysage de son monde), sur tout l'écran.
+[borne] 🎮 Sur ordinateur, « Mon jeu » prend toute la largeur : une grande jaquette, puis tes chiffres, ta boutique et la conversation côte à côte.
 [borne] ## 💬 Une vraie discussion avec {g} (borne 2.0.163)
 [borne] 💬 Ta discussion avec {g} ressemble à une messagerie : tes messages à droite, les siens à gauche, l’heure dans chaque bulle, « … » quand il écrit, et au téléphone elle prend tout l’écran avec la saisie juste au-dessus du clavier.
 [borne] ## 🔎 L’espace de ton jeu, plus lisible (borne 2.0.162)
