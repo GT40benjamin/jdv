@@ -16765,6 +16765,7 @@ function atlDiscMaj(W, f, force) {
 // 2.0.162 : la hauteur visible réelle (clavier ouvert compris) pour le chat plein écran du téléphone
 (() => { try { const vv = window.visualViewport; if (!vv) return; const maj = () => { const r = document.documentElement.style; r.setProperty('--vvh', vv.height + 'px'); r.setProperty('--vvt', vv.offsetTop + 'px'); requestAnimationFrame(() => { for (const l of document.querySelectorAll('.atl-chat .atl-disclog')) if (l._bas !== false) l.scrollTop = l.scrollHeight; }); }; vv.addEventListener('resize', maj); vv.addEventListener('scroll', maj); maj(); } catch (e) {} })();
 function atlDiscDefile(b, log, f) {
+  if (!log._qr) { log._qr = true; log.addEventListener('click', e => { const q = e.target.closest && e.target.closest('.atl-chat .atl-qr'); if (q && !e.target.closest('button')) q.classList.toggle('ouvert'); }); }   // 2.0.165 : une longue réponse s'ouvre au toucher
   let bas = b.querySelector('.atl-dbas'); if (!bas) { bas = atlEl('button', 'atl-dbas', '↓'); bas.type = 'button'; bas.setAttribute('aria-label', 'Aller au dernier message'); bas.hidden = true; bas.addEventListener('click', () => { log.scrollTo({ top: log.scrollHeight, behavior: 'smooth' }); }); (b.querySelector('.atl-discc') || b).appendChild(bas); }
   if (log._chat) return; log._chat = true;
   let raf = 0; log.addEventListener('scroll', () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0;

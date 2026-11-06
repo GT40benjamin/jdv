@@ -5769,3 +5769,53 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 /* 2.0.166 (l'admin) : un article sans description le dit, en italique gris */
 .atl-esbph.vide{font-style:italic;color:#9a8fb0}
 .atl-esbout > .atl-esnote{justify-self:start;margin:0;padding:8px 14px;border-radius:14px;background:rgba(255,255,255,.88);color:var(--esp-ink);font:700 13px/1.4 var(--body)}
+/* 2.0.165 (l'admin : « on voit rien pourquoi ? ») : TOUT le fil de la discussion au thème clair, texte foncé (contraste ≥ 4,5:1) —
+   questions, réponses cochées, offres, récapitulatifs, choix, liens, puces, lignes ✅, barres d'état (contrôle automatique par le banc t-audit) */
+.atl-chat{--ink:#1f1a2b;--muted:#4f4863;--line:#ded3ec;--card:#fff;--card-hi:#fff}
+.atl-chat .atl-b small,.atl-chat .atl-mc small{color:#4f4863}
+.atl-chat .atl-t.dans{color:#5f586e}.atl-chat .atl-p .atl-t.dans{color:#3f6047}
+.atl-chat .atl-b p{color:inherit}
+.atl-chat .atl-mremp .atl-b,.atl-chat .atl-mremp .atl-b p{color:#3f3a4d!important}
+.atl-chat .atl-dpts{color:#5b3fc0}
+.atl-chat a,.atl-chat .atl-lien,.atl-chat .atl-vplus{color:#5b3fc0}
+/* cartes de QUESTIONS : fond blanc, numéro rond, question en gras foncé */
+.atl-chat .atl-qs{gap:8px;margin:8px 0 2px}
+.atl-chat .atl-q{background:#fff;border:1.5px solid #e2d8ef;color:#1f1a2b;box-shadow:0 1px 2px rgba(40,20,70,.08)}
+.atl-chat .atl-q.ok{background:#fff;border-color:#cfe9d8}
+.atl-chat .atl-qn{background:#7b55d6;color:#fff}.atl-chat .atl-q.ok .atl-qn{background:#2e9e5e;color:#fff}
+.atl-chat .atl-qt{color:#1f1a2b;font-weight:800}
+.atl-chat .atl-qsg{border-color:#d2c4ec;background:#f6f1fd;color:#4a2370}
+.atl-chat .atl-qin{background:#fff;color:#1f1a2b;border-color:#d8cdea}
+.atl-chat .atl-qchg,.atl-chat .atl-qatt,.atl-chat .atl-qfree{color:#4f4863}
+/* la réponse du joueur = une petite bulle verte (comme ses messages), texte foncé, 6 lignes au plus + « voir plus » */
+.atl-chat .atl-qr{display:block;color:#16271a;font:600 14.5px/1.4 var(--body)}
+.atl-chat .atl-qr > span:first-child{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;margin-left:auto;max-width:92%;width:fit-content;padding:7px 11px;border-radius:14px 4px 14px 14px;background:#d9fdd3;color:#16271a;cursor:pointer}
+.atl-chat .atl-qr.ouvert > span:first-child{-webkit-line-clamp:unset;display:block}
+.atl-chat .atl-qr .atl-qplus{display:block;margin:2px 0 0 auto;width:fit-content;border:0;background:none;color:#3f6047;font:700 12.5px var(--body);text-decoration:underline;cursor:pointer}
+.atl-chat .atl-qr .atl-qchg{display:inline-block;margin-top:4px}
+.atl-chat .atl-qetat{background:#fff4dc;border:1px solid #f2d79a;color:#6b4800}
+.atl-chat .atl-qetat.ok{background:#e3f7ec;border:1px solid #bfe8d0;color:#16653f}
+/* offres (cartes de prix) et choix */
+.atl-chat .atl-offre{background:#fff;border:1.5px solid #e2d8ef;color:#1f1a2b;box-shadow:0 1px 3px rgba(40,20,70,.1)}
+.atl-chat .atl-offre.conseil{border-color:#e0a800;box-shadow:0 4px 14px rgba(224,168,0,.18)}
+.atl-chat .atl-oft{color:#1f1a2b}.atl-chat .atl-ofl{color:#4f4863}
+.atl-chat .atl-ofp{color:#8a5a00}
+.atl-chat .atl-ofplus{color:#5b3fc0;border-color:#cdbfe8;background:#fff}
+.atl-chat .atl-oflater{color:#4f4863}
+.atl-chat .atl-choix{background:#fff;border:1.5px solid #e9d9a8;color:#1f1a2b}
+.atl-chat .atl-choix *:not(.btn):not(button){color:inherit}
+/* récapitulatifs, livraisons, puces, lignes ✅ */
+.atl-chat .atl-propdet{color:#2f2a3d}.atl-chat .atl-propdet li{color:#2f2a3d}
+.atl-chat .atl-livre{display:inline-block;padding:3px 10px;border-radius:999px;background:#e3f7ec;color:#16653f}
+.atl-chat .atl-livres summary{color:#5b3fc0}.atl-chat .atl-livres li{color:#2f2a3d}
+.atl-chat .atl-apercu{color:#16653f!important}
+.atl-chat .atl-vbug{color:#4f4863}
+/* le message récapitulatif du joueur (« ↪ … → … ») : lisible, et la flèche ↓ ne le recouvre jamais */
+.atl-chat .atl-disclog{padding-bottom:56px}
+.atl-chat .atl-dbas{bottom:84px;right:16px}
+/* PC : le chat jusqu'à 900 px de large, et la hauteur de l'écran sans vide sous la barre de saisie */
+@media (min-width:901px){.atl-disc.atl-chat{max-width:900px;height:calc(100vh - 150px);min-height:480px}.atl-espace .atl-pane[data-k="demandes"] .atl-dhist{max-width:900px}}
+.atl-chat .atl-mremp{opacity:1}.atl-chat .atl-mremp .atl-t.dans{color:#4f4863}
+.atl-chat .atl-travb .atl-dpts,.atl-espace .atl-chat .atl-travb .atl-dpts{color:#5b3fc0}
+.atl-chat .atl-atth{color:#6b4800}.atl-chat .atl-ofnb{color:#4f4863}.atl-chat .atl-attcarte{color:#1f1a2b}
+.atl-chat .atl-mremp .atl-b{opacity:1;filter:none}
