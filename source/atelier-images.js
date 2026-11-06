@@ -51,7 +51,8 @@
 
   // ---------- surcharges de l'Atelier ----------
   atlOuvrir = function (id) {   // eslint-disable-line no-global-assign
-    if (AIM.types[id]) { if (typeDe(id) === 'images') return ouvrir(id); return _ouvrir(id); }
+    if (AIM.types[id]) { if (typeDe(id) === 'images') return ouvrir(id); if (AIM.open) fermer(); return _ouvrir(id); }
+    if (AIM.open && !(AIM.types[id])) fermer();
     if (Date.now() - AIM.typesAt > 60000) { chargerTypes(true).then(() => (typeDe(id) === 'images' ? ouvrir(id) : _ouvrir(id))); return; }
     return _ouvrir(id);
   };
@@ -63,9 +64,20 @@
   atlRenderProjets = function () {   // eslint-disable-line no-global-assign
     _renderProjets.apply(this, arguments);
     try { decorer(); } catch (e) {}
+    setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} }, 0);
     if (Date.now() - AIM.typesAt > 15000) chargerTypes().then(() => { try { decorer(); } catch (e) {} });
   };
-  if (typeof jdwBack === 'function') { const _back = jdwBack; jdwBack = function () { if (AIM.open && retour()) return true; return _back.apply(this, arguments); }; }   // eslint-disable-line no-global-assign
+  // l'admin (6 nov., 2.1) : TOUT le monde arrive sur l'écran « Nouveau projet » sous les nuages dès qu'il ouvre « Crée avec {g} » ;
+  // l'ancienne grille de projets reste dessous (ses cartes donnent statuts et bulles à l'arbre), jamais montrée en premier
+  if (typeof atlOpen === 'function') { const _open = atlOpen; atlOpen = function () { if (!ATL.open) { ATL.cur = null; ATL.nouveau = false; } const r = _open.apply(this, arguments); try { if (ATL.open && !ATL.cur && !AIM.open) nouveau(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
+  if (typeof atlListe === 'function') { const _liste = atlListe; atlListe = function () { const r = _liste.apply(this, arguments); try { if (ATL.open && !AIM.open) nouveau(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
+  if (typeof jdwBack === 'function') { const _back = jdwBack; jdwBack = function () { if (AIM.open && retour()) return true; if (AIM.cadre && AIM.root && AIM.root.classList.contains('tiroir')) { AIM.root.classList.remove('tiroir'); return true; } if (AIM.cadre && ATL.root && ![...ATL.root.querySelectorAll('.atl-mod, .atl-zoom, .atl-lv')].some(m => !m.hidden)) { fermerVersProjets(); return true; } return _back.apply(this, arguments); }; }
+  // le chef (6 nov., nuit, frontière avec l'Interface) : un jeu PAS ENCORE jouable (atlAvantV1) se monte dans le NOUVEAU design. On ne réécrit
+  // RIEN du montage : la discussion, les offres, at_dire, le paiement et le micro restent ceux de l'Interface (#jdw-atelier) ; on l'HABILLE
+  // (classe crea-mt : ciel de nuages, feuille blanche, sans barre d'étapes ni feuille de route) et #jdw-crea passe en « cadre » par-dessus
+  // (en-tête « Crée avec … › Mes projets › titre » + l'arbre), rangé DANS #jdw-atelier pour que la manette voie tout. atlJouable → la main
+  // revient à l'Interface (sa révélation des nuages joue)
+  if (typeof atlRender === 'function') { const _rendu = atlRender; atlRender = function () { const r = _rendu.apply(this, arguments); try { cadreMaj(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
 
   // les tuiles « Mes projets » de l'Atelier : un projet Images montre son image et « 🎨 Images · N images »
   function decorer() {
@@ -84,9 +96,9 @@
     if (AIM.root) return AIM.root;
     const R = E('section', 'crea'); R.id = 'jdw-crea'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'Crée avec ' + PK());
     R.innerHTML = '<header class="crea-bar"><button class="crea-rond crea-menu" type="button" aria-label="Mes projets">☰</button>'
-      + '<button class="crea-rond crea-retour" type="button" aria-label="Retour à mes projets">‹</button>'
+      + '<button class="crea-rond crea-retour" type="button" aria-label="Retour">‹</button>'
       + '<div class="crea-marque"><img alt="" src="' + AV() + '"><b></b></div><div class="crea-fil"></div>'
-      + '<div class="crea-cred" title="Tes crédits"></div></header>'
+      + '<button class="crea-rond crea-monde" type="button"></button><div class="crea-cred" title="Tes crédits"></div></header>'
       + '<div class="crea-ciel" aria-hidden="true"></div>'
       + '<div class="crea-corps"><nav class="crea-arbre crea-carte" aria-label="Mes projets"></nav><main class="crea-outil"></main>'
       + '<aside class="crea-masc crea-carte" aria-label="Discussion avec ' + PK() + '"></aside></div>'
@@ -102,10 +114,72 @@
     q('.crea-flot').addEventListener('click', () => { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); setTimeout(() => { const t = q('.crea-masc textarea'); if (t) t.focus({ preventScroll: true }); }, 60); });
     q('.crea-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0], nv = e.target.dataset.nv; e.target.value = ''; delete e.target.dataset.nv; if (!f) return; if (nv && AIM.vue === 'nouveau') imageNouveau(f); else importer(f); });
     q('.crea-cred').addEventListener('click', () => { try { atlRecharger(); } catch (e) {} });
+    q('.crea-monde').addEventListener('click', () => { const n = !R.classList.contains('nuit'); try { store.set('jdw.crea.monde', n ? 'nuit' : 'jour'); } catch (e) {} monde(); });
+    monde();
     try { if (store.get('jdw.crea.pkreplie', false)) R.classList.add('pk-replie'); } catch (e) {}
     return R;
   }
+  function monde() {   // nuages de nuit / nuages de jour (le choix reste sur l'appareil)
+    const R = AIM.root; if (!R) return; let n = false; try { n = store.get('jdw.crea.monde', 'jour') === 'nuit'; } catch (e) {}
+    R.classList.toggle('nuit', n); try { if (ATL.root) ATL.root.classList.toggle('crea-nuit', n); } catch (e) {} const b = R.querySelector('.crea-monde'); b.textContent = n ? '☀️' : '🌙';
+    b.setAttribute('aria-label', n ? 'Monde clair' : 'Monde sombre'); b.title = n ? 'Monde clair' : 'Monde sombre';
+  }
+  function ficheMontage() {   // la fiche du projet ouvert dans l'Interface (ou sa ligne dans les listes) ; null = nouveau jeu
+    if (!ATL.cur) return null;
+    let f = null; try { f = atlFiche(); } catch (e) {}
+    if (!f) f = atlProjets().find(x => x && x.id === ATL.cur) || ((ATL.tous && Array.isArray(ATL.tous.l)) ? ATL.tous.l.find(x => x && x.id === ATL.cur) : null);
+    return f;
+  }
+  function enMontage() {
+    if (AIM.open || !ATL.open || !ATL.root || ATL.root.hidden) return false;
+    if (ATL.nouveau && !ATL.cur) return true;
+    if (!ATL.cur || typeDe(ATL.cur) === 'images') return false;
+    const f = ficheMontage(); return !!f && atlAvantV1(f);   // les fonctions de l'Interface, jamais une copie de la règle
+  }
+  function cadreMaj() {
+    const A = ATL.root; if (!A) return;
+    const on = enMontage();
+    A.classList.toggle('crea-mt', on);
+    try { A.classList.toggle('crea-nuit', store.get('jdw.crea.monde', 'jour') === 'nuit'); } catch (e) {}
+    if (on) {
+      const R = construire();
+      if (!AIM.cadre) {
+        AIM.cadre = true; R.classList.remove('tiroir', 'pk-plein', 'nv'); R.classList.add('cadre'); R.removeAttribute('role'); R.style.backgroundImage = '';
+        A.appendChild(R);
+        if (!A.querySelector('.crea-mtciel')) { const c = E('div', 'crea-mtciel'); c.setAttribute('aria-hidden', 'true'); try { atlEspCiel(c, false); } catch (e) {} A.insertBefore(c, A.firstChild); }
+        if (!AIM.obs) montrerObs();
+      }
+      R.hidden = false; monde(); renderCadre(); enteteMt();
+    } else if (AIM.cadre) cadreFin();
+  }
+  function enteteMt() {   // « Nouveau jeu » : le même en-tête que « Nouveau projet » (montré par le CSS seulement quand l'Interface est en .ecrire)
+    const C = ATL.root && ATL.root.querySelector('.atl-main > .atl-chat'); if (!C || C.querySelector(':scope > .crea-mth')) return;
+    const h = E('div', 'crea-mth'), im = E('img'); im.src = POSE('coucou'); im.alt = '';
+    const tx = E('div'); tx.append(E('h1', '', 'Raconte-moi ton jeu !'), E('div', 'sous', 'Écris ou dicte ton idée : je monte tout ton projet.'));
+    h.append(im, tx); C.insertBefore(h, C.firstChild);
+  }
+  function cadreFin() {
+    AIM.cadre = false; const R = AIM.root; if (!R) return;
+    R.classList.remove('cadre', 'tiroir'); R.setAttribute('role', 'dialog'); document.body.appendChild(R);
+    if (!AIM.open) R.hidden = true;
+    if (ATL.root) ATL.root.classList.remove('crea-mt');
+  }
+  function renderCadre() {
+    const R = AIM.root, q = s => R.querySelector(s), f = ficheMontage();
+    const fil = q('.crea-fil'); fil.textContent = '';
+    fil.append(E('span', 'lien', '· Mes projets'), E('span', 'lien', ' › '), E('strong', '', (f && f.titre) || 'Nouveau jeu'));
+    q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
+    let so = null; try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {}
+    if (so == null && typeof AIM.solde === 'number') so = AIM.solde;
+    q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + so + (etroit() ? '' : ' crédits') : '';
+    renderArbre();
+  }
+  function montrerObs() {
+    if (!AIM.obs && ATL.root) { try { let t = 0; AIM.obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} }, 250); }); AIM.obs.observe(ATL.root, { childList: true, subtree: true, characterData: true }); } catch (e) {} }
+  }
   function montrer() {
+    if (AIM.cadre) cadreFin();
+    if (!AIM.obs && ATL.root) { try { let t = 0; AIM.obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} }, 250); }); AIM.obs.observe(ATL.root, { childList: true, subtree: true, characterData: true }); } catch (e) {} }
     construire(); AIM.open = true; AIM.root.hidden = false;
     AIM.root.style.backgroundImage = AIM.vue === 'nouveau' ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
     AIM.root.classList.remove('tiroir', 'pk-plein');
@@ -115,7 +189,7 @@
     try { if (typeof ATL_MIC !== 'undefined' && ATL_MIC && AIM.root && AIM.root.contains(ATL_MIC.field)) atlMicFin(); } catch (e) {}
     if (AIM.root) { AIM.root.hidden = true; modFermer(); }
   }
-  function fermerVersProjets() { fermer(); try { if (ATL.open) atlListe(); else atlOpen(); } catch (e) {} }
+  function fermerVersProjets() { if (AIM.cadre) { try { atlListe(); } catch (e) {} return; } if (AIM.vue !== 'nouveau' && AIM.open) { nouveau(); return; } fermer(); try { atlClose(); } catch (e) {} }   // le « Mes projets » de chacun = l'écran sous les nuages
   function retour() {   // Android ← et B de la manette
     const R = AIM.root; if (!R) return false;
     if (!R.querySelector('.crea-mod').hidden) { modFermer(); return true; }
@@ -138,7 +212,7 @@
     AIM.loc = [];
     dire({ pk: 1, img: 'coucou', t: 'Bonjour ' + joli(nom()) + ' ! Qu’est-ce qu’on crée aujourd’hui ? Raconte-moi ton idée 😊' });
     montrer(); render(); curseur();
-    await chargerTypes(true); render();
+    await chargerTypes(true); render(); if (AIM.vue === 'nouveau') curseur();   // la discussion est redessinée : le curseur y revient
   }
   // ce que le joueur veut faire, d'après ses mots ({g} décide ; dans le doute, une seule question)
   const RX_BIENTOT = [[/\b(musique|chanson|m[ée]lodie|son[s]? |instrument|piano|beat)/i, 'La musique'], [/\b(dj|mixer|mix|platines?)\b/i, 'Le DJ'], [/\b(bd|bande dessin[ée]e|manga|histoire illustr)/i, 'Les BD'],
@@ -333,31 +407,74 @@
     q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + so + (etroit() ? '' : ' crédits') : '';
     renderArbre(); renderOutil(); renderMasc(); renderFlot();
   }
+  // ---------- l'arbre « Mes projets » : la VRAIE jaquette (atlPvJaq de l'Interface), son STATUT et ses BULLES, lus tels quels sur les cartes
+  // de projets que l'Interface dessine (atlRenderProjets, atlTousProjets : rien n'est recalculé ici) ; admins : les projets des joueurs à la suite
+  AIM.cartes = {};   // id du projet → { statut, bulles: [{t, c}], cls }
+  function lireCarte(t) {
+    const st = [t.querySelector('.atl-pver'), t.querySelector('.atl-pver2')].filter(Boolean).map(e => e.textContent.trim()).filter(Boolean).join(' · ');
+    const bulles = [...t.querySelectorAll('.atl-patt, .atl-pnew, .atl-pprepa')].map(e => ({ t: (e.querySelector('.lg') || e).textContent.trim(), c: e.className })).filter(x => x.t);
+    return { statut: st, bulles, cls: ['choix', 'rep', 'new', 'att'].filter(k => t.classList.contains(k)) };
+  }
+  function lireCartes() {
+    const R = ATL.root; if (!R) return false;
+    const avant = JSON.stringify(AIM.cartes);
+    const ps = atlProjets(), tiles = R.querySelectorAll('.atl-projets .atl-pgrid .atl-pwrap > .atl-ptile');
+    ps.forEach((pj, i) => { if (tiles[i]) AIM.cartes[pj.id] = lireCarte(tiles[i]); });
+    for (const t of R.querySelectorAll('.atl-tous .atl-ptile')) { const r = t.querySelector('.atl-rent[data-f]'); if (r) AIM.cartes[r.dataset.f] = lireCarte(t); }
+    return JSON.stringify(AIM.cartes) !== avant;
+  }
+  function jaquette(pj, img) {
+    const ic = E('span', 'ic jaq');
+    if (img) { const x = AIM.types[pj.id], u = x && urlImg(x.image, 120); if (u) { const im = E('img'); im.alt = ''; im.src = u; ic.appendChild(im); } else ic.textContent = '🎨'; ic.style.background = '#efe6ff'; }
+    else { try { atlPvJaq(ic, pj); } catch (e) { ic.textContent = '🎮'; } ic.style.background = '#2a1f45'; }
+    return ic;
+  }
+  function ligneProjet(pj, opts) {
+    const img = typeDe(pj.id) === 'images' && !opts.autre, ouvert = (img && AIM.fiche === pj.id) || (AIM.cadre && !opts.autre && ATL.cur === pj.id), ca = AIM.cartes[pj.id] || {};
+    const n = B('crea-nd crea-proj' + (ouvert ? ' ouvert' : '') + (ca.cls || []).map(k => ' ' + k).join(''), null, () => {
+      AIM.root.classList.remove('tiroir');
+      if (opts.autre) { fermer(); try { atlVoirProjet(pj.id); } catch (e) {} return; }   // admin : le projet d'un joueur, exactement comme il le voit (fonctions admin existantes)
+      if (img) { if (AIM.fiche === pj.id) { AIM.ouverts[pj.id] = !AIM.ouverts[pj.id]; render(); } else ouvrir(pj.id); }
+      else { fermer(); _ouvrir(pj.id); }
+    });
+    const ic = jaquette(pj, img);
+    const nb = (ca.bulles || []).filter(b => !/atl-(pprepa|pdc)\b/.test(b.c) && !/^(⏳|🛠️)/u.test(b.t)).reduce((t, b) => t + (parseInt((b.t.match(/\d+/) || [1])[0], 10) || 1), 0);   // seulement ce qui attend le joueur (questions, réponses, à choisir, à valider) ; pas « en préparation », « en cours », « mise de côté »
+    if (nb) ic.appendChild(E('i', 'pastille', String(Math.min(99, nb))));   // la pastille rouge : le nombre de ses bulles (réponses, questions, à choisir…)
+    const nm = E('span', 'nm', pj.titre || (img ? 'Mes images' : 'Sans nom'));
+    const st = opts.autre ? '👤 ' + (typeof dispName === 'function' ? dispName(pj.joueur || '') : pj.joueur || '') + (ca.statut ? ' · ' + ca.statut : '') : ca.statut || (img ? 'Images' : 'Jeu');
+    nm.appendChild(E('small', '', st));
+    for (const b of (ca.bulles || []).slice(0, 2)) nm.appendChild(E('em', 'bulle ' + b.c.replace(/\batl-/g, 'b-'), b.t));
+    n.append(E('span', 'fl', opts.autre ? '' : ouvert && AIM.ouverts[pj.id] ? '▾' : '▸'), ic, nm);
+    n.title = (pj.titre || '') + (st ? ' — ' + st : '');
+    return n;
+  }
   function renderArbre() {
-    const A = AIM.root.querySelector('.crea-arbre'); A.textContent = '';
+    const A = AIM.root.querySelector('.crea-arbre'), sy = A.scrollTop; A.textContent = '';
+    try { lireCartes(); } catch (e) {}
     const ps = atlProjets(), cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
     const h = E('div', 'crea-tarb'); h.append(E('b', '', '📁 MES PROJETS'), E('span', '', ps.length + ' / ' + max)); A.appendChild(h);
+    const nb = B('crea-nouveau' + (AIM.vue === 'nouveau' && !AIM.cadre ? ' on' : ''), '＋ Nouveau projet', () => { AIM.root.classList.remove('tiroir'); atlNouveau(); });
+    if (ps.length >= max) nb.disabled = true;
+    A.appendChild(nb);
     for (const pj of ps) {
-      const ty = typeDe(pj.id), img = ty === 'images', ouvert = img && AIM.fiche === pj.id;
-      const n = B('crea-nd' + (ouvert ? ' ouvert' : ''), null, () => {
-        AIM.root.classList.remove('tiroir');
-        if (img) { if (AIM.fiche === pj.id) { AIM.ouverts[pj.id] = !AIM.ouverts[pj.id]; render(); } else ouvrir(pj.id); }
-        else { fermer(); _ouvrir(pj.id); }
-      });
-      const ic = E('span', 'ic', img ? '🎨' : '🎮'); ic.style.background = img ? '#efe6ff' : '#ffe9e1';
-      const nm = E('span', 'nm', pj.titre || (img ? 'Mes images' : 'Mon jeu sans nom')); const sm = E('small', '', img ? 'Images' : 'Jeu'); sm.style.color = img ? '#6a3fc2' : '#d9582b'; nm.appendChild(sm);
-      n.append(E('span', 'fl', ouvert && AIM.ouverts[pj.id] ? '▾' : '▸'), ic, nm); A.appendChild(n);
-      if (ouvert && AIM.ouverts[pj.id]) {
+      A.appendChild(ligneProjet(pj, {}));
+      if (typeDe(pj.id) === 'images' && AIM.fiche === pj.id && AIM.ouverts[pj.id]) {
         const s = E('div', 'crea-sous'), c = curCrea(), cs = (AIM.d && AIM.d.creations) || [];
-        const sub = (k, e, t, nb) => { const b = B('crea-nd' + (AIM.vue === k ? ' on' : ''), null, () => { AIM.vue = k; AIM.root.classList.remove('tiroir'); render(); }); b.append(E('i', '', e), E('span', 'nm', t)); if (nb != null) b.appendChild(E('span', 'n', String(nb))); s.appendChild(b); };
+        const sub = (k, e, t, n0) => { const b = B('crea-nd' + (AIM.vue === k ? ' on' : ''), null, () => { AIM.vue = k; AIM.root.classList.remove('tiroir'); render(); }); b.append(E('i', '', e), E('span', 'nm', t)); if (n0 != null) b.appendChild(E('span', 'n', String(n0))); s.appendChild(b); };
         sub('atelier', '🎨', 'Mon atelier'); sub('images', '🖼️', 'Mes images', cs.length); sub('versions', '🕘', 'Versions', c ? c.versions.filter(v => v.etat === 'prete').length : 0); sub('reglages', '⚙️', 'Réglages');
         A.appendChild(s);
       }
     }
-    const nb = B('crea-nouveau' + (AIM.vue === 'nouveau' ? ' on' : ''), '＋ Nouveau projet', () => { AIM.root.classList.remove('tiroir'); atlNouveau(); });
-    if (ps.length >= max) nb.disabled = true;
-    A.appendChild(nb);
+    // ADMINS : les projets des autres joueurs, à la suite, dans une section à part (liste de l'admin : at_tous_projets, déjà ouverte aux admins seulement)
+    if (cr && cr.tous_projets) {
+      const moi = new Set(ps.map(x => x.id)), l = ((ATL.tous && Array.isArray(ATL.tous.l)) ? ATL.tous.l : []).filter(x => x && !moi.has(x.id));
+      const hs = E('div', 'crea-tarb crea-tarb2'); hs.append(E('b', '', '👥 PROJETS DES JOUEURS'), E('span', '', l.length ? String(l.length) : '…')); A.appendChild(hs);
+      if (!ATL.tous && !AIM.tousLit) { AIM.tousLit = true; rpc('at_tous_projets', { p_name: nom() }, { quiet: true }).then(l2 => { ATL.tous = { at: Date.now(), l: l2 }; render(); }).catch(() => {}).finally(() => { AIM.tousLit = false; }); }
+      const tri = [...l].sort((a, c) => String(a.joueur || '').localeCompare(String(c.joueur || '')) || String(c.maj_at || '').localeCompare(String(a.maj_at || '')));
+      for (const x of tri) A.appendChild(ligneProjet(x, { autre: true }));
+    }
     A.appendChild(E('div', 'crea-pied', 'Ce que tu crées ici reste privé : toi seul le vois.'));
+    A.scrollTop = sy;
   }
   function renderOutil() {
     const O = AIM.root.querySelector('.crea-outil'), sy = O.scrollTop; O.textContent = '';
@@ -415,7 +532,7 @@
     } else Cd.appendChild(img(act.path));
     S.appendChild(Cd);
     // « Dis ce que tu veux changer »
-    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 400; ta.placeholder = etroit() ? '✨ Dis ce que tu veux changer…' : '✨ Dis ce que tu veux changer… « ajoute des lucioles au-dessus de l’eau »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
+    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 400; ta.placeholder = etroit() ? '✨ Que veux-tu changer ?' : '✨ Dis ce que tu veux changer… « ajoute des lucioles au-dessus de l’eau »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
     ta.value = AIM.brouillon || ''; ta.addEventListener('input', () => { AIM.brouillon = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) { toast('Le micro ne marche pas ici : écris au clavier'); } }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
