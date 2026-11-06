@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## 🚗 Sens Interdit : la 3D repart toute seule (borne 2.1.8)
+[sensinterdit] 🚗 Si l'image 3D se perd en pleine course, le jeu la relance tout seul, sans perdre ta partie.
+[sensinterdit] 🔄 Si le navigateur bloque la 3D, un bouton « Recharger la page » apparaît (doigt, souris, Entrée ou A de la manette).
+[remparts] ## 🏰 Remparts : 3D plus solide (borne 2.1.8)
+[remparts] 🏰 La 3D de Remparts libère mieux la carte graphique : moins de risque d'écran figé sur les petits ordinateurs.
 [pingpong] ## 🏓 Ping-Pong : la 3D repart toute seule (borne 2.1.7)
 [pingpong] 🏓 Plus de message « ton appareil n'affiche pas la 3D » quand ce n'est pas vrai : si la 3D ne démarre pas, le jeu la relance tout seul.
 [pingpong] 🔄 Si la 3D reste bloquée par le navigateur, un bouton « Recharger la page » apparaît (doigt, souris, Entrée ou A de la manette) ; en duel, ton adversaire est prévenu.
