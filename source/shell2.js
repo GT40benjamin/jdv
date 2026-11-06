@@ -10914,7 +10914,7 @@ function boutiqueApi(g, seq) {
   const ok = () => !!current && current.seq === seq && ONLINE && !netOff() && !isGuest() && !!profile.name;
   let cache = null;
   const lire = async () => { if (!ok()) return null; try { cache = await rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true }); } catch (e) { cache = null; } return cache; };
-  const art = a => ({ cle: a.cle, nom: a.nom, image: a.image ? atlIaUrl(a.image) || null : null, prix: a.prix | 0, euros: (+a.euros_cents || 0) / 100, possede: !!a.possede, mien: !!a.mien, conso: !!a.conso, nb: a.nb != null ? a.nb | 0 : (a.possede ? 1 : 0), quantite: Math.max(1, a.quantite | 0), stock: a.stock != null ? a.stock | 0 : (a.possede ? 1 : 0) });   // v151 : quantite = taille du pack, stock = unités qui restent   // 2.0.147 (SQL v150) : conso = se rachète, nb = achats
+  const art = a => ({ cle: a.cle, nom: a.nom, texte: a.texte || '', image: a.image ? atlIaUrl(a.image) || null : null, prix: a.prix | 0, euros: (+a.euros_cents || 0) / 100, possede: !!a.possede, mien: !!a.mien, conso: !!a.conso, nb: a.nb != null ? a.nb | 0 : (a.possede ? 1 : 0), quantite: Math.max(1, a.quantite | 0), stock: a.stock != null ? a.stock | 0 : (a.possede ? 1 : 0) });   // v151 : quantite = taille du pack, stock = unités qui restent   // 2.0.147 (SQL v150) : conso = se rachète, nb = achats
   return {
     info: () => ({ on: ok() }),
     async liste() { const r = await lire(); return r && Array.isArray(r.articles) ? r.articles.map(art) : []; },
@@ -10942,7 +10942,7 @@ function boutiqueConfirmer(g, a, r, o) {
     const M = el('div', 'liv-mod bout-mod'); M.id = 'jdw-boutmod'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Acheter');
     const C = el('div', 'liv-card'); M.appendChild(C);
     const cr = atlCred(), solde = cr ? cr.solde | 0 : null, eur = ((+a.euros_cents || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
-    C.append(el('h2', '', '🛍️ Acheter « ' + a.nom + ' » ?'));
+    C.append(el('h2', '', '🛍️ Acheter « ' + a.nom + ' » ?')); if (a.texte) C.appendChild(el('p', 'bout-tx', a.texte));
     if (a.image && atlIaUrl(a.image)) { const im = el('img', 'bout-img'); im.alt = a.nom; im.src = atlIaUrl(a.image); C.appendChild(im); }
     const pr = el('p', 'bout-prix'); pr.append(el('b', '', (a.prix | 0).toLocaleString('fr-FR') + ' 💎'), ' (≈ ' + eur + ')' + (solde != null ? ' · tu as ' + solde.toLocaleString('fr-FR') + ' crédits' : '')); C.appendChild(pr);
     const subTxt = () => 'Dans « ' + (atlTitre(g) || g.title || g.id) + ' ». ' + (a.conso ? ((a.quantite | 0) > 1 ? 'Un pack de ' + (a.quantite | 0) + '. ' : '') + 'Tu peux en racheter quand tu veux' + (a.stock != null && (a.nb | 0) ? ' (il t’en reste ' + (a.stock | 0) + ')' : (a.nb | 0) ? ' (déjà acheté ' + (a.nb | 0) + ' fois)' : '') + ', et tout revient au créateur du jeu.' : 'C’est à toi pour toujours, et tout revient au créateur du jeu.');
@@ -11006,7 +11006,8 @@ async function boutiqueOuvrir() {
   const carte = (a, r) => {
     const eu = a.possede && !a.conso, b = el('button', 'bout-va' + (eu ? ' eu' : '') + (boutSpecial(a) ? ' sp' : '')); b.type = 'button';
     const u = a.image ? atlIaUrl(a.image) : '', im = el('div', 'bout-vai'); if (u) { const i = el('img'); i.alt = ''; i.loading = 'lazy'; i.src = u; im.appendChild(i); } else im.textContent = boutSpecial(a) ? '⭐' : '🎁';
-    b.append(im, el('b', 'bout-vam', a.nom), el('span', 'bout-vap', eu ? '✓ Acheté' : a.mien ? 'Ton jeu' : (a.prix | 0).toLocaleString('fr-FR') + ' 💎'));
+    b.append(im, el('b', 'bout-vam', a.nom)); if (a.texte) b.appendChild(el('small', 'bout-vtx', a.texte));   // v152 : la petite phrase de l'article
+    b.append(el('span', 'bout-vap', eu ? '✓ Acheté' : a.mien ? 'Ton jeu' : (a.prix | 0).toLocaleString('fr-FR') + ' 💎'));
     if (a.conso) b.appendChild(el('small', 'bout-vnb', ((a.quantite | 0) > 1 ? 'Pack de ' + (a.quantite | 0) + ' · ' : '') + (a.stock != null && (a.nb | 0) ? '🔁 Il t’en reste ' + (a.stock | 0) : (a.nb | 0) ? '🔁 Déjà acheté ' + (a.nb | 0) + ' fois' : '🔁 Se rachète')));   // 2.0.147 : consommable
     b.disabled = !!(eu || a.mien);
     b.addEventListener('click', async () => { const ok = await boutiqueConfirmer(g, a, r, { vitrine: true }); if (ok) { rendre(r); const c = atlCred(); if (c) sol.textContent = 'Tu as ' + Math.max(0, c.solde | 0).toLocaleString('fr-FR') + ' 💎'; } setTimeout(() => { try { const f = V.querySelector('.bout-va:not([disabled])') || ferme; f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40); });

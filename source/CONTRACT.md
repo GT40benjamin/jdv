@@ -397,7 +397,8 @@ nombre (0 si jamais acheté) ; `acheter(cle)` d'un consommable rouvre toujours l
 utilisé… ou, depuis la SQL v151 (mieux), laisse le SERVEUR compter : `at_boutique_poser(…, p_conso => true, p_quantite => 5)` = un pack de 5 ;
 chaque achat ajoute 5 unités ; `liste()` donne `quantite` (taille du pack) et `stock` (unités qui restent) ; `await api.boutique.stock(cle)` ;
 `await api.boutique.consommer(cle, n = 1)` → `{ ok, stock }` (ok faux = pas assez, ou hors ligne / invité : rien n'est retiré ; le jeu
-n'utilise l'objet que si ok). Le stock suit le joueur sur tous ses appareils. Un article normal reste à vie (`deja`) ; `consommer` le refuse.
+n'utilise l'objet que si ok). Le stock suit le joueur sur tous ses appareils. Depuis la SQL v152 : `p_texte` (140 caractères, filtré comme le nom) = la petite phrase de
+l'article, montrée sous son nom dans la vitrine et dans la confirmation ; `liste()` la rend dans `texte`. Un article normal reste à vie (`deja`) ; `consommer` le refuse.
 
 ## Ajout 26 : un jeu de l'Atelier se livre SANS publier la borne (borne 2.0.133, demande de l'admin du 5 nov. 2026)
 La borne ne garde plus de liste des jeux nés à l'Atelier : elle apprend leur id par le SERVEUR (at_fiches.jeu, renvoyé par at_lire,
