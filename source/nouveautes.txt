@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🛠️ Crée avec {g} : tes ateliers se préparent avec {g} (borne 2.1.9)
+[borne] 🛠️ Un nouveau projet (photos, création…) commence par une discussion avec {g} : il te pose ses questions, puis te propose d'aménager ton atelier, avec son prix.
+[borne] ✨ Tant que ton atelier se prépare, ton projet tient sur une seule ligne et tu suis l'avancement en direct, sans écran qui tourne sans fin.
 [sensinterdit] ## 🚗 Sens Interdit : la 3D repart toute seule (borne 2.1.8)
 [sensinterdit] 🚗 Si l'image 3D se perd en pleine course, le jeu la relance tout seul, sans perdre ta partie.
 [sensinterdit] 🔄 Si le navigateur bloque la 3D, un bouton « Recharger la page » apparaît (doigt, souris, Entrée ou A de la manette).
