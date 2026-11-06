@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## ✨ Les créateurs ont tout dans leur boutique (borne 2.0.152)
+[borne] ✨ Dans la boutique de ton propre jeu, tous les articles sont déjà à toi : « À toi, c’est ton jeu ». Tu vois tes tenues et tes niveaux secrets sans rien acheter.
 [borne] ## 🛍️ Chaque article de boutique se présente (borne 2.0.151)
 [borne] 🛍️ Dans la boutique d’un jeu, chaque article peut avoir sa petite phrase sous son nom, pour savoir tout de suite à quoi il sert.
 [borne] ## 📱 Menus des jeux : le héros n’est plus caché (borne 2.0.150)

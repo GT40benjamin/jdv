@@ -398,7 +398,11 @@ utilisé… ou, depuis la SQL v151 (mieux), laisse le SERVEUR compter : `at_bout
 chaque achat ajoute 5 unités ; `liste()` donne `quantite` (taille du pack) et `stock` (unités qui restent) ; `await api.boutique.stock(cle)` ;
 `await api.boutique.consommer(cle, n = 1)` → `{ ok, stock }` (ok faux = pas assez, ou hors ligne / invité : rien n'est retiré ; le jeu
 n'utilise l'objet que si ok). Le stock suit le joueur sur tous ses appareils. Depuis la SQL v152 : `p_texte` (140 caractères, filtré comme le nom) = la petite phrase de
-l'article, montrée sous son nom dans la vitrine et dans la confirmation ; `liste()` la rend dans `texte`. Un article normal reste à vie (`deja`) ; `consommer` le refuse.
+l'article, montrée sous son nom dans la vitrine et dans la confirmation ; `liste()` la rend dans `texte`.
+**Le créateur possède d'office ses articles (borne 2.0.153, SQL v153, décision du chef)** : pour le créateur du jeu (même pseudo, même compte
+ou famille), `liste()` rend `mien: true` et `possede: true` pour TOUS les articles, `possede(cle)` est vrai, `acheter(cle)` rend vrai sans
+fenêtre, un consommable a `stock: 9999` (illimité) et `consommer` rend `{ ok: true, stock: 9999, illimite: true }` sans rien retirer. La vitrine
+montre « ✨ À toi, c'est ton jeu ». Aucun crédit ne bouge, rien n'est inscrit comme vente. → Le jeu débloque tout pour son créateur, comme pour un acheteur. Un article normal reste à vie (`deja`) ; `consommer` le refuse.
 
 ## Ajout 26 : un jeu de l'Atelier se livre SANS publier la borne (borne 2.0.133, demande de l'admin du 5 nov. 2026)
 La borne ne garde plus de liste des jeux nés à l'Atelier : elle apprend leur id par le SERVEUR (at_fiches.jeu, renvoyé par at_lire,

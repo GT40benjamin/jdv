@@ -10928,7 +10928,7 @@ function boutiqueApi(g, seq) {
     async nombre(cle) { const r = await lire(), a = r && Array.isArray(r.articles) ? r.articles.find(x => x.cle === cle) : null; return a ? (a.nb != null ? a.nb | 0 : (a.possede ? 1 : 0)) : 0; },   // 2.0.147 : combien de fois acheté (consommables)
     async acheter(cle) {
       if (!ok()) { toastCheer(isGuest() ? 'Crée ton compte pour la boutique 🛍️' : 'Connecte-toi pour la boutique 🛍️', null, true); return false; }
-      const r = await lire(), a = r && Array.isArray(r.articles) ? r.articles.find(x => x.cle === cle) : null; if (!a) return false; if (a.possede && !a.conso) return true;
+      const r = await lire(), a = r && Array.isArray(r.articles) ? r.articles.find(x => x.cle === cle) : null; if (!a) return false; if (a.mien || (a.possede && !a.conso)) return true;   // v153 : le créateur a déjà tout
       return boutiqueConfirmer(g, a, r);
     }
   };
@@ -11004,11 +11004,11 @@ async function boutiqueOuvrir() {
   const esc = e => { if (e.key === 'Escape' && !document.getElementById('jdw-boutmod')) { e.stopPropagation(); e.preventDefault(); fermer(); } };
   V._fermer = fermer; document.addEventListener('keydown', esc, true); ferme.addEventListener('click', fermer);
   const carte = (a, r) => {
-    const eu = a.possede && !a.conso, b = el('button', 'bout-va' + (eu ? ' eu' : '') + (boutSpecial(a) ? ' sp' : '')); b.type = 'button';
+    const eu = a.mien || (a.possede && !a.conso), b = el('button', 'bout-va' + (eu ? ' eu' : '') + (boutSpecial(a) ? ' sp' : '')); b.type = 'button';
     const u = a.image ? atlIaUrl(a.image) : '', im = el('div', 'bout-vai'); if (u) { const i = el('img'); i.alt = ''; i.loading = 'lazy'; i.src = u; im.appendChild(i); } else im.textContent = boutSpecial(a) ? '⭐' : '🎁';
     b.append(im, el('b', 'bout-vam', a.nom)); if (a.texte) b.appendChild(el('small', 'bout-vtx', a.texte));   // v152 : la petite phrase de l'article
-    b.append(el('span', 'bout-vap', eu ? '✓ Acheté' : a.mien ? 'Ton jeu' : (a.prix | 0).toLocaleString('fr-FR') + ' 💎'));
-    if (a.conso) b.appendChild(el('small', 'bout-vnb', ((a.quantite | 0) > 1 ? 'Pack de ' + (a.quantite | 0) + ' · ' : '') + (a.stock != null && (a.nb | 0) ? '🔁 Il t’en reste ' + (a.stock | 0) : (a.nb | 0) ? '🔁 Déjà acheté ' + (a.nb | 0) + ' fois' : '🔁 Se rachète')));   // 2.0.147 : consommable
+    b.append(el('span', 'bout-vap', a.mien ? '✨ À toi, c’est ton jeu' : eu ? '✓ Acheté' : (a.prix | 0).toLocaleString('fr-FR') + ' 💎'));
+    if (a.conso && !a.mien) b.appendChild(el('small', 'bout-vnb', ((a.quantite | 0) > 1 ? 'Pack de ' + (a.quantite | 0) + ' · ' : '') + (a.stock != null && (a.nb | 0) ? '🔁 Il t’en reste ' + (a.stock | 0) : (a.nb | 0) ? '🔁 Déjà acheté ' + (a.nb | 0) + ' fois' : '🔁 Se rachète')));   // 2.0.147 : consommable
     b.disabled = !!(eu || a.mien);
     b.addEventListener('click', async () => { const ok = await boutiqueConfirmer(g, a, r, { vitrine: true }); if (ok) { rendre(r); const c = atlCred(); if (c) sol.textContent = 'Tu as ' + Math.max(0, c.solde | 0).toLocaleString('fr-FR') + ' 💎'; } setTimeout(() => { try { const f = V.querySelector('.bout-va:not([disabled])') || ferme; f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40); });
     return b;
