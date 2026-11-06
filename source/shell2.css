@@ -5900,7 +5900,7 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-esapx{display:flex;align-items:flex-end;gap:10px;margin-top:10px}
 .atl-esap{margin:0;display:grid;gap:4px;justify-items:center}.atl-esap img{display:block;object-fit:cover;border-radius:10px;border:3px solid #1f1a2b;box-shadow:0 4px 12px rgba(0,0,0,.18);background:#1f1a2b}
 .atl-esap.pay img{width:168px;aspect-ratio:16/9}.atl-esap.por img{width:54px;aspect-ratio:9/16}
-.atl-esap figcaption{font:700 11.5px var(--body);color:#4f4863}
+.atl-esap figcaption{font:700 13px var(--body);color:#4f4863}
 .atl-pubb{display:grid;gap:12px;padding:16px}
 .atl-pubhd{display:flex;align-items:center;gap:12px}.atl-pubic{font-size:30px;line-height:1}
 .atl-pubhd b{display:block;font:800 17px var(--body);color:var(--esp-ink,#1f1a2b)}.atl-pubhd small{display:block;margin-top:2px;font:600 13.5px var(--body);color:#4f4863}
@@ -5915,3 +5915,6 @@ body.atl-on #jdw-lib{content-visibility:hidden}
    en bas, pour que tout reste lisible et touchable, même amené à l'écran par le clavier, la manette ou un lien */
 @media (max-width:900px){html:has(#jdw-atelier:not([hidden]) .atl-wiz.atl-espace:not([hidden])),#jdw-atelier,#jdw-atelier .atl-wiz.atl-espace,#jdw-atelier .atl-pbox{scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 90px)}
   #jdw-atelier .atl-wiz.atl-espace .atl-pubb,#jdw-atelier .atl-wiz.atl-espace .atl-pubb *{scroll-margin-bottom:calc(env(safe-area-inset-bottom,0px) + 90px)}}
+/* 2.1.2 (Tests) : « by … · Vn » lisible dans la grande carte ; la case des mises à jour : blanche décochée, verte cochée (plus de carré noir) */
+.atl-estuile .tile-by{font-size:13px}
+.atl-pubb .atl-autopub input[type=checkbox]{color-scheme:light;appearance:auto!important;-webkit-appearance:checkbox!important;accent-color:#2e9e5e;width:20px;height:20px;margin:0;background:#fff;border:0;flex:none}
