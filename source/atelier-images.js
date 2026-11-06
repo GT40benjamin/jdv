@@ -98,7 +98,7 @@
     R.innerHTML = '<header class="crea-bar"><button class="crea-rond crea-menu" type="button" aria-label="Mes projets">☰</button>'
       + '<button class="crea-rond crea-retour" type="button" aria-label="Retour">‹</button>'
       + '<div class="crea-marque"><img alt="" src="' + AV() + '"><b></b></div><div class="crea-fil"></div>'
-      + '<button class="crea-rond crea-monde" type="button"></button><div class="crea-cred" title="Tes crédits"></div></header>'
+      + '<button class="crea-rond crea-monde" type="button"></button><button class="crea-cred" type="button" title="Tes crédits : en avoir plus"></button></header>'
       + '<div class="crea-ciel" aria-hidden="true"></div>'
       + '<div class="crea-corps"><nav class="crea-arbre crea-carte" aria-label="Mes projets"></nav><main class="crea-outil"></main>'
       + '<aside class="crea-masc crea-carte" aria-label="Discussion avec ' + PK() + '"></aside></div>'
