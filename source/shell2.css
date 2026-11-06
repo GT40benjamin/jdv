@@ -5247,7 +5247,6 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 .atl-espace .atl-pubv,.atl-espace .atl-pubv label,.atl-espace .atl-pubv span,.atl-espace .atl-esparams label,.atl-espace .atl-esparams small{color:var(--esp-ink)!important}
 .atl-wiz.atl-espace{--esp-acc:#ff7ac8;--esp-ink:#2a1e45;--esp-soft:#6b5c86;--esp-card:rgba(255,255,255,.66);--esp-line:rgba(255,255,255,.8);position:relative;isolation:isolate;display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start;padding:18px;border-radius:24px;color:var(--esp-ink);
   background:radial-gradient(120% 80% at 50% 0%,rgba(255,255,255,.62),rgba(255,240,250,.42) 50%,rgba(255,225,245,.3)),var(--esp-fond,linear-gradient(135deg,#ffd6ee,#d9ccff)) center/cover no-repeat,#fbeaf6}
-.atl-wiz.atl-espace::before{content:'';position:absolute;inset:0;z-index:-1;border-radius:inherit;background:inherit;filter:blur(22px) saturate(1.2) brightness(1.12);opacity:.0}
 .atl-espace > .atl-pbox{grid-column:2;min-width:0}
 .atl-espace .atl-ptabs,.atl-espace .atl-phd:not(:has(.atl-phadm)),.atl-espace .atl-travail,.atl-espace .atl-gframe,.atl-espace .atl-gbar,.atl-espace .atl-gaide{display:none!important}
 .atl-espace .atl-pane{background:none;padding:0;color:var(--esp-ink)}
@@ -5564,3 +5563,18 @@ span.atl-esjaq{display:grid;place-items:center;font-size:60px}
 .atl-wiz.atl-nuages .atl-travb:has(.atl-travt) b,.atl-espace .atl-travb:has(.atl-travt) b{display:none}
 /* 2.0.154 : la conversation ne déborde jamais de l'écran (une ligne longue élargissait toute la grille au téléphone) */
 .atl-discc,.atl-pmsgs{grid-template-columns:minmax(0,1fr)}.atl-disclog,.atl-discc > *{min-width:0;max-width:100%}.atl-disclog .atl-m{max-width:100%}
+/* 2.0.159 (chef : grosses lenteurs au téléphone) : AUCUN flou d'arrière-plan dans l'Atelier au téléphone (chaque défilement recalculait
+   tous les flous au-dessus de la grande image) — des cartes blanches presque opaques à la place, même rendu à l'œil ; nuages immobiles */
+@media (pointer:coarse),(max-width:900px){
+  #jdw-atelier,#jdw-atelier *,.atl-revele,.atl-revele *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  .atl-eshero,.atl-escard,.atl-esnav,.atl-espace .atl-vsortie,#jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-estabs{background:rgba(255,255,255,.92)}
+  .atl-estop .atl-espk{background:rgba(255,255,255,.92)}
+  .atl-espace .atl-pane[data-k="elements"],.atl-espace .atl-pane[data-k="demandes"]{background:rgba(30,22,58,.94)}
+  .atl-wiz.atl-nuages .atl-av1{background:rgba(255,255,255,.6)}.atl-wiz.atl-nuages .atl-pane{background:rgba(255,255,255,.9)}
+  #jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-bar,#jdw-atelier:has(.atl-wiz.atl-nuages:not([hidden])) .atl-bar{background:rgb(255,248,253)}
+  .atl-nuage{animation:none}
+  .atl-nuage.loin{filter:none;opacity:.8}
+  .atl-nuage{filter:none}
+}
+/* 2.0.159 : sous l'Atelier (plein écran), la bibliothèque de la borne ne se dessine plus (ses tuiles et badges animés tournaient encore derrière) */
+body.atl-on #jdw-lib{content-visibility:hidden}

@@ -28,6 +28,8 @@
 [sensinterdit] 🚗 Un vrai écran-titre : une grande image du jeu, son logo et une musique de menu ; ▶ JOUER lance le jeu tout de suite, avec une seule pause à l'écran.
 [smoothie] ## 🍉 Smoothie Samouraï : nouvel écran-titre (borne 2.0.157)
 [smoothie] 🍉 Un vrai écran-titre : une grande image du jeu, son logo et une musique de menu ; ▶ JOUER lance le jeu tout de suite, avec une seule pause à l'écran.
+[borne] ## ⚡ L’Atelier bien plus fluide au téléphone (borne 2.0.159)
+[borne] ⚡ L’espace de ton jeu et ta conversation avec {g} défilent sans à-coups au téléphone : plus de gel quand l’Atelier se met à jour tout seul.
 [borne] ## 🏷️ La bonne version dans l’espace de ton jeu (borne 2.0.156)
 [borne] 🏷️ L’espace de ton jeu montre la version en ligne, et « {g} prépare ta Vn… » seulement quand il travaille vraiment sur ta prochaine version.
 [briques] ## 🧱 Casse-briques face à face : nouvel écran-titre (borne 2.0.155)

@@ -16896,7 +16896,8 @@ async function atlEspFond(W, f, n) {
   if (!W.isConnected || isGuest() || !profile.name) return;
   let r = null; try { r = await rpc('at_espace_fond', { p_name: profile.name, p_fiche: f.id }, { quiet: true, quiet404: true }); } catch (e) { r = null; }
   if (!W.isConnected || !r) return;
-  const u = r.fond ? atlIaUrl(r.fond) : ''; if (u) W.style.setProperty('--esp-fond', 'url("' + u + '")');
+  const u0 = r.fond ? atlIaUrl(r.fond) : '', lw = (innerWidth <= 900 || matchMedia('(pointer:coarse)').matches) ? 1280 : 1920;   // 2.0.159 (chef, lenteurs) : webp réduit par le serveur d'images
+  const u = u0 && /\/storage\/v1\/object\/public\//.test(u0) ? u0.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + (u0.includes('?') ? '&' : '?') + 'width=' + lw + '&quality=78' : u0; if (u) W.style.setProperty('--esp-fond', 'url("' + u + '")');
   if (r.en_cours && (n | 0) < 8) setTimeout(() => atlEspFond(W, f, (n | 0) + 1), 25000);
 }
 // les statistiques : cartes du résumé, section complète, courbe des 7 / 30 derniers jours
@@ -18489,7 +18490,7 @@ function atlPkTick() {
   const now = Date.now();
   if (ATL.pkMv && now - ATL.pkMv > 4500 && !ATL.pkCentre) { ATL.pkCentre = true; for (const w of all) for (const k of ['--gx', '--gy', '--gr']) w.style.removeProperty(k); }
   for (const w of all) {
-    const s = w._pk; if (!s || !w.offsetParent) continue;
+    const s = w._pk; if (!s) continue; if (ATL.pkIO) { if (!w._pkObs) { w._pkObs = true; ATL.pkIO.observe(w); } if (!w._pkVu) continue; } else if (!w.offsetParent) continue;
     const x = atlPkTexte(w);
     if (x !== s.txt) {   // la phrase a changé : s'il ne fait pas déjà le bon geste, il s'y met (pas avant 2,5 s dans la pose)
       s.txt = x; const m = atlPkMot(x);
@@ -18508,7 +18509,8 @@ function atlPkRegard() {
   });
 }
 function atlPkInit() {
-  if (!ATL.pkD) ATL.pkD = setInterval(atlPkTick, 300);
+  if (!ATL.pkIO && typeof IntersectionObserver === 'function') ATL.pkIO = new IntersectionObserver(es => { for (const e of es) e.target._pkVu = e.isIntersecting; });   // 2.0.159 : en pause hors de l'écran
+  if (!ATL.pkD) ATL.pkD = setInterval(atlPkTick, 1000);   // 2.0.159 (chef, lenteurs) : 1 s au lieu de 300 ms
   if (ATL.pkEcoute) return; ATL.pkEcoute = true;
   ATL.pkMv = Date.now(); ATL.pkSalut = 0;
   const vise = e => { ATL.pkX = e.clientX; ATL.pkY = e.clientY; ATL.pkCentre = false; if (!ATL.pkRaf) ATL.pkRaf = requestAnimationFrame(atlPkRegard); };
@@ -18749,7 +18751,7 @@ function atlTravailMaj() {
 const atlTravSig = () => JSON.stringify(((ATL.dem || {}).demandes || []).filter(x => x && x.etat === 'en_cours').map(x => x.id));
 const atlTuileSig = () => JSON.stringify(((ATL.dem || {}).demandes || []).filter(x => x && (atlPropOuverte(x) || atlQAttente(x) || (x.nouveau && x.reponse))).map(x => [x.id, atlQNb(x)]));
 async function atlDemCharger(force) {
-  if (!force && ATL.demAt && Date.now() - ATL.demAt < (ATL.open ? (atlDemEnCours().length ? 3000 : 19000) : 60000)) return ATL.dem;
+  if (!force && ATL.demAt && Date.now() - ATL.demAt < (ATL.open ? (atlDemEnCours().length ? 10000 : 19000) : 60000)) return ATL.dem;
   const etAvant = JSON.stringify(atlDemEnCours().map(x => [x.id, (x.etapes || []).length]));
   ATL.demAt = Date.now();
   const avant = JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id)), tuAvant = atlTuileSig(), trAvant = atlTravSig();
@@ -19382,7 +19384,7 @@ setInterval(async () => {
     }
     try { atlTravailMaj(); } catch (e) {}
   } catch (e) {} finally { if (ATL) ATL.adminTravOcc = false; }
-}, 4000);
+}, 10000);   // 2.0.159 : 10 s au plus souvent
 async function atlAdminDemandes() {
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'), m = ATL.adminVoir; if (!z || !m) return;
   try { const r0 = await rpc('at_admin_lire', { p_name: profile.name, p_fiche: m.id }, { quiet: true }); if (r0 && ATL.data) ATL.data.demandes_projet = r0.demandes_projet; } catch (e) {}   // l'état réel, pas celui d'il y a 20 s
@@ -19492,9 +19494,18 @@ function atlCle(el, R) {
   }
   return p.join('>');
 }
+// 2.0.159 (chef : grosses lenteurs au téléphone) : TOUTES les clés en UN passage (avant : atlCle pour chaque élément, qui remontait tous ses
+// parents et comparait tous leurs frères — plusieurs secondes de calcul au téléphone à chaque relecture de l'Atelier). Même format que atlCle.
+function atlSigEl(x) { return x.tagName + '.' + [...x.classList].filter(c => !ATL_CLS_ETAT.test(c)).sort().join('.') + (x.dataset && (x.dataset.k || x.dataset.id) ? '#' + (x.dataset.k || x.dataset.id) : ''); }
+function atlClesTout(R) {
+  const m = new Map(), pile = [[R, '']]; m.set(R, '');
+  while (pile.length) { const [e, k] = pile.pop(), cnt = new Map();
+    for (const c of e.children) { const sg = atlSigEl(c), i = cnt.get(sg) || 0; cnt.set(sg, i + 1); const kc = (k ? k + '>' : '') + sg + ':' + i; m.set(c, kc); if (c.firstElementChild) pile.push([c, kc]); } }
+  return m;
+}
 const ATL_LOGS = '.atl-log, .atl-pmsgs, .atl-dlog, .atl-disc .atl-dl';
 function atlVueGarder() {
-  const R = ATL.root, e = { y: window.scrollY, sc: [], det: [], val: [], foc: null, imgs: new Map(), logs: [] };
+  const R = ATL.root, e = { y: window.scrollY, sc: [], det: [], val: [], foc: null, imgs: new Map(), logs: [] }, K = atlClesTout(R), atlCle = el => K.get(el) || '';
   for (const el of [R, ...R.querySelectorAll('*')]) {
     if (el.scrollTop > 0 || el.scrollLeft > 0) e.sc.push([atlCle(el, R), el.scrollTop, el.scrollLeft]);
     if (el.tagName === 'DETAILS') e.det.push([atlCle(el, R), el.open]);
@@ -19512,7 +19523,7 @@ function atlVueGarder() {
 }
 function atlVueRemettre(e) {
   const R = ATL.root; if (!R || !e) return;
-  const cles = new Map(); for (const el of [R, ...R.querySelectorAll('*')]) { const k = el === R ? '' : atlCle(el, R); if (!cles.has(k)) cles.set(k, el); }
+  const cles = new Map(); for (const [el, k] of atlClesTout(R)) if (!cles.has(k)) cles.set(k, el);   // 2.0.159 : un seul passage
   // les images déjà chargées : on remet LES MÊMES éléments (pas de rechargement ni de clignotement)
   for (const im of R.querySelectorAll('img')) {
     const l = e.imgs.get(im.src); if (!l || !l.length || im.complete && im.naturalWidth && l[0] === im) continue;
@@ -19587,7 +19598,7 @@ function atlSchedule() {
   if (!ATL) return; clearTimeout(ATL.pollT);
   if (!ATL_ON() || ATL.off || !ONLINE) return;
   const live = atlProjets().length > 0;
-  const ms = ATL.open ? (atlDemEnCours().length ? 8000 : 20000) : live ? 120000 : 0;   // 2.0.9 : une demande en cours, son avancement en direct
+  const ms = ATL.open ? (atlDemEnCours().length ? 10000 : 20000) : live ? 120000 : 0;   // 2.0.9 : une demande en cours, son avancement en direct
   if (ms) ATL.pollT = setTimeout(() => atlLoad(false), ms * Math.min(4, 1 + ATL.err));
 }
 async function atlSend() {
