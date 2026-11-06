@@ -34,6 +34,16 @@
     return u;
   }
   const typeDe = id => (AIM.types[id] && AIM.types[id].type) || 'jeu';
+  // l'admin (6 nov., 23 h) : un atelier se monte COMME UN JEU. Avant sa V1 (aménagement payé puis livré par l'équipe) un projet Images n'a
+  // PAS d'outils : il passe par le montage de l'Interface (discussion, questions, photo d'exemple, offre « Aménager mon atelier », étapes).
+  // V1 livrée = version ≥ 1 ou état alpha / publié (posés par l'équipe à la livraison), ou déjà des images (ateliers d'avant ce correctif)
+  function livre(id) {
+    if (typeDe(id) !== 'images') return false;
+    if ((AIM.types[id].images | 0) > 0) return true;
+    let pj = null; try { pj = atlProjets().find(x => x && x.id === id); } catch (e) {}
+    return !!pj && ((pj.version | 0) >= 1 || ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')));
+  }
+  const atelierOuvert = id => typeDe(id) === 'images' && livre(id);
   const toast = t => { try { atlToast(t); } catch (e) { try { toastCheer(t); } catch (e2) {} } };
   const dire = m => { m.pk = m.pk === undefined ? 1 : m.pk; m.at = new Date().toISOString(); AIM.loc.push(m); };   // un mot de {g} (ou du joueur) seulement sur cet appareil
   const pourquoi = e => String((e && e.message) || e || '');
@@ -51,9 +61,9 @@
 
   // ---------- surcharges de l'Atelier ----------
   atlOuvrir = function (id) {   // eslint-disable-line no-global-assign
-    if (AIM.types[id]) { if (typeDe(id) === 'images') return ouvrir(id); if (AIM.open) fermer(); return _ouvrir(id); }
+    if (AIM.types[id]) { if (atelierOuvert(id)) return ouvrir(id); if (AIM.open) fermer(); return _ouvrir(id); }
     if (AIM.open && !(AIM.types[id])) fermer();
-    if (Date.now() - AIM.typesAt > 60000) { chargerTypes(true).then(() => (typeDe(id) === 'images' ? ouvrir(id) : _ouvrir(id))); return; }
+    if (Date.now() - AIM.typesAt > 60000) { chargerTypes(true).then(() => (atelierOuvert(id) ? ouvrir(id) : _ouvrir(id))); return; }
     return _ouvrir(id);
   };
   atlNouveau = function () {   // eslint-disable-line no-global-assign
@@ -83,7 +93,7 @@
   // l'admin (6 nov., 2.1) : TOUT le monde arrive sur l'écran « Nouveau projet » sous les nuages dès qu'il ouvre « Crée avec {g} » ;
   // l'ancienne grille de projets reste dessous (ses cartes donnent statuts et bulles à l'arbre), jamais montrée en premier
   if (typeof atlOpen === 'function') { const _open = atlOpen; atlOpen = function () { if (!ATL.open) { ATL.cur = null; ATL.nouveau = false; } const r = _open.apply(this, arguments); try { if (ATL.open && !ATL.cur && !AIM.open) nouveau(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
-  if (typeof atlListe === 'function') { const _liste = atlListe; atlListe = function () { const r = _liste.apply(this, arguments); try { if (ATL.open && !AIM.open) nouveau(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
+  if (typeof atlListe === 'function') { const _liste = atlListe; atlListe = function () { const r = _liste.apply(this, arguments); try { if (ATL.open && !AIM.open && !AIM.calme) nouveau(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
   if (typeof jdwBack === 'function') { const _back = jdwBack; jdwBack = function () { if (AIM.open && retour()) return true; if (AIM.cadre && AIM.root && AIM.root.classList.contains('tiroir')) { AIM.root.classList.remove('tiroir'); return true; } if (AIM.cadre && ATL.root && ![...ATL.root.querySelectorAll('.atl-mod, .atl-zoom, .atl-lv')].some(m => !m.hidden)) { fermerVersProjets(); return true; } return _back.apply(this, arguments); }; }
   // le chef (6 nov., nuit, frontière avec l'Interface) : un jeu PAS ENCORE jouable (atlAvantV1) se monte dans le NOUVEAU design. On ne réécrit
   // RIEN du montage : la discussion, les offres, at_dire, le paiement et le micro restent ceux de l'Interface (#jdw-atelier) ; on l'HABILLE
@@ -146,13 +156,41 @@
   function enMontage() {
     if (AIM.open || !ATL.open || !ATL.root || ATL.root.hidden) return false;
     if (ATL.nouveau && !ATL.cur) return true;
-    if (!ATL.cur || typeDe(ATL.cur) === 'images') return false;
+    if (!ATL.cur || atelierOuvert(ATL.cur)) return false;
     const f = ficheMontage(); return !!f && atlAvantV1(f);   // les fonctions de l'Interface, jamais une copie de la règle
+  }
+  // l'admin (6 nov., 23 h) : un atelier (projet Images) en montage montre AU MILIEU, en direct, ce qui se prépare : l'offre « Aménager mon atelier »
+  // avec « Choisir » (la carte de l'Interface : mêmes boutons, même paiement) puis, une fois choisie, l'avancement étape par étape
+  // (at_demande_avancer, la bulle « en direct » de l'Interface). Avant la V1 de l'Interface, ces cartes n'étaient que dans « Mes demandes »
+  function offresMt() {
+    const A = ATL.root; if (!A) return;
+    const C = A.querySelector('.atl-main > .atl-chat:not(.atl-disc)'); let box = A.querySelector('.crea-mtof');
+    let f = null; try { f = atlFiche(); } catch (e) {}
+    const img = !!(f && ATL.cur === f.id && typeDe(ATL.cur) === 'images' && A.classList.contains('crea-mt'));
+    let ouv = [], cours = [];
+    if (img) { try { const ds = atlDiscDems(f).filter(x => x && !['faite', 'impossible', 'regroupee', 'plus_tard'].includes(x.etat)); ouv = ds.filter(atlPropOuverte); cours = ds.filter(x => x.choix && !atlPropOuverte(x)); } catch (e) {} }
+    if (!img || !C || (!ouv.length && !cours.length)) { if (box) box.remove(); return; }
+    let sig = ''; try { sig = JSON.stringify([ATL.cur, ouv.map(atlDiscSig), cours.map(atlDiscSig)]); } catch (e) {}
+    if (box && box.dataset.sig === sig && box.parentNode === C) return;
+    if (!box) { box = E('div', 'crea-mtof'); box.setAttribute('aria-live', 'polite'); }
+    box.textContent = ''; box.dataset.sig = sig;
+    for (const x of cours) {   // choisie : je prépare ton atelier (étapes faites + la dernière en direct)
+      const c = E('div', 'crea-mtprep'), et = Array.isArray(x.etapes) ? x.etapes : [];
+      { const lb = String((x.choix && x.choix.libelle) || 'Ton atelier').trim(); c.appendChild(E('b', '', (/^[\p{L}\p{N}]/u.test(lb) ? '🛠️ ' : '') + lb + ' : ' + PK() + ' le prépare')); }
+      et.forEach((e, i) => { const der = i === et.length - 1; const l = E('div', 'crea-mtet' + (der ? ' der' : '')); l.textContent = (der ? '⏳ ' : '✅ ') + String(e.texte || e.etape || ''); c.appendChild(l); });
+      if (!et.length) c.appendChild(E('div', 'crea-mtet der', '⏳ Je commence à préparer ton atelier. Je te préviens ici dès qu’il est prêt.'));
+      box.appendChild(c);
+    }
+    for (const x of ouv) { try { box.appendChild(atlDiscBulleDem(x, x.etat_at || x.at)); } catch (e) {} }
+    const comp = C.querySelector(':scope > .atl-comp'); C.insertBefore(box, comp || null);
   }
   function cadreMaj() {
     const A = ATL.root; if (!A) return;
+    // l'atelier vient d'être LIVRÉ (V1) pendant que le joueur est dans sa discussion : il passe tout seul dans son atelier, jamais l'ancien écran
+    if (!AIM.open && ATL.open && !A.hidden && ATL.cur && atelierOuvert(ATL.cur) && AIM.bascule !== ATL.cur) { AIM.bascule = ATL.cur; const id = ATL.cur; setTimeout(() => { try { if (ATL.cur === id && !AIM.open) { if (AIM.cadre) cadreFin(); ouvrir(id); } } catch (e) {} }, 0); }
     const on = enMontage();
     A.classList.toggle('crea-mt', on);
+    A.classList.toggle('crea-img', on && !!ATL.cur && typeDe(ATL.cur) === 'images');   // un atelier en montage : la discussion y est gratuite (at_dire en discussion = 0 💎)
     try { A.classList.toggle('crea-nuit', store.get('jdw.crea.monde', 'jour') === 'nuit'); } catch (e) {}
     if (on) {
       const R = construire();
@@ -162,7 +200,12 @@
         if (!A.querySelector('.crea-mtciel')) { const c = E('div', 'crea-mtciel'); c.setAttribute('aria-hidden', 'true'); try { atlEspCiel(c, false); } catch (e) {} A.insertBefore(c, A.firstChild); }
         if (!AIM.obs) montrerObs();
       }
-      R.hidden = false; monde(); renderCadre(); enteteMt();
+      R.hidden = false; monde(); renderCadre(); enteteMt(); try { offresMt(); } catch (e) {}
+      try {   // un atelier (projet Images) en montage : les mots d'un atelier, pas d'un jeu
+        const img = ATL.cur && typeDe(ATL.cur) === 'images', inp = A.querySelector('.atl-in'), hs = A.querySelector('.atl-hs');
+        if (inp && img && /jeu/.test(inp.placeholder || '')) inp.placeholder = 'Dis à ' + PK() + ' ce que tu veux faire avec tes images…';
+        if (hs && img && /V1|lancer/.test(hs.textContent || '')) hs.textContent = 'Ton atelier se prépare avec ' + PK();
+      } catch (e) {}
     } else if (AIM.cadre) cadreFin();
   }
   function enteteMt() {   // « Nouveau jeu » : le même en-tête que « Nouveau projet » (montré par le CSS seulement quand l'Interface est en .ecrire)
@@ -175,7 +218,7 @@
     AIM.cadre = false; const R = AIM.root; if (!R) return;
     R.classList.remove('cadre', 'tiroir'); R.setAttribute('role', 'dialog'); document.body.appendChild(R);
     if (!AIM.open) R.hidden = true;
-    if (ATL.root) ATL.root.classList.remove('crea-mt');
+    if (ATL.root) { ATL.root.classList.remove('crea-mt'); const ob = ATL.root.querySelector('.crea-mtof'); if (ob) ob.remove(); }
   }
   function renderCadre() {
     const R = AIM.root, q = s => R.querySelector(s), f = ficheMontage();
@@ -188,11 +231,11 @@
     renderArbre();
   }
   function montrerObs() {
-    if (!AIM.obs && ATL.root) { try { let t = 0; AIM.obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} }, 250); }); AIM.obs.observe(ATL.root, { childList: true, subtree: true, characterData: true }); } catch (e) {} }
+    if (!AIM.obs && ATL.root) { try { let t = 0; AIM.obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} try { if (AIM.cadre) offresMt(); } catch (e) {} }, 250); }); AIM.obs.observe(ATL.root, { childList: true, subtree: true, characterData: true }); } catch (e) {} }
   }
   function montrer() {
     if (AIM.cadre) cadreFin();
-    if (!AIM.obs && ATL.root) { try { let t = 0; AIM.obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} }, 250); }); AIM.obs.observe(ATL.root, { childList: true, subtree: true, characterData: true }); } catch (e) {} }
+    if (!AIM.obs && ATL.root) { try { let t = 0; AIM.obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} try { if (AIM.cadre) offresMt(); } catch (e) {} }, 250); }); AIM.obs.observe(ATL.root, { childList: true, subtree: true, characterData: true }); } catch (e) {} }
     construire(); AIM.open = true; AIM.root.hidden = false;
     AIM.root.style.backgroundImage = AIM.vue === 'nouveau' ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
     AIM.root.classList.remove('tiroir', 'pk-plein');
@@ -254,7 +297,7 @@
     if (k === 'images') {
       if (AIM.off) { dire({ pk: 1, t: 'L’atelier d’images arrive très bientôt 🎨 (pas encore aujourd’hui). En attendant, je peux t’aider à créer un jeu 🎮' }); render(); return; }
       AIM.nv.choix = 'images';
-      dire({ pk: 1, img: 'joie', t: 'Super idée ! Je te propose un projet Images, avec ton propre atelier de retouche 🎨 Tu y mets ta photo ou ton dessin, tu me dis ce que tu veux changer, et chaque nouvelle image s’ajoute à côté des autres. Voilà ce qu’il y a dedans, et combien de 💎 pour chaque chose 👇', offre: 1 });
+      dire({ pk: 1, img: 'joie', t: 'Super idée ! 🎨 Je ne peux pas le faire tout de suite, mais je peux te créer un atelier rien que pour ça. On en parle ensemble : je te pose quelques questions, puis je te dis combien de 💎 il faut pour l’aménager 👇', offre: 1 });
       render(); return;
     }
     if (k === 'aide') { dire({ pk: 1, img: 'idee', t: DIT_POSSIBLE() }); render(); return; }
@@ -266,7 +309,7 @@
     try { if (AIM.nv.apercu) URL.revokeObjectURL(AIM.nv.apercu); } catch (e) {}
     AIM.nv.fichier = f; AIM.nv.apercu = URL.createObjectURL(f);
     dire({ pk: 0, t: '', image: AIM.nv.apercu }); render();
-    setTimeout(() => { dire({ pk: 1, img: 'joie', t: 'Oh, jolie image ! 😍 Tu veux la retoucher ou changer son style ? Alors c’est un projet Images.' }); choisirType('images'); }, 450);
+    setTimeout(() => { dire({ pk: 1, img: 'joie', t: 'Oh, jolie image ! 😍 Tu veux la retoucher ou changer son style ?' }); choisirType('images'); }, 450);
   }
   const etroit = () => matchMedia('(max-width: 899px)').matches;
   // le curseur prêt dans la discussion de {g} à chaque entrée (Interface / chef) ; jamais tout seul au toucher (le clavier s'ouvrirait)
@@ -297,41 +340,42 @@
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TOUCH) { e.preventDefault(); S.requestSubmit(); } });
     return S;
   }
+  // l'admin (6 nov., 23 h) : « je veux retoucher cette photo » → {g} ne le fait pas tout de suite : il propose de CRÉER UN ATELIER sur mesure.
+  // Le projet est créé (gratuit), l'idée part dans sa discussion, et on continue DANS LE MONTAGE de l'Interface comme pour un jeu :
+  // questions, photo d'exemple (🖼️), résumé, puis l'offre chiffrée « Aménager mon atelier » ; les outils n'existent qu'après la V1 livrée
   function offreImages() {
-    const p = AIM.prix.image | 0 || 20, pa = AIM.prix.agrandir | 0 || 10, s = AIM.solde;
     const c = E('div', 'crea-offre');
     const h = E('div', 'haut'), ic = E('div', 'ic', '🎨'), t = E('div'); t.style.flex = '1';
     const inp = E('input'); inp.value = AIM.nv.titre; inp.maxLength = 60; inp.setAttribute('aria-label', 'Nom du projet'); inp.addEventListener('input', () => { AIM.nv.titre = inp.value; });
-    t.append(E('div', 'ty', 'Projet Images · proposé par ' + PK()), inp, E('div', '', 'Ton atelier de retouche, rien que pour toi')); t.lastChild.style.cssText = 'font-size:13.5px;color:#5b4f75;margin-top:3px';
+    t.append(E('div', 'ty', 'Ton atelier sur mesure · avec ' + PK()), inp, E('div', '', 'Un atelier préparé rien que pour ce que tu veux faire')); t.lastChild.style.cssText = 'font-size:13.5px;color:#5b4f75;margin-top:3px';
     h.append(ic, t); c.appendChild(h);
-    const corps = E('div', 'corps');
-    const ul1 = E('ul'), ul2 = E('ul');
-    const li = (u, txt, pr) => { const l = E('li'); l.append(E('span', '', txt), E('span', 'crea-prix' + (pr === 'g' ? ' gratuit' : ''), pr === 'g' ? 'gratuit' : pr + ' ' + D)); u.appendChild(l); };
-    li(ul1, '🖼️ Ta photo au centre, tes outils autour', 'g'); li(ul1, '🕘 Toutes tes versions, avant / après', 'g'); li(ul1, '✂️ Recadrer, comparer, télécharger', 'g');
-    li(ul2, '✨ Chaque nouvelle image (retouche, style)', p);
-    const c1 = E('div'), c2 = E('div'); c1.append(E('div', 'ttl', 'Ton espace'), ul1); c2.append(E('div', 'ttl', 'Quand tu crées'), ul2);
-    corps.append(c1, c2); c.appendChild(corps);
-    c.appendChild(E('div', 'note', 'Ouvrir ton atelier est gratuit : tu paies seulement quand tu crées une nouvelle image.' + (typeof s === 'number' && p ? ' Avec tes ' + s + ' ' + D + ', tu peux en faire ' + Math.floor(s / p) + '.' : '')));
-    void pa;
+    const corps = E('div', 'corps'), ul = E('ul');
+    const li = txt => { const l = E('li'); l.append(E('span', '', txt)); ul.appendChild(l); };
+    li('💬 Je te pose quelques questions sur ce que tu veux faire'); li('🖼️ Tu peux m’envoyer une photo d’exemple'); li('🛠️ Puis je te dis le prix pour aménager ton atelier');
+    const c1 = E('div'); c1.append(E('div', 'ttl', 'Comment ça se passe'), ul); corps.appendChild(c1); c.appendChild(corps);
+    c.appendChild(E('div', 'note', 'Parler avec moi est gratuit. Rien n’est payé avant que tu acceptes mon offre.'));
     const act = E('div', 'act');
-    const ok = B('crea-bt', '✨ Oui, ouvre mon atelier', async () => {
+    const ok = B('crea-bt', '✨ Oui, on en parle', async () => {
       if (AIM.busy) return; AIM.busy = true; ok.disabled = true;
       try {
         const r = await rpc('at_esp_nouveau', { p_name: nom(), p_titre: AIM.nv.titre }, { quiet: true });
         AIM.types[r.id] = { id: r.id, type: 'images', titre: r.titre, images: 0 };
-        try { if (ATL.data && Array.isArray(ATL.data.projets)) ATL.data.projets.unshift({ id: r.id, titre: r.titre, etat: 'en_discussion' }); atlLoad(true); } catch (e) {}
-        nuages('Voilà ton espace de travail !', 'Ton atelier de retouche est prêt, ' + joli(nom()) + ' ✨');
+        const idee = AIM.loc.filter(m => !m.pk && m.t).map(m => m.t).join('\n').trim() || (AIM.nv.fichier ? '🖼️ Voilà ma photo, je voudrais la retoucher' : 'Je voudrais créer des images');   // toujours un 1er message (gratuit) : les suivants passent par at_dire, gratuit en discussion
+        if (idee) { try { await rpc('at_esp_parler', { p_name: nom(), p_fiche: r.id, p_texte: idee, p_micro: false }, { quiet: true }); } catch (e) {} }
         const fj = AIM.nv.fichier; AIM.nv.fichier = null;
-        await ouvrir(r.id);
-        if (fj) setTimeout(() => importer(fj), 3300);   // l'image jointe pendant la création arrive dans l'atelier (après les nuages)
+        try { if (ATL.data && Array.isArray(ATL.data.projets)) ATL.data.projets.unshift({ id: r.id, titre: r.titre, etat: 'en_discussion' }); } catch (e) {}
+        fermer(); _ouvrir(r.id);   // le montage de l'Interface (habillé ici), comme un jeu
+        if (fj) {   // la photo jointe pendant la création part dans la discussion, comme une photo d'exemple
+          const t0 = Date.now(), go = () => { let f0 = null; try { f0 = atlFiche(); } catch (e) {} if (f0 && ATL.cur === r.id) { try { atlImage(fj); } catch (e) {} } else if (Date.now() - t0 < 8000) setTimeout(go, 300); };
+          setTimeout(go, 300);
+        }
       } catch (e) {
         const m = pourquoi(e);
-        dire({ pk: 1, t: /trop de projets/.test(m) ? 'Tu as déjà le maximum de projets : termine ou supprime un projet avant d’en commencer un autre.' : /filtre/.test(m) ? 'Ce nom-là, je ne peux pas le garder 🙈 Choisis-en un autre !' : 'Oups, ça n’a pas marché. Réessaie dans un moment 🙏' });
+        dire({ pk: 1, t: /trop de projets/.test(m) ? 'Tu as déjà le maximum de projets : termine ou supprime un projet avant d’en commencer un autre.' : /filtre/.test(m) ? 'Ce nom-là, je ne peux pas le garder 🙈 Choisis-en un autre !' : 'Oups, ça n’a pas marché (' + m.slice(0, 60) + '). Réessaie dans un moment 🙏' });
         render();
       } finally { AIM.busy = false; ok.disabled = false; }
     });
-    const ch = B('crea-bt blanc', 'Changer quelque chose', () => { dire({ pk: 1, t: 'Tu peux changer le nom juste au-dessus ✏️, ou me dire ce que tu voudrais faire 🙂' }); render(); inp.focus(); });
-    act.append(ok, ch); c.appendChild(act);
+    act.appendChild(ok); c.appendChild(act);
     return c;
   }
   function nuages(titre, sous) {
@@ -360,8 +404,9 @@
 
   // ---------- un projet Images ----------
   async function ouvrir(id, vue) {
-    AIM.fiche = id; AIM.vue = vue || 'atelier'; AIM.prop = null; AIM.loc = []; AIM.msgs = []; AIM.vuAt = Date.now();
+    AIM.fiche = id; AIM.vue = vue || 'atelier'; AIM.prop = null; AIM.loc = []; AIM.msgs = []; AIM.vuAt = Date.now(); AIM.d = null; AIM.errLire = ''; AIM.ouvAt = Date.now();
     if (AIM.ouverts[id] === undefined) AIM.ouverts[id] = true;
+    if (ATL.cur) { AIM.calme = true; try { atlListe(); } catch (e) {} AIM.calme = false; }   // l'Interface revient à sa liste dessous (un atelier ouvert depuis son montage)
     montrer(); render();
     await Promise.all([charger(), chargerMsgs()]);
     render(); suivre(); curseur();
@@ -370,7 +415,7 @@
     if (!AIM.fiche) return;
     try {
       const d = await rpc('at_esp_lire', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true });
-      const avant = AIM.d; AIM.d = d;
+      const avant = AIM.d; AIM.d = d; AIM.errLire = '';
       if (typeof d.solde === 'number') { if (AIM.solde != null && d.solde !== AIM.solde) bougerCred(); AIM.solde = d.solde; }
       if (d.prix) AIM.prix = d.prix;
       const cs = d.creations || [];
@@ -380,6 +425,7 @@
       return true;
     } catch (e) {
       if (/projet inconnu|pas un projet images/.test(pourquoi(e))) { fermerVersProjets(); toast('Ce projet n’existe plus'); }
+      else { AIM.errLire = pourquoi(e) || 'erreur'; try { console.error('[atelier-images] at_esp_lire', AIM.errLire); } catch (e2) {} }   // jamais un chargement sans fin : l'erreur se montre
       return false;
     }
   }
@@ -433,18 +479,20 @@
     const R = ATL.root; if (!R) return false;
     const avant = JSON.stringify(AIM.cartes);
     const ps = atlProjets(), tiles = R.querySelectorAll('.atl-projets .atl-pgrid .atl-pwrap > .atl-ptile');
-    ps.forEach((pj, i) => { if (tiles[i]) AIM.cartes[pj.id] = lireCarte(tiles[i]); });
+    // la grille de l'Interface peut être en retard sur sa liste (projet tout neuf, ordre changé) : jamais les bulles d'un AUTRE projet
+    if (tiles.length === ps.length) ps.forEach((pj, i) => { const t = tiles[i]; if (t && (!pj.titre || (t.textContent || '').includes(pj.titre))) AIM.cartes[pj.id] = lireCarte(t); });
     for (const t of R.querySelectorAll('.atl-tous .atl-ptile')) { const r = t.querySelector('.atl-rent[data-f]'); if (r) AIM.cartes[r.dataset.f] = lireCarte(t); }
     return JSON.stringify(AIM.cartes) !== avant;
   }
   function jaquette(pj, img) {
     const ic = E('span', 'ic jaq');
+    if (!img && typeDe(pj.id) === 'images') { ic.textContent = '🎨'; ic.style.background = '#efe6ff'; return ic; }   // un atelier pas encore livré : une ligne comme un jeu en montage
     if (img) { const x = AIM.types[pj.id], u = x && urlImg(x.image, 120); if (u) { const im = E('img'); im.alt = ''; im.src = u; ic.appendChild(im); } else ic.textContent = '🎨'; ic.style.background = '#efe6ff'; }
     else { try { atlPvJaq(ic, pj); } catch (e) { ic.textContent = '🎮'; } ic.style.background = '#2a1f45'; }
     return ic;
   }
   function ligneProjet(pj, opts) {
-    const img = typeDe(pj.id) === 'images' && !opts.autre, ouvert = (img && AIM.fiche === pj.id) || (AIM.cadre && !opts.autre && ATL.cur === pj.id), ca = AIM.cartes[pj.id] || {};
+    const img = atelierOuvert(pj.id) && !opts.autre, ouvert = (img && AIM.fiche === pj.id) || (AIM.cadre && !opts.autre && ATL.cur === pj.id), ca = AIM.cartes[pj.id] || {};
     const n = B('crea-nd crea-proj' + (ouvert ? ' ouvert' : '') + (ca.cls || []).map(k => ' ' + k).join(''), null, () => {
       AIM.root.classList.remove('tiroir');
       if (opts.autre) { fermer(); try { atlVoirProjet(pj.id); } catch (e) {} return; }   // admin : le projet d'un joueur, exactement comme il le voit (fonctions admin existantes)
@@ -455,7 +503,7 @@
     const nb = (ca.bulles || []).filter(b => !/atl-(pprepa|pdc)\b/.test(b.c) && !/^(⏳|🛠️)/u.test(b.t)).reduce((t, b) => t + (parseInt((b.t.match(/\d+/) || [1])[0], 10) || 1), 0);   // seulement ce qui attend le joueur (questions, réponses, à choisir, à valider) ; pas « en préparation », « en cours », « mise de côté »
     if (nb) ic.appendChild(E('i', 'pastille', String(Math.min(99, nb))));   // la pastille rouge : le nombre de ses bulles (réponses, questions, à choisir…)
     const nm = E('span', 'nm', pj.titre || (img ? 'Mes images' : 'Sans nom'));
-    const st = opts.autre ? '👤 ' + (typeof dispName === 'function' ? dispName(pj.joueur || '') : pj.joueur || '') + (ca.statut ? ' · ' + ca.statut : '') : ca.statut || (img ? 'Images' : 'Jeu');
+    const st = opts.autre ? '👤 ' + (typeof dispName === 'function' ? dispName(pj.joueur || '') : pj.joueur || '') + (ca.statut ? ' · ' + ca.statut : '') : (typeDe(pj.id) === 'images' && !img) ? 'En préparation avec ' + PK() : ca.statut || (img ? 'Images' : 'Jeu');
     nm.appendChild(E('small', '', st));
     for (const b of (ca.bulles || []).slice(0, 2)) nm.appendChild(E('em', 'bulle ' + b.c.replace(/\batl-/g, 'b-'), b.t));
     n.append(E('span', 'fl', opts.autre ? '' : ouvert && AIM.ouverts[pj.id] ? '▾' : '▸'), ic, nm);
@@ -467,12 +515,10 @@
     try { lireCartes(); } catch (e) {}
     const ps = atlProjets(), cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
     const h = E('div', 'crea-tarb'); h.append(E('b', '', '📁 MES PROJETS'), E('span', '', ps.length + ' / ' + max)); A.appendChild(h);
-    const nb = B('crea-nouveau' + (AIM.vue === 'nouveau' && !AIM.cadre ? ' on' : ''), '＋ Nouveau projet', () => { AIM.root.classList.remove('tiroir'); nouveauDepuisArbre(); });
-    if (ps.length >= max) nb.disabled = true;
-    A.appendChild(nb);
+    // l'admin (6 nov., 23 h 50) : plus de bouton « ＋ Nouveau projet » dans l'arbre (« pas besoin ») : la tuile et ← ramènent à l'écran sous les nuages
     for (const pj of ps) {
       A.appendChild(ligneProjet(pj, {}));
-      if (typeDe(pj.id) === 'images' && AIM.fiche === pj.id && AIM.ouverts[pj.id]) {
+      if (atelierOuvert(pj.id) && AIM.fiche === pj.id && AIM.ouverts[pj.id]) {
         const s = E('div', 'crea-sous'), c = curCrea(), cs = (AIM.d && AIM.d.creations) || [];
         const sub = (k, e, t, n0) => { const b = B('crea-nd' + (AIM.vue === k ? ' on' : ''), null, () => { AIM.vue = k; AIM.root.classList.remove('tiroir'); render(); }); b.append(E('i', '', e), E('span', 'nm', t)); if (n0 != null) b.appendChild(E('span', 'n', String(n0))); s.appendChild(b); };
         sub('atelier', '🎨', 'Mon atelier'); sub('images', '🖼️', 'Mes images', cs.length); sub('versions', '🕘', 'Versions', c ? c.versions.filter(v => v.etat === 'prete').length : 0); sub('reglages', '⚙️', 'Réglages');
@@ -494,7 +540,19 @@
     const O = AIM.root.querySelector('.crea-outil'), sy = O.scrollTop; O.textContent = '';
     AIM.root.style.backgroundImage = AIM.vue === 'nouveau' ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
     if (AIM.vue === 'nouveau') { renderNouveau(O); return; }
-    if (!AIM.d) { const c = E('div', 'crea-carte crea-page'); const v = E('div', 'crea-vide'); v.append(E('div', 'crea-anneau'), E('p', '', 'J’ouvre ton atelier…')); v.firstChild.style.borderColor = '#e4d7ff'; v.firstChild.style.borderTopColor = '#6a3fc2'; c.appendChild(v); O.appendChild(c); return; }
+    if (!AIM.d) {   // l'admin (6 nov., 23 h) : JAMAIS un chargement sans fin. Une erreur (ou 10 s sans réponse) → un message clair + Réessayer
+      const c = E('div', 'crea-carte crea-page'), v = E('div', 'crea-vide');
+      const trop = Date.now() - (AIM.ouvAt || 0) > 10000;
+      if (AIM.errLire || trop) {
+        v.append(E('p', '', '😕 Ton atelier ne s’ouvre pas pour le moment.'), E('p', '', 'Ce n’est pas de ta faute : ' + PK() + ' est prévenu. Tes crédits ne bougent pas.'));
+        v.lastChild.style.cssText = 'font-size:14px;opacity:.8';
+        const re = B('crea-bt', '🔄 Réessayer', async () => { AIM.errLire = ''; AIM.ouvAt = Date.now(); render(); await charger(); render(); }); v.appendChild(re);
+      } else {
+        v.append(E('div', 'crea-anneau'), E('p', '', 'J’ouvre ton atelier…')); v.firstChild.style.borderColor = '#e4d7ff'; v.firstChild.style.borderTopColor = '#6a3fc2';
+        clearTimeout(AIM.ouvT); AIM.ouvT = setTimeout(() => { if (AIM.open && !AIM.d) render(); }, 10200);
+      }
+      c.appendChild(v); O.appendChild(c); return;
+    }
     if (AIM.vue === 'images') renderMesImages(O);
     else if (AIM.vue === 'versions') renderVersions(O);
     else if (AIM.vue === 'reglages') renderReglages(O);
