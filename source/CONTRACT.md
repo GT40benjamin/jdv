@@ -390,6 +390,11 @@ reste l'arrêt sur image) : la VITRINE de la boutique, dans le thème du jeu (sa
 (pause() / resume()). Au retour, le jeu relit `api.boutique.possede(cle)` pour débloquer ce qui vient d'être acheté. Les articles dont le
 nom ou la clé parle de niveau, bonus, spécial, secret, légendaire, monde ou chapitre sont mis en avant. 100 crédits offerts au créateur
 pour construire sa boutique : `boutique_offerte(p_fiche)` (rôle service, une seule fois par projet, SQL v144).
+**Consommables (borne 2.0.147, SQL v150, demande de l'équipe Explorateur)** : un article posé avec `at_boutique_poser(…, p_conso => true)`
+se RACHÈTE autant de fois qu'on veut (un pack de 5 objets, des vies…) ; chaque achat débite le joueur et crédite le créateur. `liste()` donne
+aussi `conso` (vrai / faux) et `nb` (combien de fois CE joueur l'a acheté, remboursements exclus) ; `await api.boutique.nombre(cle)` → ce
+nombre (0 si jamais acheté) ; `acheter(cle)` d'un consommable rouvre toujours la confirmation. Le JEU compte lui-même ce qu'il a déjà
+utilisé (dans sa partie gardée, `api.save`) : disponible = nombre(cle) × taille du pack − déjà utilisé. Un article normal reste à vie (`deja`).
 
 ## Ajout 26 : un jeu de l'Atelier se livre SANS publier la borne (borne 2.0.133, demande de l'admin du 5 nov. 2026)
 La borne ne garde plus de liste des jeux nés à l'Atelier : elle apprend leur id par le SERVEUR (at_fiches.jeu, renvoyé par at_lire,

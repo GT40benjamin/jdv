@@ -10886,14 +10886,15 @@ function boutiqueApi(g, seq) {
   const ok = () => !!current && current.seq === seq && ONLINE && !netOff() && !isGuest() && !!profile.name;
   let cache = null;
   const lire = async () => { if (!ok()) return null; try { cache = await rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true }); } catch (e) { cache = null; } return cache; };
-  const art = a => ({ cle: a.cle, nom: a.nom, image: a.image ? atlIaUrl(a.image) || null : null, prix: a.prix | 0, euros: (+a.euros_cents || 0) / 100, possede: !!a.possede, mien: !!a.mien });
+  const art = a => ({ cle: a.cle, nom: a.nom, image: a.image ? atlIaUrl(a.image) || null : null, prix: a.prix | 0, euros: (+a.euros_cents || 0) / 100, possede: !!a.possede, mien: !!a.mien, conso: !!a.conso, nb: a.nb != null ? a.nb | 0 : (a.possede ? 1 : 0) });   // 2.0.147 (SQL v150) : conso = se rachète, nb = achats
   return {
     info: () => ({ on: ok() }),
     async liste() { const r = await lire(); return r && Array.isArray(r.articles) ? r.articles.map(art) : []; },
     async possede(cle) { const r = cache || await lire(); return !!(r && Array.isArray(r.articles) && r.articles.some(a => a.cle === cle && a.possede)); },
+    async nombre(cle) { const r = await lire(), a = r && Array.isArray(r.articles) ? r.articles.find(x => x.cle === cle) : null; return a ? (a.nb != null ? a.nb | 0 : (a.possede ? 1 : 0)) : 0; },   // 2.0.147 : combien de fois acheté (consommables)
     async acheter(cle) {
       if (!ok()) { toastCheer(isGuest() ? 'Crée ton compte pour la boutique 🛍️' : 'Connecte-toi pour la boutique 🛍️', null, true); return false; }
-      const r = await lire(), a = r && Array.isArray(r.articles) ? r.articles.find(x => x.cle === cle) : null; if (!a) return false; if (a.possede) return true;
+      const r = await lire(), a = r && Array.isArray(r.articles) ? r.articles.find(x => x.cle === cle) : null; if (!a) return false; if (a.possede && !a.conso) return true;
       return boutiqueConfirmer(g, a, r);
     }
   };
@@ -10909,7 +10910,7 @@ function boutiqueConfirmer(g, a, r, o) {
     C.append(el('h2', '', '🛍️ Acheter « ' + a.nom + ' » ?'));
     if (a.image && atlIaUrl(a.image)) { const im = el('img', 'bout-img'); im.alt = a.nom; im.src = atlIaUrl(a.image); C.appendChild(im); }
     const pr = el('p', 'bout-prix'); pr.append(el('b', '', (a.prix | 0).toLocaleString('fr-FR') + ' 💎'), ' (≈ ' + eur + ')' + (solde != null ? ' · tu as ' + solde.toLocaleString('fr-FR') + ' crédits' : '')); C.appendChild(pr);
-    C.appendChild(el('p', 'liv-sub', 'Dans « ' + (atlTitre(g) || g.title || g.id) + ' ». C’est à toi pour toujours, et tout revient au créateur du jeu.'));
+    C.appendChild(el('p', 'liv-sub', 'Dans « ' + (atlTitre(g) || g.title || g.id) + ' ». ' + (a.conso ? 'Tu peux en racheter quand tu veux' + ((a.nb | 0) ? ' (déjà acheté ' + (a.nb | 0) + ' fois)' : '') + ', et tout revient au créateur du jeu.' : 'C’est à toi pour toujours, et tout revient au créateur du jeu.')));
     const msg = el('p', 'liv-msg', ''); C.appendChild(msg);
     const bt = el('div', 'liv-btns'), no = el('button', 'btn btn-ghost', 'Non'), go = el('button', 'btn btn-play', 'Oui, acheter · ' + (a.prix | 0) + ' 💎'); no.type = go.type = 'button'; bt.append(no, go); C.appendChild(bt);
     const sig = el('button', 'bout-sig', '⚑ Signaler cet élément'); sig.type = 'button'; C.appendChild(sig);
@@ -10924,7 +10925,7 @@ function boutiqueConfirmer(g, a, r, o) {
       try {
         const x = await rpc('at_boutique_acheter', { p_name: profile.name, p_article: a.id }, { quiet: true });
         if (x && Number.isFinite(+x.solde)) try { atlSolde(+x.solde); } catch (e) {}
-        a.possede = true; res = true; msg.textContent = '✅ C’est à toi !'; setTimeout(fermer, 900);
+        a.possede = true; if (x && x.nb != null) a.nb = x.nb | 0; else a.nb = (a.nb | 0) + 1; res = true; msg.textContent = a.conso ? '✅ C’est ajouté !' : '✅ C’est à toi !'; setTimeout(fermer, 900);
       } catch (e) {
         go.disabled = false; const m = String((e && e.message) || '');
         msg.textContent = /credits insuffisants/.test(m) ? 'Il te manque des crédits.' : /plafond/.test(m) ? 'Tu as atteint ta limite de ' + (r.plafond_mois | 0) + ' crédits ce mois-ci dans les boutiques.' : /propre jeu/.test(m) ? 'C’est ton jeu : tu as déjà tout !' : /pas en vente/.test(m) ? 'Cet élément n’est plus en vente.' : 'Pas acheté : vérifie le réseau et réessaie.';
@@ -10960,21 +10961,23 @@ async function boutiqueOuvrir() {
   hd.append(el('p', 'bout-vk', '🛍️ La boutique'), el('h2', 'bout-vt', atlTitre(g) || g.title), ferme);
   const cr = atlCred(), sol = el('p', 'bout-vsol', cr ? 'Tu as ' + Math.max(0, cr.solde | 0).toLocaleString('fr-FR') + ' 💎' : '');
   C.append(hd, sol); const corps = el('div', 'bout-vb'); C.appendChild(corps);
-  C.appendChild(el('p', 'bout-vn', 'Tout ce que tu achètes est à toi pour toujours, et tout revient au créateur du jeu.'));
+  const piedV = el('p', 'bout-vn', ''); C.appendChild(piedV);
   V.appendChild(C);
   const fermer = () => { V.remove(); document.removeEventListener('keydown', esc, true); if (current && current.seq === seq) { const i2 = current.inst || {}; try { if (current.pad) current.pad.flush(); } catch (e) {} try { if (i2.resume) i2.resume(); else padKey('p'); } catch (e) {} } };
   const esc = e => { if (e.key === 'Escape' && !document.getElementById('jdw-boutmod')) { e.stopPropagation(); e.preventDefault(); fermer(); } };
   V._fermer = fermer; document.addEventListener('keydown', esc, true); ferme.addEventListener('click', fermer);
   const carte = (a, r) => {
-    const b = el('button', 'bout-va' + (a.possede ? ' eu' : '') + (boutSpecial(a) ? ' sp' : '')); b.type = 'button';
+    const eu = a.possede && !a.conso, b = el('button', 'bout-va' + (eu ? ' eu' : '') + (boutSpecial(a) ? ' sp' : '')); b.type = 'button';
     const u = a.image ? atlIaUrl(a.image) : '', im = el('div', 'bout-vai'); if (u) { const i = el('img'); i.alt = ''; i.loading = 'lazy'; i.src = u; im.appendChild(i); } else im.textContent = boutSpecial(a) ? '⭐' : '🎁';
-    b.append(im, el('b', 'bout-vam', a.nom), el('span', 'bout-vap', a.possede ? '✓ Acheté' : a.mien ? 'Ton jeu' : (a.prix | 0).toLocaleString('fr-FR') + ' 💎'));
-    b.disabled = !!(a.possede || a.mien);
+    b.append(im, el('b', 'bout-vam', a.nom), el('span', 'bout-vap', eu ? '✓ Acheté' : a.mien ? 'Ton jeu' : (a.prix | 0).toLocaleString('fr-FR') + ' 💎'));
+    if (a.conso) b.appendChild(el('small', 'bout-vnb', (a.nb | 0) ? '🔁 Déjà acheté ' + (a.nb | 0) + ' fois' : '🔁 Se rachète'));   // 2.0.147 : consommable
+    b.disabled = !!(eu || a.mien);
     b.addEventListener('click', async () => { const ok = await boutiqueConfirmer(g, a, r, { vitrine: true }); if (ok) { rendre(r); const c = atlCred(); if (c) sol.textContent = 'Tu as ' + Math.max(0, c.solde | 0).toLocaleString('fr-FR') + ' 💎'; } setTimeout(() => { try { const f = V.querySelector('.bout-va:not([disabled])') || ferme; f.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 40); });
     return b;
   };
   const rendre = r => {
     corps.textContent = ''; const L = (r && Array.isArray(r.articles) ? r.articles : []).slice();
+    piedV.textContent = L.some(a => a.conso) ? 'Les articles 🔁 se rachètent quand tu veux, les autres sont à toi pour toujours. Tout revient au créateur du jeu.' : 'Tout ce que tu achètes est à toi pour toujours, et tout revient au créateur du jeu.';
     if (!L.length) { corps.appendChild(el('p', 'bout-vvide', 'La boutique est vide pour l’instant.')); return; }
     const sp = L.filter(boutSpecial), au = L.filter(a => !boutSpecial(a));
     const rang = (titre, l) => { if (!l.length) return; corps.appendChild(el('h3', 'bout-vr', titre)); const gr = el('div', 'bout-vg'); for (const a of l) gr.appendChild(carte(a, r)); corps.appendChild(gr); };

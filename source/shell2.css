@@ -5426,3 +5426,5 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 #jdw-play .tm-cartoon > .tm-icos{position:absolute;right:max(10px,env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);display:grid;gap:18px;z-index:2}
 @media (max-width:600px){#jdw-play .tm-cartoon > .tm-icos .tm-ico{width:48px;height:48px;font-size:20px}#jdw-play .tm-cartoon > .tm-icos .tm-ico small{display:none}}
 #jdw-play .tmenu .tm-scene .gm-cadre .gm-vif.gm-cv.tm-carte{width:var(--cw)!important;height:var(--ch)!important;max-width:none!important;max-height:none!important}
+/* 2.0.147 : article consommable (se rachète) */
+#jdw-vitrine .bout-vnb{display:block;margin-top:6px;font-size:13px;opacity:.8}
