@@ -2198,11 +2198,11 @@ function mount(root, api) {
     let x = gx + gw / 2 + 10, y = gy - bh / 2; if (x + bw > W - 10) x = gx - gw / 2 - bw - 10; if (x < 10) { x = clamp(gx - bw / 2, 10, W - bw - 10); y = gy + gh / 2 + 8; }
     return { x, y: clamp(y, 10, H - bh - 120 * u), w: bw, h: bh, L, fs };
   }
-  function allerCarte() { state = 'carte'; stT = 0; R = null; OV = []; bilan = null; carteSel = clamp(prog.deb - 1, 0, NOMS.length - 1); try { if (api.pause && api.pause.ajouter) api.pause.ajouter([]); } catch (e) { /* rien */ } }
+  function allerCarte() { state = 'carte'; stT = 0; R = null; OV = []; bilan = null; if (!CREA) carteSel = clamp(prog.deb - 1, 0, NOMS.length - 1); try { if (api.pause && api.pause.ajouter) api.pause.ajouter([]); } catch (e) { /* rien */ } }
   if (PSTD) {
     try {
       api.pause.onRecommencerNiveau && api.pause.onRecommencerNiveau(() => { if (R) lancer(R.n); });
-      api.pause.onRecommencerJeu(() => { prog = { v: 1, at: 0, deb: 1, rec: {}, envoye: 0 }; garder(); try { api.save && api.save.flush && api.save.flush(); } catch (e) { /* rien */ } lancer(0); });
+      api.pause.onRecommencerJeu(() => { prog = { v: 1, at: 0, deb: CREA ? 16 : 1, rec: {}, envoye: 0 }; carteSel = 0; garder(); try { api.save && api.save.flush && api.save.flush(); } catch (e) { /* rien */ } lancer(0); });
       api.pause.onReprendre && api.pause.onReprendre(() => { paused = false; });
     } catch (e) { /* vieille borne */ }
   }
@@ -2596,16 +2596,18 @@ function mount(root, api) {
   }
 
   // ---------- la carte des 15 salles ----------
-  const COLS_CARTE = () => portrait ? 2 : 4;   // V4 : au téléphone debout, 2 colonnes (noms lisibles)
+  const COLS_CARTE = () => portrait ? 2 : 4;
+  const CARTE_BASSE = () => !portrait && H < 520;   // V4 : téléphone couché : cartes larges, nom sur une ligne   // V4 : au téléphone debout, 2 colonnes (noms lisibles)
   function carteGeo() {
     const z = ZS(), L = [], cols = COLS_CARTE(), rows = Math.ceil(NOMS.length / cols);
     const x0 = z.gauche + 16, x1 = W - z.droite - 16, y0 = z.haut + (portrait ? 96 : 104) * u, y1 = H - z.bas - (portrait ? 70 : 76) * u;
-    const gw = (x1 - x0) / cols, gh = (y1 - y0) / rows, cw = portrait ? gw - 10 : Math.min(gw - 10, (gh - 10) * 1.6), ch = portrait ? gh - 8 : Math.min(gh - 10, cw / 1.3);
+    const gw = (x1 - x0) / cols, gh = (y1 - y0) / rows, cw = portrait || CARTE_BASSE() ? gw - 10 : Math.min(gw - 10, (gh - 10) * 1.6), ch = portrait || CARTE_BASSE() ? gh - 8 : Math.min(gh - 10, cw / 1.3);
     for (let i = 0; i < NOMS.length; i++) { const c = i % cols, r = (i / cols) | 0; L.push({ x: x0 + gw * (c + 0.5) - cw / 2, y: y0 + gh * (r + 0.5) - ch / 2, w: cw, h: ch }); }
     return L;
   }
   function lancerCarte(i) { if (i < prog.deb) { son('porte'); lancer(i); } else { son('non'); MSG = { t: 'Cette salle est encore fermée : finis d’abord « ' + NOMS[i - 1] + ' ».', d: 3, age: 0 }; } }
-  function boutonHistoire() { const z = ZS(), w = 150 * u, h = 38 * u; return portrait ? { x: W / 2 - w / 2, y: H - z.bas - h - 14 * u, w, h } : { x: W - z.droite - w - 14 * u, y: z.haut + 12 * u, w, h }; }
+  function boutonHistoire() { const z = ZS(), w = 150 * u, h = 38 * u; return portrait ? { x: W / 2 - (padOn() ? (w + 12 * u + ENTRER_W()) : w) / 2, y: H - z.bas - h - 14 * u, w, h } : { x: W - z.droite - w - 14 * u, y: z.haut + 12 * u, w, h }; }
+  const ENTRER_W = () => 112 * u;   // V4 : au téléphone debout, « Ⓐ Entrer » à droite de « L'histoire »
   function tapCarte(p) { if (dansR(p, boutonHistoire())) { lancerHistoire(true); return; } carteGeo().forEach((r, i) => { if (dansR(p, r)) { carteSel = i; lancerCarte(i); } }); }
 
   // ---------- l'écran de fin de salle ----------
@@ -2912,7 +2914,7 @@ function mount(root, api) {
       c.strokeStyle = on ? OR : 'rgba(232,194,122,0.35)'; c.lineWidth = on ? 3 : 1.5; c.stroke();
       if (id && !vols.some(v => v.id === id)) iconeObjet(c, id, s.x + s.s / 2, s.y + s.s / 2, s.s * 0.92, t); });
     if (padOn() && !portrait) pastille('x', Hd.bar.x - 4, Hd.bar.y + 8, Math.max(10, 11 * u));
-    if (padOn() && portrait) pastille('x', Hd.slots[0].x + 2, Hd.slots[0].y - 2, Math.max(10, 11 * u));
+    if (padOn() && portrait) pastille('x', Hd.loupe.x - Hd.loupe.r * 0.74, Hd.loupe.y - Hd.loupe.r * 0.74, Math.max(10, 11 * u));
     // la légende (elle s'adapte : clavier, doigt, manette)
     legende(c, Hd);
     // le message du bas
@@ -3010,7 +3012,8 @@ function mount(root, api) {
       c.fillStyle = ouvert ? '#fff' : '#a89a88'; c.font = fnt(fs, 900); c.textAlign = 'center'; c.textBaseline = 'bottom';
       { // V4 : le nom n'est jamais écrasé : s'il est trop long, il passe sur 2 lignes
         const yb = r.y + r.h - fs * (rec ? 1.7 : 0.6), mots = NOMS[i].split(' ');
-        if (c.measureText(NOMS[i]).width <= r.w - 16) c.fillText(NOMS[i], r.x + r.w / 2, yb);
+        if (CARTE_BASSE()) { let f = fs; while (f > 11 && c.measureText(NOMS[i]).width > r.w - 16) { f -= 0.5; c.font = fnt(f, 900); } c.fillText(NOMS[i], r.x + r.w / 2, yb, r.w - 12); }
+        else if (c.measureText(NOMS[i]).width <= r.w - 16) c.fillText(NOMS[i], r.x + r.w / 2, yb);
         else { let a = mots.slice(), b = []; while (a.length > 1 && c.measureText(a.join(' ')).width > r.w - 16) b.unshift(a.pop());
           c.fillText(a.join(' '), r.x + r.w / 2, yb - fs * 1.1); c.fillText(b.join(' '), r.x + r.w / 2, yb); } }
       if (!ouvert) { const cx = r.x + r.w / 2, cy = r.y + r.h * 0.4, s = Math.min(r.w, r.h) * 0.13; c.strokeStyle = OR2; c.lineWidth = s * 0.3; c.beginPath(); c.arc(cx, cy - s * 0.4, s * 0.7, Math.PI, 0); c.stroke(); c.fillStyle = laiton(c, cx - s, cy - s, cx + s, cy + s); pill(c, cx - s, cy - s * 0.4, s * 2, s * 1.6, s * 0.3); c.fill(); c.fillStyle = '#2a1408'; c.beginPath(); c.arc(cx, cy + s * 0.3, s * 0.25, 0, TAU); c.fill(); }
@@ -3019,7 +3022,7 @@ function mount(root, api) {
     });
     { const hb = boutonHistoire(); c.fillStyle = 'rgba(20,12,24,0.85)'; pill(c, hb.x, hb.y, hb.w, hb.h, hb.h / 2); c.fill(); c.strokeStyle = OR; c.lineWidth = 2; c.stroke();
       c.fillStyle = OR; c.font = fnt(15 * u, 900); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('📜 L’histoire', hb.x + hb.w / 2 + (padOn() ? 8 * u : 0), hb.y + hb.h / 2 + 1); if (padOn()) pastille('y', hb.x + 16 * u, hb.y + hb.h / 2, 10 * u); }
-    if (padOn()) { const y = H - z.bas - 30 * u; c.font = fnt(15 * u, 800); c.textAlign = 'left'; c.textBaseline = 'middle'; const w = 230 * u, x = W / 2 - w / 2; c.fillStyle = 'rgba(20,12,24,0.8)'; pill(c, x, y - 16 * u, w, 32 * u, 16 * u); c.fill(); pastille('a', x + 22 * u, y, 11 * u); c.fillStyle = '#d8c8b0'; c.fillText('Entrer dans la salle', x + 40 * u, y + 1); }
+    if (padOn()) { const hb = boutonHistoire(), y = portrait ? hb.y + hb.h / 2 : H - z.bas - 30 * u; c.font = fnt(15 * u, 800); c.textAlign = 'left'; c.textBaseline = 'middle'; const w = portrait ? ENTRER_W() : 230 * u, x = portrait ? hb.x + hb.w + 12 * u : W / 2 - w / 2; c.fillStyle = 'rgba(20,12,24,0.8)'; pill(c, x, y - 16 * u, w, 32 * u, 16 * u); c.fill(); pastille('a', x + 22 * u, y, 11 * u); c.fillStyle = '#d8c8b0'; c.fillText(portrait ? 'Entrer' : 'Entrer dans la salle', x + 40 * u, y + 1); }
     if (MSG) message(c, MSG.t, H - z.bas - 64 * u, Math.min(1, MSG.age * 5, (MSG.d - MSG.age) * 3));
   }
   function dessinerBilan(c) {
