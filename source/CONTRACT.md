@@ -497,7 +497,11 @@ grossit et brille, un petit son à chaque choix ; flèches / stick / croix, A ou
 Champs du module (tous facultatifs) :
 - `accent` : couleur principale (liste, curseur, lueurs) ; `accent2` : couleur secondaire (curseur, reflets).
 - `menuStyle: 'cartoon' | 'aventure'` (défaut : 'cartoon') : 'cartoon' = un GROS bouton ▶ JOUER arrondi, brillant, en relief, qui respire, les autres choix
-  en petits boutons du même style, et Boutique / Records / Options en icônes rondes sur le côté ; 'aventure' = une liste élégante à gauche sur la scène.
+  en petits boutons du même style, et Boutique / Records / Options en icônes rondes ; 'aventure' = une liste élégante à gauche sur la scène.
+  Icônes rondes (borne 2.0.150, règle du chef) : JAMAIS sur le héros. DEBOUT : petite rangée centrée dans la bande des boutons (66-100 %), sous
+  COMMANDES / SON, avec leur libellé. COUCHÉ / PC : colonne au bord droit seulement si elle ne touche ni la carte-aperçu ni le héros (boîte
+  de ±16 % × ±24 % autour de `menuFocus`) ; sinon la même rangée sous les boutons. Duels : même règle. → Donnez un `menuFocus` juste à votre héros.
+  Manette : à l'ouverture de la liste, le cadre doré est sur ▶ JOUER ; ✕ Quitter n'est jamais choisi par défaut (borne 2.0.149).
 - `menuImage: 'menu.jpg'` (16:9) et `menuImagePortrait: 'menu-portrait.jpg'` (9:16) : l'IMAGE DE MENU du jeu (key art, faite à la fin de la conception,
   SANS AUCUN TEXTE), dans le dossier du jeu, nommées EXACTEMENT menu.jpg / menu-portrait.jpg / logo.png (.jpg, .png ou .webp : la vérification de publication refuse tout autre nom d'image), en plein écran (prioritaire sur la démo). Sans elle : la démo, sinon la belle image du jeu, jamais coupée en haut.
 - `imageATitre: true` : la belle image du jeu porte déjà son titre (pas de titre en texte). Sans logo ni `imageATitre`, la borne écrit toujours le titre.

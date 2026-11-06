@@ -5428,3 +5428,7 @@ body:has(#jdw-gmenu) .fs-tip,body:has(.sheet:not([hidden])) .fs-tip,body:has([ro
 #jdw-play .tmenu .tm-scene .gm-cadre .gm-vif.gm-cv.tm-carte{width:var(--cw)!important;height:var(--ch)!important;max-width:none!important;max-height:none!important}
 /* 2.0.147 : article consommable (se rachète) */
 #jdw-vitrine .bout-vnb{display:block;margin-top:6px;font-size:13px;opacity:.8}
+/* 2.0.150 (chef) : les icônes en petite RANGÉE sous les boutons (debout, ou quand la colonne toucherait le héros) */
+#jdw-play .tm-cartoon .tm-bas .tm-icos.tm-rang{position:static;transform:none;display:flex;justify-content:center;gap:18px;margin:12px 0 22px;z-index:auto}
+#jdw-play .tm-cartoon .tm-bas .tm-icos.tm-rang .tm-ico{width:46px;height:46px;font-size:19px}
+#jdw-play .tm-cartoon .tm-bas .tm-icos.tm-rang .tm-ico small{display:block}

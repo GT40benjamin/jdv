@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 📱 Menus des jeux : le héros n’est plus caché (borne 2.0.150)
+[borne] 📱 Téléphone droit : les petits boutons Boutique, Records et Options passent en rangée sous COMMANDES et SON, et ne cachent plus jamais le héros du jeu.
 [borne] ## 🎮 Manette : le menu des jeux démarre sur ▶ JOUER (borne 2.0.149)
 [borne] 🎮 À la manette, le cadre doré se pose toujours sur ▶ JOUER quand le menu d’un jeu s’ouvre : un 2e appui sur A lance la partie, il ne fait plus jamais quitter le jeu.
 [ilo] ## 🚀 Galaxy Wars : nouvel écran-titre (borne 2.0.148)

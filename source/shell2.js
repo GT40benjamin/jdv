@@ -584,6 +584,26 @@ const menuAvoir = g => !!g && g.menu !== false && (g.menu === true || MENU_BORNE
 function menuPrecharger(g) { try { for (const f of [g.menuImage, g.menuImagePortrait, g.logo]) if (f && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp|svg)$/i.test(String(f))) { const i = new Image(); i.src = ROOT + (ATL_NES.has(g.id) ? 'assets/jeux/' + g.id + '/' : 'assets/') + f; } } catch (e) {} }
 const APERCU_A_TITRE = new Set(['bolides', 'kombat', 'tirsaubut', 'toupies']);   // 2.0.146 : leur aperçu porte déjà leur titre (relevé sur la planche des 13 duels)
 const DUEL_SANS_MENU = new Set(['briques']);   // 2.0.146 : d'après la planche des 13 duels, aperçu presque vide → pas d'écran-titre tant que l'équipe Jeux n'a pas mis logo + menuImage (CONTRACT)
+// 2.0.150 (règle du chef, CONTRACT Ajout 27 bis) : les icônes rondes (🛍️ 🏆 ⚙️) ne passent JAMAIS sur le héros. Debout : petite rangée
+// centrée dans la bande des boutons, sous COMMANDES / SON, avec leur libellé. Couché / PC : colonne au bord droit, seulement si elle ne
+// touche ni la carte-aperçu ni le héros (menuFocus de l'image, sinon le centre) ; sinon, la même rangée sous les boutons.
+function menuIcoPlace(M, bas, ico) {
+  if (!M.isConnected || !ico.isConnected) return;
+  const rangee = () => { if (ico.parentNode !== bas) { bas.appendChild(ico); ico.classList.add('tm-rang'); } };
+  const colonne = () => { if (ico.parentNode !== M) { M.appendChild(ico); ico.classList.remove('tm-rang'); } };
+  if (innerHeight > innerWidth) { rangee(); return; }
+  colonne();
+  const ir = ico.getBoundingClientRect(); if (!ir.width) return;
+  const pres = r => r && r.width && !(r.right + 12 <= ir.left || r.left >= ir.right + 12 || r.bottom + 12 <= ir.top || r.top >= ir.bottom + 12);
+  const carte = M.querySelector('.tm-carte'), cr = carte && carte.getClientRects().length ? carte.getBoundingClientRect() : null;
+  let touche = pres(cr);
+  if (!cr && M._hx != null) {   // le héros de l'image plein écran : une boîte autour de menuFocus
+    const sc = (M.querySelector('.tm-scene') || M).getBoundingClientRect(), x = sc.left + sc.width * M._hx / 100, y = sc.top + sc.height * M._hy / 100;
+    touche = pres({ left: x - sc.width * .16, right: x + sc.width * .16, top: y - sc.height * .24, bottom: y + sc.height * .24, width: 1 });
+  }
+  if (touche) rangee();
+}
+try { addEventListener('resize', () => { const M = document.getElementById('jdw-gmenu'), ico = M && M.querySelector('.tm-icos'), bas = M && M.querySelector('.tm-bas'); if (M && ico && bas) menuIcoPlace(M, bas, ico); }); } catch (e) {}
 function menuDuel(d, lancer, enLigne) {
   if (!d || d.menu === false || (DUEL_SANS_MENU.has(d.id) && d.menu !== true)) { lancer(); return; }
   $('jdw-lib').hidden = true; $('jdw-play').hidden = false; $('jdw-play').style.setProperty('--acc', d.accent || COLORS.amber); $('jdw-gtitle').textContent = d.title || '';
@@ -619,7 +639,7 @@ function menuMontrer(g, o) {
   const M = el('div', 'gmenu tmenu tm-' + style); M.id = 'jdw-gmenu'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', titre);
   M.style.setProperty('--acc', g.accent || COLORS.amber); M.style.setProperty('--acc2', g.accent2 || '#ffffff');
   { const fx = g.menuFocus && Number.isFinite(+g.menuFocus.x) ? Math.min(100, Math.max(0, +g.menuFocus.x)) : 50, fy = g.menuFocus && Number.isFinite(+g.menuFocus.y) ? Math.min(100, Math.max(0, +g.menuFocus.y)) : 40;   // 2.0.142 : plein écran (cover), centré sur le héros ; titre dans l'image = gardé en haut
-    const titreImg = g.imageATitre === true || (navigator.webdriver && Array.isArray(window.JDW_IMAGE_A_TITRE) && window.JDW_IMAGE_A_TITRE.includes(g.id)); M.style.setProperty('--tm-pos', fx + '% ' + (titreImg ? '0%' : fy + '%')); }
+    const titreImg = g.imageATitre === true || (navigator.webdriver && Array.isArray(window.JDW_IMAGE_A_TITRE) && window.JDW_IMAGE_A_TITRE.includes(g.id)); M.style.setProperty('--tm-pos', fx + '% ' + (titreImg ? '0%' : fy + '%')); M._hx = fx; M._hy = fy; }
   const scene = el('div', 'tm-scene'), voile = el('div', 'tm-voile'), haut = el('div', 'tm-haut'), bas = el('div', 'tm-bas');
   M.append(scene, voile, haut, bas); $('jdw-play').appendChild(M);
   // la scène : la démo du jeu (g.demo), sinon sa belle image qui bouge doucement
@@ -658,7 +678,7 @@ function menuMontrer(g, o) {
     } else if (!quoi) {
       L.appendChild(it(o.enLigne ? '▶ DÉFIER UN COPAIN' : '▶ JOUER', jouer, 'tm-go' + (o.enLigne ? ' tm-long' : '')));
       for (const x of M.querySelectorAll(':scope > .tm-icos')) x.remove();
-      const ico = style === 'cartoon' ? el('div', 'tm-icos') : null; if (ico) M.appendChild(ico);   // PC / couché : sur le côté de l'écran ; téléphone droit : sous les boutons
+      const ico = style === 'cartoon' ? el('div', 'tm-icos') : null; if (ico) { M.appendChild(ico); requestAnimationFrame(() => menuIcoPlace(M, bas, ico)); }   // 2.0.150 (chef) : debout = rangée sous les boutons ; couché / PC = colonne à droite SI elle ne touche ni la carte ni le héros
       const petit = (txt, nom, fn) => { if (!ico) { L.appendChild(it(txt, fn)); return; } const b = it(txt.split(' ')[0], fn, 'tm-ico'); b.setAttribute('aria-label', nom); b.title = nom; b.appendChild(el('small', '', nom)); ico.appendChild(b); };
       if (howtoOf(g, !!o.duo)) L.appendChild(it('❓ COMMANDES', () => howtoShow(g, $('jdw-play'), { duo: !!o.duo, then: () => { const b = M.querySelector('.tm-it'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} } })));
       L.appendChild(it('🔊 SON', () => vue('son')));
