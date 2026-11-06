@@ -5881,3 +5881,8 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-pkmini .atl-pkly{transition:none}.atl-pkmini .atl-pkly:not(.on){visibility:hidden}.atl-pkmini .atl-pkly:not(.on) *{animation:none!important}
 /* 2.0.170 : « Crée avec … » en haut de Mes projets, sur deux lignes au téléphone plutôt que coupé */
 @media (max-width:600px){.atl-bar .atl-nom.liste{white-space:normal;overflow:visible;text-overflow:clip;font-size:15px;line-height:1.05}}
+/* 2.0.174 : l'avatar de l'en-tête sans AUCUNE animation CSS (les images de la pose changent au ticker d'1 s : respiration, clin d'oeil, bricolage) */
+.atl-pkmini .atl-pkc,.atl-pkmini .atl-pkl,.atl-pkmini .atl-pkly.np .atl-pkl{animation:none!important}
+.atl-pkmini .atl-pkly:not(.np) .atl-pkl{opacity:0}.atl-pkmini .atl-pkly:not(.np) .atl-pkl.vu{opacity:1}
+/* 2.0.174 (mesure : la respiration infinie d'un petit avatar faisait ~110 recalculs de style par seconde au téléphone) : 3 respirations puis il se pose */
+.atl-av img,.atl-wav img,.atl-accav img{animation-iteration-count:3}

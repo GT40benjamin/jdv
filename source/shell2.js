@@ -18749,6 +18749,16 @@ function atlPkPose(w, p, dur) {
 }
 // 2.0.170 : l'avatar de l'en-tête de l'espace garde chaque pose une fois créée (images décodées une seule fois) : changer de pose = basculer
 // une opacité, sans nouvelle image à décoder ni à composer (mesuré au téléphone, CPU ×6)
+// 2.0.174 (équipe Jeux : ~160 recalculs de style par seconde = les animations CSS en boucle de la mascotte de l'en-tête) : sur l'avatar de
+// l'en-tête, la respiration (respire1/2/3), le clin d'œil et le bricolage (travail1/2/3) changent d'image au rythme du ticker d'1 s ;
+// plus aucune animation CSS sur lui (le clin d'œil dure 0,2 s : un seul petit minuteur)
+const ATL_PKMINI = { repos: ['r1', 'r2', 'r1', 'r3', 'r1', 'yf'], bricole: ['t1', 't2', 't3'] };
+function atlPkMiniVu(L, k) { for (const i of L.querySelectorAll('img')) i.classList.toggle('vu', i.classList.contains(k)); }
+function atlPkMiniPas(w) {
+  const p = w._pk.cur, L = w._lay && w._lay[p], seq = ATL_PKMINI[p]; if (!L || !seq) return;
+  const k = seq[(w._pkI = ((w._pkI | 0) + 1) % seq.length)]; atlPkMiniVu(L, k);
+  if (k === 'yf') setTimeout(() => { if (w._pk.cur === p) atlPkMiniVu(L, 'r1'); }, 200);
+}
 function atlPkPoseMini(w, s, p) {
   const c = w.querySelector('.atl-pkc'), M = w._lay || (w._lay = {});
   const montrer = () => { if (s.cur !== p) return; for (const k in M) M[k].classList.toggle('on', k === p); };
@@ -18758,6 +18768,7 @@ function atlPkPoseMini(w, s, p) {
     if (p === 'repos') for (const [n, k] of [['respire1', 'r1'], ['respire2', 'r2'], ['respire3', 'r3'], ['yeuxfermes', 'yf']]) L.appendChild(atlPkImg(n, 'atl-pkl ' + k));
     else if (p === 'bricole') for (const k of ['1', '2', '3']) L.appendChild(atlPkImg('travail' + k, 'atl-pkl t' + k));
     else L.appendChild(atlPkImg('p-' + p, 'atl-pkl'));
+    if (ATL_PKMINI[p]) atlPkMiniVu(L, ATL_PKMINI[p][0]);
     c.appendChild(L);
     const imgs = [...L.querySelectorAll('img')];
     Promise.all(imgs.map(i => i.decode ? i.decode().catch(() => {}) : 0)).then(() => requestAnimationFrame(() => { if (imgs.every(i => i.naturalWidth)) montrer(); else { delete M[p]; L.remove(); } }));
@@ -18798,6 +18809,7 @@ function atlPkTick() {
       s.txt = x; const m = atlPkMot(x);
       if (m && !m.includes(s.cur) && now - s.t0 > 2500 && !ATL_PKDUR[s.cur]) { atlPkSuivante(w, true); continue; }
     }
+    if (w._mini) atlPkMiniPas(w);   // 2.0.174 : les images de la pose changent ici (plus d'animation CSS en boucle)
     if (now >= s.fin) atlPkSuivante(w);
   }
 }
