@@ -7,8 +7,8 @@
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
 [borne] ## ✨ Nouvel espace pour ton jeu (borne 2.0.153)
-[borne] ✨ Dans l’Atelier, ton jeu a son espace tout neuf : ses couleurs, un grand ▶ JOUER, ses vraies statistiques, ta boutique et la feuille de route en entier. Touche Pooky en haut à gauche pour lui parler.
-[borne] ☁️ Pendant la création, ta conversation avec Pooky flotte dans les nuages… et quand ta V1 est prête, Pooky les écarte pour te montrer ton jeu !
+[borne] ✨ Dans l’Atelier, ton jeu a son espace tout neuf : ses couleurs, un grand ▶ JOUER, ses vraies statistiques, ta boutique et la feuille de route en entier. Touche {g} en haut à gauche pour lui parler.
+[borne] ☁️ Pendant la création, ta conversation avec {g} flotte dans les nuages… et quand ta V1 est prête, {g} les écarte pour te montrer ton jeu !
 [borne] ## ✨ Les créateurs ont tout dans leur boutique (borne 2.0.152)
 [borne] ✨ Dans la boutique de ton propre jeu, tous les articles sont déjà à toi : « À toi, c’est ton jeu ». Tu vois tes tenues et tes niveaux secrets sans rien acheter.
 [borne] ## 🛍️ Chaque article de boutique se présente (borne 2.0.151)

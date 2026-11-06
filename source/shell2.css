@@ -5529,7 +5529,7 @@ span.atl-esjaq{display:grid;place-items:center;font-size:60px}
 .atl-wiz.atl-nuages textarea{background:#fff;color:#2a1e45;border:1.5px solid #e2d6f5}
 .atl-wiz.atl-nuages textarea::placeholder{color:#a397b8}
 .atl-wiz.atl-nuages .atl-disc a,.atl-wiz.atl-nuages .atl-disc .atl-lien{color:#7b55d6}
-/* « Pooky travaille sur ta demande » : une LIGNE fine (plus de gros bloc) */
+/* « … travaille sur ta demande » : une LIGNE fine (plus de gros bloc) */
 .atl-wiz.atl-nuages .atl-travb,.atl-espace .atl-travb{display:flex;align-items:center;gap:8px;margin:6px 0;padding:6px 12px;border-radius:999px;border:0;background:rgba(155,123,255,.14)}
 .atl-wiz.atl-nuages .atl-travb .atl-wav,.atl-espace .atl-travb .atl-wav{flex:0 0 22px;width:22px;height:22px;animation:none}
 .atl-wiz.atl-nuages .atl-travb > div,.atl-espace .atl-travb > div{display:flex;align-items:center;gap:8px;min-width:0}
