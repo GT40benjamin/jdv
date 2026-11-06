@@ -319,7 +319,7 @@
 #jdw-atelier.crea-mt > .atl-bar:not(:has(> button:not([hidden]):not(.atl-back):not(.atl-cred))){display:none}
 /* la feuille blanche au centre */
 #jdw-atelier.crea-mt .atl-main{--ink:#2a1f45;--muted:#6b6280;--line:#e6dcf3;--panel:#fff;--night:#f7f2fd;--steel2:#d9cdea;color:#2a1f45;grid-template-rows:minmax(0,1fr);max-width:900px;padding:14px 16px 16px}
-#jdw-atelier.crea-mt .atl-chat{background:#fff;border:0;border-radius:22px;box-shadow:0 14px 40px rgba(60,20,110,.16)}
+#jdw-atelier.crea-mt .atl-main > .atl-chat:not(.atl-disc){background:#fff;border:0;border-radius:22px;box-shadow:0 14px 40px rgba(60,20,110,.16)}
 #jdw-atelier.crea-mt .atl-log{background:#fbf8ff}
 #jdw-atelier.crea-mt .atl-comp{background:#fff;border-top:1px solid #efe7f8}
 #jdw-atelier.crea-mt .atl-in{background:#fff;color:#2a1f45;border:2px solid #2a1f45;border-radius:16px}
