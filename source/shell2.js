@@ -633,6 +633,7 @@ function menuBip(k) {   // le petit son d'un choix (bruitages de la borne : coup
     o.connect(v).connect(out); o.start(t); o.stop(t + 0.2); } catch (e) {}
 }
 function menuMontrer(g, o) {
+  if (CREA && g && g.id === CREA) creaBand(true);   // 2.1.4 : l'écran-titre en mode créateur
   o = o || {}; menuFermer(); MENU.passe = ''; { const lt = document.getElementById('jdw-losetip'); if (lt) lt.remove(); }
   const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
   let titre = g.title || ''; try { if (ATL_NES.has(g.id)) titre = atlTitre(g) || titre; } catch (e) {}
@@ -1053,8 +1054,22 @@ function rpcActor(fn, args) {
   if (fn === 'create_room') return args.p_owner || '';
   return args.p_name || '';
 }
+// 2.1.4 (demande de SAMBA, décision du chef) : le MODE CRÉATEUR — l'auteur d'un jeu de l'Atelier (et les admins) le lance depuis « Mon jeu » ;
+// le jeu reçoit api.createur === true (il débloque ce qu'il veut : vies illimitées, choix du niveau…) et RIEN n'est gardé : ni score,
+// ni classement, ni record, ni progression, ni partie gardée, ni meilleurs coups, ni chrono, ni statistiques. Un jeu qui ignore le drapeau
+// marche comme avant. CREA = l'id du jeu lancé ainsi, effacé au retour à la bibliothèque / à l'Atelier.
+let CREA = '';
+const CREA_RPC = new Set(['add_score', 'add_coop_score', 'take_back_score', 'save_progress', 'save_game', 'put_level_best', 'chrono_save', 'at_stats_ecrire']);
+function creaBand(on) {
+  let b = document.getElementById('jdw-crea-band');
+  if (!on) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('div'); b.id = 'jdw-crea-band'; b.setAttribute('role', 'status'); b.textContent = '🧪 Mode créateur · rien n’est enregistré'; document.body.appendChild(b); }
+}
+function creaFin() { CREA = ''; creaBand(false); }
+if (navigator.webdriver) window.JDW_ESSAI_CREA = async () => ({ crea: CREA, band: !!document.getElementById('jdw-crea-band'), jeu: current && current.game ? current.game.id : null, api: current ? current.createur : null, menu: !!document.getElementById('jdw-gmenu'), score: CREA ? await saveScore(CREA, 1234) : 'pas en mode créateur : rien essayé' });   // bancs seulement
 async function rpc(fn, args, opts) {
   opts = opts || {};
+  if (CREA && CREA_RPC.has(fn)) return { ok: true, createur: true };   // 2.1.4 : mode créateur, aucune écriture de partie
   if (!opts.token && !GUEST_RPC.has(fn) && isGuest()) { const er = new Error(fn + ' : invité (compte requis)'); er.guest = true; throw er; }
   const h = { 'Content-Type': 'application/json', apikey: CFG.key };
   if (!/^sb_/.test(CFG.key)) h.Authorization = 'Bearer ' + CFG.key;
@@ -2478,7 +2493,8 @@ async function loadScores() {
   loadNotifs();
 }
 async function saveScore(game, score, forName) {
-  if (isGuest()) return 'guest';       // invité : aucun score enregistré, ni en ligne ni sur l'appareil
+  if (isGuest()) return 'guest';
+  if (CREA) return 'createur';   // 2.1.4 : mode créateur, aucun score (ni en ligne ni sur l'appareil)       // invité : aucun score enregistré, ni en ligne ni sur l'appareil
   const name = cleanName(forName || profile.name) || 'JOUEUR';
   const entry = { name, score, at: Date.now() };
   if (!ONLINE) localNotify(game, name, score);
@@ -10600,7 +10616,7 @@ let current = null, mountSeq = 0;
 const SAVEG = { missing: false, bestMissing: false, live: new Set() };
 function saveApi(g) {
   const guest = isGuest(), name = guest ? '' : cleanName(profile.name || '');
-  const who = name || 'INVITE', key = 'jdw.save.' + g.id + '.' + who, sentKey = key + '.sent';
+  const who = name || 'INVITE', key = (CREA === g.id ? 'jdw.crea.save.' : 'jdw.save.') + g.id + '.' + who, sentKey = key + '.sent';   // 2.1.4 : mode créateur = sauvegarde à part
   const S = { pending: null, busy: false, t: 0 };
   async function push() {
     if (!S.pending || S.busy || guest || !ONLINE || SAVEG.missing || netOff()) return false;
@@ -11244,6 +11260,7 @@ function mountGame(g) {
     isMuted: () => muted,
     heads: () => headsShown(),
     player: playerObj(),
+    createur: CREA === g.id,   // 2.1.4 (CONTRACT.md Ajout 29) : lancé en MODE CRÉATEUR par l'auteur (ou un admin) — rien n'est enregistré
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
     profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
     pegase: g.id === 'pegase' ? pegaseApi() : undefined,                                     // Pégase (hub) : copains, garde-robe sur le serveur
@@ -11279,7 +11296,7 @@ function mountGame(g) {
       setTimeout(() => { if (current && current.seq === seq) showEnd(sc); }, 900);
     }
   };
-  current = { game: g, root, seq, over: false, inst: null, lvBase: lvBest(profile.name, g.id), pad: api.pad };
+  current = { game: g, root, seq, over: false, inst: null, lvBase: lvBest(profile.name, g.id), pad: api.pad, createur: api.createur === true };
   menuFermer(); sonJeuActiver(g.id); ZS.fns.clear(); ZS.last = ''; zoneSureMaj();
   current.t0 = Date.now(); atlStatEnvoyer(g.id, 'lancement');   // 2.0.142 : statistiques réelles des jeux de l'Atelier (SQL v148)   // 2.0.139 : son de CE jeu, zone sûre posée sur son cadre (--zone-*)
   if (g.live) setTimeout(livSalonVivant, 1500);   // 2.0.126 : le salon de ce jeu est ouvert dans ma salle (les invitations restent valables)
@@ -11375,6 +11392,7 @@ try { paysageMQ.addEventListener('change', () => { if (waitRotate && !orientMauv
 function backToLibrary() {
   howtoHide(false); menuFermer(); MENU.passe = '';   // 2.0.139
   flushPending(); OPEN_SEQ++;   // 2.0.44 : un jeu encore en chargement ne s'ouvre plus une fois revenu à l'accueil
+  creaFin();   // 2.1.4 : le mode créateur s'arrête en quittant le jeu
   if (CADRE_G) { try { unmountGame(); } catch (e) {} $('jdw-end').hidden = true; $('jdw-play').hidden = false; mountGame(CADRE_G); return; }   // page d'un projet : on rejoue
   waitRotate = null; $('jdw-rotate').hidden = true;
   unmountGame();
@@ -11608,6 +11626,7 @@ function recReset() { REC.leader = ''; REC.score = -1; REC.passed = ''; REC.flas
 function recLine() {
   const el = $('jdw-recline');
   if (current && current.coop && !$('jdw-play').hidden) { coopRecLine(el); return; }
+  if (CREA && current && current.game && current.game.id === CREA && !$('jdw-play').hidden) { el.hidden = false; el.className = 'recline recrea'; if (el.textContent !== '🧪 Mode créateur · rien n’est enregistré') el.textContent = '🧪 Mode créateur · rien n’est enregistré'; creaBand(false); return; }   // 2.1.4 : jamais de « record » en mode créateur ; le bandeau prend la place de la ligne
   if (!current || $('jdw-play').hidden || !$('jdw-end').hidden || isGuest() || current.game.noScore || current.game.id === 'sensinterdit') { el.hidden = true; return; }   // Sens Interdit : ses copains sont sur la route (pas de ligne en points)   // invité : pas de classement ; noScore : page sans score (hub de Pégase)
   const g = current.game, me = cleanName(profile.name), lead = top(g.id)[0], u = unit(g);
   let cur = 0;
@@ -14463,6 +14482,7 @@ function progTick() {
 }
 setInterval(progTick, 1000);
 function progPush(name, gid, lv) {
+  if (CREA) return;   // 2.1.4 : mode créateur
   if (!ONLINE || !room) { if (MAP.open && MAP.gid === gid) mapUpdate(); return; }
   const rid = room.id, k = rid + '|' + name + '|' + gid;
   PROG.mine[k] = Math.max(PROG.mine[k] || 0, lv);
@@ -17113,9 +17133,12 @@ function atlEspace(W, box, f, g, pane) {
     const cre = atlCreateurDe(f); if (cre) ch.appendChild(atlEl('span', 'atl-eschip', 'par ' + cre));
     tx.append(atlEl('h1', '', f.titre || (g && g.title) || 'Mon jeu'), ch);
     const go = atlEl('button', 'atl-esjouer', '▶ JOUER'); go.type = 'button'; go.disabled = !g; go.addEventListener('click', () => atlJouerVrai(f));
+    const gc = atlEl('button', 'btn btn-ghost atl-escrea', '🧪 Jouer en mode créateur'); gc.type = 'button'; gc.disabled = !g; gc.title = 'Pour tester ton jeu : ce que ton jeu débloque (vies illimitées, choix du niveau…), et aucun score enregistré';
+    gc.addEventListener('click', () => atlJouerVrai(f, false, true));   // 2.1.4 : seulement l'auteur et les admins arrivent dans cet espace
+    const gw = atlEl('div', 'atl-esjouw'); gw.append(go, gc);
     jq.style.cursor = 'pointer'; jq.addEventListener('click', () => atlJouerVrai(f));
     { const ap = atlEspApercus(f, g); if (ap) tx.appendChild(ap); }
-    H.append(jq, tx, go); jp.prepend(H);
+    H.append(jq, tx, gw); jp.prepend(H);
     H.appendChild(atlPubBloc(f, g));   // 2.1.2 (l'admin : « il manque les options de publication ») { const vs = box.querySelector('.atl-vsortie'); if (vs) H.insertAdjacentElement('afterend', vs); }
     const c = atlEl('div', 'atl-escards atl-esres'); c.dataset.esp = 'resume'; H.after(c); atlEspResume(c, f, null); } }
   W._charge = Promise.all([atlEspFond(W, f), atlEspStats(W, f)]).catch(() => {});   // 2.0.160 : le moment de la V1 attend que tout soit chargé
@@ -17577,10 +17600,10 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
 }
 // ---- 21 h 15 (Benjamin) : « 🎮 Jouer » (la V1) = EXACTEMENT comme une tuile de la borne (plein écran, écran titre, barre, manettes, fin de
 // partie) ; « Quitter » revient à la page du projet. Pendant la partie : le petit guide flottant (déplaçable) et la touche P → arrêt sur image.
-function atlJouerVrai(f, pret) {
+function atlJouerVrai(f, pret, crea) {
   const vj = (f.version | 0) || 1;   // 2.0.9 : la dernière version chargée AVANT (la partie démarre tout de suite, sans attente)
   try { if ((atlEssaye(f) | 0) < vj) atlEssaye(f, vj); } catch (e) {}   // 2.0.94 ; 2.0.134 : en mode admin aussi
-  if (!pret && f && atlNe(f.jeu) && !ATL_MODS_OK.has(f.jeu + '@' + vj)) { const os = ++OPEN_SEQ; atlModule(f.jeu, vj).then(() => { if (os === OPEN_SEQ) atlJouerVrai(f, true); }); return; }
+  if (!pret && f && atlNe(f.jeu) && !ATL_MODS_OK.has(f.jeu + '@' + vj)) { const os = ++OPEN_SEQ; atlModule(f.jeu, vj).then(() => { if (os === OPEN_SEQ) atlJouerVrai(f, true, crea); }); return; }
   const g = ATL_MODS_OK.get(f.jeu + '@' + vj) || (window.JDW_GAMES || {})[f.jeu];   // 2.0.132 : la version chargée d'abord (jeu sans module embarqué)
   if (!g || g.id !== f.jeu || g.stub) { atlToast('Ton jeu arrive sur la borne très bientôt !'); return; }
   if (/^(portrait|paysage|les2)$/.test(String(f.orientation || ''))) ATL_ORIENT.set(f.jeu, f.orientation);
@@ -17595,6 +17618,7 @@ function atlJouerVrai(f, pret) {
   atlClose();
   const qb = $('jdw-back'); qb.dataset.atl = '1'; qb.innerHTML = '↩<span class="tb-word"> Retour à l’Atelier</span>'; qb.setAttribute('aria-label', 'Retour à l’Atelier');
   try { markGameSeen(g.id); } catch (e) {}
+  CREA = crea ? g.id : ''; creaBand(!!crea);   // 2.1.4 : le mode créateur, seulement pour ce lancement
   openGame(g, true);
   if ($('jdw-play').hidden) { ATL.jeu = null; atlOpen(); atlOuvrir(f.id); return; }   // pas de partie (salle à choisir…)
   atlFlotteur(true);

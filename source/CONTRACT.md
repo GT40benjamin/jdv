@@ -607,3 +607,15 @@ Un projet `images` n'a ni module, ni version de jeu, ni publication sur la borne
 serveur `source/atelier-images.sql`). Ce qu'il produit (des images, en versions) reste privé au joueur ; « Mettre dans un de mes jeux » viendra
 plus tard (bientôt). Rien à faire côté jeux.
 
+## Ajout 29 : le MODE CRÉATEUR (api.createur, borne 2.1.4, 6 nov. 2026 ; demande de SAMBA, décision du chef)
+Dans « Mon jeu », l'auteur du jeu (et les admins) a un bouton « 🧪 Jouer en mode créateur » sous ▶ JOUER. Dans CE lancement seulement :
+- `api.createur === true` (sinon `false`, ou absent sur une vieille borne : tester `api && api.createur === true`) ;
+- la borne n'enregistre RIEN : ni score (saveScore), ni classement, ni record, ni progression de la carte (save_progress), ni meilleurs coups
+  (put_level_best), ni chrono (chrono_save), ni statistiques (at_stats_ecrire) ; `api.save` (partie gardée) écrit dans une sauvegarde À PART
+  sur l'appareil (`jdw.crea.save.<jeu>.<pseudo>`), jamais envoyée : la vraie partie du joueur ne bouge pas ;
+- un petit bandeau « 🧪 Mode créateur · rien n'est enregistré » en haut de l'écran (il ne prend jamais les touches) ;
+- le mode s'arrête en revenant à l'Atelier ou à la bibliothèque ; « Rejouer » et l'écran-titre du jeu le gardent.
+CE QUE LE JEU FAIT : il décide ce que le mode débloque — au MINIMUM des vies illimitées et le CHOIX DU NIVEAU (tous les niveaux et mondes
+ouverts) ; il peut aussi montrer un petit menu de test (aller au boss, donner les objets…). Il ne garde lui-même rien de ce qui est gagné
+dans ce mode (pièces, objets, avancement dans son propre localStorage) : utiliser `api.save` (déjà séparé) ou ne rien écrire si `api.createur`.
+Un jeu qui ignore le drapeau marche exactement comme avant (rien d'enregistré quand même).

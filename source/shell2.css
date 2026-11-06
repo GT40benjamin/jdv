@@ -5918,3 +5918,8 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 /* 2.1.2 (Tests) : « by … · Vn » lisible dans la grande carte ; la case des mises à jour : blanche décochée, verte cochée (plus de carré noir) */
 .atl-estuile .tile-by{font-size:13px}
 .atl-pubb .atl-autopub input[type=checkbox]{color-scheme:light;appearance:auto!important;-webkit-appearance:checkbox!important;accent-color:#2e9e5e;width:20px;height:20px;margin:0;background:#fff;border:0;flex:none}
+/* 2.1.4 : le MODE CRÉATEUR — bouton sous ▶ JOUER, bandeau discret en haut du jeu (ne gêne jamais les touches) */
+.atl-esjouw{display:grid;gap:8px;justify-items:stretch}
+.atl-escrea{min-height:44px;text-transform:none;font:800 14px var(--body);color:#5b3fc0;border-color:#cdbfe8;background:#fff}
+#jdw-crea-band{position:fixed;z-index:2147482000;top:calc(env(safe-area-inset-top,0px) + 60px);left:50%;transform:translateX(-50%);padding:4px 12px;border-radius:999px;background:rgba(91,63,192,.92);color:#fff;font:800 12.5px var(--body);pointer-events:none;white-space:nowrap}
+.recline.recrea{color:#e8dcff!important;font-weight:800}
