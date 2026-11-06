@@ -2543,7 +2543,7 @@ function mount(root, api) {
     return null;
   }
   function nav(dx, dy) {
-    if (state === 'carte') { const n = 4; let i = carteSel + dx + dy * n; if (i >= 0 && i < NOMS.length) { carteSel = i; son('tic'); } return; }
+    if (state === 'carte') { const n = COLS_CARTE(); let i = carteSel + dx + dy * n; if (i >= 0 && i < NOMS.length) { carteSel = i; son('tic'); } return; }
     if (state === 'bilan') { const L = boutonsBilan(); const ids = L.map(b => b.id); let i = ids.indexOf(['carte', 'rejouer', 'suivant'][bilanSel]); i = clamp(i + dx, 0, ids.length - 1); bilanSel = ['carte', 'rejouer', 'suivant'].indexOf(ids[i]); son('tic'); return; }
     if (state !== 'jeu' || !R) return;
     const o = OV[OV.length - 1];
@@ -2596,10 +2596,11 @@ function mount(root, api) {
   }
 
   // ---------- la carte des 15 salles ----------
+  const COLS_CARTE = () => portrait ? 2 : 4;   // V4 : au téléphone debout, 2 colonnes (noms lisibles)
   function carteGeo() {
-    const z = ZS(), L = [], cols = 4, rows = Math.ceil(NOMS.length / cols);
+    const z = ZS(), L = [], cols = COLS_CARTE(), rows = Math.ceil(NOMS.length / cols);
     const x0 = z.gauche + 16, x1 = W - z.droite - 16, y0 = z.haut + (portrait ? 96 : 104) * u, y1 = H - z.bas - (portrait ? 70 : 76) * u;
-    const gw = (x1 - x0) / cols, gh = (y1 - y0) / rows, cw = Math.min(gw - 10, (gh - 10) * 1.6), ch = Math.min(gh - 10, cw / 1.3);
+    const gw = (x1 - x0) / cols, gh = (y1 - y0) / rows, cw = portrait ? gw - 10 : Math.min(gw - 10, (gh - 10) * 1.6), ch = portrait ? gh - 8 : Math.min(gh - 10, cw / 1.3);
     for (let i = 0; i < NOMS.length; i++) { const c = i % cols, r = (i / cols) | 0; L.push({ x: x0 + gw * (c + 0.5) - cw / 2, y: y0 + gh * (r + 0.5) - ch / 2, w: cw, h: ch }); }
     return L;
   }
@@ -2992,7 +2993,7 @@ function mount(root, api) {
     fond(c); const z = ZS();
     c.fillStyle = OR; c.font = fnt((portrait ? 24 : 34) * u, 900, TITRE); c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText('Le Manoir aux Énigmes', W / 2, z.haut + (portrait ? 34 : 42) * u, W - 40);
-    c.fillStyle = '#d8c8b0'; c.font = fnt(16 * u, 800); c.fillText('Choisis une salle · total : ' + total() + ' points', W / 2, z.haut + (portrait ? 66 : 78) * u, W - 40);
+    c.fillStyle = '#d8c8b0'; c.font = fnt(Math.max(15, 16 * u), 800); c.fillText('Choisis une salle · total : ' + total() + ' points', W / 2, z.haut + (portrait ? 66 : 78) * u);
     const G = carteGeo();
     G.forEach((r, i) => {
       const ouvert = i < prog.deb, rec = prog.rec[String(i + 1)], sel = i === carteSel && (padOn() || !modeDoigt), im = IMG[['hall', 'biblio', 'labo', 'cuisine', 'grenier', 'cave', 'salle', 'musique', 'chambre', 'horloge', 'serre', 'observatoire', 'crypte', 'miroirs', 'toit', 'expert'][i]];
@@ -3004,9 +3005,14 @@ function mount(root, api) {
       c.restore();
       c.strokeStyle = sel ? '#fff3c4' : ouvert ? OR : 'rgba(232,194,122,0.35)'; c.lineWidth = sel ? 4 : 2; pill(c, r.x, r.y, r.w, r.h, 14); c.stroke();
       if (i === 15) { c.save(); c.strokeStyle = 'rgba(220,60,60,0.9)'; c.lineWidth = 3; pill(c, r.x - 4, r.y - 4, r.w + 8, r.h + 8, 17); c.stroke(); c.restore(); }
-      const fs = Math.max(12, Math.min(16 * u, r.w / 11));
+      const fs = portrait ? Math.max(14, Math.min(16 * u, r.h / 4.6)) : Math.max(13, Math.min(16 * u, r.w / 11));
       c.fillStyle = ouvert ? OR : 'rgba(232,194,122,0.6)'; c.font = fnt(fs * 1.5, 900); c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText(i === 15 ? '★' : String(i + 1), r.x + 10, r.y + 8);
-      c.fillStyle = ouvert ? '#fff' : '#a89a88'; c.font = fnt(fs, 900); c.textAlign = 'center'; c.textBaseline = 'bottom'; c.fillText(NOMS[i], r.x + r.w / 2, r.y + r.h - fs * 1.7, r.w - 12);
+      c.fillStyle = ouvert ? '#fff' : '#a89a88'; c.font = fnt(fs, 900); c.textAlign = 'center'; c.textBaseline = 'bottom';
+      { // V4 : le nom n'est jamais écrasé : s'il est trop long, il passe sur 2 lignes
+        const yb = r.y + r.h - fs * (rec ? 1.7 : 0.6), mots = NOMS[i].split(' ');
+        if (c.measureText(NOMS[i]).width <= r.w - 16) c.fillText(NOMS[i], r.x + r.w / 2, yb);
+        else { let a = mots.slice(), b = []; while (a.length > 1 && c.measureText(a.join(' ')).width > r.w - 16) b.unshift(a.pop());
+          c.fillText(a.join(' '), r.x + r.w / 2, yb - fs * 1.1); c.fillText(b.join(' '), r.x + r.w / 2, yb); } }
       if (!ouvert) { const cx = r.x + r.w / 2, cy = r.y + r.h * 0.4, s = Math.min(r.w, r.h) * 0.13; c.strokeStyle = OR2; c.lineWidth = s * 0.3; c.beginPath(); c.arc(cx, cy - s * 0.4, s * 0.7, Math.PI, 0); c.stroke(); c.fillStyle = laiton(c, cx - s, cy - s, cx + s, cy + s); pill(c, cx - s, cy - s * 0.4, s * 2, s * 1.6, s * 0.3); c.fill(); c.fillStyle = '#2a1408'; c.beginPath(); c.arc(cx, cy + s * 0.3, s * 0.25, 0, TAU); c.fill(); }
       else if (rec) { for (let k = 0; k < 3; k++) { c.fillStyle = k < rec.etoiles ? '#ffd23f' : 'rgba(255,255,255,0.2)'; etoile5(c, r.x + r.w / 2 + (k - 1) * fs * 1.3, r.y + r.h - fs * 0.9, fs * 0.55); c.fill(); }
         c.fillStyle = '#ffe9a8'; c.font = fnt(fs * 0.85, 900); c.textAlign = 'right'; c.textBaseline = 'top'; c.fillText(rec.best + ' pts', r.x + r.w - 10, r.y + 10); }
