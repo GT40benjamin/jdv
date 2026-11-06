@@ -363,23 +363,40 @@
 #jdw-atelier.crea-mt.ecrire .atl-ibq{margin:0 0 4px;font:600 15.5px/1.42 var(--body);color:#1f1a2b}
 #jdw-atelier.crea-mt.ecrire .atl-is{margin:0;font:15px/1.45 var(--body);color:#1f1a2b}
 #jdw-atelier.crea-mt.ecrire .atl-inote{margin:0 0 0 48px;font:13px/1.4 var(--body);color:#8a8199}
-/* la barre d'écriture, sur une ligne */
-#jdw-atelier.crea-mt.ecrire .atl-comp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #eee6f4}
-#jdw-atelier.crea-mt.ecrire .atl-comp > *{flex:0 0 100%}
-#jdw-atelier.crea-mt.ecrire .atl-comp > .atl-row,#jdw-atelier.crea-mt.ecrire .atl-comp > .atl-row2{display:contents}
-#jdw-atelier.crea-mt.ecrire .atl-comp > .atl-row[hidden],#jdw-atelier.crea-mt.ecrire .atl-comp > .atl-row2[hidden]{display:none}
-#jdw-atelier.crea-mt.ecrire .atl-in{order:1;flex:1 1 0;min-width:0;min-height:48px;height:48px;max-height:30dvh;resize:none;padding:12px 16px;border:2px solid #2a1f45;border-radius:16px;background:#fff;color:#1f1a2b;font:15.5px/1.4 var(--body)}
-#jdw-atelier.crea-mt.ecrire .atl-imgb{order:2;flex:0 0 42px;width:42px;height:42px;padding:0;justify-content:center;border-radius:50%;border:0;background:#efe6ff;font-size:0}
-#jdw-atelier.crea-mt.ecrire .atl-imgb > span{font-size:18px}
-#jdw-atelier.crea-mt.ecrire .atl-mic{order:3;flex:0 0 42px;width:42px;height:42px;min-width:0;min-height:0;padding:0;border-radius:50%;box-shadow:none}
-#jdw-atelier.crea-mt.ecrire .atl-mic svg{width:22px;height:22px}
-#jdw-atelier.crea-mt.ecrire .atl-mic[data-k]::after,#jdw-atelier.crea-mt.ecrire .atl-cost{display:none}
-#jdw-atelier.crea-mt.ecrire .atl-send{order:4;flex:0 0 46px;width:46px;height:46px;min-width:0;margin:0;padding:0;border-radius:50%;border:0;box-shadow:none;background:#6a3fc2;color:#fff;font-size:0;display:grid;place-items:center;animation:none}
-#jdw-atelier.crea-mt.ecrire .atl-send::after{content:"➤";font-size:19px;line-height:1}
-#jdw-atelier.crea-mt.ecrire .atl-send::before{content:none}
+/* la barre d'écriture, sur une ligne (nouveau jeu ET jeu en discussion : le chef, 6 nov. nuit) */
+#jdw-atelier.crea-mt .atl-comp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #eee6f4}
+#jdw-atelier.crea-mt .atl-comp > *{flex:0 0 100%}
+#jdw-atelier.crea-mt .atl-comp > .atl-row,#jdw-atelier.crea-mt .atl-comp > .atl-row2{display:contents}
+#jdw-atelier.crea-mt .atl-comp > .atl-row[hidden],#jdw-atelier.crea-mt .atl-comp > .atl-row2[hidden]{display:none}
+#jdw-atelier.crea-mt .atl-in{order:1;flex:1 1 0;min-width:0;min-height:48px;height:48px;max-height:30dvh;resize:none;padding:12px 16px;border:2px solid #2a1f45;border-radius:16px;background:#fff;color:#1f1a2b;font:15.5px/1.4 var(--body)}
+#jdw-atelier.crea-mt .atl-imgb{order:2;flex:0 0 42px;width:42px;height:42px;padding:0;justify-content:center;border-radius:50%;border:0;background:#efe6ff;font-size:13px;color:transparent;overflow:hidden;white-space:nowrap;position:relative}
+#jdw-atelier.crea-mt .atl-imgb > span{position:absolute;inset:0;display:grid;place-items:center;font-size:18px;color:#1f1a2b}
+#jdw-atelier.crea-mt .atl-mic{order:3;flex:0 0 42px;width:42px;height:42px;min-width:0;min-height:0;padding:0;border-radius:50%;box-shadow:none}
+#jdw-atelier.crea-mt .atl-mic svg{width:22px;height:22px}
+#jdw-atelier.crea-mt .atl-mic[data-k]::after,#jdw-atelier.crea-mt.ecrire .atl-cost{display:none}
+#jdw-atelier.crea-mt .atl-comp > .atl-row2 > .atl-cost{order:0;flex:0 0 100%;margin:0 0 -2px 4px;font:600 13px/1.3 var(--body);color:#8a8199}
+#jdw-atelier.crea-mt .atl-send{order:4;flex:0 0 46px;width:46px;height:46px;min-width:0;margin:0;padding:0;border-radius:50%;border:0;box-shadow:none;background:#6a3fc2;color:transparent;font-size:13px;overflow:hidden;white-space:nowrap;position:relative;animation:none}
+#jdw-atelier.crea-mt .atl-send::after{content:"➤";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:19px;line-height:1}
+#jdw-atelier.crea-mt .atl-send::before{content:none}
 @media (max-width: 699px){
-  #jdw-atelier.crea-mt.ecrire .atl-intro{padding:12px}
-  #jdw-atelier.crea-mt.ecrire .atl-comp{padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));gap:6px}
-  #jdw-atelier.crea-mt.ecrire .atl-imgb,#jdw-atelier.crea-mt.ecrire .atl-mic{flex-basis:38px;width:38px;height:38px}
-  #jdw-atelier.crea-mt.ecrire .atl-inote{margin-left:0}
+  #jdw-atelier.crea-mt .atl-intro{padding:12px}
+  #jdw-atelier.crea-mt .atl-comp{padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));gap:6px}
+  #jdw-atelier.crea-mt .atl-imgb,#jdw-atelier.crea-mt .atl-mic{flex-basis:38px;width:38px;height:38px}
+  #jdw-atelier.crea-mt .atl-inote{margin-left:0}
 }
+/* testeurs (6 nov. nuit) : aucun texte sous 13 px dans le montage habillé (classes de l'Interface) */
+#jdw-atelier.crea-mt small.atl-t,#jdw-atelier.crea-mt .atl-cost,#jdw-atelier.crea-mt .atl-pastn{font-size:13px}
+/* « Nouveau jeu » : le MÊME en-tête que « Nouveau projet » (mascotte + grand titre), la bulle de {g} plus courte */
+.crea-mth{display:none}
+#jdw-atelier.crea-mt.ecrire .crea-mth{display:flex;align-items:center;gap:14px;padding:18px 22px 12px;border-bottom:1px solid #f0e9f8;background:#fff}
+#jdw-atelier.crea-mt.ecrire .crea-mth img{width:72px;height:72px;flex:0 0 72px}
+#jdw-atelier.crea-mt.ecrire .crea-mth h1{font-family:var(--display);color:#3b1d6e;font-size:26px;margin:0;line-height:1.1;letter-spacing:.3px}
+#jdw-atelier.crea-mt.ecrire .crea-mth .sous{font-size:14.5px;color:#6b6280;margin-top:4px}
+#jdw-atelier.crea-mt.ecrire .atl-ibq{display:none}
+@media (max-width: 699px){
+  #jdw-atelier.crea-mt.ecrire .crea-mth{padding:14px 14px 10px;gap:10px}
+  #jdw-atelier.crea-mt.ecrire .crea-mth img{width:56px;height:56px;flex-basis:56px}
+  #jdw-atelier.crea-mt.ecrire .crea-mth h1{font-size:21px}
+  #jdw-atelier.crea-mt.ecrire .crea-mth .sous{font-size:14px}
+}
+#jdw-atelier.crea-mt:not(.ecrire) .atl-comp > .atl-row2 > .atl-cost:not([hidden]){display:block}

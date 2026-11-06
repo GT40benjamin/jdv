@@ -149,8 +149,14 @@
         if (!A.querySelector('.crea-mtciel')) { const c = E('div', 'crea-mtciel'); c.setAttribute('aria-hidden', 'true'); try { atlEspCiel(c, false); } catch (e) {} A.insertBefore(c, A.firstChild); }
         if (!AIM.obs) montrerObs();
       }
-      R.hidden = false; monde(); renderCadre();
+      R.hidden = false; monde(); renderCadre(); enteteMt();
     } else if (AIM.cadre) cadreFin();
+  }
+  function enteteMt() {   // « Nouveau jeu » : le même en-tête que « Nouveau projet » (montré par le CSS seulement quand l'Interface est en .ecrire)
+    const C = ATL.root && ATL.root.querySelector('.atl-main > .atl-chat'); if (!C || C.querySelector(':scope > .crea-mth')) return;
+    const h = E('div', 'crea-mth'), im = E('img'); im.src = POSE('coucou'); im.alt = '';
+    const tx = E('div'); tx.append(E('h1', '', 'Raconte-moi ton jeu !'), E('div', 'sous', 'Écris ou dicte ton idée : je monte tout ton projet.'));
+    h.append(im, tx); C.insertBefore(h, C.firstChild);
   }
   function cadreFin() {
     AIM.cadre = false; const R = AIM.root; if (!R) return;
