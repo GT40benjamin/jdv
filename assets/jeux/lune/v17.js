@@ -184,7 +184,7 @@ const PANTIN = (() => {
     // V17 : l'outil en main (multi-outil pour miner, laser pour attaquer) : tenu par la main droite, il pointe devant lui dans toutes les directions
     if (P.outil && (S.m === 'mine' || S.m === 'construit')) {
       const a = S.arms[0], G = pointsCanon(T, a, cr, up, lean);
-      parts.push({ z: proj(T, a.r * cr, 0, a.f + 6).z * 1.2 + 0.6 + a.f * c * 0.3, d: () => outilMain(ctx, G, P.outil, T.k, ow, P.t || 0) });
+      parts.push({ z: c > 0.3 ? 1e4 : proj(T, a.r * cr, 0, a.f + 6).z * 1.2 + 0.6 + a.f * c * 0.3, d: () => outilMain(ctx, G, P.outil, T.k, ow, P.t || 0) });   // de face : devant les mains
       bout.x = G.bout.x; bout.y = G.bout.y; bout.t = Date.now();
     }
     parts.sort((a, b) => a.z - b.z);
@@ -196,7 +196,10 @@ const PANTIN = (() => {
   // V17 : le pistolet (la main, l'arrière, le bout du canon, la crosse) en coordonnées écran
   function pointsCanon(T, a, cr, up, lean) {
     const r = a.r * cr, u = up(a.u) + Math.max(-2, a.f) * 0.4 * Math.abs(T.c), f = a.f + lean * 0.4;
-    return { main: proj(T, r, u, f), arr: proj(T, r, u + 1.4, f - 5), bout: proj(T, r, u + 2, f + 19), crosse: proj(T, r, u - 7, f - 2), v0: proj(T, r, u + 5.4, f - 1), v1: proj(T, r, u + 5.6, f + 7) };
+    const G = { main: proj(T, r, u, f), arr: proj(T, r, u + 1.4, f - 5), bout: proj(T, r, u + 2, f + 19), crosse: proj(T, r, u - 7, f - 2), v0: proj(T, r, u + 5.4, f - 1), v1: proj(T, r, u + 5.6, f + 7) };
+    // V17 : de face (il pointe vers nous), le canon est court, au niveau des mains, son bout lumineux tourné vers nous (sinon il passait sous le casque)
+    if (T.c > 0.55) { const m = G.main, k = T.k, sd = T.s >= 0 ? 1 : -1; G.arr = { x: m.x, y: m.y - 3 * k, z: m.z }; G.bout = { x: m.x + sd * 1.5 * k, y: m.y + 5 * k, z: m.z + 5 }; G.crosse = { x: m.x - sd * 1 * k, y: m.y + 6 * k, z: m.z }; G.v0 = { x: m.x, y: m.y - 5 * k, z: m.z }; G.v1 = { x: m.x, y: m.y - 3 * k, z: m.z }; }
+    return G;
   }
   const bout = { x: 0, y: 0, t: 0 };
   // le bout du canon, relatif aux pieds (unités du pantin, k = 1), pour faire partir le rayon et les tirs du canon
@@ -1710,6 +1713,7 @@ function mount(root, api) {
     if (B) { const hB = ESPECES[B.esp].taille * (B.echelle || 1); tx = (J.x + B.x) / 2; ty = (J.y + B.y - hB * 0.6) / 2 - 20; const dx = Math.abs(B.x - J.x) + 240, dy = Math.abs(B.y - J.y) + hB + 220; zt = clamp(Math.min(W / (dx * Z0), H / (dy * Z0)), 0.55, 1); }
     // V12 : chez soi (sur le plancher de sa base, hors construction), la caméra s'approche : on voit la maison et ses meubles de près
     if (!B && !construire && chezMoi()) zt = 1.45;
+    if (typeof window !== 'undefined' && window.__zoomTest) zt = window.__zoomTest;   // (bancs : gros plans)
     zf += (zt - zf) * Math.min(1, dt * 2); Z = Z0 * zf;
     camX += (tx - camX) * Math.min(1, dt * 4); camY += (ty - camY) * Math.min(1, dt * 4);
   }
@@ -2530,7 +2534,7 @@ function mount(root, api) {
     const dNav = NAV ? Math.hypot(NAV.x - J.x, (NAV.y - J.y) * 1.4) : 1e9;
     if (best && (!actionBtn || (bd < dNav - 5 && actionBtn.ico !== '📜' && !(actionBtn.d != null && actionBtn.d < bd * 1.4 + 10)))) {   // un filon collé à la navette se mine aussi
       const peut = best.f.m.r <= RAR_LASER[X.amel.laser], multi = outilActif() === 'multi';   // V17 : on mine avec le multi-outil
-      actionBtn = { txt: !multi ? 'Prends le multi-outil pour miner (molette, 1)' : peut ? 'Miner : ' + best.f.m.nom : 'Laser trop faible (' + MONDE.RARETE[best.f.m.r].nom + ')', ico: '⛏', tenir: true, off: !peut || !multi };
+      actionBtn = { txt: !multi ? 'Prends le multi-outil ' + (typeof padVu !== 'undefined' && padVu > 0 ? '(LB / RB)' : auDoigt ? '(touche sa case en bas)' : '(1 ou molette)') : peut ? 'Miner : ' + best.f.m.nom : 'Laser trop faible (' + MONDE.RARETE[best.f.m.r].nom + ')', ico: '⛏', tenir: true, off: !peut || !multi };
       if (!multi && actionTenue()) rappelOutil('multi');
       if (peut && multi && actionTenue()) {
         mineCible = best.f; J.mode = 'mine'; J.th += angDiff(J.th, Math.atan2(best.x - J.x, best.y - J.y)) * Math.min(1, dt * 10); J.vx *= 0.5; J.vy *= 0.5;
@@ -2597,8 +2601,8 @@ function mount(root, api) {
       ctx.save(); ctx.globalAlpha = actionBtn.off ? 0.6 : 1;
       const g = ctx.createLinearGradient(bx, by, bx, by + bh); g.addColorStop(0, actionBtn.off ? '#666a80' : '#7affd0'); g.addColorStop(1, actionBtn.off ? '#444858' : '#1fae8a');
       ctx.fillStyle = g; ctx.strokeStyle = '#eafff8'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, bh / 2) : ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#062a22'; ctx.font = '800 ' + Math.round(16 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const aide = auDoigt ? (actionBtn.tenir ? ' (garde le doigt)' : '') : (pad && pad.active && pad.active() ? ' (X)' : ' (E)');
+      ctx.fillStyle = actionBtn.off ? '#ffffff' : '#062a22'; ctx.font = '800 ' + Math.round(16 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const aide = actionBtn.off ? '' : auDoigt ? (actionBtn.tenir ? ' (garde le doigt)' : '') : (pad && pad.active && pad.active() ? ' (X)' : ' (E)');
       ctx.fillText(actionBtn.ico + '  ' + actionBtn.txt + aide, bx + bw / 2, by + bh / 2 + 1);
       if (mineCible) { ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillRect(bx + 20 * U, by + bh - 7 * U, (bw - 40 * U) * Math.min(1, mineT / 0.7), 4 * U); }
       ctx.restore();
@@ -4043,7 +4047,7 @@ function mount(root, api) {
     COMBAT.tirs.push({ x: ox, y: oy, vx: Math.sin(a) * 950, vy: Math.cos(a) * 950, t: 0, moi: true }); son('tir', 0.6);
     parts.push({ x: ox, y: oy, vx: 0, vy: 0, t: 0, d: 0.12, c: 'rgba(160,255,240,0.9)', r: 9, g: 0 });
   }
-  function cibleAuto() { let best = null, bd = 520; for (const c of CR) { if (c.mort || c.allie || ESPECES[c.esp].role === 'craintif' && !c.enerve) continue; const d = Math.hypot(c.x - J.x, c.y - J.y); if (d < bd) { bd = d; best = c; } } return best; }
+  function cibleAuto() { let best = null, bd = 520; for (const c of CR) { if (c.mort || c.allie || c.compKey || c.suit || c.cache || (ESPECES[c.esp].role === 'craintif' && !c.enerve && !AF[c.esp])) continue; const d = Math.hypot(c.x - J.x, c.y - J.y); if (d < bd) { bd = d; best = c; } } return best; }
   function rouler() { if (COMBAT.roule > 0 || COMBAT.mortT > 0 || !J || J.z > 0) return; COMBAT.roule = 0.38; COMBAT.invuln = 0.45; const m = Math.hypot(J.vx, J.vy); COMBAT.rdx = m > 10 ? J.vx / m : Math.sin(J.th); COMBAT.rdy = m > 10 ? J.vy / m : Math.cos(J.th); poussiere(J.x, J.y, 8); }
   function majCombat(dt) {
     if (!J) return;
@@ -4200,7 +4204,7 @@ function mount(root, api) {
       if (dC < c.portee && c.cool <= 0) { c.prep = c.boss ? 0.75 : 0.5; c.ax = cx; c.ay = cy; c.clip = 'attaque'; c.tc = 0; c.th += angDiff(c.th, Math.atan2(cx - c.x, cy - c.y)); return; }
       if (P.meta.clips.crache && c.cool <= 0 && dC > 260 && Math.random() < dt * 0.8) { const a = Math.atan2(cx - c.x, (cy - 50) - (c.y - sp.taille * 0.5)); COMBAT.tirs.push({ x: c.x, y: c.y - sp.taille * 0.5, vx: Math.sin(a) * 520, vy: Math.cos(a) * 520, t: 0, moi: false, deg: Math.round(c.degats * 0.7), de: c.esp }); c.cool = 1.2; c.clip = 'crache'; c.tc = 0; return; }
       if (sp.role === 'boss_ver') { clip = 'repos'; } else { clip = c.boss && !c.rage ? 'marche' : 'course'; const rc = rayonCorps(c) + 26, dd = Math.max(1, dC); tx = cx - (cx - c.x) / dd * rc; ty = cy - (cy - c.y) / dd * rc; }
-    } else if ((sp.role === 'craintif' || sp.role === 'troupeau') && (dJ < 200 || c.enerve > 0)) { clip = 'course'; const d = Math.max(1, dJ); tx = c.x + (c.x - J.x) / d * 300; ty = c.y + (c.y - J.y) / d * 300; }
+    } else if ((sp.role === 'craintif' || sp.role === 'troupeau') && (dJ < 200 || c.enerve > 0 || (c.fuitT = (c.fuitT || 0) - dt) > 0)) { if (dJ < 200) c.fuitT = 1.5; clip = 'course'; const d = Math.max(1, dJ); tx = c.x + (c.x - J.x) / d * 300; ty = c.y + (c.y - J.y) / d * 300; }
     else {
       c.pense -= dt;
       if (c.pense <= 0) { c.pense = 2 + Math.random() * 4; if (Math.random() < 0.5) c.but = 'repos'; else { c.but = 'marche'; const a = Math.random() * TAU; c.cx = c.ox + Math.cos(a) * 280; c.cy = c.oy + Math.sin(a) * 220; } }
@@ -4211,6 +4215,7 @@ function mount(root, api) {
       if (d < 14) { if (c.but === 'marche') c.but = 'repos'; clip = 'repos'; }
       else {
         v = vitesse(c, P, clip); if (!v) { clip = 'marche'; v = vitesse(c, P, 'marche'); }
+        { const vt = v * (d < 60 && c.but === 'marche' ? Math.max(0.3, d / 60) : 1); c.vv = (c.vv == null ? vt * 0.3 : c.vv) + (vt - (c.vv == null ? vt * 0.3 : c.vv)) * Math.min(1, dt * (hostile ? 7 : 3.5)); v = c.vv; }   // V17 : plus d'à-coups
         c.th += angDiff(c.th, Math.atan2(dx, dy)) * Math.min(1, dt * (sp.taille > 200 ? 2.5 : 6));
         let nx = c.x + Math.sin(c.th) * v * dt, ny = c.y + Math.cos(c.th) * v * dt;
         const bloque = (x, y) => TER.info(x, y).liq || solideBase(x, y);
@@ -4223,6 +4228,11 @@ function mount(root, api) {
         const M = P.meta.clips[clip]; if (M) { if (P === PSEUDO) avancerPas(c, dist, dt, clip); else c.ph += dist / Math.max(1, vitesse(c, P, clip) * M.duree); }
       }
     }
+    // V17 : elle ne s'arrête pas net : quelques pas qui ralentissent (sauf en attaque)
+    if ((tx == null || clip === 'repos') && !c.test && c.vv > 4 && c.clip !== 'attaque' && !(c.prep > 0)) {
+      c.vv *= Math.max(0, 1 - dt * 5); const nx = c.x + Math.sin(c.th) * c.vv * dt, ny = c.y + Math.cos(c.th) * c.vv * dt;
+      if (!TER.info(nx, ny).liq && !solideBase(nx, ny)) { const dist = Math.hypot(nx - c.x, ny - c.y); c.x = nx; c.y = ny; if (c.vv > 8) { clip = 'marche'; const M = P.meta.clips.marche; if (M) { if (P === PSEUDO) avancerPas(c, dist, dt, 'marche'); else c.ph += dist / Math.max(1, vitesse(c, P, 'marche') * M.duree); } } } else c.vv = 0;
+    } else if (tx == null || clip === 'repos') c.vv = 0;
     // le boss en rage appelle des renforts (une fois)
     if (c.boss && c.rage && !c.renforts && FAUNE[PL.bid]) { c.renforts = true; const r = MONDE.rng(c.id + 7); for (let i = 0; i < 3; i++) { const e = (FAUNE[PL.bid] || []).find(q => ESPECES[q].role === 'chasseur' && !ESPECES[q].gros) || 'velociraptor'; CR.push(nouvelle(2000 + i, e, c.x + (r() - 0.5) * 200, c.y + (r() - 0.5) * 160, r, { enerve: 20 })); paquet(e); } }
     if (clip !== c.clip && !(c.clip === 'attaque' && c.tc < 0.4) && !(c.clip === 'crache' && c.tc < 0.8)) { c.clip = clip; c.tc = 0; }
@@ -4917,7 +4927,14 @@ function mount(root, api) {
     if (RIG.has(nom)) return RIG.get(nom);
     const H0 = hanches(im), { A, w, h, cv } = H0, sans = (PANTINS[nom.split(':')[0]] || {}).sansPattes;
     const PB = !sans && nom.endsWith(':0') ? pattesParLeBas(A, w, h) : null;
-    if (PB) {   // V16.1 : la méthode par le bas a trouvé au moins 2 pattes
+    if (PB) { const R = rigParLeBas(PB, w, h, cv); RIG.set(nom, R); return R; }   // V16.1 : la méthode par le bas a trouvé au moins 2 pattes
+    const R0 = rigHanches(H0, sans, w, h, cv, A);
+    // V17 : aucune ou une seule patte trouvée : les PATTES FINES (flamant, pattes qui se touchent en bas) — deux pattes séparées en remontant du sol
+    if (!sans && nom.endsWith(':0') && R0.legs.length < 2) { const PF = pattesFines(A, w, h); if (PF) { const R = rigParLeBas(PF, w, h, cv); R.fines = true; RIG.set(nom, R); return R; } }
+    RIG.set(nom, R0); return R0;
+  }
+  function rigParLeBas(PB, w, h, cv) {
+    {
       const { yh, yb, lab, ids, info } = PB, ov = Math.max(4, Math.round((yb - yh) * 0.12));
       const legs = ids.map(id => {
         let sx = 0, sn = 0; for (let x = 0; x < w; x++) for (let y = yh; y <= yh + 2; y++) if (lab[y * w + x] === id) { sx += x; sn++; }
@@ -4930,8 +4947,33 @@ function mount(root, api) {
       const idc = gc.getImageData(0, 0, w, yb + 1), garde = new Set(ids);
       for (let i = yh * w; i < (yb + 1) * w; i++) if (garde.has(lab[i])) idc.data[i * 4 + 3] = 0;
       gc.putImageData(idc, 0, 0);
-      const R = { corps, legs, w, h, yh, yb, parLeBas: true }; RIG.set(nom, R); return R;
+      return { corps, legs, w, h, yh, yb, parLeBas: true };
     }
+  }
+  // V17 : deux pattes fines. On remonte depuis le sol (en sautant les doigts de pied, qui peuvent se toucher) tant que la ligne montre 2 morceaux étroits ;
+  // chaque ligne est rattachée à la patte la plus proche (suivi de bas en haut). Rend le même format que pattesParLeBas, ou null.
+  function pattesFines(A, w, h) {
+    let yb = h - 1; const vide = y => { for (let x = 0; x < w; x++) if (A[y * w + x]) return false; return true; }; while (yb > 0 && vide(yb)) yb--;
+    const runs = y => { const R = []; let x0 = -1, trou = 0; for (let x = 0; x <= w; x++) { const o = x < w && A[y * w + x]; if (o) { if (x0 < 0) x0 = x; trou = 0; } else if (x0 >= 0) { if (++trou > 2 || x === w) { R.push([x0, x - trou]); x0 = -1; trou = 0; } } } return R.filter(r => r[1] - r[0] >= 1); };
+    // les pieds (en bas) peuvent se toucher : on cherche la 1re ligne à 2 morceaux étroits dans le tiers bas
+    let y0 = yb - Math.max(3, Math.round(h * 0.06)), R0 = runs(y0); const ok2 = R => R.length === 2 && !R.some(r => r[1] - r[0] > w * 0.3);
+    while (!ok2(R0) && y0 > yb - h * 0.3) { y0--; R0 = runs(y0); } if (!ok2(R0)) return null;
+    let c = R0.map(r => (r[0] + r[1]) / 2), y = y0;
+    const lab = new Int32Array(w * h), info = { 1: { x0: w, x1: 0, n: 0 }, 2: { x0: w, x1: 0, n: 0 } };
+    const poser = (yy, x0, x1, id) => { for (let x = x0; x <= x1; x++) { const i = yy * w + x; if (!A[i]) continue; lab[i] = id; const q = info[id]; q.n++; if (x < q.x0) q.x0 = x; if (x > q.x1) q.x1 = x; } };
+    for (; y > 0; y--) {
+      const R = runs(y); if (R.length < 2 || R.some(r => r[1] - r[0] > w * 0.3)) break;
+      const deux = R.map(r => [r, (r[0] + r[1]) / 2]).sort((a, b) => Math.min(Math.abs(a[1] - c[0]), Math.abs(a[1] - c[1])) - Math.min(Math.abs(b[1] - c[0]), Math.abs(b[1] - c[1]))).slice(0, 2).sort((a, b) => a[1] - b[1]);
+      if (Math.abs(deux[0][1] - c[0]) > w * 0.12 || Math.abs(deux[1][1] - c[1]) > w * 0.12) break;
+      poser(y, deux[0][0][0], deux[0][0][1], 1); poser(y, deux[1][0][0], deux[1][0][1], 2); c = [deux[0][1], deux[1][1]];
+    }
+    const yh = y + 1; if (yb - yh < h * 0.15) return null;
+    // les doigts de pied (en bas) : chaque pixel va à la patte la plus proche
+    const mid = (c[0] + c[1]) / 2; for (let yy = y0 + 1; yy <= yb; yy++) for (let x = 0; x < w; x++) { const i = yy * w + x; if (!A[i]) continue; const id = x < mid ? 1 : 2; lab[i] = id; const q = info[id]; q.n++; if (x < q.x0) q.x0 = x; if (x > q.x1) q.x1 = x; }
+    if (info[1].n < 20 || info[2].n < 20) return null;
+    return { yh, yb, lab, ids: [1, 2], info };
+  }
+  function rigHanches(H0, sans, w, h, cv, A) {
     const yb = H0.yb, yh = sans ? yb : H0.yh;
     // les pattes : morceaux reliés sous la ligne des hanches
     const lab = new Int32Array(w * h), pattes = [];
@@ -4956,7 +4998,7 @@ function mount(root, api) {
     const idc = gc.getImageData(0, 0, w, yb + 1), garde = new Set(grandes.map(q => q.id));
     for (let i = yh * w; i < (yb + 1) * w; i++) if (garde.has(lab[i])) idc.data[i * 4 + 3] = 0;
     gc.putImageData(idc, 0, 0);
-    const R = { corps, legs, w, h, yh, yb }; RIG.set(nom, R); return R;
+    return { corps, legs, w, h, yh, yb };
   }
   function dessinerAuto(c, t, p, R, filtre, a) {
     const sp = ESPECES[c.esp], hJeu = sp.taille * (c.echelle || 1) * Z, x = sx(c.x), y = sy(c.y);
@@ -4993,10 +5035,9 @@ function mount(root, api) {
       // sans pattes (le ver) : il ondule lentement, dressé au-dessus de sa motte
       const ond = R.sansPattes ? Math.sin(t * 1.6 + c.id) * 0.05 : 0;
       ctx.translate(G.w / 2 * s, G.yh * s - rebond); ctx.rotate((att ? -0.1 * k01 : bouge ? Math.sin(ph * TAU * 2) * 0.012 : 0) * (R.gauche ? -1 : 1) + ond); ctx.translate(-G.w / 2 * s, -G.yh * s);
-      if (R.ailes && !c.mort) { const bat = 0.5 + 0.5 * Math.sin(t * 10 + c.id), hc = G.corps.height, ys = Math.round(hc * 0.52), f = 1 - 0.32 * bat;
-        ctx.translate(0, -bat * 0.04 * hJeu);
-        ctx.drawImage(G.corps, 0, ys, G.corps.width, hc - ys, 0, ys * s, G.w * s, (hc - ys) * s);
-        ctx.drawImage(G.corps, 0, 0, G.corps.width, ys, 0, ys * s * (1 - f), G.w * s, ys * s * f); }
+      if (R.ailes && !c.mort) { const bat = 0.5 + 0.5 * Math.sin(t * 10 + c.id), hc = G.corps.height * s;   // V17 : plus de découpe (l'abeille se coupait en deux) : tout le corps monte et descend et bat doucement
+        ctx.translate(0, -bat * 0.05 * hJeu); ctx.translate(G.w / 2 * s, hc * 0.5); ctx.scale(1 + 0.025 * bat, 1 - 0.04 * bat); ctx.translate(-G.w / 2 * s, -hc * 0.5);
+        ctx.drawImage(G.corps, 0, 0, G.w * s, hc); }
       else ctx.drawImage(G.corps, 0, 0, G.w * s, G.corps.height * s);
     } else if (R.ailes && !c.mort) {
       // de face ou de dos : les deux ailes (tiers gauche et droit) battent autour de leurs épaules, le corps au milieu ne bouge pas
@@ -5004,11 +5045,8 @@ function mount(root, api) {
       if (R.faceSeule && !droite && d !== 0 && d !== 4) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); }
       const s = hJeu / im.height, cw = im.width * s, ch = im.height * s, top = y - ch - (0.5 + 0.5 * Math.sin(t * 10 + c.id)) * 0.05 * hJeu, A = 0.32 * Math.sin(t * 10 + c.id), q = 0.36, sc = att ? 1 + 0.06 * k01 : 1;
       ctx.translate(x, y); ctx.scale(sc, sc); ctx.translate(-x, -y);
-      ctx.drawImage(im, im.width * q, 0, im.width * (1 - 2 * q), im.height, x - cw / 2 + cw * q, top, cw * (1 - 2 * q), ch);
-      for (const cote of [-1, 1]) { const ex = x + cote * cw * (0.5 - q), ey = top + ch * 0.45; ctx.save(); ctx.translate(ex, ey); ctx.rotate(-cote * A);
-        if (cote < 0) ctx.drawImage(im, 0, 0, im.width * q + 1, im.height, -cw * q, -ch * 0.45, cw * q + 1, ch);
-        else ctx.drawImage(im, im.width * (1 - q) - 1, 0, im.width * q + 1, im.height, -1, -ch * 0.45, cw * q + 1, ch);
-        ctx.restore(); }
+      // V17 : plus de découpe en trois : toute l'image bat (un peu plus large / un peu moins haute), sans couture
+      { const ba = 0.5 + 0.5 * Math.sin(t * 10 + c.id); ctx.translate(x, top + ch * 0.55); ctx.scale(1 + 0.05 * ba, 1 - 0.03 * ba); ctx.drawImage(im, -cw / 2, -ch * 0.55, cw, ch); }
     } else {
       const im = R.faceSeule ? piece(p, 0) : piece(p, vue === 'face' ? 1 : 2); if (!im) { ctx.restore(); return; }
       if (R.faceSeule && !droite && d !== 0 && d !== 4) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); }
@@ -5018,8 +5056,10 @@ function mount(root, api) {
       const lev = (i) => bouge && !R.sansPattes ? Math.max(0, Math.sin((ph + i * 0.5) * TAU)) * 0.14 : 0;
       const sc = att ? 1 + 0.06 * k01 : 1;
       ctx.translate(x, y); ctx.scale(sc, sc); ctx.translate(-x, -y);
-      for (let i = 0; i < 2; i++) { const hl = (ch - hh) * (1 - lev(i)); ctx.drawImage(im, i * im.width / 2, G.yh, im.width / 2, G.yb + 1 - G.yh, x - cw / 2 + i * cw / 2, top + hh, cw / 2, hl); }
-      ctx.drawImage(im, 0, 0, im.width, G.yh, x - cw / 2, top - rebond, cw, ch * hy);
+      // V17 : plus de moitiés coupées et étirées (on voyait la coupure aux pattes) : toute l'image se dandine d'une patte sur l'autre, sans couture
+      const dand = bouge && !R.sansPattes ? Math.sin(ph * TAU) * 0.06 : 0, piedX = x + Math.sin(ph * TAU) * cw * 0.12 * (bouge ? 1 : 0);
+      ctx.translate(piedX, y); ctx.rotate(dand); ctx.translate(-piedX, -y);
+      ctx.drawImage(im, 0, 0, im.width, G.yb + 1, x - cw / 2, top - rebond, cw, ch);
     }
     ctx.restore();
   }
@@ -8356,7 +8396,7 @@ function mount(root, api) {
   const changerOutil = d => choisirOutil(outilIdx() + d);
   function outilsVisibles() { return state === 'jeu' && !!J && !construire && !CB && !transfert && !etabliOuvert && !sacOuvert && !journalOuvert && !cosmoOuvert && !echange && !recit && !GROTTE; }
   function molletteOutil(e) { if (!outilsVisibles()) return false; e.preventDefault(); const d = Math.sign(e.deltaY || 0); if (d) changerOutil(d); return true; }
-  function rappelOutil(id) { if (tG - rappelT < 2.5) return; rappelT = tG; const q = OUTILS.find(o => o.id === id); dire(q.ico + ' Prends le ' + q.nom.toLowerCase() + ' pour ' + q.sert + ' (molette, ' + (OUTILS.indexOf(q) + 1) + ', ou LB / RB à la manette)', 3); }
+  function rappelOutil(id) { if (tG - rappelT < 2.5) return; rappelT = tG; const q = OUTILS.find(o => o.id === id); dire(q.ico + ' Prends le ' + q.nom.toLowerCase() + ' pour ' + q.sert + ' ' + (typeof padVu !== 'undefined' && padVu > 0 ? '(LB / RB)' : auDoigt ? '(touche sa case en bas)' : '(' + (OUTILS.indexOf(q) + 1) + ' ou molette)'), 3); }
   try { window.addEventListener('keydown', e => { if (state !== 'jeu' || construire || !J) return; if (e.key === '1' || e.key === '2') choisirOutil(+e.key - 1); }); } catch (e) { /* rien */ }
   // l'outil dans la main pour le dessin de l'explorateur : laser quand il tire, multi-outil quand il mine (ou coupe une plante)
   const outilDessin = () => J && J.tirPose > 0 ? 'laser' : J && J.mode === 'mine' ? 'multi' : null;
@@ -8440,7 +8480,7 @@ function mount(root, api) {
   function frame(now) {
     if (recit) { /* le récit se dessine après le reste, dans draw */ }
     if (dead) return;
-    const t = now / 1000, dt = Math.min(0.05, last ? t - last : 0.016); last = t;
+    const t = now / 1000, dt = Math.min(0.05, last ? t - last : 0.016) * (typeof window !== 'undefined' && window.__ralenti || 1); last = t;   // (bancs : ralenti)
     try { padNav(dt); } catch (e) { /* rien */ }   // V16 : la manette sur les boutons de l'image d'avant
     try { update(dt); majAmbiance(dt); verifierProvisoire(dt); if (!provisoire && state !== 'charge') verifierRaz(dt); draw(t, dt); if (recit) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); tapBtns = []; dessinerRecit(t, dt); } } catch (e) { if (!frame.err) { frame.err = 1; console.error(e); try { api.reportError && api.reportError(e); } catch (er) { /* rien */ } } }
     try { padDessin(t); } catch (e) { /* rien */ }
@@ -8468,7 +8508,7 @@ function mount(root, api) {
     _test: {
       state: () => state, J: () => J, PL: () => PL, look: () => look, cine: () => cine,
       crash: () => ({ dep: GAL.depart.i, v17: crashV17(), bid: PL && PL.bid, heure: heure(), phase: phaseJour(heure()), lum: PL && PL.lum, nav: NAV && { x: NAV.x, y: NAV.y, cassee: NAV.cassee, epave: NAV.epave, brume: !!NAV.brume }, epave: epave && { x: epave.x, y: epave.y, repare: !!epave.repare }, pieces: E0().pieces.slice(), posees: E0().posees.slice(), sol: piecesSol.map(q => ({ id: q.id, x: Math.round(q.x), y: Math.round(q.y) })), lieux: lieuxCrash(), radar: E0().radar, radarT: E0().radarT, faune: CR.map(c => ({ e: c.esp, s: c.crash, n: c.nivFixe, nuit: !!c.chasseNuit, x: Math.round(c.x), y: Math.round(c.y) })), cache: CRASH.cache, abri: CRASH.abri, action: actionBtn && actionBtn.txt, etape: crashV17() ? etapeCrash() : null }),
-      setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
+      setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, ecran: (x, y) => [sx(x), sy(y)], dpr: () => dpr, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
       objectif() { const o = objectif(); return o && { id: o.c.id, etape: o.etape, lieu: o.lieu, sys: o.sys, k: o.k, saut: o.saut && o.saut.nom }; },
       transfert: () => transfert, transi: () => transi, passerSaut, sauter(i, sec) { transi = sec ? { sorte: 'saut', t: 0, d: 5, vers: i, cout: 0 } : { sorte: 'saut', t: 0, d: 2, vers: i, cout: 1 }; state = 'transi'; stT = 0; }, razUI: () => razUI, setRaz(v) { razUI = v; }, recommencer, recupererAncienne, pause(v) { setPaused(v); }, sauver, carte: () => carte, dest: () => dest, poserDest, carteCibles: () => carteCibles, toucherCarte(x, y) { toucherCarteLocale({ x, y }); }, objSel: () => carte && carte.objSel, infos(v) { if (carte) carte.infos = v; }, carteVue(v) { if (carte) carte.vue = v; }, utiliserBidons, nbBidons, estCoupee, coupees, capSoute, stockRelie, capRelie, dangerFaune, misEtat, evt, CHAINES, missionSuivie, etabli: () => etabliOuvert, ouvrirEtabli() { etabliOuvert = true; }, onglet2(o) { ongletJ = o; }, raidMaintenant() { const b = maBase(); if (b) b.raidT = 0; }, sommeil: () => sommeil, fabriquer(id) { fabriquer(RECETTES.find(r => r.id === id)); }, ouvrirTransfert, fermerTransfert() { transfert = null; }, action: () => actionBtn && actionBtn.txt, faireAction() { if (actionBtn && actionBtn.f) actionBtn.f(); }, NAVp: () => NAV, base: () => maBase(),
       jouer, creation() { state = 'creation'; stT = 0; }, cineT(x) { if (!cine) lancerCine(); cine.t = x; }, finCine, decoller,
