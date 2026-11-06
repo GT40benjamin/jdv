@@ -5856,7 +5856,9 @@ body.atl-on #jdw-lib{content-visibility:hidden}
    blanc, juste une vignette sombre sur les bords pour la profondeur ; la lisibilité vient des cartes (blanches à 94 %, ombre douce, bordure fine) */
 .atl-wiz.atl-espace{--esp-card:rgba(255,255,255,.94);--esp-line:rgba(255,255,255,.95);background-image:none}
 /* l'image sur un calque à part, un peu plus saturée et contrastée (beaucoup d'images de l'Atelier sont peintes en pastel brumeux) ; filtre fixe, calculé une fois */
-.atl-wiz.atl-espace::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:radial-gradient(130% 100% at 50% 40%,rgba(22,12,44,0) 52%,rgba(22,12,44,.32)),var(--esp-fond,linear-gradient(135deg,#ffd6ee,#d9ccff)) center/cover no-repeat;filter:saturate(1.4) contrast(1.1)}
+.atl-wiz.atl-espace::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:radial-gradient(130% 100% at 50% 40%,rgba(22,12,44,0) 52%,rgba(22,12,44,.32)),var(--esp-fond,linear-gradient(135deg,#ffd6ee,#d9ccff)) center/cover no-repeat}
+/* 2.0.172 (chef : téléphone saturé) : le filtre de couleur sur ce grand calque coûte cher au téléphone : seulement sur PC (souris, grand écran) */
+@media (pointer:fine) and (min-width:901px){.atl-wiz.atl-espace::before{filter:saturate(1.4) contrast(1.1)}}
 @media (max-width:900px){.atl-wiz.atl-espace::before{background-position:center,center top}}
 .atl-eshero,.atl-escard,.atl-esnav,.atl-espace .atl-vsortie{background:rgba(255,255,255,.94)!important;border:1px solid rgba(255,255,255,.95);box-shadow:0 10px 32px rgba(22,12,44,.24)}
 #jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-estabs,.atl-estop .atl-espk{background:rgba(255,255,255,.95)!important;box-shadow:0 8px 28px rgba(22,12,44,.28)}
