@@ -16552,7 +16552,7 @@ function atlDiscBulleV(f, vh, der) {
   if (vh.note) bb.appendChild(atlEl('p', '', String(vh.note)));
   const ds = Array.isArray(vh.demandes) ? vh.demandes.filter(Boolean) : []; if (ds.length) { const ul = atlEl('ul', 'atl-propdet'); for (const d of ds.slice(0, 8)) ul.appendChild(atlEl('li', '', String(d))); bb.appendChild(ul); }
   bb.appendChild(atlEl('p', 'atl-vbug', 'Un bug ? Dis-le-moi sans hésiter : les bugs font partie de la fabrication d’un jeu vidéo, et les corriger ne te coûte aucun crédit 😊'));
-  if (der && !atlAdminIci()) { const go = atlEl('button', 'btn btn-play atl-essai', '▶️ Essayer ma V' + v); go.type = 'button'; go.addEventListener('click', () => atlJouerVrai(f)); col.insertBefore(go, tm); }
+  if (der && !atlAdminIci()) { const pub = /^publie_/.test(String(f.etat || '')) && (f.version_publiee | 0) >= v; const go = atlEl('button', 'btn btn-play atl-essai', pub ? '▶ Jouer' : '▶️ Essayer ma V' + v); go.type = 'button'; go.addEventListener('click', () => atlJouerVrai(f)); col.insertBefore(go, tm); }
   return b;
 }
 function atlDiscFil(f) {
@@ -16745,7 +16745,10 @@ function atlDiscMaj(W, f, force) {
   for (const i of corpsF.slice(debut)) { try { const el = i.el(); if (!el) continue; el.dataset.dk = i.k;
     const j = jourDe(i.at); if (j && j !== jour0) { jour0 = j; log.appendChild(atlEl('div', 'atl-djour', j)); }
     const t = el.querySelector('.atl-mc > .atl-t'), bb = el.querySelector('.atl-mc > .atl-b'); if (t && bb) { t.classList.add('dans'); const d = new Date(i.at); if (!isNaN(d) && !/envoi/.test(t.textContent)) t.textContent = (/🎤/.test(t.textContent) ? '🎤 ' : '') + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); bb.appendChild(t); }
-    log.appendChild(el); } catch (e) {} }   // 2.0.137 : data-dk = la clé (ticket retrouvé depuis « Mes demandes »)
+    log.appendChild(el);
+    if (el.classList.contains('atl-a')) { const mc = el.querySelector(':scope > .atl-mc'), bb2 = mc && mc.querySelector(':scope > .atl-b'), apres = []; if (bb2) for (let x = bb2.nextElementSibling; x; x = x.nextElementSibling) apres.push(x);
+      if (apres.length) { const su = atlEl('div', 'atl-m atl-msuite'), c2 = atlEl('div', 'atl-mc'); for (const x of apres) c2.appendChild(x); su.appendChild(c2); log.appendChild(su); } }   // 2.0.163 (chef) : boutons sous la bulle, l'avatar reste à côté d'elle
+  } catch (e) {} }   // 2.0.137 : data-dk = la clé (ticket retrouvé depuis « Mes demandes »)
   const dj = fil.filter(i => i.t < 9e15).pop();
   { const ecrit = !!(dj && dj.w) || (ATL.discPend || []).some(x => !x.envoye); const st = b.querySelector('.atl-dstat'); if (st) { st.textContent = ecrit ? 'écrit…' : 'en ligne'; st.classList.toggle('ecrit', ecrit); }
     if (ecrit) { const ty = atlEl('div', 'atl-m atl-a atl-dtype'), c = atlEl('div', 'atl-mc'), bu = atlEl('div', 'atl-b'); bu.setAttribute('aria-label', gNM() + ' écrit'); bu.append(atlEl('i'), atlEl('i'), atlEl('i')); c.appendChild(bu); ty.append(atlGuideAv(), c); log.appendChild(ty); } }   // 2.0.162 : « ••• » pendant qu'il répond
@@ -16914,6 +16917,12 @@ function atlEspace(W, box, f, g, pane) {
     const E = atlEl('section', 'atl-esadm'); E.append(atlEl('h3', '', '🛡️ Réservé admin'), atlEl('p', 'atl-esadmp', 'Ce n’est pas ton jeu : c’est celui de ' + jn + '. Tout ce qui est ici agit sur son projet.'));
     const zb = atlEl('div', 'atl-esadmb'); E.appendChild(zb);
     const zp = atlEl('div', 'atl-esadmpub'); zp.appendChild(atlEl('h4', '', '🌍 Publication et onglet')); try { zp.appendChild(atlPubAdmin(f)); } catch (e) {} E.appendChild(zp);
+    const zx = atlEl('div', 'atl-esadmx'); E.insertBefore(zx, zb);
+    const majX = () => { zx.textContent = ''; const R1 = ATL.root, cp = R1 && R1.querySelector('.atl-bar .atl-cred'), db = R1 && R1.querySelector('.atl-bar .atl-demb');
+      if (cp && cp.textContent.trim()) zx.appendChild(atlEl('p', 'atl-esadmc', (/💎/.test(cp.textContent) ? '' : '💎 ') + cp.textContent.trim()));
+      if (db && !db.hidden) { const bt = atlEl('button', 'btn btn-ghost', db.textContent.trim()); bt.type = 'button'; bt.addEventListener('click', () => db.click()); zx.appendChild(bt); }
+      const n = db ? +((db.textContent.match(/\((\d+)\)/) || [])[1] || 0) : 0; for (const t of document.querySelectorAll('#jdw-atelier .atl-esb.rouge, #jdw-atelier .atl-est.rouge')) t.classList.toggle('atl-pdot', n > 0); };
+    W._admMaj = majX; setTimeout(majX, 0); setTimeout(majX, 1500);
     p.appendChild(E); W._admZone = zb; setTimeout(() => { try { atlAdminBandeau(); } catch (e) {} }, 0); }
   // 🎮 « Mon jeu » : la grande carte du jeu (jaquette, titre, état, ▶ JOUER) + 3 cartes (stats, boutique, conversation)
   { const jp = W.querySelector('.atl-pane[data-k="jeu"]'); if (jp) {

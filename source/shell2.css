@@ -5744,3 +5744,18 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-chat .atl-fet{align-self:center;max-width:92%;margin:8px auto;padding:6px 12px;border-radius:12px;border:0;background:#fff3e3;color:#7a4300;font:700 13px/1.4 var(--body);text-align:center}
 .atl-chat .atl-fet *{color:inherit}
 .atl-chat .atl-fet.atl-rgp{background:#ece8f3;color:#4f4863}
+/* 2.0.163 (chef) : sur PC, le chat se pose directement sur le fond clair (plus de grand cadre violet) ; l'historique = un petit lien lisible */
+.atl-espace .atl-pane[data-k="demandes"]{background:none!important;padding:0!important;color:var(--esp-ink)}
+.atl-espace .atl-pane[data-k="demandes"] .atl-chat{box-shadow:0 12px 40px rgba(110,60,150,.22)}
+.atl-espace .atl-pane[data-k="demandes"] .atl-dhist{max-width:720px;margin:10px auto 0;background:none;border:0}
+.atl-espace .atl-pane[data-k="demandes"] .atl-dhist > summary{display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.85);color:#4a2370;font:700 13px var(--body);cursor:pointer}
+.atl-chat .atl-msuite{padding-left:36px;margin-top:2px}
+.atl-chat .atl-msuite .atl-mc{max-width:78%;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.atl-chat .atl-msuite .atl-mc > .btn,.atl-chat .atl-msuite .atl-mc > button{margin:0}
+/* la barre du haut d'un admin chez un autre = celle d'un joueur ; ses pastilles vont dans l'onglet 🛡️ Admin */
+#jdw-atelier:has(.atl-esadm) .atl-bar .atl-cred,#jdw-atelier:has(.atl-esadm) .atl-bar .atl-demb{display:none!important}
+.atl-esadmx{display:grid;gap:10px}.atl-esadmx:empty{display:none}
+.atl-esadmc{margin:0;padding:12px 14px;border-radius:14px;background:#fff;font:800 15px var(--body);color:#3b0f0c}
+.atl-esadmx .btn{min-height:48px;justify-content:flex-start;padding:10px 14px;border-radius:14px;background:#fff;color:#3b0f0c;border:1.5px solid #f2b8b5;font:800 15px var(--body);text-transform:none}
+.atl-est.rouge.atl-pdot,.atl-esb.rouge.atl-pdot{position:relative}
+.atl-est.rouge.atl-pdot::after,.atl-esb.rouge.atl-pdot::after{content:'';position:absolute;top:4px;right:8px;width:10px;height:10px;border-radius:50%;background:#d93025;box-shadow:0 0 0 2px #fff}
