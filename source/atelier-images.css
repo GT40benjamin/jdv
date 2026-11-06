@@ -349,3 +349,37 @@
 #jdw-atelier.crea-mt.crea-nuit .crea-mtciel::after{content:"";position:absolute;right:7%;top:9%;width:86px;height:86px;border-radius:50%;z-index:2;background:radial-gradient(circle at 38% 38%,#fffdf2,#f3e7c4 62%,#e2d2a6);box-shadow:0 0 40px 14px rgba(255,244,200,.28),0 0 140px 50px rgba(160,140,255,.22)}
 @media (max-width:699px){#jdw-atelier.crea-mt.crea-nuit .crea-mtciel::after{width:54px;height:54px;right:6%;top:2%}}
 @media (prefers-reduced-motion: reduce){#jdw-atelier.crea-mt .crea-mtciel .atl-nuage{animation:none}}
+/* « Nouveau jeu » (l'Interface : .atl.ecrire, atlIntro) habillé EXACTEMENT comme l'écran « Nouveau projet » validé (le chef, 6 nov. nuit) :
+   le 1er message de {g} en bulle en bas de la discussion, le rappel des images en gris discret, une seule barre d'écriture
+   (case + 🖼️ + 🎤 + ➤). Même code dessous : at_dire, micro, images (atlIntro, .atl-in, .atl-mic, .atl-imgb, .atl-send) */
+#jdw-atelier.crea-mt.ecrire .atl-main > .atl-chat{max-width:860px;width:100%;margin:0 auto}
+#jdw-atelier.crea-mt.ecrire .atl-log{flex:1 1 0;min-height:0;padding:0;background:#fbf9fe}
+#jdw-atelier.crea-mt.ecrire .atl-log:empty{display:none}
+#jdw-atelier.crea-mt.ecrire .atl-intro{flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:16px 20px;background:#fbf9fe}
+#jdw-atelier.crea-mt.ecrire .atl-ibub{display:flex;align-items:flex-end;gap:10px;padding:0;border:0;background:none;border-radius:0}
+#jdw-atelier.crea-mt.ecrire .atl-ibub .atl-wav{flex:0 0 38px;width:38px;height:38px;box-shadow:none;background:#fff6e0}
+#jdw-atelier.crea-mt.ecrire .atl-ibub > div{max-width:82%;background:#fff;border-radius:16px 16px 16px 5px;padding:10px 14px;box-shadow:0 2px 8px rgba(60,20,110,.07);color:#1f1a2b}
+#jdw-atelier.crea-mt.ecrire .atl-ibub b{display:none}
+#jdw-atelier.crea-mt.ecrire .atl-ibq{margin:0 0 4px;font:600 15.5px/1.42 var(--body);color:#1f1a2b}
+#jdw-atelier.crea-mt.ecrire .atl-is{margin:0;font:15px/1.45 var(--body);color:#1f1a2b}
+#jdw-atelier.crea-mt.ecrire .atl-inote{margin:0 0 0 48px;font:13px/1.4 var(--body);color:#8a8199}
+/* la barre d'écriture, sur une ligne */
+#jdw-atelier.crea-mt.ecrire .atl-comp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #eee6f4}
+#jdw-atelier.crea-mt.ecrire .atl-comp > *{flex:0 0 100%}
+#jdw-atelier.crea-mt.ecrire .atl-comp > .atl-row,#jdw-atelier.crea-mt.ecrire .atl-comp > .atl-row2{display:contents}
+#jdw-atelier.crea-mt.ecrire .atl-comp > .atl-row[hidden],#jdw-atelier.crea-mt.ecrire .atl-comp > .atl-row2[hidden]{display:none}
+#jdw-atelier.crea-mt.ecrire .atl-in{order:1;flex:1 1 0;min-width:0;min-height:48px;height:48px;max-height:30dvh;resize:none;padding:12px 16px;border:2px solid #2a1f45;border-radius:16px;background:#fff;color:#1f1a2b;font:15.5px/1.4 var(--body)}
+#jdw-atelier.crea-mt.ecrire .atl-imgb{order:2;flex:0 0 42px;width:42px;height:42px;padding:0;justify-content:center;border-radius:50%;border:0;background:#efe6ff;font-size:0}
+#jdw-atelier.crea-mt.ecrire .atl-imgb > span{font-size:18px}
+#jdw-atelier.crea-mt.ecrire .atl-mic{order:3;flex:0 0 42px;width:42px;height:42px;min-width:0;min-height:0;padding:0;border-radius:50%;box-shadow:none}
+#jdw-atelier.crea-mt.ecrire .atl-mic svg{width:22px;height:22px}
+#jdw-atelier.crea-mt.ecrire .atl-mic[data-k]::after,#jdw-atelier.crea-mt.ecrire .atl-cost{display:none}
+#jdw-atelier.crea-mt.ecrire .atl-send{order:4;flex:0 0 46px;width:46px;height:46px;min-width:0;margin:0;padding:0;border-radius:50%;border:0;box-shadow:none;background:#6a3fc2;color:#fff;font-size:0;display:grid;place-items:center;animation:none}
+#jdw-atelier.crea-mt.ecrire .atl-send::after{content:"➤";font-size:19px;line-height:1}
+#jdw-atelier.crea-mt.ecrire .atl-send::before{content:none}
+@media (max-width: 699px){
+  #jdw-atelier.crea-mt.ecrire .atl-intro{padding:12px}
+  #jdw-atelier.crea-mt.ecrire .atl-comp{padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));gap:6px}
+  #jdw-atelier.crea-mt.ecrire .atl-imgb,#jdw-atelier.crea-mt.ecrire .atl-mic{flex-basis:38px;width:38px;height:38px}
+  #jdw-atelier.crea-mt.ecrire .atl-inote{margin-left:0}
+}
