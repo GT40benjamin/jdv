@@ -2411,7 +2411,9 @@ function mount(root, api) {
     const coin = gauche => ({ x: gauche ? z.gauche + ww / 2 + 10 : W - z.droite - ww / 2 - 10, y: yHaut });
     const libre = q => { const Lp = Hd.loupe; if (Math.abs(q.x - Lp.x) < ww / 2 + Lp.r && Math.abs(q.y - Lp.y) < hh / 2 + Lp.r + 14 * u) q.y = Lp.y + Lp.r + 22 * u + hh / 2; q.y = clamp(q.y, yHaut, Math.max(yHaut, yBas)); return q; };
     let pos;
-    if (dessus) pos = { x: z.gauche + 14 + ww / 2, y: yHaut };
+    if (dessus) {   // un gros plan ou le sac est ouvert : le fantôme et sa bulle seulement s'ils tiennent HORS de la boîte (jamais par-dessus)
+      const B = boite(); if (B.bx - z.gauche < ww + 300 * u) { R.bulle = null; return; }
+      pos = { x: z.gauche + 14 + ww / 2, y: yHaut }; }
     else {
       // sa place dans la salle ; si elle sort de l'écran (la salle a glissé) ou si sa bulle tomberait sur un objet : il suit dans un coin
       const p = ecranDe(R.def.fant[0], R.def.fant[1], v), mg = ww / 2 + 8, dedans = p.x > mg && p.x < W - mg;
