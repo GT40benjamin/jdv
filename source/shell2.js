@@ -10936,6 +10936,31 @@ function boutiqueApi(g, seq) {
   };
 }
 try { if (navigator.webdriver) window.JDW_ESSAI_BOUT = () => current ? boutiqueApi(current.game, current.seq) : null; } catch (e) {}   // v151 : bancs seulement (navigateur piloté)
+// 2.0.169 (PATOU, ticket bb96f432 : « dans l'arrêt sur image, le clavier ne marche pas, je suis obligé de dicter ») : un jeu écoute le clavier
+// sur window / document et fait preventDefault → les lettres n'arrivent plus dans la zone de texte de la borne. Désormais, pendant une partie,
+// les écouteurs clavier posés APRÈS le démarrage de la borne (ceux des jeux) ne reçoivent plus une touche tapée dans un champ de la borne
+// (arrêt sur image, demande, discussion…) : seuls les champs DU JEU (dans .game-root) leur parlent encore. Les écouteurs de la borne posés
+// avant (micro Ctrl+Espace, Échap…) restent tels quels.
+(() => {
+  let pret = false; Promise.resolve().then(() => { pret = true; });   // seulement les écouteurs posés après le script de la borne (ceux des jeux)
+  const KT = new Set(['keydown', 'keyup', 'keypress']), EP = EventTarget.prototype, add0 = EP.addEventListener, rem0 = EP.removeEventListener, ENV = new WeakMap();
+  const champBorne = e => { if (typeof current === 'undefined' || !current) return false; const t = e && e.target; if (!t || t.nodeType !== 1) return false;
+    if (!(t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return false; return !(t.closest && t.closest('.game-root')); };
+  if (navigator.webdriver) window.__champBorne = e => ({ cur: typeof current !== 'undefined' && !!current, ok: champBorne(e) });
+  const cle = (cap) => (cap === true || (cap && typeof cap === 'object' && cap.capture)) ? 'c' : 'b';
+  EP.addEventListener = function (type, fn, o) {
+    if (pret && fn && KT.has(type) && (this === window || this === document)) {
+      let m = ENV.get(fn); if (!m) { m = {}; ENV.set(fn, m); } const k = type + cle(o);
+      if (!m[k]) m[k] = function (e) { if (champBorne(e)) return; return typeof fn === 'function' ? fn.call(this, e) : fn.handleEvent(e); };
+      return add0.call(this, type, m[k], o);
+    }
+    return add0.call(this, type, fn, o);
+  };
+  EP.removeEventListener = function (type, fn, o) {
+    if (fn && KT.has(type) && (this === window || this === document)) { const m = ENV.get(fn), w = m && m[type + cle(o)]; if (w) rem0.call(this, type, w, o); }
+    return rem0.call(this, type, fn, o);
+  };
+})();
 function boutiqueConfirmer(g, a, r, o) {
   return new Promise(fin => {
     const old = document.getElementById('jdw-boutmod'); if (old && old._fermer) old._fermer();
