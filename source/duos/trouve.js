@@ -3579,6 +3579,8 @@
   window.JDW_DUOS[ID] = {
     id: ID,
     title: 'Trouve-le !',
+    menu: true, menuStyle: 'cartoon', menuImage: 'jeux/trouve/menu.webp', menuImagePortrait: 'jeux/trouve/menu-portrait.webp', logo: 'jeux/trouve/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+    menuFocus: { x: 50, y: 50 }, musicMenu: 'trouve-menu',
     emoji: '🔎',
     tagline: 'Repère l’objet du médaillon sur ton plateau avant ton adversaire !',
     accent: ACCENT,

@@ -4520,6 +4520,8 @@
   window.JDW_DUOS['guerre'] = {
     id: 'guerre',
     title: 'Canards : la guerre',
+    menu: true, menuStyle: 'cartoon', menuImage: 'jeux/guerre/menu.webp', menuImagePortrait: 'jeux/guerre/menu-portrait.webp', logo: 'jeux/guerre/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+    menuFocus: { x: 50, y: 50 }, musicMenu: 'guerre-menu',
     emoji: '🦆',
     tagline: 'Chacun son tour, canarde l’équipe d’en face et coule ses 3 canards !',
     accent: ACC,

@@ -3125,6 +3125,8 @@ void main(){
   window.JDW_DUOS[ID] = {
     id: ID,
     title: 'Ping-pong',
+    menu: true, menuStyle: 'cartoon', menuImage: 'jeux/pingpong/menu.webp', menuImagePortrait: 'jeux/pingpong/menu-portrait.webp', logo: 'jeux/pingpong/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+    menuFocus: { x: 50, y: 50 }, musicMenu: 'pingpong-menu',
     emoji: '🏓',
     tagline: 'Tennis de table en 3D : glisse pour frapper, lifte, coupe et smashe !',
     // manette (CONTRACT.md « Ajout 10 ») : schéma montré par la borne (carte de pause, début de partie)

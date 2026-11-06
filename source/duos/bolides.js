@@ -121,6 +121,8 @@ window.JDW_DUOS = window.JDW_DUOS || {};
 window.JDW_DUOS.bolides = {
   id: 'bolides',
   title: 'Bolides RC',
+  menu: true, menuStyle: 'cartoon', menuImage: 'jeux/bolides/menu.webp', menuImagePortrait: 'jeux/bolides/menu-portrait.webp', logo: 'jeux/bolides/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+  menuFocus: { x: 50, y: 50 }, musicMenu: 'bolides-menu',
   emoji: '🏎️',
   tagline: 'Course de petites voitures téléguidées : pointe du doigt, fonce, dérape… double tout le monde !',
   accent: '#ffa630',

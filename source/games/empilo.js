@@ -2150,7 +2150,8 @@
     // ---------- Tutoriel (premier lancement, mémorisé sur l'appareil) ----------
     const tutoSeen = pref(TUTO_KEY, '0') === '1';
     let tuto = null;
-    if (!tutoSeen) { state = 'tuto'; tuto = { step: 0, t: 0 }; }
+    // 2.0.152 : plus de tutoriel ouvert tout seul (écran-titre de la borne : ❓ COMMANDES) ; tutoSeen reste lu pour la suite
+    void tutoSeen;
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();
@@ -5407,6 +5408,8 @@
   window.JDW_GAMES['empilo'] = {
     id: 'empilo',
     title: 'Empilo',
+    menu: true, menuStyle: 'cartoon', accent2: '#ffe08a', pauseJeu: true,   // borne 2.0.152 : vrai écran-titre (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/empilo/menu.webp', menuImagePortrait: 'jeux/empilo/menu-portrait.webp', logo: 'jeux/empilo/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'empilo-menu',
     tagline: 'Empile, casse des lignes et voyage de la plaine jusqu’au cœur de la galaxie !',
     accent: '#a98bff',
     scoreLabel: 'points',

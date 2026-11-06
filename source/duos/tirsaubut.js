@@ -143,6 +143,8 @@ window.JDW_DUOS = window.JDW_DUOS || {};
 window.JDW_DUOS.tirsaubut = {
   id: 'tirsaubut',
   title: 'Tirs au But',
+  menu: true, menuStyle: 'cartoon', menuImage: 'jeux/tirsaubut/menu.webp', menuImagePortrait: 'jeux/tirsaubut/menu-portrait.webp', logo: 'jeux/tirsaubut/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+  menuFocus: { x: 50, y: 50 }, musicMenu: 'tirsaubut-menu',
   emoji: '⚽',
   tagline: 'Tire, plonge… et fais trembler les filets !',
   accent: '#2ecc5a',

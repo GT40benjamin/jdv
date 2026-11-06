@@ -3040,7 +3040,7 @@
 
     // ---------- Tutoriel animé (3 étapes, premier lancement) ----------
     let tuto = null;
-    if (pref(TUTO_KEY, '0') !== '1') { state = 'tuto'; tuto = { step: 0, t: 0 }; }
+    // 2.0.152 : plus de tutoriel ouvert tout seul (écran-titre de la borne : ❓ COMMANDES)
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();
@@ -3846,6 +3846,8 @@
   window.JDW_GAMES['glouton'] = {
     id: 'glouton',
     title: 'Glouton',
+    menu: true, menuStyle: 'cartoon', accent2: '#3af0ff', pauseJeu: true,   // borne 2.0.152 : vrai écran-titre (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/glouton/menu.webp', menuImagePortrait: 'jeux/glouton/menu-portrait.webp', logo: 'jeux/glouton/logo.png', menuFocus: { x: 50, y: 50 }, musicMenu: 'glouton-menu',
     tagline: 'Un canard en plastique gobe les bulles et dévore les microbes, de bain en bain !',
     accent: ACCENT,
     scoreLabel: 'points',

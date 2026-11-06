@@ -220,6 +220,8 @@ window.JDW_DUOS = window.JDW_DUOS || {};
 window.JDW_DUOS.kombat = {
   id: 'kombat',
   title: 'Mandale Kombat',
+  menu: true, menuStyle: 'cartoon', menuImage: 'jeux/kombat/menu.webp', menuImagePortrait: 'jeux/kombat/menu-portrait.webp', logo: 'jeux/kombat/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+  menuFocus: { x: 45, y: 50 }, musicMenu: 'kombat-menu',
   emoji: '👋',
   tagline: 'Mets-lui une mandale… avec ta vraie tête !',
   accent: '#ff3d5a',

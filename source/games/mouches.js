@@ -5185,7 +5185,7 @@
 
     // ---------------------------------------------------------------- tutoriel animé (3 étapes, premier lancement)
     let tuto = null;
-    if (pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
+    // 2.0.152 : plus de tutoriel ouvert tout seul (écran-titre de la borne : ❓ COMMANDES)
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();
@@ -6073,6 +6073,8 @@
   window.JDW_GAMES['mouches'] = {
     id: 'mouches',
     title: 'Chasse aux mouches',
+    menu: true, menuStyle: 'cartoon', accent2: '#ffe08a', pauseJeu: true,   // borne 2.0.152 : vrai écran-titre (Ajout 27 bis) ; le jeu garde SA pause (la borne cache son ⏸)
+    menuImage: 'jeux/mouches/menu.webp', menuImagePortrait: 'jeux/mouches/menu-portrait.webp', logo: 'jeux/mouches/logo.png', menuFocus: { x: 50, y: 40 }, musicMenu: 'mouches-menu',
     tagline: 'Arrose les insectes de la maison de vacances, du matin à la nuit, monde après monde !',
     accent: '#ff5fae',
     scoreLabel: 'points',

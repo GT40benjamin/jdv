@@ -4218,6 +4218,8 @@
   window.JDW_DUOS[ID] = {
     id: ID,
     title: 'Duel spatial',
+    menu: true, menuStyle: 'cartoon', menuImage: 'jeux/spatial/menu.webp', menuImagePortrait: 'jeux/spatial/menu-portrait.webp', logo: 'jeux/spatial/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+    menuFocus: { x: 50, y: 50 }, musicMenu: 'spatial-menu',
     emoji: '🚀',
     tagline: 'Deux vaisseaux face à face : esquive, ramasse les bonus et pulvérise ton copain !',
     accent: ACCENT,

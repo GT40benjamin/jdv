@@ -3518,6 +3518,8 @@
   window.JDW_DUOS[ID] = {
     id: ID,
     title: 'Mots mêlés',
+    menu: true, menuStyle: 'cartoon', menuImage: 'jeux/mots/menu.webp', menuImagePortrait: 'jeux/mots/menu-portrait.webp', logo: 'jeux/mots/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+    menuFocus: { x: 50, y: 50 }, musicMenu: 'mots-menu',
     emoji: '🔤',
     tagline: 'Le premier qui trace le mot caché dans sa grille gagne la manche !',
     accent: ACCENT,

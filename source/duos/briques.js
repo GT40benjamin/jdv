@@ -3762,6 +3762,8 @@
   window.JDW_DUOS[ID] = {
     id: ID,
     title: 'Casse-briques face à face',
+    menu: true, menuStyle: 'cartoon', menuImage: 'jeux/briques/menu.webp', menuImagePortrait: 'jeux/briques/menu-portrait.webp', logo: 'jeux/briques/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+    menuFocus: { x: 50, y: 50 }, musicMenu: 'briques-menu',
     emoji: '🧱',
     tagline: 'Casse le mur, attrape les bonus et envoie la balle derrière la raquette d’en face !',
     accent: '#ffa630',

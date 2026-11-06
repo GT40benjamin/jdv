@@ -3542,6 +3542,8 @@
   window.JDW_DUOS[ID] = {
     id: ID,
     title: 'Le palet',
+    menu: true, menuStyle: 'cartoon', menuImage: 'jeux/palet/menu.webp', menuImagePortrait: 'jeux/palet/menu-portrait.webp', logo: 'jeux/palet/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+    menuFocus: { x: 50, y: 50 }, musicMenu: 'palet-menu',
     emoji: '🏒',
     tagline: 'Hockey néon à deux : frappe le palet et marque dans le but d’en face !',
     accent: '#5ef0ff',

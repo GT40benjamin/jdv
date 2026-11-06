@@ -6222,6 +6222,8 @@
   const BOUM = {
     id: 'boum',
     title: 'Boum !',
+    menu: true, menuStyle: 'cartoon', menuImage: 'jeux/boum/menu.webp', menuImagePortrait: 'jeux/boum/menu-portrait.webp', logo: 'jeux/boum/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+    menuFocus: { x: 50, y: 50 }, musicMenu: 'boum-menu',
     emoji: '💣',
     tagline: 'Duel de bombes : fais sauter les caisses et piège l’autre !',
     accent: ACCENT,

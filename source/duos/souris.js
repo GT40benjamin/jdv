@@ -4074,6 +4074,8 @@
   window.JDW_DUOS['souris'] = {
     id: 'souris',
     title: 'Chat et souris',
+    menu: true, menuStyle: 'cartoon', menuImage: 'jeux/souris/menu.webp', menuImagePortrait: 'jeux/souris/menu-portrait.webp', logo: 'jeux/souris/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+    menuFocus: { x: 50, y: 50 }, musicMenu: 'souris-menu',
     emoji: '🐭',
     tagline: 'La souris mange le fromage, le chat la chasse… puis on échange !',
     accent: ACCENT,

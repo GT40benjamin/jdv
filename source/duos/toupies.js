@@ -159,6 +159,8 @@ window.JDW_DUOS = window.JDW_DUOS || {};
 window.JDW_DUOS.toupies = {
   id: 'toupies',
   title: 'Turbo Toupies',
+  menu: true, menuStyle: 'cartoon', menuImage: 'jeux/toupies/menu.webp', menuImagePortrait: 'jeux/toupies/menu-portrait.webp', logo: 'jeux/toupies/logo.png',   // borne 2.0.152 : vrai écran-titre du duel (CONTRACT Ajout 27 bis)
+  menuFocus: { x: 62, y: 50 }, musicMenu: 'toupies-menu',
   emoji: '🌀',
   tagline: 'Lance, file sur le rail et fais-la éclater !',
   accent: '#b06bff',
