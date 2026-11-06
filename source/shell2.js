@@ -16060,7 +16060,8 @@ function atlRenderProjets() {
     const vise = (qq[0] || ch[0] || rp[0] || {}).id || '', nqq = qq.reduce((t, x) => t + atlQNb(x), 0) + ((pj.q_msg | 0) || 0);
     if (nqq) b.appendChild(atlEl('span', 'atl-patt atl-pch atl-pq' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '❓ ' + nqq + (nqq > 1 ? ' questions' : ' question')));
     else if (ch.length || rp.length) b.appendChild(atlEl('span', 'atl-patt ' + (ch.length ? 'atl-pch' : 'atl-pre') + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), ch.length ? '💡 Offre à choisir' + (ch.length > 1 ? ' (' + ch.length + ')' : '') : '✨ ' + rp.length + ' réponse' + (rp.length > 1 ? 's' : '')));
-    else if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '✉️ Nouvelle réponse'));   // 2.0.91 : sous « 🛠️ en cours », plus par-dessus
+    else if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '✉️ Nouvelle réponse'));
+    else { const dc = tk.filter(atlPropDeCote).length; if (dc) b.appendChild(atlEl('span', 'atl-patt atl-pdc' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '💤 ' + dc + (dc > 1 ? ' mises de côté' : ' mise de côté'))); }   // 2.0.171   // 2.0.91 : sous « 🛠️ en cours », plus par-dessus
     if (nqq || ch.length) b.classList.add('choix'); else if (rp.length) b.classList.add('rep');   // le contour de la tuile aussi
     b.addEventListener('click', () => { ATL.demVise = vise; atlOuvrir(pj.id); });
     // 20 h 50 (Benjamin) : la ROUE ⚙️ de chaque tuile (Renommer / Supprimer) ; à côté de la tuile, pour ne pas ouvrir le projet
@@ -16186,6 +16187,7 @@ function atlBubble(m, wel) {
     const x = (atlAdminIci() ? (ATL.data.demandes_projet || []) : ATL.dem.demandes).find(d => d.id === m.demande), der = atlTousMsgs().filter(z => z.demande === m.demande && z.atelier).pop();
     if (x && atlPropOuverte(x) && der && der.id === m.id) col.appendChild(atlPropBoutons(x));
     else if (x && x.remplacee && !x.choix && der && der.id === m.id) { col.appendChild(atlRemplacee(false)); li.classList.add('atl-mremp'); }
+    else if (x && atlPropDeCote(x) && der && der.id === m.id) col.appendChild(atlDeCoteBloc(x));   // 2.0.171 : mise de côté → « Revoir l'offre »
   }
   const mPj = /^projet:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(String(m.bouton || ''));   // 2.0.122 (SQL v132) : « 📂 Ouvrir ce projet »
   if (at && !wel && mPj && !atlAdminIci()) {
@@ -16532,6 +16534,7 @@ function atlProjDemListe(W) {
   for (const [k, lab] of (nCh ? [['choisir', '💡 À choisir (' + nCh + ')']] : []).concat([['encours', 'En cours (' + nEn + ')'], ['faites', '✅ Faites (' + nFa + ')' + (tout.some(neuf) ? ' ✨' : '')]])) { const b = atlEl('button', 'atl-demtab' + (k === ong ? ' on' : ''), lab); b.type = 'button'; b.addEventListener('click', () => { ATL.demOngP = k; atlProjDemListe(W); }); tabs.appendChild(b); }
   box.appendChild(tabs);
   if (regr.length) { const r = atlEl('p', 'atl-rgp'); const a = atlEl('button', 'atl-lien', 'voir la carte'); a.type = 'button'; a.addEventListener('click', () => { atlDemFeuilleFermer(); atlAllerNonLu(); }); r.append('🔗 ' + regr.length + (regr.length > 1 ? ' demandes regroupées' : ' demande regroupée') + ' dans ta discussion · ', a); box.appendChild(r); }   // 2.0.136 : ni en cours, ni faites
+  { const dc = tout.filter(atlPropDeCote); if (dc.length) { const s2 = atlEl('div', 'atl-decotes'); s2.appendChild(atlEl('h4', '', '💤 Mises de côté (' + dc.length + ')')); for (const x of dc) s2.appendChild(atlDeCoteBloc(x, () => { ATL.demOngP = 'choisir'; box.dataset.sig = ''; atlAllerTicket(x); })); box.appendChild(s2); } }   // 2.0.171
   if (!l.length) box.appendChild(atlEl('p', 'atl-chv', ong === 'faites' ? 'Pas encore de demande faite.' : ong === 'choisir' ? 'Rien à choisir pour l’instant.' : 'Pas de demande en cours. Écris ce que tu veux changer : ' + gN() + ' s’en occupe.'));
   let vu = null;
   for (const x of l) {
@@ -19038,7 +19041,18 @@ function atlDemBtn(R) {
 // 2.0.98 (l'admin : « l'ancienne carte d'offre reste OUVERTE alors qu'il a déjà écrit en dessous ») : dès que le joueur écrit (ou répond autrement),
 // les offres et questions plus anciennes sont FERMÉES côté serveur (SQL v110 : remplacee_at, at_offres_remplacer) : grises, repliées, sans bouton
 const atlRemplacee = q => { const l = atlEl('p', 'atl-remplacee', q ? '🔁 Questions remplacées : ' + gNM() + ' te prépare la suite' : '🔁 Offre remplacée : ' + gNM() + ' te prépare la nouvelle'); return l; };
-function atlPropOuverte(x) { return !!(x && !x.remplacee && Array.isArray(x.propositions) && x.propositions.length && !x.choix && !['faite', 'impossible', 'regroupee'].includes(x.etat)); }
+function atlPropOuverte(x) { return !!(x && !x.remplacee && Array.isArray(x.propositions) && x.propositions.length && !x.choix && !['faite', 'impossible', 'regroupee', 'plus_tard'].includes(x.etat)); }
+// 2.0.171 (bug du Sorcier : « 💬 1 à choisir » sur la carte, rien à choisir dans le projet) : une offre MISE DE CÔTÉ (« ⏸️ Plus tard ») n'est plus
+// « à choisir » nulle part (tuile, pastille, bandeau, onglets ; serveur v159 : n_choisir sans elle, n_plus_tard à part) ; elle se revoit dans « 💤 Mises de côté »
+function atlPropDeCote(x) { return !!(x && x.etat === 'plus_tard' && !x.remplacee && Array.isArray(x.propositions) && x.propositions.length && !x.choix); }
+function atlDeCoteBloc(x, apres) {
+  const d = atlEl('div', 'atl-decote'), t = String(x.texte || '').replace(/\s+/g, ' ').trim();
+  d.append(atlEl('b', '', '💤 ' + (t ? (t.length > 70 ? t.slice(0, 68) + '…' : t) : 'Une offre')), atlEl('p', '', 'Tu avais dit plus tard. Tu veux la revoir ?'));
+  if (!atlAdminIci()) { const b = atlEl('button', 'btn btn-ghost btn-sm', 'Revoir l’offre'); b.type = 'button';
+    b.addEventListener('click', async () => { b.disabled = true; try { await rpc('at_demande_revoir', { p_name: profile.name, p_id: x.id }, { quiet: true }); x.etat = 'vue'; if (apres) apres(x); atlLoad(true); } catch (e) { b.disabled = false; b.textContent = 'Réessayer'; } });
+    d.appendChild(b); }
+  return d;
+}
 function atlPropBoutons(x, comme) {
   // 3 nov. 1 h 15 (Benjamin : « fais mieux, plutôt que de faire bouger les boutons ») : une CARTE D'OFFRE par option — titre, ce qui est
   // inclus, gros prix, « Choisir » ; l'offre conseillée a un liseré et « ⭐ Conseillé » ; « Plus tard » en lien discret ; la validation
@@ -19393,6 +19407,7 @@ async function atlTousProjets(box) {
       b.append(v, atlEl('b', '', x.titre || 'Sans nom'), atlEl('small', 'atl-pver' + (/^.\S* V\d/u.test(atlVersion(x, attx)) ? ' v' : '') + atlPastCls(x), atlVersion(x, attx, true)), atlEl('small', '', '👤 ' + dispName(x.joueur || '') + ' · ' + (isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))));
       const bd = x.monde_demande_at ? '🛡️ à valider' : (x.n_choisir | 0) ? '💬 ' + (x.n_choisir | 0) + ' à choisir' : (x.n_en_cours | 0) ? '🛠️ en cours' : (x.n_nouvelles | 0) ? '📨 ' + ((x.n_nouvelles | 0) > 1 ? (x.n_nouvelles | 0) + ' nouvelles demandes' : 'nouvelle demande') : '';
       if (bd) b.appendChild(atlEl('span', 'atl-patt', bd));
+      else if (x.n_plus_tard | 0) b.appendChild(atlEl('span', 'atl-patt atl-pdc', '💤 ' + (x.n_plus_tard | 0) + ((x.n_plus_tard | 0) > 1 ? ' mises de côté' : ' mise de côté')));   // 2.0.171 (SQL v159)
       { const rl = atlEl('small', 'atl-rent'); rl.dataset.f = x.id; atlRentPeint(rl, atlRentDe(x.id)); b.appendChild(rl); }   // 2.0.119 : la rentabilité (admin)
       b.addEventListener('click', () => atlVoirProjet(x.id)); g.appendChild(b);
     }
