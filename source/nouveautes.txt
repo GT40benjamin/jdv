@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pingpong] ## 🏓 Ping-Pong : la 3D repart toute seule (borne 2.1.7)
+[pingpong] 🏓 Plus de message « ton appareil n'affiche pas la 3D » quand ce n'est pas vrai : si la 3D ne démarre pas, le jeu la relance tout seul.
+[pingpong] 🔄 Si la 3D reste bloquée par le navigateur, un bouton « Recharger la page » apparaît (doigt, souris, Entrée ou A de la manette) ; en duel, ton adversaire est prévenu.
 [borne] ## 🧪 Le mode créateur (borne 2.1.6)
 [borne] 🧪 Dans « Mon jeu », le bouton « Jouer en mode créateur » lance ton jeu pour le tester : ton jeu peut t’y donner des vies illimitées ou le choix du niveau, et rien n’est enregistré (ni score, ni record, ni progression).
 [borne] 🖼️ L’image de fond de l’espace de ton jeu couvre maintenant toute la page, même tout en bas des pages longues.
