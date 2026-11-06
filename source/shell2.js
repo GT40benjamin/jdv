@@ -1066,7 +1066,7 @@ function creaBand(on) {
   if (!b) { b = document.createElement('div'); b.id = 'jdw-crea-band'; b.setAttribute('role', 'status'); b.textContent = '🧪 Mode créateur · rien n’est enregistré'; document.body.appendChild(b); }
 }
 function creaFin() { CREA = ''; creaBand(false); }
-if (navigator.webdriver) window.JDW_ESSAI_CREA = async () => ({ crea: CREA, band: !!document.getElementById('jdw-crea-band'), jeu: current && current.game ? current.game.id : null, api: current ? current.createur : null, menu: !!document.getElementById('jdw-gmenu'), score: CREA ? await saveScore(CREA, 1234) : 'pas en mode créateur : rien essayé' });   // bancs seulement
+if (navigator.webdriver) window.JDW_ESSAI_CREA = async () => ({ crea: CREA, band: !!document.getElementById('jdw-crea-band'), jeu: current && current.game ? current.game.id : null, api: current ? current.createur : null, menu: !!document.getElementById('jdw-gmenu'), score: CREA ? await saveScore(CREA, 1234) : 'pas en mode créateur : rien essayé', niveau: CREA ? (lvSetBest(cleanName(profile.name), CREA, 99), (store.get('jdw.bestlv', {}) || {})[lvKey(cleanName(profile.name), CREA)] || 0) : null });   // bancs seulement
 async function rpc(fn, args, opts) {
   opts = opts || {};
   if (CREA && CREA_RPC.has(fn)) return { ok: true, createur: true };   // 2.1.4 : mode créateur, aucune écriture de partie
@@ -14469,9 +14469,10 @@ let progQ = store.get('jdw.progq', []); if (!Array.isArray(progQ)) progQ = [];
 { const pc = store.get('jdw.progcache', null); if (pc && room && pc.room === room.id && Array.isArray(pc.rows)) { PROG.room = pc.room; PROG.rows = pc.rows; } }   // dernière carte connue (PROG.at = 0 : rechargée dès que possible)
 const lvKey = (name, gid) => (cleanName(name) || '?') + '|' + gid;
 function lvBest(name, gid) { const all = store.get('jdw.bestlv', {}) || {}; return +all[lvKey(name, gid)] || 0; }
-function lvSetBest(name, gid, lv) { const all = store.get('jdw.bestlv', {}) || {}; const k = lvKey(name, gid); if (lv > (+all[k] || 0)) { all[k] = lv; store.set('jdw.bestlv', all); } }
+function lvSetBest(name, gid, lv) { if (CREA) return;   /* 2.1.5 (Tests) : mode créateur, la progression de la carte ne bouge pas */ const all = store.get('jdw.bestlv', {}) || {}; const k = lvKey(name, gid); if (lv > (+all[k] || 0)) { all[k] = lv; store.set('jdw.bestlv', all); } }
 // en pleine partie : un nouveau record de niveau est gardé sur l'appareil et part en ligne (seulement quand il monte)
 function progTick() {
+  if (CREA) return;   // 2.1.5 (Tests) : mode créateur
   if (!current || !current.inst || current.over || current.coop || !current.inst.currentLevel || $('jdw-play').hidden) return;
   let lv = 0; try { lv = Math.floor(+(current.game.spots && current.inst.mapSpot ? current.inst.mapSpot() : current.inst.currentLevel()) || 0); } catch (e) { return; }
   const me = cleanName(profile.name), gid = current.game.id;
