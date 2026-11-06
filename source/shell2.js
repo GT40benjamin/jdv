@@ -16965,11 +16965,18 @@ function atlPubBlocMaj(b, f) {
 // 2.1.2 (l'admin : « je veux la voir aussi en mode portrait ») : l'écran-titre du jeu, côte à côte, couché et debout (menu-portrait si le jeu
 // en a un, sinon l'image couchée recadrée comme sur un téléphone debout) ; rien si le jeu n'a pas d'image de menu
 function atlEspApercus(f, g) {
+  // le module de base d'un jeu de l'Atelier n'a pas toujours ses images : on lit celui de la version (atlModule), puis on remplit
   const ok = x => x && /^[a-z0-9][a-z0-9_.\/-]{0,80}\.(png|jpe?g|webp)$/i.test(String(x));
-  if (!g || !ok(g.menuImage) || !f.jeu) return null;
-  const b = ROOT + 'assets/jeux/' + f.jeu + '/', w = atlEl('div', 'atl-esapx');
-  const box = (u, lab, cls, rec) => { const d = atlEl('figure', 'atl-esap ' + cls), im = atlEl('img'); im.alt = lab; im.loading = 'lazy'; im.decoding = 'async'; im.src = u; d.append(im, atlEl('figcaption', '', lab + (rec ? ' (recadré)' : ''))); return d; };
-  w.append(box(b + g.menuImage, '🖥️ Paysage', 'pay'), box(b + (ok(g.menuImagePortrait) ? g.menuImagePortrait : g.menuImage), '📱 Portrait', 'por', !ok(g.menuImagePortrait)));
+  if (!f || !f.jeu) return null;
+  const w = atlEl('div', 'atl-esapx'); w.hidden = true;
+  const remplir = g2 => {
+    const L0 = g2 && (ok(g2.apercuImage) ? g2.apercuImage : g2.menuImage), P0 = g2 && (ok(g2.apercuImagePortrait) ? g2.apercuImagePortrait : ok(g2.apercuImage) ? null : g2.menuImagePortrait);   // apercuImage* : pour un écran-titre animé (demo), sans changer le titre
+    if (!ok(L0) || w.childElementCount) return !!w.childElementCount;
+    const b = ROOT + 'assets/jeux/' + f.jeu + '/';
+    const box = (u, lab, cls, rec) => { const d = atlEl('figure', 'atl-esap ' + cls), im = atlEl('img'); im.alt = lab; im.loading = 'lazy'; im.decoding = 'async'; im.src = u; d.append(im, atlEl('figcaption', '', lab + (rec ? ' (recadré)' : ''))); return d; };
+    w.append(box(b + L0, '🖥️ Paysage', 'pay'), box(b + (ok(P0) ? P0 : L0), '📱 Portrait', 'por', !ok(P0))); w.hidden = false; return true;
+  };
+  if (!remplir(g) && atlNe(f.jeu) && (f.version | 0) > 0) atlModule(f.jeu, f.version | 0).then(remplir).catch(() => {});
   return w;
 }
 function atlPubV(pv, f) {

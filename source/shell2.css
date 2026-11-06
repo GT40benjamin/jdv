@@ -5899,7 +5899,7 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-estuile .tile-wrap{width:100%;margin:0}.atl-estuile .tile{width:100%;cursor:pointer}
 .atl-esapx{display:flex;align-items:flex-end;gap:10px;margin-top:10px}
 .atl-esap{margin:0;display:grid;gap:4px;justify-items:center}.atl-esap img{display:block;object-fit:cover;border-radius:10px;border:3px solid #1f1a2b;box-shadow:0 4px 12px rgba(0,0,0,.18);background:#1f1a2b}
-.atl-esap.pay img{width:128px;aspect-ratio:16/9}.atl-esap.por img{width:46px;aspect-ratio:9/16}
+.atl-esap.pay img{width:168px;aspect-ratio:16/9}.atl-esap.por img{width:54px;aspect-ratio:9/16}
 .atl-esap figcaption{font:700 11.5px var(--body);color:#4f4863}
 .atl-pubb{display:grid;gap:12px;padding:16px}
 .atl-pubhd{display:flex;align-items:center;gap:12px}.atl-pubic{font-size:30px;line-height:1}
@@ -5911,3 +5911,7 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 @media (max-width:900px){.atl-esjaq.atl-estuile{width:100%}.atl-esapx{justify-content:center}.atl-pubbtns .btn{flex:1 1 100%}}
 .atl-eshero > .atl-pubb{grid-column:1/-1;margin:0;padding:14px 16px;background:rgba(246,241,251,.9)!important;box-shadow:none!important;border:1px solid #e6dff0!important;text-align:left}
 @media (min-width:1000px){.atl-esjaq.atl-estuile{width:300px}}
+/* 2.1.2 (chef : la case des mises à jour passait sous la barre du bas) : au téléphone, ce qui défile garde la hauteur de la barre + la zone sûre
+   en bas, pour que tout reste lisible et touchable, même amené à l'écran par le clavier, la manette ou un lien */
+@media (max-width:900px){html:has(#jdw-atelier:not([hidden]) .atl-wiz.atl-espace:not([hidden])),#jdw-atelier,#jdw-atelier .atl-wiz.atl-espace,#jdw-atelier .atl-pbox{scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 90px)}
+  #jdw-atelier .atl-wiz.atl-espace .atl-pubb,#jdw-atelier .atl-wiz.atl-espace .atl-pubb *{scroll-margin-bottom:calc(env(safe-area-inset-bottom,0px) + 90px)}}
