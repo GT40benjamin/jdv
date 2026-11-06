@@ -137,7 +137,7 @@
     AIM.nv = { choix: null, titre: 'Mes images' };
     AIM.loc = [];
     dire({ pk: 1, img: 'coucou', t: 'Bonjour ' + joli(nom()) + ' ! Qu’est-ce qu’on crée aujourd’hui ? Raconte-moi ton idée 😊' });
-    montrer(); render();
+    montrer(); render(); curseur();
     await chargerTypes(true); render();
   }
   // ce que le joueur veut faire, d'après ses mots (Pooky décide ; dans le doute, une seule question)
@@ -181,6 +181,8 @@
     setTimeout(() => { dire({ pk: 1, img: 'joie', t: 'Oh, jolie image ! 😍 Tu veux la retoucher ou changer son style ? Alors c’est un projet Images.' }); choisirType('images'); }, 450);
   }
   const etroit = () => matchMedia('(max-width: 899px)').matches;
+  // le curseur prêt dans la discussion de Pooky à chaque entrée (Interface / chef) ; jamais tout seul au toucher (le clavier s'ouvrirait)
+  function curseur() { if (TOUCH) return; setTimeout(() => { const t = AIM.root && AIM.root.querySelector(AIM.vue === 'nouveau' ? '.crea-nv textarea' : '.crea-pooky textarea'); if (t && t.getClientRects().length) t.focus({ preventScroll: true }); }, 80); }
   function renderNouveau(O) {
     const C = E('div', 'crea-nv crea-carte'), hd = E('div', 'crea-nvh'), im = E('img'); im.src = POSE('coucou'); im.alt = '';
     const tx = E('div'); tx.append(E('h1', '', 'Qu’est-ce qu’on crée aujourd’hui ?'), E('div', 'sous', 'Raconte ton idée à ' + PK() + ' : il te dit ce qu’on peut faire ensemble.'));
@@ -274,7 +276,7 @@
     if (AIM.ouverts[id] === undefined) AIM.ouverts[id] = true;
     montrer(); render();
     await Promise.all([charger(), chargerMsgs()]);
-    render(); suivre();
+    render(); suivre(); curseur();
   }
   async function charger() {
     if (!AIM.fiche) return;
@@ -513,7 +515,7 @@
     P.textContent = '';
     AIM.root.classList.toggle('nv', AIM.vue === 'nouveau');   // pendant la création : la discussion est AU CENTRE, pas de panneau à droite
     if (AIM.vue === 'nouveau') { if (foc) setTimeout(() => { const t = AIM.root.querySelector('.crea-nv textarea'); if (t) t.focus({ preventScroll: true }); }, 0); return; }
-    const t = B('crea-pkt', null, () => { if (AIM.root.classList.contains('pk-replie')) { AIM.root.classList.remove('pk-replie'); try { store.set('jdw.crea.pkreplie', false); } catch (e) {} } });
+    const t = B('crea-pkt', null, () => { if (AIM.root.classList.contains('pk-replie')) { AIM.root.classList.remove('pk-replie'); try { store.set('jdw.crea.pkreplie', false); } catch (e) {} curseur(); } });
     const im = E('img'); im.alt = ''; im.src = AV();
     const tx = E('div'); tx.append(E('b', '', PK()), E('small', '', '● en ligne · je t’écoute'));
     const rep = B('crea-pkrep', etroit() ? '✕' : '⟩', e => { e.stopPropagation(); if (etroit()) AIM.root.classList.remove('pk-plein'); else { AIM.root.classList.add('pk-replie'); try { store.set('jdw.crea.pkreplie', true); } catch (x) {} } });
