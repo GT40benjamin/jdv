@@ -293,7 +293,9 @@ begin
     rend := greatest(0, coalesce(v.prix, 0));
     if rend > 0 then update public.at_credits x set solde = x.solde + rend, maj_at = now() where x.name = c.name; end if;
     update public.at_creation_versions x set etat = case when coalesce(g.erreur, '') ~ 'refus' then 'refusee' else 'ratee' end, raison = left(g.erreur, 120), fin_at = now() where x.id = v.id;
-    perform pegase_int.at_esp_dire(c.fiche, case when coalesce(g.erreur, '') ~ 'refus'
+    perform pegase_int.at_esp_dire(c.fiche, case when coalesce(g.erreur, '') ~ 'plafond|budget'
+      then 'Je suis très demandé en ce moment : la fabrication d’images fait une pause 😴 Je t’ai rendu tes ' || rend || ' 💎 ; réessaie un peu plus tard.'
+      when coalesce(g.erreur, '') ~ 'refus'
       then 'Cette retouche-là, je ne peux pas la faire 🙈 Essaie autre chose ! Je t’ai rendu tes ' || rend || ' 💎.'
       else 'Oups, la V' || v.n || ' n’a pas marché 😕 Je t’ai rendu tes ' || rend || ' 💎 : tu peux réessayer.' end);
   end if;
