@@ -411,3 +411,64 @@
 #jdw-atelier.crea-nuit .crea-mtet{color:#d6cbef}
 #jdw-atelier.crea-nuit .crea-mtet.der{color:#e2d6ff}
 #jdw-atelier.crea-mt.crea-img .atl-comp > .atl-row2 > .atl-cost{display:none!important}
+/* ===== LE MODÈLE DES ATELIERS (l'admin, 7 nov.) : la page d'un projet comme un jeu — le menu du projet à gauche, la zone de travail au centre,
+   {g} à part ; fond fixe du type (atelier photo : un studio, dessiné en code, rien qui bouge) ===== */
+.crea.studio{background-color:#2a2730!important;background-image:
+  radial-gradient(70% 55% at 50% 42%,rgba(255,255,255,.62),rgba(255,255,255,0) 72%),
+  radial-gradient(22% 30% at 6% 14%,rgba(255,244,222,.75),rgba(255,244,222,0) 70%),
+  radial-gradient(22% 30% at 94% 14%,rgba(222,236,255,.7),rgba(222,236,255,0) 70%),
+  linear-gradient(180deg,#9b97a1 0%,#c9c5cc 46%,#d9d5db 60%,#bdb9c1 78%,#8f8b95 100%)!important;background-size:cover!important}
+.crea.studio .crea-ciel{display:none}
+.crea.studio::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:
+  radial-gradient(120% 90% at 50% 40%,rgba(0,0,0,0) 55%,rgba(20,14,30,.35) 100%),
+  linear-gradient(180deg,rgba(0,0,0,0) 62%,rgba(40,30,50,.10) 63%,rgba(0,0,0,0) 70%)}
+/* le menu du projet */
+.crea-arbre.menu-at{gap:4px}
+.crea-mat-h{padding:4px 8px 8px;border-bottom:1px solid #eee6ff;margin-bottom:4px}
+.crea-mat-h b{display:block;font-family:var(--display);font-size:17px;color:#2a1f45;line-height:1.15}
+.crea-mat-h small{display:block;margin-top:3px;font-size:13px;font-weight:700;color:#5f5874}
+.crea-mat-pk{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:2px solid #e4d7ff;border-radius:16px;background:linear-gradient(135deg,#fff,#f6f0ff);text-align:left;margin-bottom:6px}
+.crea-mat-pk:hover{border-color:#b9a2f0}
+.crea-mat-pk img{width:44px;height:44px;border-radius:50%;flex:0 0 44px;object-fit:cover;background:#efe6ff}
+.crea-mat-pk b{display:block;font-family:var(--display);font-size:16px;color:#5a32b0}
+.crea-mat-pk small{display:block;font-size:13px;font-weight:600;color:#5f5874}
+.crea-mat-b{min-height:44px;font-size:15px}
+.crea-mat-b i{font-style:normal;width:30px;height:30px;flex:0 0 30px;border-radius:9px;display:grid;place-items:center;background:#f3eeff;font-size:16px}
+.crea-mat-b.on{background:#efe6ff;color:#4a2a9a}
+.crea-mat-b .n{margin-left:auto;background:#6a3fc2;color:#fff;border-radius:999px;padding:1px 8px;font-size:12.5px;font-weight:800}
+.crea-mat-sp{flex:1;min-height:10px}
+.crea-mat-ret{color:#5a32b0}
+.crea-mat-ret i{font-style:normal;width:30px;text-align:center;font-size:18px}
+/* la grande zone de dépôt */
+.crea-depot{align-items:stretch}
+.crea-zone{flex:1;min-height:min(60vh,520px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:26px 18px;text-align:center;border:3px dashed #c6b3f2;border-radius:22px;background:rgba(250,247,255,.9);cursor:pointer;transition:border-color .15s,background .15s}
+.crea-zone:hover,.crea-zone:focus-visible,.crea-zone.survol{border-color:#6a3fc2;background:#f3ecff;outline:none}
+.crea-zone img{width:min(150px,34vw);height:auto}
+.crea-zone b{font-family:var(--display);font-size:clamp(20px,3vw,28px);color:#2a1f45}
+.crea-zone p{margin:0;color:#4a4060;font-size:15px}
+.crea-zone small{color:#5f5874;font-size:13px;max-width:440px}
+.crea-cadre.survol{outline:4px dashed #6a3fc2;outline-offset:-6px}
+/* 👁️ le commentaire de {g} sous la photo */
+.crea-regard{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.crea-regard small{color:#5f5874;font-size:13px}
+.crea-regard.vu{align-items:flex-start;flex-wrap:nowrap;padding:12px;border-radius:16px;background:#fffbea;border:2px solid #f3d873}
+.crea-regard.vu img{width:54px;height:54px;flex:0 0 54px;object-fit:contain}
+.crea-regard.vu b{display:block;color:#5a3a00;font-size:15px}
+.crea-regard.vu p{margin:4px 0 8px;color:#2a2238;font-size:15px;line-height:1.4;white-space:pre-line}
+.crea-regard-act{display:flex;gap:8px;flex-wrap:wrap}
+/* ✨ les photos retouchées */
+.crea-res{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.crea-resi{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:16px;background:#fff;border:1px solid #ece4fb;box-shadow:0 4px 14px rgba(40,20,80,.08)}
+.crea-resi .i{display:block;width:100%;aspect-ratio:4/3;border:0;border-radius:12px;background:#eee center/cover no-repeat;cursor:zoom-in;padding:0}
+.crea-resi .t b{display:block;font-size:14.5px;color:#2a1f45}
+.crea-resi .t small{display:block;font-size:13px;color:#5f5874;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.crea-vide-t{margin:0;color:#4a4060;font-size:15px;line-height:1.45}
+/* 🗺️ feuille de route, 🗂️ versions de l'atelier */
+.crea-route{display:grid;grid-template-columns:max-content 1fr;gap:8px 16px;margin:0}
+.crea-route dt{font-weight:800;color:#2a1f45}
+.crea-route dd{margin:0;color:#3a3150}
+@media (max-width:699px){.crea-route{grid-template-columns:1fr}.crea-route dd{margin-bottom:6px}}
+.crea-vat{padding:12px 14px;border-radius:14px;background:#faf7ff;border:1px solid #ece4fb}
+.crea-vat b{color:#2a1f45}
+.crea-vat p{margin:4px 0 0;color:#3a3150;font-size:14.5px}
+.crea-vat ul{margin:6px 0 0;padding-left:20px;color:#3a3150;font-size:14px}

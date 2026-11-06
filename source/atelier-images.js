@@ -44,6 +44,20 @@
     return !!pj && ((pj.version | 0) >= 1 || ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')));
   }
   const atelierOuvert = id => typeDe(id) === 'images' && livre(id);
+  // l'admin (7 nov.) : LE MODÈLE DES ATELIERS. Un atelier livré a la page d'un projet, comme un jeu : le menu du projet à gauche, la zone de
+  // travail au centre, la discussion de {g} à part. Ce qui change d'un type à l'autre vient d'ICI (menus, libellés, invite, résultat, fond) :
+  // un nouveau type d'atelier = une entrée de plus, jamais un cas spécial pour un joueur
+  const ATELIERS = {
+    images: {
+      nom: 'Atelier photo',
+      menu: [['atelier', '🖼️', 'Mon atelier'], ['pooky', '💬', ''], ['resultats', '✨', 'Photos retouchées'], ['route', '🗺️', 'Feuille de route'], ['versions_at', '🗂️', 'Versions'], ['params', '⚙️', 'Paramètres']],
+      depot: 'Dépose ta photo ici', ajouter: '＋ Ajouter une photo', invite: 'Dis-moi ce que tu veux faire avec cette photo',
+      resultat: 'Photos retouchées', videResultat: 'Tes photos retouchées arriveront ici : chaque retouche faite dans ton atelier, prête à télécharger.',
+      fond: 'studio'
+    }
+  };
+  const atelierDe = id => ATELIERS[typeDe(id)] || ATELIERS.images;
+  const versionAt = id => { try { const pj = atlProjets().find(x => x && x.id === id); return (pj && pj.version | 0) || 0; } catch (e) { return 0; } };
   const toast = t => { try { atlToast(t); } catch (e) { try { toastCheer(t); } catch (e2) {} } };
   const dire = m => { m.pk = m.pk === undefined ? 1 : m.pk; m.at = new Date().toISOString(); AIM.loc.push(m); };   // un mot de {g} (ou du joueur) seulement sur cet appareil
   const pourquoi = e => String((e && e.message) || e || '');
@@ -127,7 +141,7 @@
       + '<aside class="crea-masc crea-carte" aria-label="Discussion avec ' + PK() + '"></aside></div>'
       + '<button class="crea-flot" type="button" aria-label="Parler à ' + PK() + '"><span class="bb" hidden></span><span class="pk"><img alt="" src="' + AV() + '"></span></button>'
       + '<div class="crea-voile"></div><div class="crea-mod" hidden role="dialog" aria-modal="true"></div>'
-      + '<input class="crea-file" type="file" accept="image/jpeg,image/png,image/webp" hidden>';
+      + '<input class="crea-file" type="file" accept="image/*,.heic,.heif" hidden>';
     document.body.appendChild(R); AIM.root = R;
     try { atlEspCiel(R.querySelector('.crea-ciel'), false); } catch (e) {}   // le MÊME ciel que la création d'un jeu (2.0.152 / 2.0.161)
     const q = s => R.querySelector(s);
@@ -237,7 +251,7 @@
     if (AIM.cadre) cadreFin();
     if (!AIM.obs && ATL.root) { try { let t = 0; AIM.obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} try { if (AIM.cadre) offresMt(); } catch (e) {} }, 250); }); AIM.obs.observe(ATL.root, { childList: true, subtree: true, characterData: true }); } catch (e) {} }
     construire(); AIM.open = true; AIM.root.hidden = false;
-    AIM.root.style.backgroundImage = AIM.vue === 'nouveau' ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
+    AIM.root.style.backgroundImage = AIM.vue === 'nouveau' || (AIM.fiche && atelierOuvert(AIM.fiche)) ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
     AIM.root.classList.remove('tiroir', 'pk-plein');
   }
   function fermer() {
@@ -433,6 +447,7 @@
     if (!AIM.fiche) return;
     try {
       const r = await rpc('at_lire', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true });
+      AIM.fi = (r && r.fiche) || AIM.fi || null;
       AIM.msgs = ((r && r.messages) || []).filter(m => !m.remplacee).map(m => ({ t: String(m.texte || ''), pk: !!m.atelier, at: m.at }));
     } catch (e) {}
   }
@@ -512,6 +527,8 @@
   }
   function renderArbre() {
     const A = AIM.root.querySelector('.crea-arbre'), sy = A.scrollTop; A.textContent = '';
+    A.classList.toggle('menu-at', !!(AIM.open && AIM.fiche && AIM.vue !== 'nouveau' && atelierOuvert(AIM.fiche)));
+    if (A.classList.contains('menu-at')) { renderMenuAtelier(A); A.scrollTop = sy; return; }
     try { lireCartes(); } catch (e) {}
     const ps = atlProjets(), cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
     const h = E('div', 'crea-tarb'); h.append(E('b', '', '📁 MES PROJETS'), E('span', '', ps.length + ' / ' + max)); A.appendChild(h);
@@ -536,9 +553,34 @@
     A.appendChild(E('div', 'crea-pied', 'Ce que tu crées ici reste privé : toi seul le vois.'));
     A.scrollTop = sy;
   }
+  // le menu du projet d'un atelier livré (comme le menu d'un jeu : {g} en haut, les sections, ← Mes projets)
+  function renderMenuAtelier(A) {
+    const cfg = atelierDe(AIM.fiche), pj = AIM.types[AIM.fiche] || {};
+    const h = E('div', 'crea-mat-h'); h.append(E('b', '', (AIM.d && AIM.d.titre) || pj.titre || cfg.nom), E('small', '', '🧪 ' + cfg.nom + ' · V' + Math.max(1, versionAt(AIM.fiche))));
+    A.appendChild(h);
+    const pk = B('crea-mat-pk', null, () => ouvrirPooky()), im = E('img'), t = E('span'); im.alt = ''; im.src = AV();
+    t.append(E('b', '', PK()), E('small', '', enAttente() ? 'prépare ta photo…' : 'Je suis là ! Une idée ?')); pk.append(im, t); A.appendChild(pk);
+    for (const [k, ic, lab] of cfg.menu) {
+      const b = B('crea-nd crea-mat-b' + (AIM.vue === k ? ' on' : ''), null, () => { AIM.root.classList.remove('tiroir'); if (k === 'pooky') { ouvrirPooky(); return; } AIM.vue = k; render(); });
+      b.dataset.k = k; b.append(E('i', '', ic), E('span', 'nm', lab || PK()));
+      if (k === 'resultats') { const n = resultats().length; if (n) b.appendChild(E('span', 'n', String(n))); }
+      A.appendChild(b);
+    }
+    A.appendChild(E('div', 'crea-mat-sp'));
+    const r = B('crea-nd crea-mat-ret', null, () => { AIM.root.classList.remove('tiroir'); fermerVersProjets(); }); r.append(E('i', '', '←'), E('span', 'nm', 'Mes projets')); A.appendChild(r);
+    A.appendChild(E('div', 'crea-pied', 'Ce que tu crées ici reste privé : toi seul le vois.'));
+  }
+  function ouvrirPooky() {
+    const R = AIM.root; if (!R) return;
+    if (etroit()) { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); }
+    else { R.classList.remove('pk-replie'); try { store.set('jdw.crea.pkreplie', false); } catch (e) {} }
+    setTimeout(() => { const t = R.querySelector('.crea-masc textarea'); if (t && !TOUCH) t.focus({ preventScroll: true }); }, 60);
+  }
   function renderOutil() {
     const O = AIM.root.querySelector('.crea-outil'), sy = O.scrollTop; O.textContent = '';
-    AIM.root.style.backgroundImage = AIM.vue === 'nouveau' ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
+    const at = AIM.vue !== 'nouveau' && !!AIM.fiche && atelierOuvert(AIM.fiche), fd = at ? atelierDe(AIM.fiche).fond : '';
+    AIM.root.classList.toggle('studio', fd === 'studio');
+    AIM.root.style.backgroundImage = AIM.vue === 'nouveau' || fd ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
     if (AIM.vue === 'nouveau') { renderNouveau(O); return; }
     if (!AIM.d) {   // l'admin (6 nov., 23 h) : JAMAIS un chargement sans fin. Une erreur (ou 10 s sans réponse) → un message clair + Réessayer
       const c = E('div', 'crea-carte crea-page'), v = E('div', 'crea-vide');
@@ -555,7 +597,10 @@
     }
     if (AIM.vue === 'images') renderMesImages(O);
     else if (AIM.vue === 'versions') renderVersions(O);
-    else if (AIM.vue === 'reglages') renderReglages(O);
+    else if (AIM.vue === 'reglages' || AIM.vue === 'params') renderReglages(O);
+    else if (AIM.vue === 'resultats') renderResultats(O);
+    else if (AIM.vue === 'route') renderRoute(O);
+    else if (AIM.vue === 'versions_at') renderVersionsAt(O);
     else renderAtelier(O);
     O.scrollTop = sy;
   }
@@ -569,7 +614,7 @@
 
   function renderAtelier(O) {
     const c = curCrea();
-    if (!c) { videImport(O, 'Importe ta première image', 'Une photo de Pégase, un dessin, un paysage, ton animal… Ensuite, dis-moi ce que tu veux changer. (Pas de photo où l’on voit le visage d’une vraie personne.)'); return; }
+    if (!c) { if (atelierOuvert(AIM.fiche)) renderDepot(O); else videImport(O, 'Importe ta première image', 'Une photo de Pégase, un dessin, un paysage, ton animal… Ensuite, dis-moi ce que tu veux changer. (Pas de photo où l’on voit le visage d’une vraie personne.)'); return; }
     const act = verDe(c, c.actuelle), att = c.versions.find(v => ['envoi', 'controle', 'en_cours'].includes(v.etat));
     const avant = act && (verDe(c, act.parent) || (act.n > 1 ? c.versions.find(v => v.n === 1 && v.etat === 'prete') : null));
     const G = E('div', 'crea-oimg');
@@ -602,9 +647,11 @@
     } else if (mode === 'cote') {
       for (const [v, t] of [[avant, 'Avant · V'], [act, 'Après · V']]) { const d = E('div'); d.appendChild(img(v.path)); const e = E('span', 'et', t + v.n); e.style.left = '10px'; d.appendChild(e); Cd.appendChild(d); }
     } else Cd.appendChild(img(act.path));
-    S.appendChild(Cd);
+    S.appendChild(Cd); depotSur(Cd);
+    // 👁️ {g} regarde la photo : son commentaire (ce qu'il voit, ce qu'il propose, le prix), « Oui, fais-le » ou « Je veux autre chose »
+    if (act && !att) S.appendChild(carteRegard(c, act));
     // « Dis ce que tu veux changer »
-    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 400; ta.placeholder = etroit() ? '✨ Que veux-tu changer ?' : '✨ Dis ce que tu veux changer… « ajoute des lucioles au-dessus de l’eau »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
+    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 400; ta.placeholder = etroit() ? '✨ Que veux-tu faire ?' : '✨ ' + atelierDe(AIM.fiche).invite + '… « éclaircis-la, floute le fond »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
     ta.value = AIM.brouillon || ''; ta.addEventListener('input', () => { AIM.brouillon = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) { toast('Le micro ne marche pas ici : écris au clavier'); } }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
@@ -634,6 +681,103 @@
     mb.append(dl, imp, rt); col.appendChild(mb);
     G.appendChild(col);
     O.appendChild(G);
+  }
+  function renderDepot(O) {
+    const cfg = atelierDe(AIM.fiche), c = E('div', 'crea-carte crea-page crea-depot'), z = E('div', 'crea-zone');
+    z.tabIndex = 0; z.setAttribute('role', 'button'); z.setAttribute('aria-label', cfg.ajouter);
+    const im = E('img'); im.src = POSE('dessine'); im.alt = '';
+    const bt = B('crea-bt', cfg.ajouter, e => { e.stopPropagation(); choisirFichier(); });
+    z.append(im, E('b', '', TOUCH ? 'Ajoute ta photo' : cfg.depot), E('p', '', TOUCH ? 'Depuis ta galerie ou ton appareil photo.' : 'Glisse-la ici depuis ton ordinateur, ou choisis-la.'), bt,
+      E('small', '', 'Gratuit · JPEG, PNG, WebP ou HEIC (iPhone) · 5 Mo au plus · pas de photo où l’on voit le visage d’une vraie personne'));
+    z.addEventListener('click', () => choisirFichier());
+    z.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choisirFichier(); } });
+    depotSur(z); c.appendChild(z); O.appendChild(c);
+  }
+  function depotSur(el) {   // glisser-déposer une photo (PC)
+    el.addEventListener('dragover', e => { if (!e.dataTransfer || ![...(e.dataTransfer.types || [])].includes('Files')) return; e.preventDefault(); el.classList.add('survol'); });
+    el.addEventListener('dragleave', () => el.classList.remove('survol'));
+    el.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f) return; e.preventDefault(); el.classList.remove('survol'); importer(f); });
+  }
+  // 👁️ la demande part dans la discussion du projet (gratuit, at_esp_parler) avec le chemin de la photo : {g} la regarde et répond ;
+  // sa réponse s'affiche ici en commentaire, sous la photo. Tout se relit dans les messages (rien de gardé sur l'appareil)
+  const RX_REGARD = /^👁️ Regarde ma photo/;
+  const sansChemin = t => String(t || '').replace(/\s*\((?:e|i)\/[0-9a-f-]{36}\.(?:jpg|png|webp)\)/g, '');
+  function regardDe(c) {
+    const paths = new Set(c.versions.map(v => v.path).filter(Boolean));
+    const dem = [...AIM.msgs].reverse().find(m => !m.pk && RX_REGARD.test(m.t) && [...paths].some(p => m.t.includes(p)));
+    if (!dem) return null;
+    const rep = AIM.msgs.find(m => m.pk && m.at && dem.at && m.at > dem.at && !/^(✅|⏳)/.test(m.t));
+    if (rep && c.versions.some(v => v.outil !== 'import' && v.at && v.at > rep.at)) return null;   // déjà fait : la carte s'en va
+    return { dem, rep };
+  }
+  function proposition(t) { const m = String(t).match(/je te propose\s*:?\s*([\s\S]+)/i); return sansChemin(m ? m[1] : t).replace(/[·•]?\s*\d+\s*💎/g, '').replace(/\s+/g, ' ').trim().slice(0, 380); }
+  function carteRegard(c, act) {
+    const K = E('div', 'crea-regard'), r = regardDe(c), px = (AIM.prix.image | 0) + ' ' + D;
+    if (!r) {
+      const b = B('crea-bt blanc crea-regard-go', '👁️ ' + PK() + ' regarde ma photo', () => regarder(c, act));
+      K.append(b, E('small', '', 'Il te dit ce qu’il voit et ce qu’il te propose, avec le prix. Gratuit.')); return K;
+    }
+    const im = E('img'); im.alt = ''; im.src = POSE(r.rep ? 'idee' : 'dessine');
+    const col = E('div');
+    if (!r.rep) col.append(E('b', '', '👁️ ' + PK() + ' regarde ta photo…'), E('p', '', 'Il t’écrit ici ce qu’il voit et ce qu’il te propose, avec le prix. Rien n’est fait sans ton accord.'));
+    else {
+      col.append(E('b', '', '👁️ ' + PK() + ' a regardé ta photo'), E('p', '', sansChemin(r.rep.t)));
+      const act2 = E('div', 'crea-regard-act');
+      const oui = B('crea-bt', '✨ Oui, fais-le · ' + px, () => { const t = proposition(r.rep.t); if (t.length < 3) { ouvrirPooky(); return; } fabriquer('parole', t); });
+      const non = B('crea-bt blanc', '💬 Je veux autre chose', () => ouvrirPooky());
+      act2.append(oui, non); col.appendChild(act2);
+    }
+    K.classList.add('vu'); K.append(im, col); return K;
+  }
+  async function regarder(c, a) {
+    if (!c || !a || !a.path) return;
+    const t = '👁️ Regarde ma photo « ' + (c.titre || 'Mon image') + ' » (V' + a.n + ') et dis-moi ce que tu me proposes, avec le prix. (' + a.path + ')';
+    const at = new Date().toISOString(); AIM.msgs.push({ t, at }); render();
+    try { await rpc('at_esp_parler', { p_name: nom(), p_fiche: AIM.fiche, p_texte: t, p_micro: false }, { quiet: true }); }
+    catch (e) { AIM.msgs = AIM.msgs.filter(m => m.at !== at); toast('Oups, ta demande n’est pas partie. Réessaie 🙏'); render(); return; }
+    chargerMsgs().then(render);
+  }
+  // ✨ le résultat fini du type (atelier photo : les photos retouchées), à télécharger
+  const resultats = () => { const L = []; for (const c of (AIM.d && AIM.d.creations) || []) for (const v of c.versions) if (v.etat === 'prete' && v.outil !== 'import' && v.path) L.push({ c, v }); return L.sort((a, b) => String(b.v.at || '').localeCompare(String(a.v.at || ''))); };
+  function renderResultats(O) {
+    const cfg = atelierDe(AIM.fiche), L = resultats(), p = E('div', 'crea-carte crea-page');
+    const h = E('div', 'crea-h', '✨ ' + cfg.resultat.toUpperCase()); h.appendChild(E('small', '', L.length ? L.length + ' prête' + (L.length > 1 ? 's' : '') + ' à télécharger' : '')); p.appendChild(h);
+    if (!L.length) { p.append(E('p', 'crea-vide-t', cfg.videResultat), B('crea-bt', '🖼️ Aller dans mon atelier', () => { AIM.vue = 'atelier'; render(); })); p.lastChild.style.alignSelf = 'flex-start'; O.appendChild(p); return; }
+    const g = E('div', 'crea-res');
+    for (const { c, v } of L) {
+      const d = E('div', 'crea-resi'), i = B('i', null, () => { AIM.cur = c.id; AIM.vue = 'atelier'; AIM.mode = 'comparer'; render(); }); i.title = 'Ouvrir dans mon atelier';
+      i.style.backgroundImage = 'url("' + urlImg(v.path, 500) + '")';
+      const t = E('div', 't'); t.append(E('b', '', (c.titre || 'Mon image') + ' · V' + v.n), E('small', '', sansChemin(v.consigne || '')));
+      d.append(i, t, B('crea-bt violet', '⬇️ Télécharger', () => telecharger(c, v))); g.appendChild(d);
+    }
+    p.appendChild(g); O.appendChild(p);
+  }
+  // 🗺️ la feuille de route du projet (la fiche que {g} remplit, comme pour un jeu)
+  const ROUTE_LAB = { idee: '💡 L’idée', but: '🎯 Le but', photos: '📷 Les photos', retouches: '✨ Les retouches', style: '🎨 Le style', outils: '🧰 Les outils', prix: '💎 Les prix', resume: '📝 Le résumé' };
+  function renderRoute(O) {
+    const p = E('div', 'crea-carte crea-page'); p.appendChild(E('div', 'crea-h', '🗺️ LA FEUILLE DE ROUTE DE TON ATELIER'));
+    const fi = (AIM.fi && AIM.fi.fiche && typeof AIM.fi.fiche === 'object') ? AIM.fi.fiche : {}, dl = E('dl', 'crea-route'); let n = 0;
+    for (const [k, v] of Object.entries(fi)) {
+      const t = Array.isArray(v) ? v.map(x => (x && typeof x === 'object') ? (x.nom || x.texte || '') : String(x || '')).filter(Boolean).join(' · ') : typeof v === 'string' ? v : '';
+      if (!t.trim() || /^(bases|planches|assets|prix_detail)$/.test(k)) continue;
+      dl.append(E('dt', '', ROUTE_LAB[k] || ('• ' + k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '))), E('dd', '', t.trim())); n++;
+    }
+    if (n) p.appendChild(dl); else p.appendChild(E('p', 'crea-vide-t', 'La feuille de route se remplit avec ' + PK() + ' au fil de vos discussions.'));
+    p.appendChild(E('p', 'crea-vide-t', 'Une envie de changer quelque chose ? Dis-le ' + PK() + ' : il met la feuille de route à jour.'));
+    O.appendChild(p);
+  }
+  // 🗂️ les versions de l'ATELIER (livrées comme celles d'un jeu) ; les versions d'une photo sont dans « Mon atelier »
+  function renderVersionsAt(O) {
+    const p = E('div', 'crea-carte crea-page'); p.appendChild(E('div', 'crea-h', '🗂️ LES VERSIONS DE TON ATELIER'));
+    const vs = (AIM.fi && Array.isArray(AIM.fi.versions) ? AIM.fi.versions.slice() : []).filter(v => v && (v.v | 0)).sort((a, b) => (b.v | 0) - (a.v | 0));
+    if (!vs.length) { const n = Math.max(1, versionAt(AIM.fiche)); const r = E('div', 'crea-vat'); r.append(E('b', '', 'V' + n + ' · ton atelier'), E('p', '', 'Préparé par ' + PK() + ' pour toi. Chaque amélioration de ton atelier arrive ici comme une nouvelle version.')); p.appendChild(r); }
+    for (const v of vs) {
+      const d0 = new Date(v.at), r = E('div', 'crea-vat');
+      r.append(E('b', '', 'V' + v.v + (isNaN(d0) ? '' : ' · ' + d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }))), E('p', '', String(v.note || '')));
+      if (Array.isArray(v.demandes) && v.demandes.length) { const ul = E('ul'); for (const t of v.demandes.slice(0, 8)) ul.appendChild(E('li', '', String(t))); r.appendChild(ul); }
+      p.appendChild(r);
+    }
+    O.appendChild(p);
   }
   function bande(c, grand) {
     const Bd = E('div', 'crea-bande'); if (grand) { Bd.style.flexWrap = 'wrap'; Bd.style.overflow = 'visible'; }
@@ -720,12 +864,12 @@
     if (foc) S.querySelector('textarea').focus({ preventScroll: true });
   }
   function bulle(m) {
-    if (!m.pk) { const b = E('div', 'crea-b moi', m.t || null); if (m.image) { const i = E('img', 'crea-bimg'); i.alt = 'Ton image'; i.src = m.image; b.appendChild(i); } return b; }
+    if (!m.pk) { const b = E('div', 'crea-b moi', sansChemin(m.t) || null); if (m.image) { const i = E('img', 'crea-bimg'); i.alt = 'Ton image'; i.src = m.image; b.appendChild(i); } return b; }
     const l = E('div', 'crea-lpk'), im = E('img'); im.alt = ''; im.src = m.img ? POSE(m.img) : AV();
     const b = E('div', 'crea-b');
     const tag = /^(✅|⏳)/.test(m.t);
     if (tag) { b.appendChild(E('span', 'crea-tag' + (m.t.startsWith('⏳') ? ' cours' : ''), m.t)); b.firstChild.style.marginTop = '0'; }
-    else b.textContent = m.t;
+    else b.textContent = sansChemin(m.t);
     if (m.puces) { const p = E('div', 'crea-puces'); for (const [k, t] of m.puces) p.appendChild(B('crea-puce' + (AIM.nv && AIM.nv.choix === k ? ' on' : ''), t, () => choisirType(k))); b.appendChild(p); }
     l.append(im, b); return l;
   }
@@ -812,7 +956,7 @@
     if (!AIM.fiche || AIM.busy) return; AIM.busy = true;
     dire({ pk: 1, t: 'Je reçois ta photo… 📸' }); render();
     try {
-      const blob = await atlJpeg(file);
+      const blob = await jpegDe(file);
       const r = await rpc('at_esp_importer', { p_name: nom(), p_fiche: AIM.fiche, p_titre: null }, { quiet: true });
       await deposer(r.path, blob);
       await rpc('at_esp_envoye', { p_name: nom(), p_version: r.version }, { quiet: true });
@@ -821,9 +965,19 @@
       await charger(); render();
     } catch (e) {
       const m = pourquoi(e);
-      dire({ pk: 1, t: /trop lourde/.test(m) ? 'Cette image est trop lourde (5 Mo au plus) : essaie une autre 🙂' : /illisible|pas une image/.test(m) ? 'Seulement des images JPEG, PNG ou WebP (photo, capture d’écran, dessin…).' : /trop d imports/.test(m) ? 'Tu as importé beaucoup d’images aujourd’hui : reviens demain 🙂' : /trop d images/.test(m) ? 'Ce projet a déjà beaucoup d’images : retires-en une ou commence un nouveau projet.' : 'Oups, ta photo n’est pas arrivée. Réessaie 🙏' });
+      dire({ pk: 1, t: /heic/.test(m) ? 'Cette photo d’iPhone (format HEIC) ne s’ouvre pas ici : choisis-la depuis « Photos », ou fais-en une capture d’écran 📸' : /trop lourde/.test(m) ? 'Cette image est trop lourde (5 Mo au plus) : essaie une autre 🙂' : /illisible|pas une image/.test(m) ? 'Seulement des images JPEG, PNG ou WebP (photo, capture d’écran, dessin…).' : /trop d imports/.test(m) ? 'Tu as importé beaucoup d’images aujourd’hui : reviens demain 🙂' : /trop d images/.test(m) ? 'Ce projet a déjà beaucoup d’images : retires-en une ou commence un nouveau projet.' : 'Oups, ta photo n’est pas arrivée. Réessaie 🙏' });
       render();
     } finally { AIM.busy = false; }
+  }
+  async function jpegDe(file) {
+    try { return await atlJpeg(file); } catch (e) {
+      if (!/pas une image|illisible/.test(pourquoi(e)) || !file || file.size > 15 * 1024 * 1024 || typeof createImageBitmap !== 'function') throw e;
+      let bm; try { bm = await createImageBitmap(file); } catch (x) { throw new Error(/heic|heif/i.test(String(file.type || '') + String(file.name || '')) ? 'heic' : 'pas une image'); }
+      let w = bm.width, h = bm.height; const k = Math.min(1, 1600 / Math.max(w, h)); w = Math.max(1, Math.round(w * k)); h = Math.max(1, Math.round(h * k));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(bm, 0, 0, w, h); try { bm.close(); } catch (x) {}
+      for (const qy of [0.86, 0.72, 0.58]) { const b = await new Promise(ok => cv.toBlob(ok, 'image/jpeg', qy)); if (b && b.size <= 1400000) return b; }
+      throw new Error('image trop lourde');
+    }
   }
   async function deposer(path, blob) {
     if (!/^e\/[0-9a-f-]{36}\.jpg$/.test(String(path || ''))) throw new Error('réponse');
@@ -895,7 +1049,14 @@
     const nomf = (String(c.titre || 'image').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'image') + '-v' + a.n + '.' + ext;
     try {
       const r = await fetch(u); if (!r.ok) throw new Error('http ' + r.status);
-      const b = await r.blob(), o = URL.createObjectURL(b), l = document.createElement('a'); l.href = o; l.download = nomf; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(o), 20000);
+      const b = await r.blob();
+      const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (ios) {   // Safari d'iPhone ignore souvent « download » : la feuille de partage propose « Enregistrer l'image »
+        try { const fl = new File([b], nomf, { type: b.type || 'image/jpeg' }); if (navigator.canShare && navigator.canShare({ files: [fl] })) { await navigator.share({ files: [fl], title: c.titre || 'Mon image' }); return; } }
+        catch (x) { if (x && x.name === 'AbortError') return; }
+        try { window.open(u, '_blank', 'noopener'); } catch (x) {} toast('Appuie longuement sur l’image pour l’enregistrer 📲'); return;
+      }
+      const o = URL.createObjectURL(b), l = document.createElement('a'); l.href = o; l.download = nomf; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(o), 20000);
       toast('⬇️ Image téléchargée');
     } catch (e) { try { window.open(u, '_blank', 'noopener'); } catch (x) {} }
   }
