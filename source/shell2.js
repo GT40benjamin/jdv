@@ -16442,6 +16442,8 @@ function atlRenderWiz() {
 // La feuille de route (à droite) se regarde seulement. L'admin voit EXACTEMENT la même page (seul son bandeau rouge s'ajoute).
 const atlJouable = f => !!f && !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(String(f.etat || ''));
 const atlAvantV1 = f => !!f && !atlJouable(f) && String(f.etat || '') !== 'refusee';
+// 7 nov. (l'admin) : un ATELIER livré (pas un jeu : aucun fichier de jeu ; V1 posée ou état alpha / publié) n'est jamais « en construction »
+const atlAtelierLivre = f => !!f && !f.jeu && String(f.type || 'atelier') !== 'jeu' && ((f.version | 0) >= 1 || ['alpha', 'publie_salle', 'publie_monde'].includes(String(f.etat || '')));
 function atlRenderAvantV1(W, f) {
   const R = ATL.root, lance = ATL_AFTER.has(String(f.etat || ''));
   R.querySelector('.atl-hs').textContent = lance ? (gNM() + ' construit ta V1') : 'Ton projet est prêt à lancer';
@@ -16750,9 +16752,9 @@ function atlDiscFil(f) {
   const vc = (f.version | 0) || 1;
   for (const vh of Array.isArray(f.versions) ? f.versions : []) { const v = vh && vh.v | 0; if (v) add(vh.at, 'v' + v + (v === vc ? 'c' : ''), true, () => atlDiscBulleV(f, vh, v === vc)); }
   L.sort((u, w) => u.t - w.t);
-  if (av1 && !ATL_AFTER.has(String(f.etat || ''))) {   // 2.0.124 : pas encore lancé → la carte « 🚀 Lancer la conception », toujours en dernier
+  if (av1 && !atlAtelierLivre(f) && !ATL_AFTER.has(String(f.etat || ''))) {   // 2.0.124 : pas encore lancé → la carte « 🚀 Lancer la conception », toujours en dernier
     const cr = atlCred(), dv = atlDevis(f); L.push({ at: '', t: 9e15, k: 'go' + (dv ? dv.total : cr ? cr.conception | 0 : 0), g: false, el: () => atlLancerCarte(f), w: false });
-  } else if (av1 && !atlDiscDems(f).some(x => x.etat === 'en_cours')) {   // lancé, sans étape en direct : la mascotte est au travail
+  } else if (av1 && !atlAtelierLivre(f) && !atlDiscDems(f).some(x => x.etat === 'en_cours')) {   // lancé, sans étape en direct : la mascotte est au travail
     L.push({ at: '', t: 9e15, k: 'construit', g: false, w: false, el: () => { const w = atlEl('div', 'atl-dthink atl-travb'), col = atlEl('div'); col.append(atlEl('b', '', '🛠️ Je construis ta V1 de « ' + (f.titre || 'ton jeu') + ' »'), atlEl('small', '', 'Je te préviens dès qu’elle est prête 🔔 · Tu peux m’écrire ici quand tu veux')); w.append(atlGuideAv('atl-wav'), col); return w; } });
   }
   return L;
