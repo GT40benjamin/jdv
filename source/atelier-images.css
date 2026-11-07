@@ -785,3 +785,7 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 .crea-vtel .l{white-space:nowrap}
 .crea-vtel img{width:22px;height:16px;border-radius:4px;object-fit:cover;flex:0 0 auto}
 .crea.nuit .crea-vtel{background:#352a73}
+/* téléphone (7 nov.) : l'atelier tient dans la zone VRAIMENT visible au-dessus du clavier (--kbt / --kb, réglés par l'Interface comme pour son chat) ;
+   le champ « Écris à… » reste au-dessus du clavier, et plus de moitié d'écran noire */
+.crea{top:var(--kbt,0px);bottom:var(--kb,0px)}   /* --kb ne vaut plus de 0 que clavier ouvert : téléphone debout ET couché */
+.crea.pk-plein .crea-masc,.crea.pk-plein .crea-mod{top:var(--kbt,0px);bottom:var(--kb,0px)}   /* la discussion plein écran (téléphone) aussi, au-dessus du clavier */

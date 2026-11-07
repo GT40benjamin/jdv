@@ -826,6 +826,8 @@
     setTimeout(() => { const t = R.querySelector('.crea-masc textarea'); if (t && !TOUCH) t.focus({ preventScroll: true }); }, 60);
   }
   function renderOutil() {
+    { const O0 = AIM.root.querySelector('.crea-outil'), vF = AIM.vue === 'guide' && champActif(O0) && O0.querySelector('.crea-disc .crea-fil2');
+      if (vF) { const F = filGuide(); vF.replaceWith(F); tenirFil(F, 'disc'); return; } }   // on écrit dans la discussion en grand : seuls les messages changent
     const O = AIM.root.querySelector('.crea-outil'), sy = O.scrollTop, ae = document.activeElement, demFoc = !!(ae && ae.tagName === 'TEXTAREA' && ae.closest('.crea-outil .crea-dem')), sel = demFoc ? [ae.selectionStart, ae.selectionEnd] : null;
     O.textContent = '';
     if (demFoc) setTimeout(() => { const t = O.querySelector('.crea-dem textarea'); if (t) { t.focus({ preventScroll: true }); try { t.setSelectionRange(sel[0], sel[1]); } catch (e) {} } }, 0);
@@ -834,7 +836,7 @@
     AIM.root.style.backgroundImage = AIM.vue === 'nouveau' || fd ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
     if (AIM.vue === 'nouveau') { renderNouveau(O); return; }
     if (AIM.vue === 'versions_at') AIM.vue = 'route';   // l'admin (7 nov.) : « Feuille de route et Versions, ça va ensemble »
-    if (AIM.vue === 'guide') { renderGuideCentre(O, AIM.discEtat || {}); AIM.discEtat = null; return; }
+    if (AIM.vue === 'guide') { renderGuideCentre(O, AIM.discEtat || {}); AIM.discEtat = null; return; }   // (le cas « on écrit » est traité plus haut)
     if (!AIM.d) {   // l'admin (6 nov., 23 h) : JAMAIS un chargement sans fin. Une erreur (ou 10 s sans réponse) → un message clair + Réessayer
       const c = E('div', 'crea-carte crea-page'), v = E('div', 'crea-vide');
       const trop = Date.now() - (AIM.ouvAt || 0) > 10000;
@@ -1161,6 +1163,12 @@
     const p = E('div', 'crea-carte crea-page crea-disc'), h = E('div', 'crea-disc-h'), im = E('img'), tx = E('div');
     im.alt = ''; im.src = AV(); tx.append(E('b', '', PK()), E('small', '', adm() ? '🛡️ La conversation de ' + joueurAdm() + ' · tu réponds comme ' + PK() : '● en ligne · je t’écoute'));
     h.append(im, tx); p.appendChild(h);
+    const F = filGuide(); p.appendChild(F);
+    const S = saisie('Écris à ' + PK() + '… (c’est gratuit)'); p.appendChild(S); O.appendChild(p);
+    tenirFil(F, 'disc');
+    if (et.foc) S.querySelector('textarea').focus({ preventScroll: true });
+  }
+  function filGuide() {
     const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
     // la même discussion que les jeux : ses bulles, et les OFFRES « Choisir » de l'Interface (atlDiscBulleDem) à leur place dans le temps
     const T = v => Date.parse(v || '') || 0, items = filMasc().map(m => ({ t: T(m.at), el: () => bulle(m) }));
@@ -1172,13 +1180,20 @@
     if (!items.length) F.appendChild(E('p', 'crea-vide-t', 'Écris-moi ici ce que tu veux faire 😊'));
     for (const it of items) { try { F.appendChild(it.el()); } catch (e) {} }
     if (AIM.prop) F.appendChild(propCarte());
-    p.appendChild(F);
-    const S = saisie('Écris à ' + PK() + '… (c’est gratuit)'); p.appendChild(S); O.appendChild(p);
-    tenirFil(F, 'disc');
-    if (et.foc) S.querySelector('textarea').focus({ preventScroll: true });
+    return F;
   }
+  function filMascEl() {
+    const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
+    for (const m of filMasc().slice(-60)) F.appendChild(bulle(m));
+    if (AIM.prop) F.appendChild(propCarte());
+    return F;
+  }
+  // l'admin (7 nov., téléphone : le clavier s'ouvrait et se fermait en boucle) : un champ OÙ L'ON ÉCRIT n'est jamais recréé — enlever un champ
+  // de la page lui fait perdre le focus, et au téléphone le clavier se ferme. Pendant qu'on écrit, un rendu ne remplace que les messages.
+  const champActif = Z => { const a = document.activeElement; return !!(a && Z && Z.contains(a) && a.closest('.crea-saisie')); };
   function renderMasc() {
     const P = AIM.root.querySelector('.crea-masc');
+    if (AIM.vue !== 'nouveau' && champActif(P)) { const vF = P.querySelector('.crea-fil2'); if (vF) { const F = filMascEl(); vF.replaceWith(F); tenirFil(F, 'masc'); return; } }
     const foc = !!(document.activeElement && document.activeElement.tagName === 'TEXTAREA' && AIM.root.contains(document.activeElement) && document.activeElement.closest('.crea-saisie'));
     P.textContent = '';
     AIM.root.classList.toggle('nv', AIM.vue === 'nouveau');   // pendant la création : la discussion est AU CENTRE, pas de panneau à droite
@@ -1189,10 +1204,7 @@
     const rep = B('crea-pkrep', etroit() ? '✕' : '⟩', e => { e.stopPropagation(); if (etroit()) AIM.root.classList.remove('pk-plein'); else { AIM.root.classList.add('pk-replie'); try { store.set('jdw.crea.pkreplie', true); } catch (x) {} } });
     rep.setAttribute('aria-label', etroit() ? 'Retour à l’outil' : 'Replier ' + PK());
     t.append(im, tx, rep); P.appendChild(t);
-    const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
-    for (const m of filMasc().slice(-60)) F.appendChild(bulle(m));
-    if (AIM.prop) F.appendChild(propCarte());
-    P.appendChild(F);
+    const F = filMascEl(); P.appendChild(F);
     const S = saisie(); P.appendChild(S);
     // tout en bas, maintenant et une fois les bulles posées (images, polices), sauf si on est remonté lire ; redescendre tout en bas = on suit à nouveau
     tenirFil(F, 'masc');
@@ -1470,6 +1482,15 @@
     c.appendChild(r); setTimeout(() => der && der.focus(), 30);
   }
 
-  addEventListener('resize', () => { if (AIM.open) { clearTimeout(AIM.rz); AIM.rz = setTimeout(render, 150); } });
+  // l'admin (7 nov., téléphone : « le clavier monte et descend quand j'entre dans ce champ ») : le clavier qui s'ouvre change la HAUTEUR de la
+  // fenêtre ; un rendu recréait le champ, il perdait le focus, le clavier se fermait, la hauteur revenait… en boucle. On ne redessine plus
+  // que si la LARGEUR change (téléphone tourné, fenêtre élargie), et jamais pendant qu'on écrit dans l'atelier (on attend que le champ soit lâché)
+  const ecrit = () => { const a = document.activeElement; return !!(a && AIM.root && AIM.root.contains(a) && (a.tagName === 'TEXTAREA' || a.isContentEditable || (a.tagName === 'INPUT' && !/^(checkbox|radio|range|button|submit|reset|file|color|image|hidden)$/i.test(a.type || '')))); };
+  AIM.rzW = innerWidth;
+  addEventListener('resize', () => {
+    if (!AIM.open || innerWidth === AIM.rzW) return;
+    clearTimeout(AIM.rz); AIM.rz = setTimeout(() => { if (ecrit()) { AIM.rzAttente = true; return; } AIM.rzW = innerWidth; render(); }, 150);
+  });
+  document.addEventListener('focusout', () => setTimeout(() => { if (AIM.rzAttente && AIM.open && !ecrit()) { AIM.rzAttente = false; AIM.rzW = innerWidth; render(); } }, 200));
   document.addEventListener('visibilitychange', () => { if (!document.hidden && AIM.open && AIM.fiche) Promise.all([charger(), chargerMsgs()]).then(render); });
 })();
