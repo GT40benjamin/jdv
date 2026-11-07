@@ -6005,3 +6005,20 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-ouvsp{width:34px;height:34px;border-radius:50%;border:4px solid rgba(255,255,255,.14);border-top-color:#ffd34d;animation:atlSpin .8s linear infinite}
 .atl-ouvbt{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:6px}
 @keyframes atlOuvIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* 2.1.12 (l'admin) : le sens du jeu (📱 / 🖥️ / 🔄) aussi dans la grande carte « Mon jeu » de l'espace, sous la publication */
+.atl-eshero > .atl-esor{grid-column:1/-1;margin:0;padding:12px 16px;background:rgba(246,241,251,.9);border:1px solid #e6dff0;text-align:left}
+.atl-espace .atl-esor .atl-orq,.atl-espace .atl-esor .atl-ormsg{color:var(--esp-ink,#2a1f45)!important}
+@media (min-width:900px){.atl-eshero > .atl-esor{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:16px}.atl-esor .atl-orq{grid-row:1/3}.atl-esor .atl-orb .atl-dab{min-height:54px;flex-direction:row}}
+/* 2.1.12 (l'admin) : plus de grand bandeau rouge ; un bouton « 🛡️ Admin » discret dans la barre du haut → la fenêtre admin du projet */
+.atl-bar .atl-adminbt{flex:0 0 auto;border-color:#f2b8b5!important;color:#a3261c!important;background:#fff5f4!important}
+.atl-bar .atl-adminbt:hover,.atl-bar .atl-adminbt:focus-visible{border-color:#d93025!important;background:#ffe9e6!important}
+.atl-admc{width:min(600px,100%);border-color:rgba(255,138,101,.55)}
+.atl-admc h2{color:#ffb4a3}
+.atl-admc .atl-admqui{margin:0;font:700 15px var(--body)}
+.atl-admc .atl-admvide{margin:0;color:var(--muted)}
+.atl-admc .atl-rentb.atl-admchif{order:0;flex:none;padding:10px 12px;gap:4px}
+.atl-admc .atl-rentb.atl-admchif small{font-size:13.5px}
+.atl-admact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.atl-admact .btn{justify-content:flex-start;text-align:left;white-space:normal;min-height:46px}
+.atl-admc .atl-admfer{justify-self:end}
+@media (max-width:600px){.atl-admact{grid-template-columns:1fr}.atl-admc .atl-admfer{justify-self:stretch}}
