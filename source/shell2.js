@@ -20759,6 +20759,7 @@ function atlSTab(heads, lignes, cls) {
   }
   const w = atlEl('div', 'atl-swrap'); w.appendChild(t); return w;
 }
+const atlSplit = (a, o) => { a = Math.round(+a || 0); o = Math.round(+o || 0); return (a ? a.toLocaleString('fr-FR') + ' achetés' : '0 acheté') + ' · ' + o.toLocaleString('fr-FR') + ' offert' + (o > 1 ? 's' : ''); };   // 7 nov. 2026 : crédits dépensés achetés / offerts
 async function atlSuivi() {
   { const c = atlCred(); if (!c || !c.patron || !c.admin) return; }   // 2.1.13 : at_admins.suivi aussi   // 2.0.1 : le Suivi pour PATOU et BENJAMIN seuls
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z) return;
@@ -20783,24 +20784,37 @@ async function atlSuivi() {
     const cents = v => eur((v | 0) / 100);
     const det = x => { const d = []; if (x.conception | 0) d.push('conception ' + (x.conception | 0)); if (x.demandes | 0) d.push((x.nb_demandes | 0) + ' demande' + ((x.nb_demandes | 0) > 1 ? 's' : '') + ' ' + (x.demandes | 0)); if (x.generations | 0) d.push('générations ' + (x.generations | 0)); if (x.messages | 0) d.push((x.approx ? '≈ ' : '') + 'idée et messages ' + (x.messages | 0)); return d.join(' · '); };
     const off = x => { const d = []; if (x.offert | 0) d.push('idée ' + (x.offert | 0) + ' 💎'); if (x.gen_offertes | 0) d.push((x.gen_offertes | 0) + ' génération' + ((x.gen_offertes | 0) > 1 ? 's' : '')); return d.length ? '🎁 offert : ' + d.join(' · ') : ''; };
+    // 7 nov. 2026 (Benjamin : « j'ai pas gagné 136 € du tout ! ») : l'argent d'un projet = ses crédits ACHETÉS dépensés, au prix payé ;
+    // les crédits offerts ne rapportent rien. Serveur ancien (sans euros_cents) : « — », jamais un faux chiffre.
+    const vrai = x => x && x.euros_cents != null, resEl = v => atlEl('b', (v | 0) < 0 ? 'atl-sneg' : 'atl-spos', ((v | 0) > 0 ? '+' : '') + cents(v));
     const lp = pp.map(x => {
-      const paye = atlEl('span', 'atl-spaye'); paye.append(atlEl('b', '', (x.paye | 0) + ' 💎'), atlEl('small', '', det(x)));
+      const dep = x => (vrai(x) ? Math.round(+x.achetes || 0) + Math.round(+x.offerts || 0) : x.paye | 0);   // le journal des crédits (vérité) quand le serveur le donne
+      const paye = atlEl('span', 'atl-spaye'); paye.append(atlEl('b', '', dep(x).toLocaleString('fr-FR') + ' 💎'));
+      if (vrai(x)) paye.appendChild(atlEl('small', 'atl-ssplit', atlSplit(x.achetes, x.offerts)));
+      { const d = det(x); if (d) paye.appendChild(atlEl('small', '', d)); }
       const o = off(x); if (o) paye.appendChild(atlEl('small', 'atl-soff', o));
-      const reste = atlEl('b', (x.reste_cents | 0) < 0 ? 'atl-sneg' : 'atl-spos', ((x.reste_cents | 0) > 0 ? '+' : '') + cents(x.reste_cents));
-      return { v: [x.titre || 'Projet', dispName(x.joueur || ''), paye, cents(x.cout_cents), reste] };
+      return { v: [x.titre || 'Projet', dispName(x.joueur || ''), paye, vrai(x) ? cents(x.euros_cents) : '—', cents(x.cout_cents), vrai(x) ? resEl(x.resultat_cents) : '—'] };
     });
-    const tp = pp.reduce((a, x) => ({ paye: a.paye + (x.paye | 0), cout: a.cout + (x.cout_cents | 0), reste: a.reste + (x.reste_cents | 0) }), { paye: 0, cout: 0, reste: 0 });
-    lp.push({ cls: 'atl-stotl', v: ['Total', '', tp.paye + ' 💎', cents(tp.cout), cents(tp.reste)] });
-    pr.appendChild(atlSTab(['Projet', 'Joueur', 'Crédits payés', 'Coût réel', 'Gain'], lp, 'atl-scartes'));
+    const tp = pp.reduce((a, x) => ({ paye: a.paye + (vrai(x) ? Math.round(+x.achetes || 0) + Math.round(+x.offerts || 0) : x.paye | 0), eu: a.eu + (x.euros_cents | 0), cout: a.cout + (x.cout_cents | 0), res: a.res + (x.resultat_cents | 0) }), { paye: 0, eu: 0, cout: 0, res: 0 });
+    const tv = pp.every(vrai);
+    lp.push({ cls: 'atl-stotl', v: ['Total', '', tp.paye.toLocaleString('fr-FR') + ' 💎', tv ? cents(tp.eu) : '—', cents(tp.cout), tv ? resEl(tp.res) : '—'] });
+    pr.appendChild(atlSTab(['Projet', 'Joueur', 'Crédits dépensés', 'Argent (crédits achetés)', 'Coût réel', 'Résultat'], lp, 'atl-scartes'));
     pr.appendChild(atlEl('small', '', '≈ : idée et messages d’avant le 3 novembre recomptés d’après les messages.'));
   }
   // 2.0.14 (Benjamin : « combien de crédits ça a coûté et le coût réel… par demande ») : en tête, le résumé du mois puis UNE LIGNE PAR DEMANDE
   // (la plus récente en haut ; « 🏗️ Conception », « 🎁 offert » à part ; un clic déplie ses générations) ; « Par projet » en second, replié
   const cts = v => eur((v | 0) / 100), gainEl = v => atlEl('b', (v | 0) < 0 ? 'atl-sneg' : 'atl-spos', ((v | 0) > 0 ? '+' : '') + cts(v));
-  const rs = r.resume || {}, res = atlEl('div', 'atl-sres');
-  for (const [lab, val, cls] of [['💎 Crédits payés ce mois', ((rs.credits | 0).toLocaleString('fr-FR')) + ' 💎', ''], ['💶 Coût réel ce mois', cts(rs.cout_cents), ''], ['📈 Gain du mois', ((rs.gain_cents | 0) > 0 ? '+' : '') + cts(rs.gain_cents), (rs.gain_cents | 0) < 0 ? 'atl-sneg' : 'atl-spos']]) {
-    const k = atlEl('div', 'atl-sresk'); k.append(atlEl('small', '', lab), atlEl('b', cls, val)); res.appendChild(k);
-  }
+  // 7 nov. 2026 (Benjamin : « j'ai pas gagné 136 € du tout ! ») : le mois en VRAIS euros (at_suivi_resume) — argent reçu (achats Stripe réels
+  // + abonnements), crédits dépensés (achetés / offerts), coût réel (toutes les générations du mois), résultat = reçu − coût (rouge si négatif)
+  const rs = r.resume || {}, res = atlEl('div', 'atl-sres'), vraisEuros = !!rs.vrais_euros;
+  const carte = (lab, val, cls, sous) => { const k = atlEl('div', 'atl-sresk'); k.append(atlEl('small', '', lab), atlEl('b', cls, val)); if (sous) k.appendChild(atlEl('small', 'atl-sresd', sous)); res.appendChild(k); };
+  if (vraisEuros) {
+    const ach = rs.credits_achetes | 0, offe = rs.credits_offerts | 0, rr = rs.resultat_cents | 0;
+    carte('💶 Argent reçu ce mois', cts(rs.recu_cents), '', (rs.recu_abos_cents | 0) ? 'achats ' + cts(rs.recu_achats_cents) + ' · abonnements ' + cts(rs.recu_abos_cents) : 'achats de crédits payés (Stripe)');
+    carte('💎 Crédits dépensés ce mois', (ach + offe).toLocaleString('fr-FR') + ' 💎', '', atlSplit(ach, offe) + (ach ? ' (' + cts(rs.valeur_cents) + ')' : ''));
+    carte('🧾 Coût réel ce mois', cts(rs.cout_cents), '', (rs.hors_projets_cents | 0) ? 'dont ' + cts(rs.hors_projets_cents) + ' hors projets (supprimés, essais)' : 'toutes les générations du mois');
+    carte('📈 Résultat du mois', (rr > 0 ? '+' : '') + cts(rr), rr < 0 ? 'atl-sneg' : 'atl-spos', 'argent reçu − coût réel');
+  } else carte('⚠️ Serveur pas encore à jour', '—', '', 'Les vrais euros arrivent avec la mise à jour du serveur (suivi-vrais-euros).');
   const pdem = atlEl('div', 'atl-sproj'), ld = Array.isArray(r.par_demande) ? r.par_demande : [];
   pdem.appendChild(atlEl('b', 'atl-rh2', '🎫 Par demande'));
   const net = t => String(t || '').replace(/^🎯 Arrêt sur image, pendant la partie(\s*\(viseur[^)]*\))?\s*:\s*/, '🎯 ').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '').slice(0, 90);
@@ -20811,21 +20825,23 @@ async function atlSuivi() {
     const verDe = l => { if (l.version) return 'V' + (l.version | 0); const t = String(l.quoi || '');
       if (l.genre !== 'demande' || /^🌍/.test(t)) return '—';   // conception sans version, offert, messages, mise en ligne
       return ['envoyee', 'vue', 'en_cours', 'plus_tard'].includes(String(l.etat || '')) ? 'en cours' : '—'; };
+    const lv = l => l && l.euros_cents != null;   // serveur à jour : euros des crédits achetés de la ligne
     const G = new Map();
-    for (const l of ld) { const k = l.fiche || ((l.projet || '') + '|' + (l.joueur || '')); if (!G.has(k)) G.set(k, { titre: l.projet || 'Projet', joueur: l.joueur || '', l: [], cr: 0, ct: 0, gen: 0, at: '' }); const g = G.get(k);
-      g.l.push(l); g.cr += l.credits | 0; g.ct += l.cout_cents | 0; g.gen += Array.isArray(l.detail) ? l.detail.length : 0; if (String(l.at || '') > g.at) g.at = String(l.at || ''); }
+    for (const l of ld) { const k = l.fiche || ((l.projet || '') + '|' + (l.joueur || '')); if (!G.has(k)) G.set(k, { titre: l.projet || 'Projet', joueur: l.joueur || '', l: [], cr: 0, eu: 0, ct: 0, gen: 0, at: '', vrai: true }); const g = G.get(k);
+      g.l.push(l); g.cr += l.credits | 0; g.eu += l.euros_cents | 0; g.ct += l.cout_cents | 0; g.gen += Array.isArray(l.detail) ? l.detail.length : 0; if (!lv(l)) g.vrai = false; if (String(l.at || '') > g.at) g.at = String(l.at || ''); }
     const gs = [...G.values()].sort((x, y) => y.at.localeCompare(x.at));
-    const H = ['Date', 'Ce qui a été fait', 'Version', 'Crédits payés', 'Coût réel', 'Gain'];
+    const H = ['Date', 'Ce qui a été fait', 'Version', 'Crédits', 'Argent', 'Coût réel', 'Résultat'];
     gs.forEach((g, gi) => {
       const D = atlEl('details', 'atl-sgrp'); if (gi < 3) D.open = true;
       const sm = atlEl('summary', 'atl-sgrph'); sm.append(atlEl('b', 'atl-sgrpt', g.titre), atlEl('small', '', '👤 ' + dispName(g.joueur)));
-      const tt = atlEl('span', 'atl-sgrpv'); tt.append(atlEl('span', '', (g.cr).toLocaleString('fr-FR') + ' 💎'), atlEl('span', '', cts(g.ct)), gainEl(g.cr - g.ct), atlEl('span', '', g.gen + ' génération' + (g.gen > 1 ? 's' : '')));
+      const tt = atlEl('span', 'atl-sgrpv'); tt.append(atlEl('span', '', (g.cr).toLocaleString('fr-FR') + ' 💎'), atlEl('span', 'atl-seu', g.vrai ? '💶 ' + cts(g.eu) : '💶 —'), atlEl('span', '', 'coût ' + cts(g.ct)), g.vrai ? gainEl(g.eu - g.ct) : atlEl('span', '', '—'), atlEl('span', '', g.gen + ' génération' + (g.gen > 1 ? 's' : '')));
       sm.appendChild(tt); D.appendChild(sm);
       const t = atlEl('table', 'atl-stab atl-scartes atl-sdem'), hd = atlEl('tr'); for (const c of H) hd.appendChild(atlEl('th', '', c)); t.appendChild(hd);
       for (const l of g.l) {
         const d0 = new Date(l.at), tr = atlEl('tr', 'g-' + (l.genre || '') + (Array.isArray(l.detail) && l.detail.length ? ' dep' : ''));
         const quoi = atlEl('span', '', net(l.quoi) + (Array.isArray(l.detail) && l.detail.length ? '  ▸ ' + l.detail.length + ' génération' + (l.detail.length > 1 ? 's' : '') : ''));
-        const vals = [isNaN(d0) ? '' : d0.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), quoi, verDe(l), (l.credits | 0).toLocaleString('fr-FR') + ' 💎', cts(l.cout_cents), gainEl(l.gain_cents)];
+        const crd = atlEl('span', 'atl-spaye'); crd.appendChild(atlEl('b', '', (l.credits | 0).toLocaleString('fr-FR') + ' 💎')); if (lv(l) && ((l.achetes | 0) || (l.offerts | 0))) crd.appendChild(atlEl('small', 'atl-ssplit', atlSplit(l.achetes, l.offerts)));
+        const vals = [isNaN(d0) ? '' : d0.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), quoi, verDe(l), crd, lv(l) ? cts(l.euros_cents) : '—', cts(l.cout_cents), lv(l) ? gainEl(l.gain_cents) : '—'];
         vals.forEach((v, i) => { const td = atlEl('td'); if (v instanceof Node) td.appendChild(v); else td.textContent = v; td.dataset.l = H[i]; if (i === 2) td.className = 'atl-sver'; tr.appendChild(td); });
         t.appendChild(tr);
         if (Array.isArray(l.detail) && l.detail.length) {
@@ -20837,10 +20853,10 @@ async function atlSuivi() {
       }
       const w = atlEl('div', 'atl-swrap'); w.appendChild(t); D.appendChild(w); pdem.appendChild(D);
     });
-    const tc = gs.reduce((a, g) => a + g.cr, 0), tk = gs.reduce((a, g) => a + g.ct, 0), tg = gs.reduce((a, g) => a + g.gen, 0);
-    const T = atlEl('div', 'atl-sgrptot'); T.append(atlEl('b', '', 'Total tous projets'), atlEl('span', '', tc.toLocaleString('fr-FR') + ' 💎'), atlEl('span', '', cts(tk)), gainEl(tc - tk), atlEl('span', '', tg + ' génération' + (tg > 1 ? 's' : '')));
+    const tc = gs.reduce((a, g) => a + g.cr, 0), te = gs.reduce((a, g) => a + g.eu, 0), tk = gs.reduce((a, g) => a + g.ct, 0), tg = gs.reduce((a, g) => a + g.gen, 0), tv = gs.every(g => g.vrai);
+    const T = atlEl('div', 'atl-sgrptot'); T.append(atlEl('b', '', 'Total tous projets'), atlEl('span', '', tc.toLocaleString('fr-FR') + ' 💎'), atlEl('span', 'atl-seu', tv ? '💶 ' + cts(te) : '💶 —'), atlEl('span', '', 'coût ' + cts(tk)), tv ? gainEl(te - tk) : atlEl('span', '', '—'), atlEl('span', '', tg + ' génération' + (tg > 1 ? 's' : '')));
     pdem.appendChild(T);
-    pdem.appendChild(atlEl('small', 'atl-sgain', 'Gain = ce que le joueur a payé en crédits (1 💎 = 1 centime) moins ce que ça t’a vraiment coûté. Une ligne avec des générations se déplie d’un clic.'));
+    pdem.appendChild(atlEl('small', 'atl-sgain', 'Argent = les crédits ACHETÉS dépensés, au prix où le joueur les a payés (les crédits offerts ne rapportent rien). Résultat = argent − coût réel. Une ligne avec des générations se déplie d’un clic.'));
   }
   const dpr = atlEl('details', 'atl-sprojd'); dpr.appendChild(atlEl('summary', '', '🧾 Par projet')); pr.querySelector('.atl-rh2') && pr.querySelector('.atl-rh2').remove(); dpr.appendChild(pr);
   P.append(res, tot, pdem, dpr);
