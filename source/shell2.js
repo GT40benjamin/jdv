@@ -140,9 +140,11 @@ function atlModule(id, v) {
   }));
   ATL_MOD_FILE = p.catch(() => null); ATL_MODS.set(k, p); return p;
 }
+let INV_ESSAI = null;   // 7 nov. 2026 : partie rejointe sur l'invitation « en essai » d'un ami : { jeu, v } (effacé en quittant le jeu)
 function atlVoulue(id) {   // la version à jouer : cadre de l'Atelier (?v=), partie lancée depuis l'Atelier (la dernière), borne (la publiée)
   if (!ATL_NES.has(id)) return 0;
   if (CADRE) return +new URLSearchParams(location.search).get('v') | 0;
+  if (INV_ESSAI && INV_ESSAI.jeu === id) return INV_ESSAI.v;   // l'ami joue la version de l'invitation (en essai), pas la publiée
   try { if (ATL && ATL.jeu) { const f = atlFiche(); return f && f.jeu === id ? (f.version | 0) || 1 : 0; } } catch (e) {}
   const x = ATL_JEUX.get(id); return x ? x.version_publiee | 0 : 0;
 }
@@ -10840,8 +10842,15 @@ async function livInvRejoindre(id) {
   if (!livInvOk()) { if (isGuest()) guestAsk('Rejoindre un copain'); return; }
   let r = null; try { r = await rpc('live_invitation_repondre', { p_name: profile.name, p_id: id, p_oui: true }, { quiet: true }); } catch (e) { r = null; }
   if (!r) { toastCheer('Cette invitation n’est plus valable.', null, true); return; }
+  if (r.fini && r.essai) { livInvInfo(r.de, 'L’invitation de ' + dispName(r.de || '') + ' n’est plus valable 😕', 'Cette version de ' + String(r.titre || 'son jeu').replace(/\s*\(V\d+ en essai\)$/, '') + ' a changé depuis. Quand le jeu sera publié, tu le trouveras sur ta borne.'); return; }   // 7 nov. 2026 : version en essai publiée ou remplacée
   if (r.fini) { livInvInfo(r.de, 'La partie de ' + dispName(r.de || '') + (r.titre ? ' à ' + r.titre : '') + ' est finie 😕', 'Envie d’y jouer ? Ouvre le jeu et touche « 📣 Inviter » : à ton tour d’inviter les copains !'); return; }
-  const g = gameById(r.jeu); if (!g) { toastCheer('Ce jeu n’est pas encore sur ta borne : mets-la à jour.', r.de, true); return; }
+  let g = gameById(r.jeu);
+  if (r.essai && (r.version | 0) > 0) {   // 7 nov. 2026 : invitation à la version EN ESSAI d'un jeu de l'Atelier (pas dans la grille) : cette version-là
+    atlNe(r.jeu); let g2 = null; try { g2 = await atlModule(r.jeu, r.version | 0); } catch (e) { g2 = null; }
+    if (!g2) { toastCheer('Ce jeu n’est pas encore arrivé sur ta borne : réessaie dans un moment.', r.de, true); return; }
+    g = g2;
+  }
+  if (!g) { toastCheer('Ce jeu n’est pas encore sur ta borne : mets-la à jour.', r.de, true); return; }
   if (!$('jdw-play').hidden) backToLibrary();
   if (!room || +room.id !== +r.salle) {   // on passe dans la salle de l'invitation (j'en suis membre : le serveur l'a vérifié)
     let rm = null; try { rm = ((await rpc('list_rooms', { p_code: CODE(), p_name: profile.name || '' })) || []).find(z => +z.r_id === +r.salle) || null; } catch (e) { rm = null; }
@@ -10849,6 +10858,7 @@ async function livInvRejoindre(id) {
     await new Promise(ok => setTimeout(ok, 1200));
   }
   toastCheer('Je te rejoins à ' + (r.titre || g.title) + ' !', r.de, true);
+  if (r.essai && (r.version | 0) > 0) { INV_ESSAI = { jeu: r.jeu, v: r.version | 0 }; setTimeout(() => openGame(g, true), 300); return; }
   setTimeout(() => openGame(g), 300);
 }
 // b) le lien du message « ▶️ Rejoindre » (hub de Pégase) : jouer/?rejoindre=<id>
@@ -11397,6 +11407,7 @@ function backToLibrary() {
   howtoHide(false); menuFermer(); MENU.passe = '';   // 2.0.139
   flushPending(); OPEN_SEQ++;   // 2.0.44 : un jeu encore en chargement ne s'ouvre plus une fois revenu à l'accueil
   creaFin();   // 2.1.4 : le mode créateur s'arrête en quittant le jeu
+  INV_ESSAI = null;   // 7 nov. 2026 : la version d'une invitation en essai ne sert que pour cette partie
   if (CADRE_G) { try { unmountGame(); } catch (e) {} $('jdw-end').hidden = true; $('jdw-play').hidden = false; mountGame(CADRE_G); return; }   // page d'un projet : on rejoue
   waitRotate = null; $('jdw-rotate').hidden = true;
   unmountGame();
@@ -16274,6 +16285,7 @@ function atlBubble(m, wel) {
   // 2.1.13 (l'admin : « comme sur WhatsApp ») : la réaction de la mascotte sur un message du joueur (at_messages.reaction, SQL v172), petit badge rond
   // accroché au coin bas de la bulle ; survol (souris) ou toucher (téléphone) : « <mascotte> a réagi ❤️ »
   if (!at && !wel && m.reaction) bub.appendChild(atlReacBadge(m.reaction)), bub.classList.add('atl-breac'), li.classList.add('atl-mreac');
+  if (Array.isArray(m.fichiers) && m.fichiers.length) bub.appendChild(atlPjCartes(m.fichiers));   // 7 nov. 2026 : 📎 pièces jointes
   col.appendChild(bub);
   // 2.0.36 (Benjamin : « il m'a répondu avec des questions, mais peut-on faire la forme question ? ») : les encarts, comme dans les tickets
   if (at && !wel && Array.isArray(m.questions) && m.questions.length && m.remplacee && !m.q_envoye) { col.appendChild(atlRemplacee(true)); li.classList.add('atl-mremp'); }
@@ -16827,8 +16839,9 @@ function atlDiscBloc(f) {
   {   // 2.0.109 : en mode admin, le fil EXACTEMENT comme le joueur (le wrapper admin envoie at_discuter en message de la mascotte)
     const adm = atlAdminIci(), aide = ATL_DISC_AIDE;
     const ta = atlEl('textarea', 'atl-dnin atl-discin'); ta.rows = 1;
-    ta.placeholder = 'Écris ' + gA() + '… (c’est gratuit)';   // 2.0.162 : l'aide tient dans le champ, en une ligne
+    ta.placeholder = atlPetit() ? 'Écris ' + gA() + '…' : 'Écris ' + gA() + '… (c’est gratuit)';   // 7 nov. 2026 : au téléphone, 📎 ⚡ 🎤 dans le champ : l'aide tient sur une ligne (« Gratuit » est dans l'en-tête)   // 2.0.162 : l'aide tient dans le champ, en une ligne
     const go = atlEl('button', 'atl-discgo atl-dsend', '➤'), msg = atlEl('small', 'atl-dnmsg', ''); go.type = 'button'; go.setAttribute('aria-label', 'Envoyer');
+    const PJ = atlPjZone(msg, () => { go.classList.toggle('on', !!ta.value.trim() || PJ.l.length > 0); });
     const grandit = () => { ta.style.height = 'auto'; const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20; ta.style.height = Math.min(ta.scrollHeight, lh * 5 + 20) + 'px'; go.classList.toggle('on', !!ta.value.trim()); };
     ta.addEventListener('input', grandit);
     // 2.0.100 (l'admin : « pouvoir encore lui parler même quand il réfléchit ») : la case et « Envoyer » ne sont JAMAIS bloqués ; chaque message
@@ -16836,15 +16849,20 @@ function atlDiscBloc(f) {
     const W0 = () => ATL.root.querySelector('.atl-wiz'), enBas = () => { const lg = b.querySelector('.atl-disclog'); if (lg) lg.scrollTop = lg.scrollHeight; };   // son propre message : toujours en bas du fil
     const envoyer = () => {
       atlMicFin();
-      const t = ta.value.trim(); if (!t) { ta.focus(); return; }
+      const pjs = PJ.l.slice(); let t = ta.value.trim(); if (!t && !pjs.length) { ta.focus(); return; }
+      if (!t) t = '📎 ' + pjs.map(x => x.file.name).join(', ');   // 7 nov. 2026 : des fichiers sans texte
       if (!(ATL.discPend || []).some(x => !x.envoye)) ATL.discErr = false;
       ta.value = ''; msg.textContent = ''; try { ta.style.height = ''; go.classList.remove('on'); } catch (e) {}
-      const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id, atelier: adm };
+      PJ.l = []; PJ.peint();
+      const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id, atelier: adm, fichiers: pjs.length ? pjs.map(x => ({ nom: x.file.name, taille: x.file.size, type: x.famille, envoi: true })) : null };
       ATL.discPend = (ATL.discPend || []).concat([pm]); atlDiscMaj(W0(), f, true); enBas();
       ATL.discFile = (ATL.discFile || Promise.resolve()).then(async () => {
         let ok = false;
-        try { await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true }); ok = true; }
-        catch (e) { ATL.discErr = true; msg.textContent = atlWhy(e); ta.value = ta.value.trim() ? t + '\n' + ta.value : t; }   // rien n'est perdu
+        try {
+          if (pjs.length) { const ids = []; for (const x of pjs) ids.push(await atlPjEnvoyer(f, x)); await rpc('at_discuter_fichiers', { p_name: profile.name, p_fiche: f.id, p_texte: t, p_micro: false, p_fichiers: ids }, { quiet: true }); }
+          else await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true });
+          ok = true; }
+        catch (e) { ATL.discErr = true; msg.textContent = atlPjPourquoi(e) || atlWhy(e); if (!/^📎 /.test(t) || !pjs.length) ta.value = ta.value.trim() ? t + '\n' + ta.value : t; if (pjs.length) { PJ.l = pjs.concat(PJ.l).slice(0, ATL_PJ_MAX); PJ.peint(); } }   // rien n'est perdu (texte ET fichiers)
         if (ok) pm.envoye = true; else ATL.discPend = (ATL.discPend || []).filter(x => x !== pm);
         if (!(ATL.discPend || []).some(x => !x.envoye)) {   // la file est vide : on relit tout (les messages arrivés, les offres remplacées)
           try { ATL.demAt = 0; await atlDemCharger(true); await atlLoad(true); } catch (e) {}
@@ -16855,7 +16873,8 @@ function atlDiscBloc(f) {
     };
     go.addEventListener('click', envoyer);
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !atlPetit()) { e.preventDefault(); envoyer(); } });   // ordinateur : Entrée envoie, Maj+Entrée va à la ligne
-    const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
+    const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (f && f.id) tw.appendChild(atlAutoBouton(f)); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));   // 7 nov. 2026 : ⚡ mode auto, à côté du micro
+    if (f && f.id) { tw.prepend(PJ.bouton); corps.appendChild(PJ.plateau); PJ.depot(b); }   // 7 nov. 2026 : 📎 joindre des fichiers
     const rg = atlEl('p', 'atl-discrg'), np = atlEl('button', 'atl-discnp', '＋ Nouveau projet'); np.type = 'button'; np.addEventListener('click', atlNouveau);
     rg.append(document.createTextNode('Ici, on parle seulement de « ' + (f.titre || 'ton jeu') + ' ». Une idée pour un autre jeu ? '), np);
     row.append(tw, go); corps.append(row, msg); void rg; void aide;   // 2.0.162 : plus de pavé d'aide sous le champ
@@ -17020,7 +17039,10 @@ function atlVSortie(W, f) {
 function atlPubBloc(f, g) { const b = atlEl('section', 'atl-pubb atl-escard'); b._g = g; atlPubBlocMaj(b, f); return b; }
 function atlPubBlocMaj(b, f) {
   const et = String(f.etat || ''), v = (f.version | 0) || 1, vp = f.version_publiee | 0, asked = !!f.monde_demande_at, adm = atlAdminIci(), occ = atlTravaille(f), auto = f.auto_publier !== false;
-  const sig = [et, v, vp, asked ? 1 : 0, adm ? 1 : 0, occ, auto ? 1 : 0].join('|'); if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
+  // 7 nov. 2026 : un jeu À PLUSIEURS (api.live / api.monde de la version en essai) : « 🎮 Inviter un ami à jouer avec moi »
+  const gk = f.jeu + '@' + v, gm = ATL_MODS_OK.get(gk) || null, multi = v > vp && atlInvEssaiJeu(gm || (b._g && (b._g.__v | 0) === v ? b._g : null));
+  if (!gm && !ATL_MODS_OK.has(gk) && f.jeu && v > vp && atlNe(f.jeu)) atlModule(f.jeu, v).then(g2 => { if (g2 && b.isConnected) { b.dataset.sig = ''; atlPubBlocMaj(b, f); } }).catch(() => {});
+  const sig = [et, v, vp, asked ? 1 : 0, adm ? 1 : 0, occ, auto ? 1 : 0, multi ? 1 : 0].join('|'); if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
   const publie = et === 'publie_monde' || et === 'publie_salle';
   const ET = et === 'publie_monde' ? ['🌍', 'Publié sur la borne pour tout le monde', 'monde'] : et === 'publie_salle' ? ['🏠', 'Partagé à tes amis (tes salles)', 'salle'] : ['🧪', 'En essai (toi seul)', 'essai'];
   const hd = atlEl('div', 'atl-pubhd ' + ET[2]); hd.append(atlEl('span', 'atl-pubic', ET[0]), (() => { const d = atlEl('div'); d.append(atlEl('b', '', ET[1]),
@@ -17043,6 +17065,7 @@ function atlPubBlocMaj(b, f) {
     if (!room || !room.id) { atlToast('Rejoins d’abord une salle pour y partager ton jeu'); return; }
     if (!await atlConfirmer('🏠 Partager à tes amis ?', 'Ton jeu (V' + v + ') apparaîtra sur la borne des joueurs de TOUTES tes salles, avec son classement.')) return;
     await rpc('at_publier_salle', { p_name: profile.name, p_fiche: f.id, p_salle: room.id }, { quiet: true }); await fin('🏠 Partagé à tes amis !'); });
+  if (multi) { const x = atlEl('button', 'btn btn-ghost atl-invj', '🎮 Inviter un ami à jouer avec moi'); x.type = 'button'; x.addEventListener('click', () => atlInvEssai(f, v)); row.appendChild(x); }   // même pendant que la suivante se prépare
   if (asked && !adm) bt('↩️ Annuler ma demande', 'btn-ghost', async () => {
     if (!await atlConfirmer('↩️ Annuler ta demande ?', 'Ta demande de publication pour tout le monde sera retirée. Tu pourras la refaire plus tard.', 'Oui, annuler')) return;
     await rpc('at_monde_annuler', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); await fin('↩️ Demande annulée'); });
@@ -17057,6 +17080,85 @@ function atlPubBlocMaj(b, f) {
       catch (e) { cb.checked = !on; cb.disabled = false; atlToast('Pas possible pour l’instant : réessaie dans un moment.'); } });
     b.appendChild(lb);
   }
+}
+// ---- 7 nov. 2026 (Benjamin) : « 🎮 INVITER UN AMI À JOUER AVEC MOI » à la version EN ESSAI d'un jeu à plusieurs (api.live / api.monde).
+// Serveur source/invite-essai.sql : at_inviter_essai_amis (mes salles et leurs membres), at_inviter_essai (fiche, salle, amis). C'est
+// l'invitation de 2.0.126 (signal invjeu, conversation, ?rejoindre=<id>, 🔔) avec la fiche et la version : l'ami joue CETTE version (INV_ESSAI),
+// dans la salle que nous avons en commun ; elle disparaît dès que la version est publiée ou remplacée. 5 invitations en attente au plus.
+// Jamais de prix, de crédits ni de coûts.
+const atlInvEssaiJeu = g => !!(g && !g.stub && (g.live || g.monde));
+function atlInvEssai(f, v) {
+  if (!livInvOk()) { atlToast(isGuest() ? 'Crée ton compte pour inviter un ami' : 'Connecte-toi pour inviter un ami'); return; }
+  const old = document.getElementById('jdw-livmod'); if (old) old.remove();
+  const el = atlEl, titre = String(f.titre || 'ton jeu').slice(0, 40), MAXI = 5;
+  const M = el('div', 'liv-mod atl-invm'); M.id = 'jdw-livmod'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Inviter un ami à jouer avec moi');
+  const C = el('div', 'liv-card'); M.appendChild(C);
+  C.append(el('h2', '', '🎮 Inviter un ami à jouer avec moi'));
+  const sous = el('p', 'liv-sub'); sous.append('À ', el('b', '', titre), ' (V' + v + ' en essai), avec toi. Seuls tes invités pourront y jouer, et seulement à cette V' + v + '.'); C.append(sous);
+  const L = el('div', 'liv-l atl-invl'); L.append(el('p', 'liv-vide', 'Je cherche tes amis…')); C.append(L);
+  const ou = el('p', 'atl-invou'); ou.hidden = true; C.append(ou);
+  const msg = el('p', 'liv-msg', ''); C.append(msg);
+  const bt = el('div', 'liv-btns'), no = el('button', 'btn btn-ghost', 'Fermer'), go = el('button', 'btn btn-play', '🎮 Inviter'); no.type = go.type = 'button'; go.disabled = true; bt.append(no, go); C.append(bt);
+  const fermer = () => { M.remove(); document.removeEventListener('keydown', esc, true); };
+  const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); fermer(); } };
+  document.addEventListener('keydown', esc, true); no.addEventListener('click', fermer); M._fermer = fermer; M.addEventListener('click', e => { if (e.target === M) fermer(); });
+  document.body.appendChild(M);
+  const rows = []; let salles = [], fait = false;
+  const choisis = () => rows.filter(r => r.cb.checked);
+  const maj = () => {
+    const c = choisis(), s = c.length ? c[0].s : null;
+    for (const r of rows) r.cb.disabled = fait || (!r.cb.checked && c.length >= MAXI);
+    for (const r of rows) r.lab.classList.toggle('off', r.cb.disabled);
+    ou.hidden = !s; if (s) { ou.textContent = ''; ou.append('🏠 La partie se lance dans la salle ', el('b', '', s.salle_nom || ''), (room && +room.id === +s.salle ? '' : ' (tu y passes en lançant)') + '.'); }
+    if (!fait) { go.textContent = '🎮 Inviter' + (c.length ? ' (' + c.length + ')' : ''); go.disabled = !c.length; }
+  };
+  const peint = () => {
+    L.textContent = ''; rows.length = 0;
+    const avec = salles.filter(s => Array.isArray(s.membres) && s.membres.length);
+    if (!avec.length) { L.append(el('p', 'liv-vide', 'Personne d’autre dans tes salles pour l’instant. Invite des copains dans ta salle avec le bouton « Inviter » de l’accueil.')); maj(); return; }
+    avec.sort((a, b) => (room && +b.salle === +room.id ? 1 : 0) - (room && +a.salle === +room.id ? 1 : 0));   // ma salle d'abord
+    for (const s of avec) {
+      L.append(el('h3', 'atl-invs', '🏠 ' + (s.salle_nom || 'Ma salle')));
+      for (const m of s.membres) {
+        const nm = String(m.name || ''); if (!nm) continue;
+        const lab = el('label', 'liv-r'), cb = document.createElement('input'); cb.type = 'checkbox';
+        const vu = m.vu ? (Date.now() - Date.parse(m.vu)) / 60000 : 1e9;
+        const tx = el('span', 'liv-n'); tx.append(el('b', '', dispName(nm)), el('small', '', vu < 3 ? '🟢 en ligne' : 'hors ligne · le verra en ouvrant la borne'));
+        lab.append(cb, chatHead(nm, { passive: true }), tx); L.append(lab);
+        const r = { s, nm, cb, lab }; rows.push(r);
+        cb.addEventListener('change', () => { if (cb.checked) for (const o of rows) if (o.s !== s) o.cb.checked = false; maj(); });   // une seule salle : celle de la partie
+      }
+    }
+    maj();
+  };
+  rpc('at_inviter_essai_amis', { p_name: profile.name }, { quiet: true }).then(x => { salles = Array.isArray(x) ? x : []; if (M.isConnected) peint(); })
+    .catch(() => { L.textContent = ''; L.append(el('p', 'liv-vide', 'Je n’arrive pas à lire tes amis : vérifie le réseau et réessaie.')); });
+  go.addEventListener('click', async () => {
+    if (fait) return lancer();
+    const c = choisis(); if (!c.length) return; const s = c[0].s;
+    go.disabled = true; msg.textContent = 'J’envoie…';
+    try {
+      const out = await rpc('at_inviter_essai', { p_name: profile.name, p_fiche: f.id, p_salle: s.salle, p_a: c.map(r => r.nm) }, { quiet: true }) || {};
+      const E = Array.isArray(out.envois) ? out.envois : [], ok = E.filter(x => x && x.ok).map(x => dispName(x.a));
+      const pr = (k, t) => { const l = E.filter(x => x && x.raison === k).map(x => dispName(x.a)); return l.length ? ' ' + l.join(', ') + t : ''; };
+      msg.textContent = (ok.length ? '✅ Invitation envoyée à ' + ok.join(', ') + '. Lance la partie : on te rejoint !' : '')
+        + pr('deja', ' : invitation déjà envoyée il y a moins de 5 min.') + pr('refuse', ' a dit non il y a peu : on n’insiste pas.')
+        + (E.some(x => x && x.raison === 'cinq') ? ' ' + MAXI + ' invitations attendent déjà une réponse : attends qu’on te réponde avant d’en envoyer d’autres.' : '');
+      if (!E.length) msg.textContent = 'Personne à inviter dans cette salle.';
+      if (ok.length) { fait = true; salleP = s; go.textContent = '▶️ Lancer la partie'; go.disabled = false; maj(); }
+      else go.disabled = false;
+    } catch (e) { go.disabled = false; msg.textContent = /trop/.test(String(e && e.message)) ? 'Beaucoup d’invitations d’un coup : attends un peu.' : /jouable/.test(String(e && e.message)) ? 'Ton jeu n’est pas encore prêt à jouer à plusieurs.' : 'Pas envoyé : vérifie le réseau et réessaie.'; }
+  });
+  let salleP = null;
+  const lancer = async () => {   // dans la salle commune, puis la version en essai (comme « Essayer »)
+    const s = salleP; fermer(); if (!s) return;
+    if (!room || +room.id !== +s.salle) {
+      let rm = null; try { rm = ((await rpc('list_rooms', { p_code: CODE(), p_name: profile.name || '' })) || []).find(z => +z.r_id === +s.salle) || null; } catch (e) { rm = null; }
+      enterRoom({ id: s.salle, name: rm ? rm.r_name : (s.salle_nom || ''), priv: !!(rm && rm.r_private), owner: (rm && rm.r_owner) || null });
+      await new Promise(ok => setTimeout(ok, 1200));
+    }
+    atlJouerVrai(f);
+  };
 }
 // 2.1.2 (l'admin : « je veux la voir aussi en mode portrait ») : l'écran-titre du jeu, côte à côte, couché et debout (menu-portrait si le jeu
 // en a un, sinon l'image couchée recadrée comme sur un téléphone debout) ; rien si le jeu n'a pas d'image de menu
@@ -17378,6 +17480,7 @@ function atlEspace(W, box, f, g, pane) {
     for (const [k, ic, lab] of SECT) T.appendChild(bouton(k, ic, k === 'route' ? 'Feuille & versions' : k === 'params' ? 'Réglages' : k === 'reglages' ? 'Réglages du jeu' : lab, 'atl-est' + (k === 'admin' || k === 'reglages' ? ' rouge' : '') + (k === 'route' || k === 'reglages' ? ' deux' : '')));   // 2.1.13 : les versions aussi au téléphone
     R0.appendChild(T); }
   W._pk = [pk1, pk2];
+  setTimeout(() => { try { atlJeuVnMaj(); } catch (e) {} }, 0);   // 7 nov. 2026 : la pastille « Vn » qui arrive, à côté de « Mon jeu »
   // 🗺️ la feuille de route, en entier
   { const p = pane('route'); p.appendChild(atlEl('h3', 'atl-ph3', '🗺️ La feuille de route de ton jeu'));
     const c = atlEl('section', 'atl-escard atl-esroute'), dl = atlEl('dl');
@@ -19684,7 +19787,8 @@ function pushFenetre() {
 }
 // toucher une notification : aller au projet (borne déjà ouverte = message du service worker ; sinon l'adresse ?atelier=projet&f=…&o=…)
 function pushOuvrir(u) {
-  let f = '', o = ''; try { const sp = new URL(String(u || ''), location.href).searchParams; f = sp.get('f') || ''; o = sp.get('o') || ''; } catch (e) { return; }
+  let f = '', o = ''; try { const sp = new URL(String(u || ''), location.href).searchParams; f = sp.get('f') || ''; o = sp.get('o') || '';
+    const rj = sp.get('rejoindre') || ''; if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(rj)) { livInvRejoindre(rj); return; } } catch (e) { return; }   // 7 nov. 2026 : 🔔 « X t'invite à jouer »
   if (!/^[0-9a-f-]{36}$/i.test(f)) f = ''; if (!['jeu', 'demandes', 'route'].includes(o)) o = '';
   if (!$('jdw-play').hidden) { atlToast('🔔 Ton projet t’attend dans l’Atelier'); return; }   // en pleine partie : on ne la coupe pas
   try { if (f) atlRevenir(f, o); else atlOpen(); } catch (e) { try { atlOpen(); } catch (x) {} }
@@ -19758,7 +19862,38 @@ function atlHsTxt(f) {
   const ec = atlAdminIci() ? (ATL.data.demandes_projet || []).some(x => x && x.etat === 'en_cours') : atlDemEnCours().some(x => x.fiche === f.id && x.etat === 'en_cours');
   return ec || atlTravaille(f) ? '🛠️ ' + gNM() + ' travaille sur la nouvelle version' : et === 'alpha' ? 'Ton jeu est prêt à tester !' : 'Ton jeu est publié';
 }
-function atlHsMaj() { try { for (const b of document.querySelectorAll('#jdw-atelier .atl-espk')) if (b._maj) b._maj(); } catch (e) {} try { const R = ATL.root, f = atlFiche(), h = R && R.querySelector('.atl-hs'); if (h && f && ATL.cur === f.id && R.querySelector('.atl-pbox')) { const t = atlHsTxt(f); if (h.textContent !== t) h.textContent = t; } } catch (e) {} }
+// 7 nov. 2026 (Benjamin) : à côté de « 🎮 Mon jeu » (menu de gauche et onglet du bas), pendant que la mascotte prépare la version suivante :
+// une pastille « V26 » + un petit rond qui tourne (arrêté si l'appareil demande moins d'animations) ; survol (appui long au téléphone) :
+// « {g} prépare ta V26… Tu pourras l'essayer ici dès qu'elle est prête. » ; la pastille part dès que la version est prête. Joueur et admin.
+function atlJeuVnMaj() {
+  const R = ATL && ATL.root; if (!R) return;
+  const f = atlFiche(); let v = f && ATL.cur === f.id ? atlTravaille(f) : 0;
+  if (!v && f && ATL.cur === f.id && atlAdminIci()) { try { if (atlTravEnCours().length) v = ((f.version | 0) || 1) + 1; } catch (e) {} }   // vue admin : les demandes du projet regardé en travail
+  for (const b of R.querySelectorAll('.atl-esb[data-k="jeu"], .atl-est[data-k="jeu"]')) {
+    let e = b.querySelector('.atl-esvn');
+    if (!v) { if (e) { e.remove(); const q = document.getElementById('atl-esvn-bulle'); if (q) q.classList.remove('on'); } continue; }
+    const adm = atlAdminIci(), qui = adm ? dispName((((ATL.data && ATL.data.admin_voir) || {}).joueur) || f.name || '') : '';
+    const txt = gNM() + ' prépare ' + (adm ? 'la V' + v + (qui ? ' de ' + qui : '') : 'ta V' + v) + '… Tu pourras l’essayer ici dès qu’elle est prête.';
+    if (e && e.dataset.v === String(v) && e.dataset.t === txt) continue;
+    if (e) e.remove();
+    e = atlEl('span', 'atl-esvn'); e.dataset.v = String(v); e.dataset.t = txt; e.setAttribute('role', 'status'); e.setAttribute('aria-label', txt);
+    e.append(atlEl('i', 'atl-esspin'), atlEl('b', '', 'V' + v));
+    // la bulle vit dans <body> (un parent flouté du menu couperait une bulle « fixed ») : une seule pour toute la page
+    const bulle = () => { let q = document.getElementById('atl-esvn-bulle'); if (!q) { q = atlEl('div', 'atl-esvnb'); q.id = 'atl-esvn-bulle'; q.setAttribute('role', 'tooltip'); document.body.appendChild(q); } return q; };
+    const montrer = () => { const q = bulle(), r = e.getBoundingClientRect(), bas = !!e.closest('.atl-est'), w = Math.min(260, innerWidth - 16); q.textContent = txt; q.style.maxWidth = w + 'px';
+      q.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px'; if (bas) { q.style.top = ''; q.style.bottom = (innerHeight - r.top + 10) + 'px'; } else { q.style.bottom = ''; q.style.top = (r.bottom + 8) + 'px'; } q.classList.add('on'); };
+    const cacher = () => { const q = document.getElementById('atl-esvn-bulle'); if (q) q.classList.remove('on'); };
+    e.addEventListener('pointerenter', ev => { if (ev.pointerType === 'mouse') montrer(); });
+    e.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse') cacher(); });
+    let tm = 0, long = false;   // appui long (téléphone) : la bulle, sans changer d'onglet
+    e.addEventListener('pointerdown', ev => { if (ev.pointerType === 'mouse') return; long = false; clearTimeout(tm); tm = setTimeout(() => { long = true; montrer(); setTimeout(cacher, 3200); }, 450); });
+    for (const k of ['pointerup', 'pointercancel']) e.addEventListener(k, () => clearTimeout(tm));
+    e.addEventListener('click', ev => { if (long) { ev.preventDefault(); ev.stopPropagation(); long = false; } }, true);
+    e.addEventListener('contextmenu', ev => ev.preventDefault());
+    b.appendChild(e);
+  }
+}
+function atlHsMaj() { try { for (const b of document.querySelectorAll('#jdw-atelier .atl-espk')) if (b._maj) b._maj(); } catch (e) {} try { atlJeuVnMaj(); } catch (e) {} try { const R = ATL.root, f = atlFiche(), h = R && R.querySelector('.atl-hs'); if (h && f && ATL.cur === f.id && R.querySelector('.atl-pbox')) { const t = atlHsTxt(f); if (h.textContent !== t) h.textContent = t; } } catch (e) {} }
 function atlTravailMaj() {
   const R = ATL && ATL.root, W = R && R.querySelector('.atl-wiz'), p = W && W.querySelector('.atl-pane[data-k="jeu"]'); if (!p || !ATL.cur) return;
   const l = atlTravEnCours();   // 2.0.59 : en vue admin, celles du joueur (2.0.60 : sans champ « fiche », elles sont toutes de ce projet)
@@ -20284,7 +20419,8 @@ rpc = (rpc0 => async function (fn, a, o) {
   if (fn === 'at_lire') return rpc0('at_admin_lire', { p_name: a.p_name, p_fiche: m.id }, o);
   const agir = (action, args) => rpc0('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: action, p_args: args || {} }, o);
   if (fn === 'at_dire') return agir('dire', { texte: a.p_texte });
-  if (fn === 'at_discuter') return agir('discussion', { texte: a.p_texte });   // 2.0.108 : l'admin répond dans « Discuter du jeu » (le joueur voit la mascotte)
+  if (fn === 'at_discuter') return agir('discussion', { texte: a.p_texte });
+  if (fn === 'at_discuter_fichiers') { const r = await agir('discussion', { texte: a.p_texte }); if (r && r.id) await rpc0('at_fichiers_joindre', { p_name: profile.name, p_message: r.id, p_fichiers: a.p_fichiers }, o); return r; }   // 7 nov. 2026 : 📎   // 2.0.108 : l'admin répond dans « Discuter du jeu » (le joueur voit la mascotte)
   if (fn === 'at_fiche_etape') return a.p_cle === 'titre' ? agir('renommer', { titre: a.p_valeur }) : agir('fiche', { cle: a.p_cle, valeur: a.p_valeur });
   if (fn === 'at_fiche_joueur') return agir('fiche', { cle: a.p_cle, valeur: a.p_texte });
   if (fn === 'at_lancer') return agir('lancer');
@@ -21392,6 +21528,168 @@ function atlMicEtat() {
   if (ATL && ATL.root) { const rc = ATL.root.querySelector('.atl-rec'); if (rc) rc.hidden = !(m && m.field && m.field.classList.contains('atl-in')); }
   if (ATL) ATL.rec = m;   // (ancien repère : un micro est ouvert)
 }
+// ---- 7 nov. 2026 (Benjamin) : 📎 JOINDRE DES FICHIERS À LA MASCOTTE dans la discussion d'un projet : PDF, Word, Excel/CSV, texte, Markdown, JSON,
+// images, audio, ZIP ; 20 Mo au plus, 5 par message ; le type est vérifié deux fois (extension ET début du fichier) avant l'envoi. Bucket PRIVÉ
+// « atelier-fichiers » (source/fichiers-joints.sql) : at_fichier_preparer → envoi du fichier (jeton du compte) → at_discuter_fichiers (le message
+// et ses fichiers d'un seul coup). Jamais d'URL publique : les cartes se téléchargent avec le jeton (le joueur du projet et les admins).
+const ATL_PJ_TYPES = { pdf: ['application/pdf', 'pdf'], docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'word'],
+  xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'tableur'], xls: ['application/vnd.ms-excel', 'tableur'], csv: ['text/csv', 'tableur'],
+  txt: ['text/plain', 'texte'], md: ['text/markdown', 'texte'], json: ['application/json', 'texte'], png: ['image/png', 'image'], jpg: ['image/jpeg', 'image'],
+  jpeg: ['image/jpeg', 'image'], webp: ['image/webp', 'image'], gif: ['image/gif', 'image'], mp3: ['audio/mpeg', 'audio'], wav: ['audio/wav', 'audio'], m4a: ['audio/mp4', 'audio'],
+  zip: ['application/zip', 'zip'] };
+const ATL_PJ_MAX = 5, ATL_PJ_MO = 20 * 1048576, ATL_PJ_IC = { pdf: '📕', word: '📝', tableur: '📊', texte: '📄', image: '🖼️', audio: '🎵', zip: '🗜️' };
+const atlPjExt = n => { const m = /\.([A-Za-z0-9]{1,5})$/.exec(String(n || '')); return m ? m[1].toLowerCase() : ''; };
+const atlPjTaille = o => { o = +o || 0; return o < 1024 ? o + ' o' : o < 1048576 ? Math.max(1, Math.round(o / 1024)) + ' Ko' : (o / 1048576).toFixed(1).replace('.', ',').replace(',0', '') + ' Mo'; };
+// le début du fichier doit correspondre à son extension (un .pdf qui n'est pas un PDF est refusé)
+async function atlPjSignature(file, ext) {
+  let b; try { b = new Uint8Array(await file.slice(0, 4096).arrayBuffer()); } catch (e) { return false; }
+  const at = (o, sig) => sig.length + o <= b.length && [...sig].every((c, i) => b[o + i] === (typeof c === 'number' ? c : c.charCodeAt(0)));
+  const pk = at(0, [0x50, 0x4b, 3, 4]);
+  switch (ext) {
+    case 'pdf': return at(0, '%PDF');
+    case 'docx': case 'xlsx': return pk;
+    case 'zip': return pk || at(0, [0x50, 0x4b, 5, 6]);
+    case 'xls': return at(0, [0xd0, 0xcf, 0x11, 0xe0]);
+    case 'png': return at(0, [0x89, 'P', 'N', 'G']);
+    case 'jpg': case 'jpeg': return at(0, [0xff, 0xd8, 0xff]);
+    case 'gif': return at(0, 'GIF8');
+    case 'webp': return at(0, 'RIFF') && at(8, 'WEBP');
+    case 'wav': return at(0, 'RIFF') && at(8, 'WAVE');
+    case 'mp3': return at(0, 'ID3') || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0);
+    case 'm4a': return at(4, 'ftyp');
+    case 'csv': case 'txt': case 'md': case 'json': {   // du vrai texte UTF-8, sans octet nul
+      if (!b.length || b.includes(0)) return false;
+      let t; try { t = new TextDecoder('utf-8', { fatal: true }).decode(b, { stream: true }); } catch (e) { return false; }
+      return ext !== 'json' || /^[\s﻿]*[\[{]/.test(t);
+    }
+  }
+  return false;
+}
+function atlPjPourquoi(e) { const m = String((e && e.message) || ''); return /type refuse/.test(m) ? 'Ce type de fichier n’est pas accepté.' : /trop lourd/.test(m) ? 'Fichier trop lourd : 20 Mo au plus.'
+  : /cinq au plus/.test(m) ? '5 fichiers au plus par message.' : /pas arrive|envoi \d+|fichier refuse/.test(m) ? 'Un fichier n’est pas bien arrivé : réessaie.' : /trop souvent|rate/.test(m) ? 'Beaucoup de fichiers d’un coup : attends un peu.' : ''; }
+async function atlPjEnvoyer(f, x) {
+  const r = await rpc('at_fichier_preparer', { p_name: profile.name, p_fiche: f.id, p_nom: x.file.name, p_taille: x.file.size, p_ext: x.ext }, { quiet: true });
+  if (!r || !/^f\/[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(String(r.path || ''))) throw new Error('fichier refuse');
+  const tok = await acctToken(profile); if (!tok) throw new Error('compte requis');
+  const up = await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/atelier-fichiers/' + r.path, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': r.mime || x.mime }, body: x.file }, 120000);
+  if (!up.ok) throw new Error('envoi ' + up.status);
+  return r.id;
+}
+// la zone d'un champ : le bouton 📎 (choix de fichier, plusieurs), les fichiers en attente (✕ pour en retirer un), le glisser-déposer (ordinateur)
+function atlPjZone(msg, maj) {
+  const Z = { l: [] };
+  const inp = atlEl('input'); inp.type = 'file'; inp.multiple = true; inp.hidden = true; inp.accept = Object.keys(ATL_PJ_TYPES).map(e => '.' + e).join(',');
+  const bt = atlEl('button', 'atl-pjb', '📎'); bt.type = 'button'; bt.title = 'Joindre des fichiers (PDF, Word, Excel, texte, images, sons, ZIP · 20 Mo, 5 au plus)'; bt.setAttribute('aria-label', 'Joindre des fichiers');
+  bt.addEventListener('click', () => inp.click()); bt.appendChild(inp);
+  const pl = atlEl('div', 'atl-pjtray'); pl.hidden = true;
+  Z.bouton = bt; Z.plateau = pl;
+  Z.peint = () => {
+    pl.textContent = ''; pl.hidden = !Z.l.length;
+    for (const x of Z.l) { const c = atlEl('span', 'atl-pjc'), no = atlEl('button', 'atl-pjx', '✕'); no.type = 'button'; no.setAttribute('aria-label', 'Retirer ' + x.file.name);
+      no.addEventListener('click', () => { Z.l = Z.l.filter(y => y !== x); msg.textContent = ''; Z.peint(); });
+      c.append(atlEl('span', 'atl-pjci', ATL_PJ_IC[x.famille] || '📎'), atlEl('b', '', x.file.name), atlEl('small', '', atlPjTaille(x.file.size)), no); pl.appendChild(c); }
+    maj();
+  };
+  Z.ajouter = async files => {
+    const err = [];
+    for (const file of [...(files || [])]) {
+      const ext = atlPjExt(file.name), t = ATL_PJ_TYPES[ext];
+      if (Z.l.length >= ATL_PJ_MAX) { err.push(ATL_PJ_MAX + ' fichiers au plus par message'); break; }
+      if (!t) { err.push('« ' + file.name + ' » : ce type de fichier n’est pas accepté'); continue; }
+      if (!file.size) { err.push('« ' + file.name + ' » est vide'); continue; }
+      if (file.size > ATL_PJ_MO) { err.push('« ' + file.name + ' » est trop lourd (20 Mo au plus)'); continue; }
+      if (!(await atlPjSignature(file, ext))) { err.push('« ' + file.name + ' » ne ressemble pas à un vrai fichier .' + ext); continue; }
+      if (Z.l.some(y => y.file.name === file.name && y.file.size === file.size)) continue;
+      Z.l.push({ file, ext, mime: t[0], famille: t[1] });
+    }
+    msg.textContent = err.length ? err.slice(0, 3).join(' · ') + '.' : ''; Z.peint();
+  };
+  inp.addEventListener('change', () => { const fs = [...(inp.files || [])]; inp.value = ''; Z.ajouter(fs); });
+  Z.depot = el => {
+    if (TOUCH || el._pjDepot) return; el._pjDepot = true;
+    const aDesFichiers = e => !!(e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files'));
+    let n = 0;
+    el.addEventListener('dragenter', e => { if (!aDesFichiers(e)) return; e.preventDefault(); n++; el.classList.add('atl-pjdrop'); });
+    el.addEventListener('dragover', e => { if (!aDesFichiers(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    el.addEventListener('dragleave', e => { if (!aDesFichiers(e)) return; if (--n <= 0) { n = 0; el.classList.remove('atl-pjdrop'); } });
+    el.addEventListener('drop', e => { if (!aDesFichiers(e)) return; e.preventDefault(); n = 0; el.classList.remove('atl-pjdrop'); Z.ajouter(e.dataTransfer.files); });
+  };
+  return Z;
+}
+// les cartes d'un message : icône, nom, taille ; toucher = télécharger (jeton du compte : le joueur du projet ou un admin, jamais d'URL publique)
+function atlPjCartes(L) {
+  const w = atlEl('div', 'atl-pjl');
+  for (const x of L.slice(0, ATL_PJ_MAX)) {
+    if (!x) continue;
+    const c = atlEl('button', 'atl-pjcard' + (x.envoi ? ' envoi' : '')); c.type = 'button';
+    const tx = atlEl('span', 'atl-pjct'); tx.append(atlEl('b', '', String(x.nom || 'fichier')), atlEl('small', '', x.envoi ? 'envoi…' : atlPjTaille(x.taille)));
+    c.append(atlEl('span', 'atl-pjci', ATL_PJ_IC[x.type] || '📎'), tx, atlEl('span', 'atl-pjdl', x.envoi ? '⏳' : '⬇'));
+    c.disabled = !!x.envoi; c.setAttribute('aria-label', 'Télécharger ' + (x.nom || 'le fichier'));
+    if (!x.envoi) c.addEventListener('click', async () => {
+      if (!/^f\/[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(String(x.path || ''))) return;
+      c.disabled = true;
+      try {
+        const tok = await acctToken(profile); if (!tok) throw new Error('compte');
+        const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/authenticated/atelier-fichiers/' + x.path, { headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok } }, 120000);
+        if (!r.ok) throw new Error('lecture ' + r.status);
+        const u = URL.createObjectURL(await r.blob()), a = document.createElement('a'); a.href = u; a.download = String(x.nom || 'fichier'); document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(u), 30000);
+      } catch (e) { atlToast('Je n’arrive pas à ouvrir ce fichier : réessaie dans un moment.'); }
+      finally { c.disabled = false; }
+    });
+    w.appendChild(c);
+  }
+  return w;
+}
+// ---- 7 nov. 2026 (Benjamin, « comme dans Meshy ») : ⚡ MODE AUTO, par projet. Le petit rond à côté du micro ouvre un menu : « 🤚 Je valide moi-même »
+// (par défaut) ou « ⚡ Mode auto ». En mode auto, une proposition chiffrée de la mascotte jusqu'à auto_max_credits (20 💎) est acceptée TOUTE SEULE
+// par le serveur (source/mode-auto.sql : at_demande_proposer → at_auto_choisir, même chemin que le « oui ») ; au-dessus ou sans assez de crédits,
+// elle redemande. Jamais d'achat de crédits. at_auto_poser(p_name, p_fiche, p_on) : le joueur ou un admin ; la mascotte le dit dans la discussion.
+function atlAutoFiche(f) { try { const c = atlFiche(); if (c && f && c.id === f.id) return c; } catch (e) {} return f; }
+function atlAutoBouton(f) {
+  const b = atlEl('button', 'atl-autob'); b.type = 'button'; b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false');
+  b._peint = () => { const on = !!(atlAutoFiche(f) || {}).auto, mx = ATL.autoMax || 20;
+    b.textContent = on ? '⚡' : '🤚'; b.classList.toggle('on', on);
+    b.title = on ? 'Mode auto : ' + gNM() + ' lance tout seul (jusqu’à ' + mx + ' 💎)' : 'Je valide moi-même : ' + gNM() + ' attend ton « oui »';
+    b.setAttribute('aria-label', 'Comment ' + gNM() + ' lance tes demandes : ' + (on ? 'mode auto' : 'je valide moi-même')); };
+  b._peint(); b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); atlAutoMenu(b, f); });
+  return b;
+}
+function atlAutoMenu(b, f) {
+  const old = document.getElementById('atl-automenu'); if (old) { const ob = old._b; old._fermer(); if (ob === b) return; }
+  const on = !!(atlAutoFiche(f) || {}).auto, mx = ATL.autoMax || 20;
+  const M = atlEl('div', 'atl-automenu'); M.id = 'atl-automenu'; M.setAttribute('role', 'menu'); M.setAttribute('aria-label', 'Comment ' + gNM() + ' lance tes demandes'); M._b = b;
+  const fermer = () => { M.remove(); b.setAttribute('aria-expanded', 'false'); document.removeEventListener('pointerdown', dehors, true); document.removeEventListener('keydown', esc, true); removeEventListener('resize', fermer); };
+  const dehors = e => { if (!M.contains(e.target) && !b.contains(e.target)) fermer(); };
+  const esc = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermer(); try { b.focus(); } catch (x) {} } };
+  M._fermer = fermer;
+  const it = (val, ic, t, sous) => {
+    const x = atlEl('button', 'atl-autoit' + (val === on ? ' sel' : '') + (val ? ' auto' : '')); x.type = 'button'; x.setAttribute('role', 'menuitemradio'); x.setAttribute('aria-checked', String(val === on));
+    const tx = atlEl('span', 'atl-autotx'); tx.append(atlEl('b', '', t), atlEl('small', '', sous));
+    x.append(atlEl('span', 'atl-autoic', ic), tx, atlEl('span', 'atl-autock', val === on ? '✓' : ''));
+    x.addEventListener('click', () => { fermer(); atlAutoPoser(f, val, b); }); return x; };
+  M.append(it(false, '🤚', 'Je valide moi-même', gNM() + ' te montre le prix et attend ton « oui »'),
+    it(true, '⚡', 'Mode auto', gNM() + ' lance tout seul, jusqu’à ' + mx + ' 💎 par demande. Au-dessus, il te redemande.'));
+  document.body.appendChild(M);
+  const r = b.getBoundingClientRect(), w = Math.min(320, innerWidth - 16); M.style.width = w + 'px';
+  M.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px';
+  const h = M.getBoundingClientRect().height; M.style.top = (r.top - h - 8 >= 8 ? r.top - h - 8 : Math.min(innerHeight - h - 8, r.bottom + 8)) + 'px';
+  b.setAttribute('aria-expanded', 'true');
+  setTimeout(() => { if (M.isConnected) document.addEventListener('pointerdown', dehors, true); }, 0); document.addEventListener('keydown', esc, true); addEventListener('resize', fermer);
+  if (!TOUCH) try { (M.querySelector('.atl-autoit.sel') || M.querySelector('.atl-autoit')).focus(); } catch (e) {}
+}
+async function atlAutoPoser(f, on, b) {
+  const cf = atlAutoFiche(f); if (!cf || !!cf.auto === on) return;
+  for (const x of document.querySelectorAll('.atl-autob')) x.disabled = true;
+  try {
+    const r = await rpc('at_auto_poser', { p_name: profile.name, p_fiche: cf.id, p_on: on }, { quiet: true });
+    cf.auto = f.auto = !!(r && r.auto); if (r && r.max) ATL.autoMax = r.max | 0;
+    atlToast(cf.auto ? '⚡ Mode auto : ' + gNM() + ' lance tout seul, jusqu’à ' + (ATL.autoMax || 20) + ' 💎' : '🤚 ' + gNM() + ' te redemandera avant chaque lancement');
+    try { await atlLoad(true); } catch (e) {}
+  } catch (e) { atlToast('Pas possible pour l’instant : réessaie dans un moment.'); }
+  finally { for (const x of document.querySelectorAll('.atl-autob')) { x.disabled = false; if (x._peint) x._peint(); } }
+}
+try { if (navigator.webdriver) window.JDW_ESSAI_AUTO = () => { const f = atlFiche(); return f ? { id: f.id, auto: !!f.auto } : null; }; } catch (e) {}   // bancs seulement
 function atlMicBouton(field, cls) {   // le bouton 🎤 d'un champ (fenêtres) ; la touche rapide écrite dessus sur ordinateur
   const b = atlEl('button', cls || 'atl-armic', '🎤'); b.type = 'button'; b.setAttribute('aria-label', 'Parler au micro'); if (!TOUCH) { b.dataset.k = 'Ctrl+Espace'; b.title = 'Dicter (Ctrl+Espace)'; }
   b._champ = field; ATL_MICS.add(b); b.addEventListener('click', () => atlMicBascule(field, b)); return b;
