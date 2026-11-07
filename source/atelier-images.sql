@@ -445,3 +445,68 @@ grant execute on function public.at_esp_nouveau(text, text), public.at_esp_lire(
   public.at_esp_image(text, uuid, text, boolean), public.at_esp_parler(text, uuid, text, boolean) to authenticated;
 revoke all on function public.at_gen_prendre(), public.at_gen_fin(uuid, text, text, text, jsonb) from public, anon, authenticated;
 grant execute on function public.at_gen_prendre(), public.at_gen_fin(uuid, text, text, text, jsonb) to service_role;
+
+-- v166 (équipe Études, 7 nov. 2026) : l'ADMIN qui ouvre l'atelier d'un joueur (« PROJETS DES JOUEURS ») voit LE MÊME atelier que lui.
+-- 1) at_esp_types : chaque projet donne aussi sa version et son état (l'écran sait si l'atelier est livré sans attendre at_lire) ;
+--    pour un admin (at_admins), la clé « autres » liste les ateliers (type <> 'jeu') des autres joueurs, même forme + « joueur ».
+-- 2) at_esp_lire : un admin peut LIRE l'atelier d'un autre joueur (crédits du joueur, 'admin_voir' {joueur, solde}).
+-- Rien d'autre ne change : at_esp_fiche (utilisée par fabriquer / parler / importer / recadrer) reste réservée au propriétaire,
+-- donc l'admin ne peut ni écrire ni dépenser dans l'atelier d'un joueur. Le joueur ne voit aucune différence.
+
+create or replace function pegase_int.at_esp_type_ligne(f public.at_fiches)
+ returns jsonb
+ language sql
+ stable security definer
+ set search_path to 'public'
+as $function$
+  select jsonb_build_object('id', f.id, 'type', f.type, 'titre', f.titre, 'version', f.version_jeu, 'etat', f.etat,
+    'images', (select count(*) from public.at_creations c where c.fiche = f.id and c.supprime_at is null),
+    'versions', (select count(*) from public.at_creation_versions v join public.at_creations c on c.id = v.creation where c.fiche = f.id and c.supprime_at is null and v.etat = 'prete'),
+    'en_cours', (select count(*) from public.at_creation_versions v join public.at_creations c on c.id = v.creation where c.fiche = f.id and c.supprime_at is null and v.etat in ('en_cours', 'controle')),
+    'image', (select v.path from public.at_creations c join public.at_creation_versions v on v.id = c.actuelle where c.fiche = f.id and c.supprime_at is null and v.etat = 'prete' order by c.maj_at desc limit 1))
+$function$;
+revoke all on function pegase_int.at_esp_type_ligne(public.at_fiches) from public, anon, authenticated;
+
+create or replace function public.at_esp_types(p_name text)
+ returns jsonb
+ language plpgsql
+ security definer
+ set search_path to 'public', 'extensions'
+as $function$
+#variable_conflict use_variable
+declare n text := public.pg_n(p_name); adm boolean;
+begin
+  perform public.acct_check(n);
+  adm := exists (select 1 from public.at_admins a where a.name = n);
+  return jsonb_build_object('solde', pegase_int.at_solde(n),
+    'prix', jsonb_build_object('image', coalesce(pegase_int.at_reglage('prix_esp_image'), 20), 'agrandir', coalesce(pegase_int.at_reglage('prix_esp_agrandir'), 10)),
+    'projets', coalesce((select jsonb_agg(pegase_int.at_esp_type_ligne(f) order by f.maj_at desc)
+      from public.at_fiches f where f.name = n and f.type <> 'jeu' and f.supprime_at is null and f.etat not in ('refusee', 'supprime')), '[]'::jsonb),
+    'autres', case when adm then coalesce((select jsonb_agg(pegase_int.at_esp_type_ligne(f) || jsonb_build_object('joueur', f.name) order by f.maj_at desc)
+      from public.at_fiches f where f.name <> n and f.type <> 'jeu' and f.supprime_at is null and f.etat not in ('refusee', 'supprime')), '[]'::jsonb) else '[]'::jsonb end);
+end $function$;
+
+create or replace function public.at_esp_lire(p_name text, p_fiche uuid)
+ returns jsonb
+ language plpgsql
+ security definer
+ set search_path to 'public', 'extensions'
+as $function$
+#variable_conflict use_variable
+declare n text := public.pg_n(p_name); f public.at_fiches; j text;
+begin
+  perform public.acct_check(n);
+  select x.name into j from public.at_fiches x where x.id = p_fiche and x.supprime_at is null;
+  if j is not null and j <> n and exists (select 1 from public.at_admins a where a.name = n) then
+    -- lecture admin : l'atelier du joueur tel qu'il le voit (ses crédits), rien n'est écrit
+    f := pegase_int.at_esp_fiche(j, p_fiche);
+    return pegase_int.at_esp_json(f) || jsonb_build_object('solde', pegase_int.at_solde(j),
+      'prix', jsonb_build_object('image', coalesce(pegase_int.at_reglage('prix_esp_image'), 20), 'agrandir', coalesce(pegase_int.at_reglage('prix_esp_agrandir'), 10)),
+      'deja_paye', exists (select 1 from public.at_creation_versions v join public.at_creations c on c.id = v.creation where c.name = j and v.prix > 0),
+      'admin_voir', jsonb_build_object('joueur', j, 'solde', pegase_int.at_solde(j)));
+  end if;
+  f := pegase_int.at_esp_fiche(n, p_fiche);
+  return pegase_int.at_esp_json(f) || jsonb_build_object('solde', pegase_int.at_solde(n),
+    'prix', jsonb_build_object('image', coalesce(pegase_int.at_reglage('prix_esp_image'), 20), 'agrandir', coalesce(pegase_int.at_reglage('prix_esp_agrandir'), 10)),
+    'deja_paye', exists (select 1 from public.at_creation_versions v join public.at_creations c on c.id = v.creation where c.name = n and v.prix > 0));
+end $function$;

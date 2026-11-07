@@ -587,3 +587,7 @@
   .crea-oimg.at > *{grid-column:1;grid-row:auto}
   .crea-oimg.at .crea-colo{grid-column:1;grid-row:auto;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:var(--cg)}
 }
+/* vue admin (7 nov.) : l'atelier d'un joueur, en lecture */
+.crea .crea-fil .crea-admb{margin-left:10px;padding:3px 10px;border-radius:999px;background:#ffe3e3;color:#b4232c;font-weight:800;font-size:12px;white-space:nowrap}
+@media (prefers-color-scheme:dark){.crea .crea-fil .crea-admb{background:#4a1d22;color:#ffb3b8}}
+@media (max-width:699px){.crea .crea-fil .crea-admb{margin-left:0;padding:1px 8px}.crea .crea-fil .crea-admb .l{display:none}}
