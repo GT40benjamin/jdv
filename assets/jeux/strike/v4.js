@@ -7,7 +7,7 @@
 // Ce petit module dessine la vignette et charge le moteur (assets/jeux/strike/v4/moteur.bin : three.js r180, licence MIT, + le jeu, gzippé).
 // Images des monstres : v2/tetes.bin ; vignette : v2/apercu.bin ; sons : v1/sons.bin ; musiques assets/music/strike-1..4.mp3. Une variable globale en plus : window.JDW_STRIKE.
 (function () {
-const WANT = "8554b6dd";
+const WANT = "758feeb4";
 const ROOT = () => window.JDW_ROOT || '';
 
 /* ---------- la vignette : deux images de la vraie scène 3D (la boule arrive sur les monstres, puis la cascade et « STRIKE ! ») ---------- */
