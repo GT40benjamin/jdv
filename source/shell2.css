@@ -6029,4 +6029,17 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-espace .atl-pane[data-k="route"] .atl-vh p{font:600 15px/1.5 var(--body)}.atl-espace .atl-pane[data-k="route"] .atl-vh li{font:600 14px/1.45 var(--body)}
 .atl-esb[data-k="route"] .lab{line-height:1.2}
 .atl-est.deux .lab{white-space:normal;line-height:1.05;text-align:center;font-size:10px}
-.atl-estabs:has(.atl-est:nth-child(8)) .atl-est.deux .lab{font-size:9.5px;letter-spacing:-.25px}
+/* 2.1.13 (testeur) : vue admin au téléphone (8 onglets) — aucun libellé coupé : la barre défile, chaque onglet garde son mot entier */
+@media (max-width:900px){
+  #jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-estabs:has(.atl-est:nth-child(8)){justify-content:flex-start;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
+  .atl-estabs:has(.atl-est:nth-child(8))::-webkit-scrollbar{display:none}
+  .atl-estabs:has(.atl-est:nth-child(8)) .atl-est{flex:0 0 auto;min-width:56px;padding:2px 7px}
+  .atl-estabs:has(.atl-est:nth-child(8)) .atl-est .lab{overflow:visible}
+  .atl-estabs:has(.atl-est:nth-child(8)) .atl-est.deux{min-width:64px}
+}
+/* 2.1.13 (testeur) : « Ta première version arrive » lisible ; fenêtre admin : l'icône à gauche, le texte à côté */
+.atl-espace .atl-vvide p{margin:0;color:#46395e;font:700 15px/1.5 var(--body)}
+.atl-admact .btn{display:flex;align-items:center;gap:10px}
+.atl-admact .atl-admic{flex:none;width:24px;text-align:center;font-size:18px;line-height:1}
+.atl-admact .atl-admtx{flex:1;min-width:0}

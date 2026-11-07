@@ -16964,8 +16964,9 @@ function atlVSortie(W, f) {
   if (bn) bn.remove();
   bn = atlEl('div', 'atl-vsortie'); bn.dataset.v = String(v);
   const quand = vh && Date.parse(vh.at) ? atlQuand(vh.at) : '';   // 2.0.134 (l'admin) : la date et l'heure de sortie, comme les autres messages
-  const tx = atlEl('div'); tx.append(atlEl('b', '', '🎉 Ta V' + v + ' est sortie' + (quand ? ' ' + quand : '') + ' !'), atlEl('small', '', vh && vh.note ? String(vh.note) : 'Essaie-la tout de suite.'));
-  const go = atlEl('button', 'btn btn-play atl-essai', String(f.etat) === 'publie_monde' && (f.version_publiee | 0) === v ? '▶ JOUER' : '▶️ Essayer ma V' + v); go.type = 'button'; go.addEventListener('click', () => atlJouerVrai(f));
+  const adm = !!(ATL.adminVoir && ATL.adminVoir.id === f.id), qui = adm ? dispName(((ATL.data && ATL.data.admin_voir) || {}).joueur || f.name || '') : '';   // 2.1.13 (testeur) : en vue admin, ce n'est pas « ta » version
+  const tx = atlEl('div'); tx.append(atlEl('b', '', '🎉 ' + (adm ? 'La V' + v + (qui ? ' de ' + qui : '') : 'Ta V' + v) + ' est sortie' + (quand ? ' ' + quand : '') + ' !'), atlEl('small', '', vh && vh.note ? String(vh.note) : adm ? 'Essaie-la comme le joueur la voit.' : 'Essaie-la tout de suite.'));
+  const go = atlEl('button', 'btn btn-play atl-essai', String(f.etat) === 'publie_monde' && (f.version_publiee | 0) === v ? '▶ JOUER' : (adm ? '▶️ Essayer la V' : '▶️ Essayer ma V') + v); go.type = 'button'; go.addEventListener('click', () => atlJouerVrai(f));
   bn.append(atlGuideAv(), tx, go);
   const her = box.querySelector('.atl-pane[data-k="jeu"] .atl-eshero');   // 2.0.153 (chef) : dans l'espace du jeu, seulement dans « Mon jeu », sous la grande carte
   if (her) { her.insertAdjacentElement('afterend', bn); return; }
@@ -17137,7 +17138,7 @@ function atlEspace(W, box, f, g, pane) {
     // 2.1.13 (l'admin : « Feuille de route et Versions, ça va ensemble ») : dessous, les versions (V1, V2… la plus récente en haut, notes et demandes)
     p.appendChild(atlEl('h3', 'atl-ph3 atl-esvh3', '🗂️ Les versions'));
     const vs = (Array.isArray(f.versions) ? f.versions.slice() : []).filter(v => v && (v.v | 0)).sort((a, b) => (b.v | 0) - (a.v | 0));
-    if (!vs.length) p.appendChild(atlEl('p', 'atl-chv', 'Ta première version arrive : elle s’affichera ici.'));
+    if (!vs.length) { const c = atlEl('div', 'atl-vh atl-escard atl-vvide'); c.appendChild(atlEl('p', '', 'Ta première version arrive : elle s’affichera ici.')); p.appendChild(c); }   // 2.1.13 (testeur) : lisible, dans une carte claire
     for (const v of vs) { const d0 = new Date(v.at), r = atlEl('div', 'atl-vh atl-escard');
       r.append(atlEl('b', '', 'V' + v.v + ((v.v | 0) === (f.version_publiee | 0) ? ' · 🌍 en ligne' : '') + (isNaN(d0) ? '' : ' · ' + d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }))), atlEl('p', '', v.note || ''));
       if (Array.isArray(v.demandes) && v.demandes.length) { const ul = atlEl('ul'); for (const t of v.demandes.slice(0, 8)) ul.appendChild(atlEl('li', '', String(t))); r.appendChild(ul); }
@@ -19908,7 +19909,7 @@ function atlAdminFenRemplir(c, m, av, rp) {
   if (rp && av) { const rb = atlEl('div', 'atl-rentb atl-admchif'); for (const t of atlRentLong(rp, ((ATL_RENT.d || {}).joueurs || {})[av.joueur], av.joueur)) rb.appendChild(atlEl('small', '', t)); c.appendChild(rb); }
   else c.appendChild(atlEl('p', 'atl-admvide', 'Les chiffres du projet arrivent…'));
   const a = atlEl('div', 'atl-admact');
-  for (const [t, fn] of atlAdminActions(m)) { const x = atlEl('button', 'btn btn-ghost', t); x.type = 'button'; x.addEventListener('click', () => { atlAdminFenFermer(); fn(); }); a.appendChild(x); }
+  for (const [t, fn] of atlAdminActions(m)) { const x = atlEl('button', 'btn btn-ghost'), mi = t.match(/^(\S+)\s+(.*)$/); x.type = 'button'; if (mi) x.append(atlEl('span', 'atl-admic', mi[1]), atlEl('span', 'atl-admtx', mi[2])); else x.textContent = t; x.addEventListener('click', () => { atlAdminFenFermer(); fn(); }); a.appendChild(x); }
   const fe = atlEl('button', 'btn btn-play atl-admfer', 'Fermer'); fe.type = 'button'; fe.addEventListener('click', atlAdminFenFermer);
   c.append(a, fe);
   if (foc) { const x = [...c.querySelectorAll('button')].find(y => y.textContent === foc); if (x) x.focus({ preventScroll: true }); }
