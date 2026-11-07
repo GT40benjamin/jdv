@@ -12,7 +12,7 @@
 (() => {
   'use strict';
   if (typeof atlOuvrir !== 'function' || typeof atlNouveau !== 'function' || typeof atlRenderProjets !== 'function') return;
-  const AIM = { open: false, root: null, fiche: null, d: null, cur: null, vue: 'atelier', mode: 'comparer', pos: 0.5, msgs: [], loc: [], prop: null,
+  const AIM = { regardes: new Set(), open: false, root: null, fiche: null, d: null, cur: null, vue: 'atelier', mode: 'comparer', pos: 0.5, msgs: [], loc: [], prop: null,
     types: {}, typesAt: 0, off: false, prix: { image: 20 }, solde: null, poll: 0, tick: 0, busy: false, nv: null, vuAt: 0, ouverts: {} };
   try { if (navigator.webdriver) window.JDW_ESSAI_AIM = AIM; } catch (e) {}
   const _ouvrir = atlOuvrir, _nouveau = atlNouveau, _renderProjets = atlRenderProjets;
@@ -63,7 +63,17 @@
       depot: 'Dépose ta photo ici', ajouter: '＋ Ajouter une photo', invite: 'Dis-moi ce que tu veux faire avec cette photo',
       resultat: 'Photos retouchées',
       // la MINIATURE du type dans les listes (Mes projets, Projets des joueurs) tant qu'aucune photo n'est retouchée ; jamais une manette
-      miniature: 'accueil/atelier-photo-mini.svg', videResultat: 'Tes photos retouchées arriveront ici : chaque retouche faite dans ton atelier, prête à télécharger.',
+      miniature: 'accueil/atelier-photo-mini.svg',
+      // les OUTILS de Mon atelier, en colonne à droite de la photo (l'admin, 7 nov.) : un outil de plus = une ligne ici + son action dans OUTILS_FN
+      // prix : 'image' (prix d'une retouche, annoncé), 'gratuit' (fait par le code), 'bientot'
+      outils: [
+        { k: 'parler', e: '🗣️', t: 'Retoucher en parlant', prix: 'image', bg: '#efe6ff' },
+        { k: 'style', e: '🖌️', t: 'Changer le style', prix: 'image', bg: '#e2f4ff' },
+        { k: 'recadrer', e: '✂️', t: 'Recadrer', prix: 'gratuit', bg: '#e5f7ea' },
+        { k: 'enlever', e: '🧽', t: 'Enlever un objet', prix: 'bientot', bg: '#ffe9e1' },
+        { k: 'ajouter', e: '🌟', t: 'Ajouter un objet', prix: 'bientot', bg: '#fff4cf' },
+        { k: 'agrandir', e: '🔍', t: 'Agrandir', prix: 'bientot', bg: '#ffe6f3' }
+      ], videResultat: 'Tes photos retouchées arriveront ici : chaque retouche faite dans ton atelier, prête à télécharger.',
       fond: 'studio'
     }
   };
@@ -502,6 +512,28 @@
       if (JSON.stringify(AIM.d && AIM.d.creations) !== avant || AIM.msgs.length !== nm) render();
     }, 3000);
   }
+  // la liste déroulante des versions posée sur l'image : une ligne par version (numéro, résumé court de la demande, prix) ; ratées / en cours grisées
+  const resume = v => { const t = v.outil === 'import' ? 'Originale' : v.outil === 'recadrer' ? 'Recadrée' : String(v.consigne || 'Retouche').replace(/\s+/g, ' ').trim();
+    if (t.length <= 34) return t; const m = t.slice(0, 34); return m.slice(0, Math.max(18, m.lastIndexOf(' '))) + '…'; };
+  function listeVersions(c, v, k, lib) {
+    const w = E('label', 'crea-vsel' + (k === 'image' ? '' : ' v-' + k)), s = E('select');
+    if (lib) w.appendChild(E('span', 'l', lib + ' :'));
+    for (const x of c.versions.slice().sort((a, b) => b.n - a.n)) {
+      const o = E('option'), pret = x.etat === 'prete' && !!x.path, etat = pret ? '' : ['ratee', 'refusee'].includes(x.etat) ? ' · ratée, rendus' : ' · en cours';
+      o.value = x.id; o.textContent = 'V' + x.n + ' · ' + resume(x) + (x.prix ? ' · ' + x.prix + ' ' + D : x.outil === 'import' ? '' : ' · gratuit') + etat;
+      o.disabled = !pret; if (x.id === (v && v.id)) o.selected = true; s.appendChild(o);
+    }
+    s.setAttribute('aria-label', lib ? lib + ' : version' : 'Version affichée');
+    s.addEventListener('pointerdown', e => e.stopPropagation()); s.addEventListener('click', e => e.stopPropagation());
+    s.addEventListener('change', async () => {
+      const id = s.value, x = verDe(c, id); if (!x || x.etat !== 'prete') return;
+      if (k === 'image') {
+        if (adm()) { c.actuelle = id; AIM.pos = 0.5; render(); return; }
+        try { await rpc('at_esp_choisir', { p_name: nom(), p_creation: c.id, p_version: id }, { quiet: true }); c.actuelle = id; AIM.pos = 0.5; AIM.cmp = null; render(); charger(); } catch (e) { toast('Oups, réessaie'); }
+      } else { AIM.cmp = Object.assign({ c: c.id }, AIM.cmp && AIM.cmp.c === c.id ? AIM.cmp : {}, { [k]: id }); AIM.pos = 0.5; render(); }
+    });
+    w.appendChild(s); return w;
+  }
   const curCrea = () => (AIM.d && (AIM.d.creations || []).find(c => c.id === AIM.cur)) || null;
   const verDe = (c, id) => c && c.versions.find(v => v.id === id);
   function bougerCred() { const c = AIM.root && AIM.root.querySelector('.crea-cred'); if (c) { c.classList.remove('bouge'); void c.offsetWidth; c.classList.add('bouge'); } }
@@ -667,8 +699,13 @@
   function renderAtelier(O) {
     const c = curCrea();
     if (!c) { if (atelierOuvert(AIM.fiche)) renderDepot(O); else videImport(O, 'Importe ta première image', 'Une photo, un dessin, un paysage, ton animal… Ensuite, dis-moi ce que tu veux changer.'); return; }
-    const act = verDe(c, c.actuelle), att = c.versions.find(v => ['envoi', 'controle', 'en_cours'].includes(v.etat));
-    const avant = act && (verDe(c, act.parent) || (act.n > 1 ? c.versions.find(v => v.n === 1 && v.etat === 'prete') : null));
+    const act0 = verDe(c, c.actuelle), att = c.versions.find(v => ['envoi', 'controle', 'en_cours'].includes(v.etat));
+    // Comparer / Côte à côte : « Avant : V2 ▾ » et « Après : V5 ▾ » se choisissent librement (rien n'est écrit) ; Image : la version choisie devient l'actuelle
+    const pretes = c.versions.filter(v => v.etat === 'prete' && v.path);
+    const choix = AIM.cmp && AIM.cmp.c === c.id ? AIM.cmp : null;
+    const act = (AIM.mode !== 'image' && choix && verDe(c, choix.apres) && verDe(c, choix.apres).etat === 'prete') ? verDe(c, choix.apres) : act0;
+    const avant = (choix && verDe(c, choix.avant) && verDe(c, choix.avant).etat === 'prete' && choix.avant !== (act && act.id)) ? verDe(c, choix.avant)
+      : act && (verDe(c, act.parent) || (act.n > 1 ? c.versions.find(v => v.n === 1 && v.etat === 'prete') : null) || pretes.find(v => v.id !== act.id));
     const G = E('div', 'crea-oimg' + (atelierOuvert(AIM.fiche) ? ' at' : ''));
     // la scène
     const S = E('div', 'crea-carte crea-scene'), L = E('div', 'crea-lh');
@@ -678,7 +715,7 @@
     const seg = E('div', 'crea-seg');
     for (const [k, t] of [['image', 'Image'], ['comparer', 'Comparer'], ['cote', 'Côte à côte']]) {
       const b = B((AIM.mode === k ? 'on ' : '') + k, t, () => { AIM.mode = k; render(); });
-      if (k !== 'image' && !avant) b.disabled = true; seg.appendChild(b);
+      if (k !== 'image' && pretes.length < 2) b.disabled = true; seg.appendChild(b);
     }
     L.appendChild(seg); S.appendChild(L);
     const mode = avant ? AIM.mode : 'image';
@@ -688,7 +725,7 @@
       const w = E('div', 'crea-attente'); w.append(E('div', 'crea-anneau'), E('div', '', att && att.etat === 'controle' ? 'Je regarde ta photo… 👀' : 'J’ouvre ta photo…')); Cd.appendChild(w);
     } else if (mode === 'comparer') {
       Cd.append(img(avant.path), img(act.path, 'apres'), E('div', 'ligne'), E('div', 'poignee', '⟷'));
-      const e1 = E('span', 'et', 'Avant · V' + avant.n), e2 = E('span', 'et', 'Après · V' + act.n); e1.style.left = '10px'; e2.style.right = '10px'; Cd.append(e1, e2);
+      const e1 = listeVersions(c, avant, 'avant', 'Avant'), e2 = listeVersions(c, act, 'apres', 'Après'); e1.style.left = '10px'; e2.style.right = '10px'; Cd.append(e1, e2);
       const poser = x => { AIM.pos = Math.max(0, Math.min(1, x)); Cd.querySelector('.apres').style.clipPath = 'inset(0 0 0 ' + (AIM.pos * 100) + '%)'; Cd.querySelector('.ligne').style.left = Cd.querySelector('.poignee').style.left = (AIM.pos * 100) + '%'; };
       let tire = false; const xr = e => { const r = Cd.getBoundingClientRect(); return (e.clientX - r.left) / r.width; };
       Cd.addEventListener('pointerdown', e => { tire = true; try { Cd.setPointerCapture(e.pointerId); } catch (x) {} poser(xr(e)); });
@@ -697,8 +734,8 @@
       Cd.tabIndex = 0; Cd.setAttribute('aria-label', 'Avant / après : flèches gauche et droite'); Cd.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); poser(AIM.pos + (e.key === 'ArrowLeft' ? -0.08 : 0.08)); } });
       setTimeout(() => poser(AIM.pos), 0);
     } else if (mode === 'cote') {
-      for (const [v, t] of [[avant, 'Avant · V'], [act, 'Après · V']]) { const d = E('div'); d.appendChild(img(v.path)); const e = E('span', 'et', t + v.n); e.style.left = '10px'; d.appendChild(e); Cd.appendChild(d); }
-    } else Cd.appendChild(img(act.path));
+      for (const [v, k, t] of [[avant, 'avant', 'Avant'], [act, 'apres', 'Après']]) { const d = E('div'); d.appendChild(img(v.path)); const e = listeVersions(c, v, k, t); e.style.left = '10px'; d.appendChild(e); Cd.appendChild(d); }
+    } else { Cd.appendChild(img(act.path)); const e = listeVersions(c, act, 'image', ''); e.style.left = '10px'; Cd.appendChild(e); }
     S.appendChild(Cd); depotSur(Cd);
     // 👁️ {g} regarde la photo : son commentaire (ce qu'il voit, ce qu'il propose, le prix), « Oui, fais-le » ou « Je veux autre chose »
     if (act && !att) S.appendChild(carteRegard(c, act));
@@ -715,20 +752,17 @@
     go.append(E('span', 'lbl', 'Retoucher '), '✨ ', E('span', 'crea-prix', (AIM.prix.image | 0) + ' ' + D)); go.setAttribute('aria-label', 'Retoucher mon image'); if (!act || att) { go.classList.add('attend'); go.setAttribute('aria-disabled', 'true'); }
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TOUCH) { e.preventDefault(); go.click(); } });
     dem.append(ch, go); S.appendChild(dem); G.appendChild(S);
-    // les versions
-    const Vb = E('div', 'crea-carte crea-versions'), vh = E('div', 'crea-h', '🕘 VERSIONS'); vh.appendChild(E('small', '', etroit() ? '' : 'toutes gardées, reviens à n’importe laquelle')); Vb.appendChild(vh);
-    Vb.appendChild(bande(c)); G.appendChild(Vb);
+    // les versions : la liste déroulante posée sur l'image (l'admin, 7 nov.) — plus de bande de vignettes
     // outils + mon image
     const col = E('div', 'crea-colo'), ob = E('div', 'crea-carte crea-boite'); ob.appendChild(E('div', 'crea-h', '🧰 OUTILS'));
     const gr = E('div', 'crea-grille');
     const outil = (e, t, prix, bg, fn, off) => { const b = B('crea-ot', null, fn); const ic = E('span', 'e', e); ic.style.background = bg; b.append(ic, E('b', '', t), E('span', 'crea-prix' + (prix === 'gratuit' ? ' gratuit' : prix === 'bientôt' ? ' bientot' : ''), prix)); if (off) b.disabled = true; gr.appendChild(b); };
     const libre = !!act && !att, px = (AIM.prix.image | 0) + ' ' + D;
-    outil('🗣️', 'Retoucher en parlant', px, '#efe6ff', () => { ta.focus(); try { atlMicBascule(ta, mic); } catch (e) {} }, !libre);
-    outil('🖌️', 'Changer le style', px, '#e2f4ff', () => styles(c), !libre);
-    outil('✂️', 'Recadrer', 'gratuit', '#e5f7ea', () => recadrer(c, act), !libre);
-    outil('🧽', 'Enlever un objet', 'bientôt', '#ffe9e1', null, true);
-    outil('🌟', 'Ajouter un objet', 'bientôt', '#fff4cf', null, true);
-    outil('🔍', 'Agrandir', 'bientôt', '#ffe6f3', null, true);
+    const OUTILS_FN = { parler: () => { ta.focus(); try { atlMicBascule(ta, mic); } catch (e) {} }, style: () => styles(c), recadrer: () => recadrer(c, act) };
+    for (const o of atelierDe(AIM.fiche).outils || []) {
+      const fn = OUTILS_FN[o.k], bientot = o.prix === 'bientot' || !fn;
+      outil(o.e, o.t, bientot ? 'bientôt' : o.prix === 'gratuit' ? 'gratuit' : px, o.bg, bientot ? null : fn, bientot || !libre);
+    }
     ob.appendChild(gr); col.appendChild(ob);
     const mb = E('div', 'crea-carte crea-boite crea-actions'); mb.appendChild(E('div', 'crea-h', '📦 MON IMAGE'));
     const dl = B('crea-bt violet', '⬇️ Télécharger', () => telecharger(c, act)); if (!act) dl.disabled = true; dl.style.justifyContent = 'flex-start';
@@ -763,15 +797,19 @@
     const dem = [...AIM.msgs].reverse().find(m => !m.pk && RX_REGARD.test(m.t) && [...paths].some(p => m.t.includes(p)));
     if (!dem) return null;
     const rep = AIM.msgs.find(m => m.pk && m.at && dem.at && m.at > dem.at && !/^(✅|⏳)/.test(m.t));
-    if (rep && c.versions.some(v => v.outil !== 'import' && v.at && v.at > rep.at)) return null;   // déjà fait : la carte s'en va
+    if (rep && c.versions.some(v => v.outil !== 'import' && v.at && v.at > rep.at)) return { fait: true };   // déjà fait : la carte s'en va
     return { dem, rep };
   }
   function proposition(t) { const m = String(t).match(/je te propose\s*:?\s*([\s\S]+)/i); return sansChemin(m ? m[1] : t).replace(/[·•]?\s*\d+\s*💎/g, '').replace(/\s+/g, ' ').trim().slice(0, 380); }
   function carteRegard(c, act) {
     const K = E('div', 'crea-regard'), r = regardDe(c), px = (AIM.prix.image | 0) + ' ' + D;
-    if (!r) {
-      const b = B('crea-bt blanc crea-regard-go', '👁️ ' + PK() + ' regarde ma photo', () => regarder(c, act));
-      K.append(b, E('small', '', 'Il te dit ce qu’il voit et ce qu’il te propose, avec le prix. Gratuit.')); return K;
+    if (r && r.fait) return K;
+    if (!r) {   // l'admin (7 nov.) : plus de bouton 👁️ — dès qu'une photo est déposée, {g} la regarde tout seul, une seule fois par photo
+      if (!adm() && act && act.outil === 'import' && !AIM.regardes.has(c.id)) { AIM.regardes.add(c.id); setTimeout(() => regarder(c, act), 0); }
+      if (!AIM.regardes.has(c.id)) return K;
+      const im0 = E('img'); im0.alt = ''; im0.src = POSE('dessine'); const col0 = E('div');
+      col0.append(E('b', '', '👁️ ' + PK() + ' regarde ta photo…'), E('p', '', 'Il t’écrit ici ce qu’il voit et ce qu’il te propose, avec le prix. Rien n’est fait sans ton accord.'));
+      K.classList.add('vu'); K.append(im0, col0); return K;
     }
     const im = E('img'); im.alt = ''; im.src = POSE(r.rep ? 'idee' : 'dessine');
     const col = E('div');

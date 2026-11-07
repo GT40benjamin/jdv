@@ -619,3 +619,21 @@
 .crea-disc .crea-of.atl-chat{display:block;background:transparent;border:0;box-shadow:none;overflow:visible;border-radius:0;min-height:0}
 /* le bouton RETOUCHER en attente (photo en cours / en vérification) : grisé mais il répond toujours (il dit pourquoi) */
 .crea-bt.go.attend{opacity:.55;filter:saturate(.6)}
+/* lot A (l'admin, 7 nov.) : les OUTILS en colonne à droite de la photo (la place du panneau de {g}) ; plus de bande de versions */
+@media (min-width:900px){
+  .crea.at-centre .crea-oimg.at{grid-template-columns:minmax(0,1fr) 250px;grid-template-rows:minmax(0,1fr)}
+  .crea.at-centre .crea-oimg.at > .crea-scene{grid-column:1;grid-row:1}
+  .crea.at-centre .crea-oimg.at .crea-colo{grid-column:2;grid-row:1;display:flex;flex-direction:column;gap:var(--cg)}
+  .crea.at-centre .crea-oimg.at .crea-grille{grid-template-columns:1fr;gap:6px}
+  .crea.at-centre .crea-oimg.at .crea-ot{flex-direction:row;justify-content:flex-start;text-align:left;padding:7px 10px;gap:10px}
+  .crea.at-centre .crea-oimg.at .crea-ot .e{width:36px;height:36px;font-size:19px;flex:0 0 36px}
+  .crea.at-centre .crea-oimg.at .crea-ot b{flex:1;font-size:14px}
+}
+/* la liste déroulante des versions, posée sur l'image */
+.crea-vsel{position:absolute;top:10px;z-index:3;display:flex;align-items:center;gap:6px;max-width:calc(50% - 16px);overflow:hidden;padding:4px 6px 4px 10px;border-radius:999px;background:rgba(20,14,34,.78);color:#fff;font-size:13px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.crea-vsel .l{white-space:nowrap;flex:0 0 auto}
+.crea-vsel select{flex:1 1 auto;width:100%;min-width:0;max-width:100%;border:0;border-radius:999px;padding:5px 26px 5px 10px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%233b1d6e'/%3E%3C/svg%3E") no-repeat right 10px center;color:#2a1f45;font:700 13px/1.2 var(--body);-webkit-appearance:none;appearance:none;cursor:pointer;text-overflow:ellipsis}
+.crea-vsel select option:disabled{color:#9a93ad}
+.crea-cadre:not(.cote) .crea-vsel:not(.v-avant):not(.v-apres){max-width:min(calc(100% - 20px),460px)}
+.crea-cadre.cote > div{position:relative}
+@media (max-width:699px){.crea-vsel{font-size:12px;padding:3px 4px 3px 8px}.crea-vsel select{font-size:12px;padding:4px 22px 4px 8px}}
