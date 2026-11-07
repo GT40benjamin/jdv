@@ -6986,7 +6986,8 @@ function mount(root, api) {
       if (L.length === 0) L.push({ ico: '🎒', txt: 'Sac vide', f: () => {}, off: true });
       L.push(retour());
     } else if (CB.menu === 'objetCible') {
-      for (const G of CB.moi) L.push({ ico: G.sorte === 'hero' ? '🧑‍🚀' : G.sorte === 'robot' ? '🤖' : '🐾', txt: G.nom + ' ' + Math.round(G.pv) + '/' + G.pvMax, f: () => utiliserObjet(F, CB.objet, G), off: G.ko && !(OBJETS[CB.objet] && OBJETS[CB.objet].rappel) });
+      { const rap = !!(OBJETS[CB.objet] && OBJETS[CB.objet].rappel);   /* V27 (ticket 7819ba4e) : « réanimer avant de soigner les K.-O., et marquer K.-O. » */
+        for (const G of CB.moi) L.push({ ico: G.sorte === 'hero' ? '🧑‍🚀' : G.sorte === 'robot' ? '🤖' : '🐾', txt: G.nom + (G.ko ? ' 💤 K.-O.' + (rap ? '' : ' → 🌸 d’abord') : ' ' + Math.round(G.pv) + '/' + G.pvMax + (rap ? ' · pas K.-O.' : '')), f: () => utiliserObjet(F, CB.objet, G), off: G.ko ? !rap : rap }); }
       L.push(retour('objet'));
     } else if (CB.menu === 'balle') {
       for (const b of BALLES) if (A.objets[b.id] > 0) L.push({ ico: '🔮', txt: b.nom + ' (' + A.objets[b.id] + ')', f: () => { CB.balle = b; CB.menu = 'cibleBalle'; }, c: b.c, balle: b });
@@ -7136,6 +7137,7 @@ function mount(root, api) {
     ctx.fillText(F.nom + ' ' + typesTxt(F), tx, y + 5 * U, tw - 34 * U); ctx.textAlign = 'right'; ctx.fillStyle = '#ffe9a8'; ctx.fillText('niv. ' + F.n, x + w - 7 * U, y + 5 * U);
     barre(tx, y + 22 * U, tw, 7 * U, F.pv / F.pvMax, coulPV(F.pv / F.pvMax));
     barre(tx, y + 33 * U, tw, 5 * U, F.ene / F.eneMax, '#ffe23a');
+    if (F.ko) { ctx.save(); ctx.globalAlpha = 1; ctx.font = '800 ' + Math.round(12 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,8,30,0.95)'; ctx.fillStyle = '#ffb3dc'; ctx.strokeText('💤 K.-O.', tx + tw / 2, y + 27 * U); ctx.fillText('💤 K.-O.', tx + tw / 2, y + 27 * U); ctx.restore(); }   /* V27 (ticket 7819ba4e) */
     if (F.etat) { ctx.font = Math.round(12 * U) + 'px system-ui'; ctx.textAlign = 'right'; ctx.fillText({ br: '🔥', gel: '🧊', som: '💤', poi: '☠️', etou: '💫' }[F.etat], x + w - 4 * U, y - 6 * U); }
     if (F.passe) { ctx.font = '700 ' + Math.round(10 * U) + 'px ' + FB; ctx.fillStyle = '#bcd0ff'; ctx.textAlign = 'left'; ctx.fillText('se repose', tx, y - 12 * U); }
     ctx.restore();
@@ -8593,9 +8595,12 @@ function mount(root, api) {
   // ---------------------------------------------------------------- la faune du crash : des probabilités, le plus précieux le plus rare
   const EXCLUS_CR = ['ver', 'dragon', 'gardien', 'trex', 'apatosaure'];
   const POIDS_RAR = { 1: 12, 2: 6, 3: 2.5, 4: 0.7 };
+  // V27 (ticket f6292a57, « grotte de cristal : des Astrofaunes puissants, et d'autres qu'on ne trouve qu'ici ») : 4 familles de cristal ne vivent QUE dans la grotte
+  const FAM_GROTTE = /^(quartz|prisme|cube|fourmilier)\d$/;
   let poolStade = function (st, pref) {
-    return AF_LISTE.filter(id => { const a = AF[id]; return a && a.st === st && !a.legende && (a.rar || 1) < 5 && dessinee(id) && ESPECES[id] && !EXCLUS_CR.includes(id) && (!pref || a.t.some(x => pref.includes(x))); });
+    return AF_LISTE.filter(id => { const a = AF[id]; return a && a.st === st && !a.legende && (a.rar || 1) < 5 && dessinee(id) && ESPECES[id] && !EXCLUS_CR.includes(id) && !FAM_GROTTE.test(id) && (!pref || a.t.some(x => pref.includes(x))); });
   }
+  const poolGrotte = st => AF_LISTE.filter(id => FAM_GROTTE.test(id) && AF[id] && AF[id].st === st && dessinee(id) && ESPECES[id]);
   function tirerPoids(L, r) {
     if (!L.length) return null; let tot = 0; const w = L.map(id => { const a = AF[id], p = (POIDS_RAR[a.rar || 1] || 0.5) * (a.b && a.b.includes(PL.bid) ? 3 : 1); tot += p; return p; });
     let x = r() * tot; for (let i = 0; i < L.length; i++) { x -= w[i]; if (x <= 0) return L[i]; } return L[L.length - 1];
@@ -9331,10 +9336,11 @@ function mount(root, api) {
   function peuplerGrotte() {
     const r = MONDE.rng(PL.seed ^ 909), L = [], cx = J.x, cy = J.y; let id = 4200;
     for (let g = 0; g < 9; g++) { const a = r() * TAU, d = 700 + r() * 2400, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d; if (TER.info(x, y).liq) continue;
-      const fort = r() < 0.2, n = fort ? 1 : 1 + Math.floor(r() * 3);
-      for (let i = 0; i < n; i++) { const e = tirerPoids(poolStade(fort ? 1 : 0, ['ombre', 'lueur', 'roc', 'givre']), r) || tirerPoids(poolStade(0), r); if (!e) continue;
-        const c = nouvelle(id++, e, x + (r() - 0.5) * 150, y + (r() - 0.5) * 110, r, fort ? { feroce: true, nivFixe: 8 + Math.floor(r() * 5) } : { nivFixe: 3 + Math.floor(r() * 4) }); c.crash = fort ? 'fort' : 'bebe'; L.push(c); } }
-    if (r() < 0.05) { const e = tirerPoids(poolStade(2, ['ombre', 'lueur']), r); if (e) { const c = nouvelle(id++, e, cx + 2600, cy - 900, r, { terrible: true, feroce: true, echelle: 1.3, nivFixe: 18 }); c.crash = 'terrible'; L.push(c); } }
+      /* V27 (ticket f6292a57) : plus de bêtes fortes (35 %, niv. 12-16), des bébés plus solides (niv. 6-9), et la moitié sont des Astrofaunes de cristal qu'on ne trouve QUE dans la grotte */
+      const fort = r() < 0.35, n = fort ? 1 : 1 + Math.floor(r() * 3);
+      for (let i = 0; i < n; i++) { const st = fort ? 1 : 0, ex = r() < 0.5 ? tirerPoids(poolGrotte(st), r) : null, e = ex || tirerPoids(poolStade(st, ['ombre', 'lueur', 'roc', 'givre']), r) || tirerPoids(poolStade(0), r); if (!e) continue;
+        const c = nouvelle(id++, e, x + (r() - 0.5) * 150, y + (r() - 0.5) * 110, r, fort ? { feroce: true, nivFixe: 12 + Math.floor(r() * 5) } : { nivFixe: 6 + Math.floor(r() * 4) }); c.crash = fort ? 'fort' : 'bebe'; L.push(c); } }
+    if (r() < 0.3) { const e = tirerPoids(poolGrotte(2), r) || tirerPoids(poolStade(2, ['ombre', 'lueur']), r); if (e) { const c = nouvelle(id++, e, cx + 2600, cy - 900, r, { terrible: true, feroce: true, echelle: 1.3, nivFixe: 20 }); c.crash = 'terrible'; L.push(c); } }   /* le gardien de cristal, au fond (avant : 5 % des fois) */
     return L;
   }
   // près de la sortie : le bouton pour ressortir ; le dessin de la sortie (un rai de lumière)
