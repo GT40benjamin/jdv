@@ -67,6 +67,7 @@
       // les OUTILS de Mon atelier, en colonne à droite de la photo (l'admin, 7 nov.) : un outil de plus = une ligne ici + son action dans OUTILS_FN
       // prix : 'image' (prix d'une retouche, annoncé), 'gratuit' (fait par le code), 'bientot'
       outils: [
+        { k: 'epingle', ext: true },   // 📍 en tête (équipe « outils »)
         { k: 'parler', e: '🗣️', t: 'Retoucher en parlant', prix: 'image', bg: '#efe6ff' },
         { k: 'style', e: '🖌️', t: 'Changer le style', prix: 'image', bg: '#e2f4ff' },
         { k: 'recadrer', e: '✂️', t: 'Recadrer', prix: 'gratuit', bg: '#e5f7ea' },
@@ -524,7 +525,7 @@
   // la liste déroulante des versions posée sur l'image : une ligne par version (numéro, résumé court de la demande, prix) ; ratées / en cours grisées
   // le libellé d'une version faite par un outil de l'équipe « outils » (son registre d'abord, sinon les nôtres)
   const libelleOutil = k => { try { const X = window.jdwOutilsPhoto; const t = X && typeof X.libelle === 'function' && X.libelle(k); if (t) return t; } catch (e) {}
-    return ({ texte: 'Texte', fond: 'Fond retiré', elements: 'Élément déplacé', gomme: 'Gommé', dessin: 'Dessin', image: 'Image ajoutée' })[k] || 'Retouche'; };
+    return ({ texte: 'Texte', fond: 'Fond retiré', elements: 'Élément déplacé', gomme: 'Gommé', dessin: 'Dessin', image: 'Image ajoutée', ajout: 'Image ajoutée' })[k] || 'Retouche'; };
   const resume = v => { const t = v.outil === 'import' ? 'Originale' : v.outil === 'recadrer' ? 'Recadrée' : (!['parole', 'style'].includes(v.outil) && !String(v.consigne || '').trim()) ? libelleOutil(v.outil) : String(v.consigne || 'Retouche').replace(/\s+/g, ' ').trim();
     if (t.length <= 34) return t; const m = t.slice(0, 34); return m.slice(0, Math.max(18, m.lastIndexOf(' '))) + '…'; };
   // l'admin (7 nov.) : ZOOMER dans la grande vue — ➖ / % / ➕ / ⟲ en bas à droite, molette autour du curseur (1× à 6×), glisser une fois zoomé,
@@ -878,7 +879,8 @@
     const OUTILS_FN = { parler: () => { ta.focus(); try { atlMicBascule(ta, mic); } catch (e) {} }, style: () => styles(c), recadrer: () => recadrer(c, act) };
     for (const o of atelierDe(AIM.fiche).outils || []) {
       if (o.ext) { const X = window.jdwOutilsPhoto;
-        try { if (X && o.k === '*' && typeof X.boutons === 'function') { for (const b of X.boutons(typeDe(AIM.fiche), outilCtx(c, act, att)) || []) if (b) gr.appendChild(b); }
+        try { if (X && o.k === '*' && typeof X.boutons === 'function') { const sauf = (atelierDe(AIM.fiche).outils || []).filter(x => x.ext && x.k !== '*').map(x => x.k);   // les outils ext déjà placés ailleurs dans la liste
+            for (const b of X.boutons(typeDe(AIM.fiche), outilCtx(c, act, att), sauf) || []) if (b) gr.appendChild(b); }
           else if (X && o.k !== '*' && typeof X.bouton === 'function') { const b = X.bouton(o.k, outilCtx(c, act, att)); if (b) gr.appendChild(b); } } catch (e) { journal('outil ' + o.k + ' : ' + pourquoi(e).slice(0, 80)); }
         continue; }
       const fn = OUTILS_FN[o.k], bientot = o.prix === 'bientot' || !fn;
