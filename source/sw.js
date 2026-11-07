@@ -80,7 +80,7 @@ self.addEventListener('message', e => {
   }
 });
 
-// 2.1.18 — NOTIFICATIONS (Web Push, fonction Edge atelier-push) : le joueur a touché « 🔔 Me prévenir quand c'est prêt ».
+// 7 nov. 2026 — NOTIFICATIONS (Web Push, fonction Edge atelier-push) : le joueur a touché « 🔔 Me prévenir quand c'est prêt ».
 // Le message (chiffré de bout en bout par le service de notification) = { t: titre, b: texte, tag: 'atl-<projet>', u: '?atelier=projet&f=…&o=…' } :
 // jamais le contenu d'un message ni un prix (écrit par la base). Toucher la notification : la borne déjà ouverte va au projet
 // (message { jdw: 'ouvrir', u }), sinon elle s'ouvre directement sur le projet. Seulement des adresses de la borne (portée jouer/).

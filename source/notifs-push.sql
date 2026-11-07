@@ -1,4 +1,4 @@
--- 2.1.18 — Interface : NOTIFICATIONS hors de la borne (Web Push), demande de SAMBA via l'admin : « on ne peut pas savoir si c'est fait sans se connecter ».
+-- 7 nov. 2026 — Interface : NOTIFICATIONS hors de la borne (Web Push), demande de SAMBA via l'admin : « on ne peut pas savoir si c'est fait sans se connecter ».
 -- Le joueur touche « 🔔 Me prévenir quand c'est prêt » → son appareil s'abonne (at_push_abonner) ; quand la mascotte répond, qu'une version
 -- est prête, qu'une demande est faite ou qu'une retouche de l'atelier photo est prête, une ligne entre dans la file at_push_file ;
 -- chaque minute pg_cron réveille la fonction Edge atelier-push, qui prend la file (at_push_prendre), envoie et rend compte (at_push_resultat).

@@ -6070,7 +6070,7 @@ body:has(#jdw-atelier:not([hidden]) > .atl-mod:not([hidden])) #jdw-atelier{z-ind
 @media (max-width:420px){.atl-sres{grid-template-columns:1fr}}
 /* téléphone : une fenêtre de l'Atelier ouverte (Suivi, Mes demandes, image en grand, fenêtres) passe devant la barre d'onglets du bas */
 #jdw-atelier:has(.atl-zoom:not([hidden])) .atl-estabs,#jdw-atelier:has(.atl-mod:not([hidden])) .atl-estabs{display:none!important}
-/* 2.1.18 — NOTIFICATIONS : 🔔 / 🔕 de la barre (le réglage), carte « Me prévenir quand c'est prêt » de la discussion, fenêtre du réglage */
+/* 7 nov. 2026 — NOTIFICATIONS : 🔔 / 🔕 de la barre (le réglage), carte « Me prévenir quand c'est prêt » de la discussion, fenêtre du réglage */
 .atl-notb.on{color:#ffd34d;text-shadow:0 0 10px rgba(255,211,77,.55)}
 .atl-notb.wait{opacity:.55;pointer-events:none}
 .atl-pushc{box-sizing:border-box;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;margin:12px auto 4px;max-width:min(94%,560px);padding:12px 14px;border-radius:16px;

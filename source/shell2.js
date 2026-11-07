@@ -16038,7 +16038,7 @@ function atlBuild() {
   const musMaj = () => { const on = store.get('jdw.atl.mus', true) !== false; q('.atl-musb').textContent = on ? '🔊' : '🔇'; q('.atl-musb').title = on ? 'Couper la musique de l’Atelier' : 'Remettre la musique de l’Atelier'; };
   q('.atl-musb').addEventListener('click', () => { const on = store.get('jdw.atl.mus', true) === false; store.set('jdw.atl.mus', on); musMaj(); if (ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic(''); } });   // 2.0.137 : 🔇 = aucune musique (jamais celle de la borne)
   musMaj();
-  q('.atl-notb').addEventListener('click', () => { pushFenetre(); });   // 2.1.18 : le réglage des notifications
+  q('.atl-notb').addEventListener('click', () => { pushFenetre(); });   // 7 nov. 2026 : le réglage des notifications
   q('.atl-demb').addEventListener('click', () => { if (ATL.cur && ATL.root.querySelector('.atl-wiz .atl-ptab[data-k="demandes"]')) atlDemFeuille(); else if (ATL.adminVoir && ATL.cur === ATL.adminVoir.id) atlAdminDemandes(); else atlMesDemandes(); });   // 2.0.137 : la liste des tickets dans une fenêtre   // 21 h 50 : toucher son solde → « Recharger mes crédits »
   q('.atl-zoom').addEventListener('click', e => { const z = q('.atl-zoom'); if (atlFenEcrit(z) || (e.target !== z && e.target.closest('.atl-suivi, .atl-mcard, .atl-winbar'))) return; z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
   try { atlFenSuivre(); } catch (e) {}   // 2.0.63
@@ -16054,7 +16054,7 @@ function atlOpen() {
   if (where === 'menu') try { setWhere('atelier'); } catch (e) {}   // 2.0.134 : la présence (le serveur aussi) dit « dans l'Atelier »
   if (store.get('jdw.atl.mus', true) !== false) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic('');   // 22 h 45 : la musique de l'Atelier, douce (🔇 retenu sur l'appareil)
   atlRender(); atlLoad(true); setTimeout(atlBienvenue, 1200); atlDemCharger(true);
-  setTimeout(() => { pushRafraichir().catch(() => {}); }, 600);   // 2.1.18 : 🔔 / 🔕 de la barre, carte « Me prévenir »
+  setTimeout(() => { pushRafraichir().catch(() => {}); }, 600);   // 7 nov. 2026 : 🔔 / 🔕 de la barre, carte « Me prévenir »
   setTimeout(() => { const i = ATL.root.querySelector('.atl-in'); if (i && !TOUCH) i.focus({ preventScroll: true }); }, 60);
 }
 function atlClose() {
@@ -16806,7 +16806,7 @@ function atlDiscFil(f) {
   } else if (av1 && !atlAtelierLivre(f) && !atlDiscDems(f).some(x => x.etat === 'en_cours')) {   // lancé, sans étape en direct : la mascotte est au travail
     L.push({ at: '', t: 9e15, k: 'construit', g: false, w: false, el: () => { const w = atlEl('div', 'atl-dthink atl-travb'), col = atlEl('div'); col.append(atlEl('b', '', '🛠️ Je construis ta V1 de « ' + (f.titre || 'ton jeu') + ' »'), atlEl('small', '', 'Je te préviens dès qu’elle est prête 🔔 · Tu peux m’écrire ici quand tu veux')); w.append(atlGuideAv('atl-wav'), col); return w; } });
   }
-  // 2.1.18 : le joueur attend (son message sans réponse, une demande en cours, une version en préparation) → « 🔔 Me prévenir quand c'est prêt »
+  // 7 nov. 2026 : le joueur attend (son message sans réponse, une demande en cours, une version en préparation) → « 🔔 Me prévenir quand c'est prêt »
   if (pushCarteOk()) {
     const der = L.filter(x => x.t < 9e15).pop();
     if ((der && !der.g) || L.some(x => x.k === 'construit') || atlDiscDems(f).some(x => x && ['envoyee', 'vue', 'en_cours'].includes(x.etat)) || atlVersionEnCours(f))
@@ -19286,7 +19286,7 @@ async function atlStripe(corps, b, er) {
   } catch (e) { er.hidden = false; er.textContent = 'Pas de réseau : réessaie dans un moment.'; }
   finally { ATL.achat = false; b.disabled = false; b.classList.remove('wait'); b.innerHTML = old; }
 }
-// ---- 2.1.18 (SAMBA via l'admin : « on ne peut pas savoir si c'est fait sans se connecter… mettre une ALERTE ») : NOTIFICATIONS hors de la
+// ---- 7 nov. 2026 (SAMBA via l'admin : « on ne peut pas savoir si c'est fait sans se connecter… mettre une ALERTE ») : NOTIFICATIONS hors de la
 // borne (Web Push). « 🔔 Me prévenir quand c'est prêt » (carte de la discussion quand le joueur attend, fenêtre 🔔 de la barre de l'Atelier) :
 // la permission n'est demandée QU'AU TOUCHER ; l'appareil s'abonne (pushManager.subscribe, clé VAPID publique donnée par la fonction Edge
 // atelier-push) et le serveur le retient pour CE joueur (at_push_abonner). Le serveur prévient quand la mascotte répond, qu'une version ou
@@ -19462,7 +19462,7 @@ try { window.JDW_PUSH = { carte: () => (pushCarteOk() ? pushCarte() : null), eta
 // le retour de Stripe (…/jouer/?atelier=merci ou annule) : l'Atelier s'ouvre, « Merci ! », les crédits arrivent (webhook) quelques secondes après
 (() => {
   let v = ''; try { const sp = new URLSearchParams(location.search); v = sp.get('atelier') || ''; if (v) { sp.delete('atelier'); const qs = sp.toString(); history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } } catch (e) { v = ''; }
-  if (v === 'projet') {   // 2.1.18 : une notification touchée → le projet (attend le compte et l'Atelier, 20 s au plus)
+  if (v === 'projet') {   // 7 nov. 2026 : une notification touchée → le projet (attend le compte et l'Atelier, 20 s au plus)
     let f = '', o = ''; try { const sp = new URLSearchParams(location.search); f = sp.get('f') || ''; o = sp.get('o') || ''; sp.delete('f'); sp.delete('o'); const qs = sp.toString(); history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } catch (e) {}
     const t0 = Date.now(), essai = () => { if (pushPeut()) { pushOuvrir('?f=' + encodeURIComponent(f) + '&o=' + encodeURIComponent(o)); return; } if (Date.now() - t0 < 20000) setTimeout(essai, 500); };
     setTimeout(essai, 1200); return;
