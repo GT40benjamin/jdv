@@ -12,7 +12,7 @@
 (() => {
   'use strict';
   if (typeof atlOuvrir !== 'function' || typeof atlNouveau !== 'function' || typeof atlRenderProjets !== 'function') return;
-  const AIM = { regardes: new Set(), open: false, root: null, fiche: null, d: null, cur: null, vue: 'atelier', mode: 'comparer', pos: 0.5, msgs: [], loc: [], prop: null,
+  const AIM = { regardes: new Set(), voir: {}, nPretes: {}, resSel: {}, open: false, root: null, fiche: null, d: null, cur: null, vue: 'atelier', mode: 'comparer', pos: 0.5, msgs: [], loc: [], prop: null,
     types: {}, typesAt: 0, off: false, prix: { image: 20 }, solde: null, poll: 0, tick: 0, busy: false, nv: null, vuAt: 0, ouverts: {} };
   try { if (navigator.webdriver) window.JDW_ESSAI_AIM = AIM; } catch (e) {}
   const _ouvrir = atlOuvrir, _nouveau = atlNouveau, _renderProjets = atlRenderProjets;
@@ -144,7 +144,7 @@
   // (en-tête « Crée avec … › Mes projets › titre » + l'arbre), rangé DANS #jdw-atelier pour que la manette voie tout. atlJouable → la main
   // revient à l'Interface (sa révélation des nuages joue)
   if (typeof atlLoad === 'function') { const _load = atlLoad; atlLoad = async function () { const cur0 = ATL.cur, libre = !ATL.busy; try { return await _load.apply(this, arguments); } finally { if (libre && cur0 && ATL.cur === cur0) { AIM.luPour = cur0; try { cadreMaj(); } catch (e) {} } } }; }   // eslint-disable-line no-global-assign
-  if (typeof atlRender === 'function') { const _rendu = atlRender; atlRender = function () { const r = _rendu.apply(this, arguments); try { cadreMaj(); } catch (e) {} return r; }; }   // eslint-disable-line no-global-assign
+  if (typeof atlRender === 'function') { const _rendu = atlRender; atlRender = function () { const garde = AIM.open && adm() && ATL.adminVoir && ATL.adminVoir.id === AIM.fiche ? ATL.adminVoir : null; const r = _rendu.apply(this, arguments); if (garde && !ATL.adminVoir) ATL.adminVoir = garde; try { cadreMaj(); } catch (e) {} return r; }; }   // vue admin d'un atelier : le mode admin de l'Interface tient (sa fenêtre 🛡️ Admin ne se referme pas au relevé)   // eslint-disable-line no-global-assign
 
   // les tuiles « Mes projets » de l'Atelier : un projet Images montre son image et « 🎨 Images · N images »
   function decorer() {
@@ -478,6 +478,7 @@
       if (d.prix) AIM.prix = d.prix;
       const cs = d.creations || [];
       if (!cs.some(c => c.id === AIM.cur)) AIM.cur = cs.length ? cs[0].id : null;
+      for (const c of cs) { const n = c.versions.filter(v => v.etat === 'prete').length; if (AIM.nPretes[c.id] != null && n > AIM.nPretes[c.id]) { delete AIM.voir[c.id]; delete AIM.resSel[c.id]; } AIM.nPretes[c.id] = n; }
       if (AIM.types[d.id]) { AIM.types[d.id].titre = d.titre; AIM.types[d.id].images = cs.length; const L = resultats(); if (L.length) AIM.types[d.id].retouche = L[0].v.path; }   // la miniature suit la dernière retouche
       if (avant && JSON.stringify(avant.creations) !== JSON.stringify(cs)) { AIM.pos = 0.5; }
       return true;
@@ -520,19 +521,30 @@
     if (lib) w.appendChild(E('span', 'l', lib + ' :'));
     for (const x of c.versions.slice().sort((a, b) => b.n - a.n)) {
       const o = E('option'), pret = x.etat === 'prete' && !!x.path, etat = pret ? '' : ['ratee', 'refusee'].includes(x.etat) ? ' · ratée, rendus' : ' · en cours';
-      o.value = x.id; o.textContent = 'V' + x.n + ' · ' + resume(x) + (x.prix ? ' · ' + x.prix + ' ' + D : x.outil === 'import' ? '' : ' · gratuit') + etat;
+      o.value = x.id; o.textContent = (x.outil === 'import' ? 'Originale' : numAff(c, x) + ' · ' + resume(x)) + (x.prix ? ' · ' + x.prix + ' ' + D : x.outil === 'import' ? '' : ' · gratuit') + etat;
       o.disabled = !pret; if (x.id === (v && v.id)) o.selected = true; s.appendChild(o);
     }
     s.setAttribute('aria-label', lib ? lib + ' : version' : 'Version affichée');
     s.addEventListener('pointerdown', e => e.stopPropagation()); s.addEventListener('click', e => e.stopPropagation());
     s.addEventListener('change', async () => {
       const id = s.value, x = verDe(c, id); if (!x || x.etat !== 'prete') return;
-      if (k === 'image') {
-        if (adm()) { c.actuelle = id; AIM.pos = 0.5; render(); return; }
-        try { await rpc('at_esp_choisir', { p_name: nom(), p_creation: c.id, p_version: id }, { quiet: true }); c.actuelle = id; AIM.pos = 0.5; AIM.cmp = null; render(); charger(); } catch (e) { toast('Oups, réessaie'); }
-      } else { AIM.cmp = Object.assign({ c: c.id }, AIM.cmp && AIM.cmp.c === c.id ? AIM.cmp : {}, { [k]: id }); AIM.pos = 0.5; render(); }
+      if (k === 'image') { AIM.voir[c.id] = id; AIM.pos = 0.5; AIM.cmp = null; render(); }   // regarder : rien n'est écrit
+      else { AIM.cmp = Object.assign({ c: c.id }, AIM.cmp && AIM.cmp.c === c.id ? AIM.cmp : {}, { [k]: id }); AIM.pos = 0.5; render(); }
     });
     w.appendChild(s); return w;
+  }
+  // l'admin (7 nov., vue admin de SAMBA : « je clique sur l'Originale, ça revient sur V5 ») : REGARDER une version = un état de l'appareil
+  // (AIM.voir), jamais écrit en base ni écrasé par le relevé ; la version « actuelle » du serveur (d'où part la prochaine retouche) ne s'écrit
+  // qu'au moment où le joueur lance une retouche / un style / un recadrage depuis la version affichée (fixerActuelle) ; en vue admin : rien n'est écrit
+  const vueDe = c => { const v = c && verDe(c, AIM.voir[c.id]); return v && v.etat === 'prete' && v.path ? v : (c ? verDe(c, c.actuelle) : null); };
+  async function fixerActuelle(c) {
+    const v = AIM.voir[c.id]; if (!v || v === c.actuelle || adm()) return;
+    await rpc('at_esp_choisir', { p_name: nom(), p_creation: c.id, p_version: v }, { quiet: true }); c.actuelle = v;
+  }
+  // numéros À L'AFFICHAGE : l'originale n'a pas de numéro (« Originale »), les retouches s'appellent V1, V2… dans l'ordre
+  function numAff(c, v) {
+    if (!v) return ''; if (v.outil === 'import') return 'Originale';
+    const r = c.versions.filter(x => x.outil !== 'import').sort((a, b) => a.n - b.n); return 'V' + (r.findIndex(x => x.id === v.id) + 1);
   }
   const curCrea = () => (AIM.d && (AIM.d.creations || []).find(c => c.id === AIM.cur)) || null;
   const verDe = (c, id) => c && c.versions.find(v => v.id === id);
@@ -553,6 +565,9 @@
     let so = AIM.solde; if (typeof so !== 'number') { try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {} }   // sans SQL v160 : le solde de l'Atelier (testeurs, 6 nov.)
     q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + (adm() ? joueurAdm() + ' ' : '') + so + (etroit() || adm() ? '' : ' crédits') : '';
     R.classList.toggle('at-centre', sansPanneau());
+    R.classList.toggle('at-guide', sansPanneau() && AIM.vue === 'guide');   // la grande discussion au centre replie le panneau de droite
+    { let k = R.querySelector('.crea-admbt'); if (adm()) { if (!k) { k = B('crea-rond crea-admbt', '🛡️ Admin', () => fenetreAdmin()); const cr = q('.crea-cred'); cr.parentNode.insertBefore(k, cr); }
+      k.title = 'Mode admin : projet de ' + joueurAdm(); } else if (k) k.remove(); }
     if (AIM.vue === 'guide') { const f = R.querySelector('.crea-disc .crea-fil2'), a = document.activeElement;
       AIM.discEtat = { bas: f ? f.scrollHeight - f.scrollTop - f.clientHeight < 40 : true, foc: !!(a && a.tagName === 'TEXTAREA' && a.closest('.crea-disc .crea-saisie')) }; }
     renderArbre(); renderOutil(); renderMasc(); renderFlot();
@@ -646,6 +661,30 @@
     const r = B('crea-nd crea-mat-ret', null, () => { AIM.root.classList.remove('tiroir'); fermerVersProjets(); }); r.append(E('i', '', '←'), E('span', 'nm', 'Mes projets')); A.appendChild(r);
     A.appendChild(E('div', 'crea-pied', adm() ? '🛡️ Vue admin : l’atelier de ' + joueurAdm() + ', tel qu’il le voit. Tu peux lui répondre comme ' + PK() + ' ; rien d’autre n’est changé.' : 'Ce que tu crées ici reste privé : toi seul le vois.'));
   }
+  // la fenêtre « 🛡️ Admin » d'un jeu (Interface : atlAdminFenRemplir, atlAdminActions), dans l'atelier ; ses actions (Demandes du projet,
+  // Annoncer…) s'ouvrent dans la page de l'Interface, qui passe devant l'atelier tant que sa fenêtre est ouverte ; « Quitter » ramène aux projets
+  function fenetreAdmin() {
+    if (!adm()) return;
+    const m = { id: AIM.fiche }, av = (AIM.d && AIM.d.admin_voir) || { joueur: (AIM.types[AIM.fiche] || {}).joueur, solde: AIM.solde };
+    ATL.adminVoir = m;   // les actions de l'Interface (Demandes du projet, Annoncer, crédits) travaillent sur ce projet
+    const M = AIM.root.querySelector('.crea-mod'); M.textContent = ''; M.hidden = false; M.onclick = e => { if (e.target === M) modFermer(); };
+    const c = E('div', 'atl-mcard atl-admc crea-adm'); M.appendChild(c);
+    // la fenêtre « 🛡️ Admin » d'un jeu, remplie par la fonction de l'Interface (atlAdminFenRemplir : projet, solde, chiffres, actions)
+    const remplir = () => { try { atlAdminFenRemplir(c, m, av, atlRentDe(m.id)); } catch (e) { c.textContent = 'La fenêtre admin ne s’ouvre pas : ' + pourquoi(e); } };
+    remplir(); try { if (!ATL_RENT.d || Date.now() - ATL_RENT.at > 30000) atlRent().then(() => { if (c.isConnected) remplir(); }).catch(() => {}); } catch (e) {}
+    c.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+      if (/Quitter/.test(b.textContent)) { e.stopPropagation(); modFermer(); ATL.adminVoir = null; fermerVersProjets(); return; }
+      modFermer(); if (!/Fermer/.test(b.textContent)) devantInterface(); }, true);
+    if (!TOUCH) setTimeout(() => { const x = c.querySelector('.atl-admact button'); if (x) x.focus({ preventScroll: true }); }, 60);
+  }
+  function devantInterface() {   // la page de l'Interface passe devant l'atelier tant qu'une de ses fenêtres (.atl-mod, .atl-zoom) est ouverte
+    const A = ATL.root; if (!A) return;
+    if (A.hidden && !A.dataset.creaCache) { A.dataset.creaCache = '1'; A.hidden = false; }   // la page de l'Interface est cachée sous l'atelier : visible le temps de sa fenêtre (son voile la couvre)
+    const maj = () => { const ouvert = [...A.querySelectorAll('.atl-mod, .atl-zoom')].some(x => !x.hidden); A.classList.toggle('crea-devant', ouvert);
+      if (!ouvert) { if (A.dataset.creaCache) { delete A.dataset.creaCache; A.hidden = true; } if (AIM.obsDev) { AIM.obsDev.disconnect(); AIM.obsDev = null; } } };
+    if (!AIM.obsDev) { AIM.obsDev = new MutationObserver(maj); AIM.obsDev.observe(A, { subtree: true, attributes: true, attributeFilter: ['hidden'], childList: true }); }
+    setTimeout(maj, 50); setTimeout(maj, 600);
+  }
   function ouvrirGuide() {
     const R = AIM.root; if (!R) return;
     if (sansPanneau()) {   // l'admin (7 nov.) : « {g} n'a pas à être à droite ET au milieu » → sa conversation s'ouvre au centre, comme les autres menus
@@ -699,7 +738,7 @@
   function renderAtelier(O) {
     const c = curCrea();
     if (!c) { if (atelierOuvert(AIM.fiche)) renderDepot(O); else videImport(O, 'Importe ta première image', 'Une photo, un dessin, un paysage, ton animal… Ensuite, dis-moi ce que tu veux changer.'); return; }
-    const act0 = verDe(c, c.actuelle), att = c.versions.find(v => ['envoi', 'controle', 'en_cours'].includes(v.etat));
+    const act0 = vueDe(c), att = c.versions.find(v => ['envoi', 'controle', 'en_cours'].includes(v.etat));
     // Comparer / Côte à côte : « Avant : V2 ▾ » et « Après : V5 ▾ » se choisissent librement (rien n'est écrit) ; Image : la version choisie devient l'actuelle
     const pretes = c.versions.filter(v => v.etat === 'prete' && v.path);
     const choix = AIM.cmp && AIM.cmp.c === c.id ? AIM.cmp : null;
@@ -710,7 +749,7 @@
     // la scène
     const S = E('div', 'crea-carte crea-scene'), L = E('div', 'crea-lh');
     const tb = B('crea-titreimg', '🖼️ ' + (c.titre || 'Mon image').toUpperCase(), () => renommerImage(c)); tb.title = 'Renommer cette image';
-    L.appendChild(tb);
+    L.appendChild(tb); if (!adm()) { const rn = B('crea-renom', '✏️', () => renommerImage(c)); rn.title = 'Renommer (gratuit)'; rn.setAttribute('aria-label', 'Renommer cette image'); L.appendChild(rn); }
     if (att && att.etat === 'en_cours') { const p = E('span', 'crea-prix', '⏳ V' + att.n + ' en cours…'); L.appendChild(p); }
     const seg = E('div', 'crea-seg');
     for (const [k, t] of [['image', 'Image'], ['comparer', 'Comparer'], ['cote', 'Côte à côte']]) {
@@ -737,8 +776,25 @@
       for (const [v, k, t] of [[avant, 'avant', 'Avant'], [act, 'apres', 'Après']]) { const d = E('div'); d.appendChild(img(v.path)); const e = listeVersions(c, v, k, t); e.style.left = '10px'; d.appendChild(e); Cd.appendChild(d); }
     } else { Cd.appendChild(img(act.path)); const e = listeVersions(c, act, 'image', ''); e.style.left = '10px'; Cd.appendChild(e); }
     S.appendChild(Cd); depotSur(Cd);
+    // l'admin (7 nov.) : sous la photo, l'ORIGINALE (un clic la remet dans la grande vue : la prochaine retouche partira d'elle) et la PILE des
+    // retouches (la dernière dessus, « N versions ») ; la pile se regarde seulement : on change de version par la liste posée sur l'image
+    { const orig = c.versions.find(v => v.outil === 'import' && v.etat === 'prete' && v.path), rs = c.versions.filter(v => v.outil !== 'import' && v.etat === 'prete' && v.path).sort((a, b) => b.n - a.n);
+      const enCours = c.versions.some(v => v.outil !== 'import' && ['envoi', 'controle', 'en_cours'].includes(v.etat));
+      if (orig || rs.length || enCours) {
+        const bar = E('div', 'crea-vbar');
+        if (orig) { const o = B('crea-vcarte orig' + (act && act.id === orig.id && mode === 'image' ? ' on' : ''), null, () => { AIM.voir[c.id] = orig.id; AIM.mode = 'image'; AIM.cmp = null; AIM.pos = 0.5; render(); });
+          const i = E('span', 'i'); i.style.backgroundImage = 'url("' + urlImg(orig.path, 200) + '")'; o.append(i, E('b', '', 'Originale')); o.title = 'Revenir à l’originale : la prochaine retouche partira d’elle'; bar.appendChild(o); }
+        if (rs.length || enCours) { const p = E('div', 'crea-vcarte pile' + (rs.length > 1 ? ' plus' : '')), st = E('span', 'st');
+          for (const v of rs.slice(0, 3).reverse()) { const i = E('span', 'i'); i.style.backgroundImage = 'url("' + urlImg(v.path, 200) + '")'; st.appendChild(i); }
+          if (!rs.length) st.appendChild(E('span', 'i vide'));
+          p.append(st, E('b', '', rs.length ? 'Retouches' : 'Retouche'));
+          if (rs.length) p.appendChild(E('span', 'badge', rs.length + ' version' + (rs.length > 1 ? 's' : '')));
+          if (enCours) p.appendChild(E('span', 'badge cours', enVerif() ? '⏳ je vérifie…' : '⏳ en cours'));
+          bar.appendChild(p); }
+        S.appendChild(bar);
+      } }
     // 👁️ {g} regarde la photo : son commentaire (ce qu'il voit, ce qu'il propose, le prix), « Oui, fais-le » ou « Je veux autre chose »
-    if (act && !att) S.appendChild(carteRegard(c, act));
+    if (act && !att) carteRegard(c, act);   // l'admin (7 nov.) : plus de {g} au milieu (doublon avec « Retoucher ») ; la demande « regarde » part toujours toute seule, sa réponse est dans le panneau de droite
     // « Dis ce que tu veux changer »
     const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 10000; ta.placeholder = etroit() ? '✨ Que veux-tu faire ?' : '✨ ' + atelierDe(AIM.fiche).invite + '… « éclaircis-la, floute le fond »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
     ta.value = AIM.brouillon || ''; ta.addEventListener('input', () => { AIM.brouillon = ta.value; });
@@ -825,7 +881,7 @@
   }
   async function regarder(c, a) {
     if (!c || !a || !a.path || lectureSeule()) return;
-    const t = '👁️ Regarde ma photo « ' + (c.titre || 'Mon image') + ' » (V' + a.n + ') et dis-moi ce que tu me proposes, avec le prix. (' + a.path + ')';
+    const t = '👁️ Regarde ma photo « ' + (c.titre || 'Mon image') + ' » (' + numAff(c, a) + ') et dis-moi ce que tu me proposes, avec le prix. (' + a.path + ')';
     const at = new Date().toISOString(); AIM.msgs.push({ t, at }); render();
     try { await rpc('at_esp_parler', { p_name: nom(), p_fiche: AIM.fiche, p_texte: t, p_micro: false }, { quiet: true }); }
     catch (e) { AIM.msgs = AIM.msgs.filter(m => m.at !== at); toast('Oups, ta demande n’est pas partie. Réessaie 🙏'); render(); return; }
@@ -838,11 +894,17 @@
     const h = E('div', 'crea-h', '✨ ' + cfg.resultat.toUpperCase()); h.appendChild(E('small', '', L.length ? L.length + ' prête' + (L.length > 1 ? 's' : '') + ' à télécharger' : '')); p.appendChild(h);
     if (!L.length) { p.append(E('p', 'crea-vide-t', cfg.videResultat), B('crea-bt', '🖼️ Aller dans mon atelier', () => { AIM.vue = 'atelier'; render(); })); p.lastChild.style.alignSelf = 'flex-start'; O.appendChild(p); return; }
     const g = E('div', 'crea-res');
-    for (const { c, v } of L) {
-      const d = E('div', 'crea-resi'), i = B('i', null, () => { AIM.cur = c.id; AIM.vue = 'atelier'; AIM.mode = 'comparer'; render(); }); i.title = 'Ouvrir dans mon atelier';
-      i.style.backgroundImage = 'url("' + urlImg(v.path, 500) + '")';
-      const t = E('div', 't'); t.append(E('b', '', (c.titre || 'Mon image') + ' · V' + v.n), E('small', '', sansChemin(v.consigne || '')));
-      d.append(i, t, B('crea-bt violet', '⬇️ Télécharger', () => telecharger(c, v))); g.appendChild(d);
+    for (const c of (AIM.d && AIM.d.creations) || []) {
+      const rs = c.versions.filter(v => v.outil !== 'import' && v.etat === 'prete' && v.path).sort((a, b) => b.n - a.n); if (!rs.length) continue;
+      const v = verDe(c, AIM.resSel[c.id]) && rs.includes(verDe(c, AIM.resSel[c.id])) ? verDe(c, AIM.resSel[c.id]) : rs[0];
+      const d = E('div', 'crea-resi'), i = B('i pile' + (rs.length > 1 ? ' plus' : ''), null, () => { AIM.cur = c.id; AIM.voir[c.id] = v.id; AIM.vue = 'atelier'; AIM.mode = 'image'; AIM.cmp = null; render(); }); i.title = 'Ouvrir dans mon atelier';
+      const im = E('img'); im.alt = ''; im.src = urlImg(v.path, 700); i.appendChild(im);
+      if (rs.length > 1) i.appendChild(E('span', 'badge', rs.length + ' versions'));
+      const sel = E('select'); sel.setAttribute('aria-label', 'Version de « ' + (c.titre || 'Mon image') + ' »');
+      for (const x of c.versions.filter(x => x.outil !== 'import').sort((a, b) => b.n - a.n)) { const o = E('option'); o.value = x.id; o.textContent = numAff(c, x) + (x.etat === 'prete' && x.path ? '' : ['ratee', 'refusee'].includes(x.etat) ? ' · ratée' : ' · en cours'); o.disabled = !(x.etat === 'prete' && x.path); if (x.id === v.id) o.selected = true; sel.appendChild(o); }
+      sel.addEventListener('change', () => { AIM.resSel[c.id] = sel.value; render(); });
+      const t = E('div', 't'), tt = E('div', 'tt'); tt.append(E('b', '', c.titre || 'Mon image'), sel); t.append(tt, E('small', '', resume(v)));
+      d.append(i, t, B('crea-bt violet', '⬇️ Télécharger ' + numAff(c, v), () => telecharger(c, v))); g.appendChild(d);
     }
     p.appendChild(g); O.appendChild(p);
   }
@@ -888,7 +950,7 @@
       if (src) i.style.backgroundImage = 'url("' + src + '")'; if (grand) i.style.height = '110px';
       b.appendChild(i); if (cours) b.appendChild(E('span', 'crea-anneau'));
       const lib = v.outil === 'import' ? 'Originale' : v.outil === 'recadrer' ? 'Recadrée' : v.consigne || 'Retouche';
-      const t = E('span', 't', 'V' + v.n + ' · ' + lib);
+      const t = E('span', 't', numAff(c, v) + (v.outil === 'import' ? '' : ' · ' + lib));
       t.appendChild(E('small', '', cours ? (v.etat === 'en_cours' ? 'je m’y mets… ' + v.prix + ' ' + D : v.etat === 'controle' && v.outil !== 'import' ? '⏳ je vérifie ta retouche…' : 'je regarde…') : rate ? 'ratée · rendus' : v.prix ? v.prix + ' ' + D : v.outil === 'import' ? 'ta photo' : 'gratuit'));
       b.appendChild(t); Bd.appendChild(b);
     }
@@ -992,7 +1054,7 @@
   function propCarte() {
     const c = curCrea(), a = c && verDe(c, c.actuelle);
     const l = E('div', 'crea-lpk'), im = E('img'); im.alt = ''; im.src = POSE('idee');
-    const b = E('div', 'crea-b'); b.appendChild(E('span', '', 'Je le fais sur ton image' + (a ? ' (V' + a.n + ')' : '') + ' ? Ça fera une nouvelle version.'));
+    const b = E('div', 'crea-b'); b.appendChild(E('span', '', 'Je le fais sur ton image' + (a ? ' (' + numAff(c, a) + ')' : '') + ' ? Ça fera une nouvelle version.'));
     const p = E('div', 'crea-puces');
     const oui = B('crea-puce on', '✨ Oui, crée-la · ' + (AIM.prix.image | 0) + ' ' + D, () => { const t = AIM.prop; AIM.prop = null; fabriquer('parole', t); });
     const non = B('crea-puce', 'Non, on discute', () => { AIM.prop = null; dire({ pk: 1, t: 'D’accord ! Je te réponds ici dès que possible 🙂' }); render(); });
@@ -1043,6 +1105,7 @@
     }
     AIM.busy = true;
     try {
+      await fixerActuelle(c);
       const r = await Promise.race([rpc('at_esp_fabriquer', { p_name: nom(), p_creation: c.id, p_outil: outil, p_consigne: consigne }, { quiet: true }),
         new Promise((_, ko) => setTimeout(() => ko(new Error('pas de reponse')), 30000))]);   // jamais bloqué : 30 s sans réponse = un message
       if (typeof r.solde === 'number') { AIM.solde = r.solde; bougerCred(); }
@@ -1155,6 +1218,7 @@
         const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(im, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
         let blob = null; for (const qy of [0.88, 0.76, 0.62]) { blob = await new Promise(okb => cv.toBlob(okb, 'image/jpeg', qy)); if (blob && blob.size <= 1400000) break; }
         if (!blob || blob.size > 1400000) throw new Error('trop lourde');
+        await fixerActuelle(c);
         const r2 = await rpc('at_esp_recadrer', { p_name: nom(), p_creation: c.id }, { quiet: true });
         await deposer(r2.path, blob);
         await rpc('at_esp_envoye', { p_name: nom(), p_version: r2.version }, { quiet: true });
