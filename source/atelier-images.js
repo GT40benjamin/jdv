@@ -599,7 +599,8 @@
   // l'admin (7 nov., vue admin de SAMBA : « je clique sur l'Originale, ça revient sur V5 ») : REGARDER une version = un état de l'appareil
   // (AIM.voir), jamais écrit en base ni écrasé par le relevé ; la version « actuelle » du serveur (d'où part la prochaine retouche) ne s'écrit
   // qu'au moment où le joueur lance une retouche / un style / un recadrage depuis la version affichée (fixerActuelle) ; en vue admin : rien n'est écrit
-  const vueDe = c => { const v = c && verDe(c, AIM.voir[c.id]); return v && v.etat === 'prete' && v.path ? v : (c ? verDe(c, c.actuelle) : null); };
+  // l'admin (7 nov., 2.1.19 : « la liste s'ouvre sur V14 alors que la dernière livrée est la V15 ») : sans choix sur l'appareil, la DERNIÈRE version prête
+  const vueDe = c => { const v = c && verDe(c, AIM.voir[c.id]); return v && v.etat === 'prete' && v.path ? v : (c ? (derniere(c) || verDe(c, c.actuelle)) : null); };
   async function fixerActuelle(c) {
     const v = AIM.voir[c.id]; if (!v || v === c.actuelle || adm()) return;
     await rpc('at_esp_choisir', { p_name: nom(), p_creation: c.id, p_version: v }, { quiet: true }); c.actuelle = v;
@@ -865,24 +866,22 @@
     } else { const im = img(act.path); Cd.appendChild(im); const e = listeVersions(c, act, 'image', ''); e.style.left = '10px'; Cd.appendChild(e); zoomable(Cd, im, act); }
     S.appendChild(Cd); depotSur(Cd);
     if (AIM.etinc && act && AIM.etinc.v === act.id && Date.now() - AIM.etinc.at < 1700) { const k = E('div', 'crea-etinc'); k.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 9; i++) { const e = E('span', '', '✨'); e.style.left = (8 + (i * 37) % 84) + '%'; e.style.top = (14 + (i * 53) % 70) + '%'; e.style.animationDelay = (i * 70) + 'ms'; k.appendChild(e); } Cd.appendChild(k); }
-    // l'admin (7 nov., 2.1.19 : « les tuiles versionnées en bas … où on peut facilement cliquer dessus pour revenir dessus ») : sous l'image,
-    // UNE RANGÉE de tuiles : une par version réussie de cette image (l'Originale, puis V2, V5… avec le VRAI numéro de la base), la retouche
-    // en cours, puis une par autre photo du projet (et les images ajoutées pour celle-ci, 📎) ; un clic = en grand (rien n'est écrit en base)
-    { const vs = c.versions.filter(v => v.etat === 'prete' && v.path).sort((a, b) => (a.outil === 'import') !== (b.outil === 'import') ? (a.outil === 'import' ? -1 : 1) : a.n - b.n);
-      const cours = c.versions.filter(v => v.outil !== 'import' && ['envoi', 'controle', 'en_cours'].includes(v.etat)), autres = principales().filter(x => x.id !== c.id), src = sourcesDe(c);
-      const Fm = E('div', 'crea-film'); Fm.setAttribute('role', 'list');
-      const tuile = (cls, path, lab, sous, fn, titre) => { const t = fn ? B('crea-vt ' + cls, null, fn) : E('div', 'crea-vt ' + cls); t.setAttribute('role', 'listitem');
-        const i = E('span', 'i'); if (path) { const m = E('img'); m.alt = ''; m.loading = 'lazy'; m.draggable = false; m.src = urlImg(path, 240); i.appendChild(m); } else i.appendChild(E('span', 'crea-anneau'));
+    // l'admin (7 nov., 2.1.19 : « une seule tuile par projet, toutes les unes à côté des autres ») : sous l'image, UNE tuile par photo du projet
+    // (Carte Ylix, Image 5…), côte à côte : sa miniature (la version regardée / la dernière prête) et son nom ; un clic l'ouvre en grand ;
+    // les versions d'une photo (l'Originale comprise) se choisissent dans la liste posée sur l'image ; les images ajoutées pour elle (📎) suivent
+    { const ps = principales(), src = sourcesDe(c), Fm = E('div', 'crea-film'); Fm.setAttribute('role', 'list');
+      const g = E('div', 'crea-filmg'), r = E('div', 'r'); g.append(E('span', 'h', '🖼️ ' + (ps.length > 1 ? 'Mes photos' : 'Ma photo')), r); Fm.appendChild(g);
+      const tuile = (cls, path, lab, sous, fn, titre, cours) => { const t = fn ? B('crea-vt ' + cls, null, fn) : E('div', 'crea-vt ' + cls); t.setAttribute('role', 'listitem');
+        const i = E('span', 'i'); if (path) { const m = E('img'); m.alt = ''; m.loading = 'lazy'; m.draggable = false; m.src = urlImg(path, 320); i.appendChild(m); } else i.appendChild(E('span', 'crea-anneau'));
+        if (cours) i.appendChild(E('span', 'crea-vtc', cours));
         t.append(i, E('b', '', lab)); if (sous) t.appendChild(E('small', '', sous)); if (titre) t.title = titre; return t; };
-      const groupe = h => { const g = E('div', 'crea-filmg'), r = E('div', 'r'); g.append(E('span', 'h', h), r); Fm.appendChild(g); return r; };
-      const g1 = groupe('🗂️ ' + (c.titre || 'Mon image') + (vs.length > 1 ? ' · ' + vs.length + ' versions' : ''));
-      for (const v of vs) g1.appendChild(tuile(act && v.id === act.id ? 'on' : '', v.path, numAff(c, v), v.outil === 'import' ? 'ta photo' : resume(v), () => { AIM.voir[c.id] = v.id; AIM.mode = 'image'; AIM.cmp = null; AIM.pos = 0.5; render(); }, numAff(c, v) + ' en grand'));
-      for (const v of cours) g1.appendChild(tuile('cours', null, 'V' + v.n, v.etat === 'controle' ? 'je vérifie…' : 'en cours…', null, 'V' + v.n + ' se prépare'));
-      if (autres.length || src.length) { const g2 = groupe('📷 ' + (autres.length + src.length > 1 ? 'Mes autres photos' : 'Mon autre photo'));
-        for (const x of autres) { const v = derniere(x); g2.appendChild(tuile('photo', v && v.path, x.titre || 'Mon image', v ? numAff(x, v) : '', () => { AIM.cur = x.id; AIM.mode = 'image'; AIM.cmp = null; AIM.pos = 0.5; render(); }, 'Ouvrir « ' + (x.titre || 'Mon image') + ' »')); }
-        for (const x of src) { const v = derniere(x); if (v) g2.appendChild(tuile('src', v.path, '📎 ' + (x.titre || 'Image ajoutée'), 'pour cette image', null, 'Image ajoutée pour modifier « ' + (c.titre || 'cette image') + ' »')); } }
+      for (const x of ps) { const v = x.id === c.id ? (act || vueDe(x)) : (vueDe(x) || derniere(x)), n = (x.versions || []).filter(y => y.etat === 'prete' && y.path).length;
+        const enc = (x.versions || []).find(y => y.outil !== 'import' && ['envoi', 'controle', 'en_cours'].includes(y.etat));
+        r.appendChild(tuile(x.id === c.id ? 'photo on' : 'photo', v && v.path, x.titre || 'Mon image', v ? numAff(x, v) + (n > 1 ? ' · ' + n + ' versions' : '') : '', x.id === c.id ? null : () => { AIM.cur = x.id; AIM.mode = 'image'; AIM.cmp = null; AIM.pos = 0.5; render(); },
+          x.id === c.id ? '« ' + (x.titre || 'Mon image') + ' » est ouverte : ses versions sont dans la liste posée sur l’image' : 'Ouvrir « ' + (x.titre || 'Mon image') + ' »', enc ? '⏳ V' + enc.n : '')); }
+      for (const x of src) { const v = derniere(x); if (v) r.appendChild(tuile('src', v.path, '📎 ' + (x.titre || 'Image ajoutée'), 'pour « ' + (c.titre || 'cette image') + ' »', null, 'Image ajoutée pour modifier « ' + (c.titre || 'cette image') + ' »')); }
       S.appendChild(Fm);
-      const centrer = () => { const on = Fm.querySelector('.crea-vt.on'); if (on && Fm.isConnected) Fm.scrollLeft = Math.max(0, on.offsetLeft - Fm.offsetLeft - (Fm.clientWidth - on.offsetWidth) / 2); };
+      const centrer = () => { const on = Fm.querySelector('.crea-vt.on'); if (on && Fm.isConnected && Fm.scrollWidth > Fm.clientWidth) Fm.scrollLeft = Math.max(0, on.offsetLeft - Fm.offsetLeft - (Fm.clientWidth - on.offsetWidth) / 2); };
       requestAnimationFrame(centrer); }
     // 👁️ {g} regarde la photo : son commentaire (ce qu'il voit, ce qu'il propose, le prix), « Oui, fais-le » ou « Je veux autre chose »
     if (act && !att) carteRegard(c, act);   // l'admin (7 nov.) : plus de {g} au milieu (doublon avec « Retoucher ») ; la demande « regarde » part toujours toute seule, sa réponse est dans le panneau de droite

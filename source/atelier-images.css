@@ -766,3 +766,11 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 /* la rangée : le titre du groupe reste visible quand les tuiles défilent ; colonne étroite (1280-1499) : les boutons de « Mon image » passent à la ligne au lieu d'être coupés */
 .crea-filmg .h{position:sticky;left:0;align-self:flex-start}
 @media (min-width:1280px) and (max-width:1499px){.crea.at-centre .crea-oimg.at .crea-actions .crea-bt{white-space:normal;text-align:left;line-height:1.2;font-size:13.5px}}
+/* une tuile par photo (l'admin, 7 nov.) : plus grandes, côte à côte ; la photo ouverte en surbrillance ; « ⏳ V16 » quand une retouche se prépare */
+.crea-vt.photo{width:150px}
+.crea-vt.photo .i{height:84px;position:relative}
+.crea-vt.photo b{font-size:14px}
+.crea-vt.photo.on{cursor:default}
+.crea-vtc{position:absolute;right:5px;bottom:5px;padding:2px 7px;border-radius:999px;background:#fff3cf;color:#6b4800;font-size:11px;font-weight:800}
+@media (max-width:699px){.crea-vt.photo{width:132px}.crea-vt.photo .i{height:74px}}
+@media (min-width:1280px) and (max-height:820px){.crea.at-centre .crea-vt.photo .i{height:70px}}
