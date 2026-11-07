@@ -510,3 +510,26 @@ begin
     'prix', jsonb_build_object('image', coalesce(pegase_int.at_reglage('prix_esp_image'), 20), 'agrandir', coalesce(pegase_int.at_reglage('prix_esp_agrandir'), 10)),
     'deja_paye', exists (select 1 from public.at_creation_versions v join public.at_creations c on c.id = v.creation where c.name = n and v.prix > 0));
 end $function$;
+
+-- v167 (équipe Études, 7 nov. 2026) : la MINIATURE d'un atelier dans les listes = sa dernière photo RETOUCHÉE (comme un jeu montre son aperçu).
+-- at_esp_types (et donc « autres » des admins, v166) : chaque projet donne en plus « retouche » = le chemin de la dernière version prête
+-- qui n'est PAS l'import (une vraie retouche), ou null. Rien d'autre ne change ('image' reste la version actuelle, pour les anciens écrans).
+create or replace function pegase_int.at_esp_type_ligne(f public.at_fiches)
+ returns jsonb
+ language sql
+ stable security definer
+ set search_path to 'public'
+as $function$
+  select jsonb_build_object('id', f.id, 'type', f.type, 'titre', f.titre, 'version', f.version_jeu, 'etat', f.etat,
+    'images', (select count(*) from public.at_creations c where c.fiche = f.id and c.supprime_at is null),
+    'versions', (select count(*) from public.at_creation_versions v join public.at_creations c on c.id = v.creation where c.fiche = f.id and c.supprime_at is null and v.etat = 'prete'),
+    'en_cours', (select count(*) from public.at_creation_versions v join public.at_creations c on c.id = v.creation where c.fiche = f.id and c.supprime_at is null and v.etat in ('en_cours', 'controle')),
+    'image', (select v.path from public.at_creations c join public.at_creation_versions v on v.id = c.actuelle where c.fiche = f.id and c.supprime_at is null and v.etat = 'prete' order by c.maj_at desc limit 1),
+    'retouche', (select v.path from public.at_creations c join public.at_creation_versions v on v.creation = c.id
+      where c.fiche = f.id and c.supprime_at is null and v.etat = 'prete' and v.outil <> 'import' and v.path is not null order by v.created_at desc limit 1))
+$function$;
+revoke all on function pegase_int.at_esp_type_ligne(public.at_fiches) from public, anon, authenticated;
+
+-- ESSAI (lecture, rien d'écrit) : la ligne de l'atelier de SAMBA (0 image aujourd'hui → retouche null)
+--   select pegase_int.at_esp_type_ligne(f) from public.at_fiches f where f.id = 'f630212e-fb4f-4fb5-bbeb-e88fadf7872d';
+-- ATTENDU : {"id": "f630212e-…", "type": "images", "etat": "alpha", "version": 1, "images": 0, "retouche": null, …}
