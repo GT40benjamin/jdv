@@ -16131,7 +16131,7 @@ function atlRenderProjets() {
   if (cr && cr.tous_projets) atlTousProjets(box);
   R.querySelector('.atl-hs').textContent = 'Mes projets · ' + ps.length + ' / ' + max;
   const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr) { cp.textContent = atlCredTxt(cr.solde); cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.patron); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.patron && cr.admin); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
 }
 function atlOuvrir(id) {
   // 2.0.135 (l'admin) : un message NON LU de la mascotte (réponse, question, offre, livraison) → la page s'ouvre SUR ce message (atlAllerNonLu)
@@ -16323,7 +16323,7 @@ function atlRenderChat() {
   R.querySelector('.atl-hs').textContent = et === 'envoyee' ? 'Projet envoyé' : et === 'design' ? 'Choisis ton design' : et === 'design_choisi' ? 'Signe ta lettre' : et === 'complete' ? 'Fiche complète' : atlWaiting() ? 'Réponse sous 10 min environ' : 'Ton idée devient un jeu';
   const cr = atlCred(), cp = R.querySelector('.atl-cred');
   cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = atlCredTxt(cr.solde); cp.title = 'Crédits Elixir : ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par élément · touche pour recharger'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.patron); atlAboBadge(R); atlDemBtn(R);
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.patron && cr.admin); atlAboBadge(R); atlDemBtn(R);
   R.querySelector('.atl-sendh').hidden = true;   // 16 h 25 : plus de lettre (« Lancer la conception » est dans les étapes)
   atlChatRetour(bn);
   const ct = R.querySelector('.atl-cost'), pxM = atlCoutMsg(); const disc = atlMsgs().some(m => !m.atelier); ct.hidden = !cr || (!pxM && !disc); if (cr) ct.textContent = pxM ? '💎 ' + pxM + ' par message' : '💬 Réponds-moi ici : c’est gratuit pendant qu’on monte ton projet';   // 2.0.27 (Benjamin : « pas 20 du tout pour faire l'idée ») : rien à payer pour raconter et discuter
@@ -16459,7 +16459,7 @@ function atlRenderWiz() {
   const ae = document.activeElement; if (ae && W.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName) && ae.value) return;   // le joueur écrit : on ne redessine pas
   const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, et = String(f.etat || ''), cr = atlCred();
   const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr && !ATL.soldeT) { cp.textContent = atlCredTxt(cr.solde); cp.classList.remove('low'); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.patron); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.patron && cr.admin); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
   // 2.0.124 (l'admin, 5 nov. : « tant qu'il n'y a pas de version de jeu, il ne peut pas créer des éléments, juste il doit lancer la conception
   // dans une fenêtre de discussion ») : SANS V1, la page du projet = la discussion (atlRenderAvantV1) ; plus d'outils de design ni d'éléments
   W.classList.toggle('av1', atlAvantV1(f));
@@ -19371,7 +19371,7 @@ function atlEnTete(R) {
   const cr = atlCred(), cp = R.querySelector('.atl-cred'), sb = R.querySelector('.atl-suivib');
   if (sb) sb.textContent = atlPetit() ? '📊' : '📊 Suivi';
   if (cp && cr) { cp.hidden = false; if (!ATL.soldeT && !/\d/.test(cp.textContent)) cp.textContent = atlCredTxt(cr.solde); }
-  if (sb) sb.hidden = !(cr && cr.patron);
+  if (sb) sb.hidden = !(cr && cr.patron && cr.admin);
   atlAboBadge(R); atlDemBtn(R);
 }
 function atlDemBtn(R) {
@@ -19718,13 +19718,22 @@ function atlRent(force) {
   return ATL_RENT.p;
 }
 const atlEur = c => ((+c || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+// 2.1.13 (l'admin : « même si SAMBA est admin, elle ne doit pas voir les prix gagnés, ni dans Suivi ni n'importe où ») : l'ARGENT (euros payés, coûts
+// réels, marge/perte, achats en €) seulement pour un admin avec at_admins.suivi (credits.admin côté serveur) ; at_admin_rentabilite ne l'envoie plus aux autres
+const atlArgentOk = () => { const c = atlCred(); return !!(c && c.admin && c.patron) && !(ATL_RENT.d && ATL_RENT.d.argent === false); };
 const atlRentDe = id => { const d = ATL_RENT.d; return d && Array.isArray(d.projets) ? d.projets.find(x => x && x.fiche === id) || null : null; };
 // 2.0.127 (SQL v137) : « payé » = crédits ACHETÉS seulement (offerts d'abord, puis achetés, au prix payé : pegase_int.at_paye_par_fiche)
 const atlOffTxt = r => (+r.credits_offerts || 0) ? ' · offert ' + (+r.credits_offerts).toLocaleString('fr-FR') + ' 💎' : '';
-function atlRentCourt(r) { if (!r) return ''; const m = +r.marge_cents || 0; return '💶 ' + atlEur(r.euros_cents) + ' payé' + atlOffTxt(r) + ' · coût ' + atlEur(r.cout_cents) + ' · marge ' + (m >= 0 ? '+' : '−') + atlEur(Math.abs(m)); }
-function atlRentPeint(el, r) { el.textContent = atlRentCourt(r); el.classList.toggle('neg', !!r && (+r.marge_cents || 0) < 0); }
+function atlRentCourt(r) { if (!r) return ''; if (!atlArgentOk() || r.euros_cents == null) return '💎 ' + (+r.credits || 0).toLocaleString('fr-FR') + ' dépensés' + atlOffTxt(r) + ' · ' + (+r.generations || 0) + ' générations'; const m = +r.marge_cents || 0; return '💶 ' + atlEur(r.euros_cents) + ' payé' + atlOffTxt(r) + ' · coût ' + atlEur(r.cout_cents) + ' · marge ' + (m >= 0 ? '+' : '−') + atlEur(Math.abs(m)); }
+function atlRentPeint(el, r) { el.textContent = atlRentCourt(r); el.classList.toggle('neg', !!r && atlArgentOk() && (+r.marge_cents || 0) < 0); }
 function atlRentLong(r, j, nom) {
   if (!r) return [];
+  if (!atlArgentOk() || r.euros_cents == null) {   // 2.1.13 : admin sans suivi : les crédits 💎 seulement, jamais d'euros ni de coûts
+    const L = ['💎 Dépensé ' + (+r.credits || 0).toLocaleString('fr-FR') + ' 💎' + ((+r.credits_achetes || 0) ? ' · ' + (+r.credits_achetes).toLocaleString('fr-FR') + ' 💎 achetés' : '') + atlOffTxt(r),
+      (+r.generations || 0) + ' générations' + ((+r.ratees || 0) ? ', dont ' + r.ratees + ' ratée' + (+r.ratees > 1 ? 's' : '') : '')];
+    if (j) { const of = [((+j.bienvenue || 0) ? 'bienvenue ' + (+j.bienvenue).toLocaleString('fr-FR') : ''), ((+j.admin || 0) ? 'cadeaux de l’admin ' + (+j.admin).toLocaleString('fr-FR') : '')].filter(Boolean);
+      L.push('Crédits de ' + dispName(nom) + ' : achetés ' + (+j.achats_credits || 0).toLocaleString('fr-FR') + ' 💎' + ((+j.abo_credits || 0) ? ' · abonnement ' + (+j.abo_credits).toLocaleString('fr-FR') + ' 💎' : '') + ' · offerts : ' + (of.length ? of.join(', ') : 'aucun') + (j.solde != null ? ' · solde ' + (+j.solde).toLocaleString('fr-FR') + ' 💎' : '')); }
+    return L; }
   const c = r.cout || {}, parts = [['images', c.image], ['musiques', c.musique], ['sons', c.son], ['autres', c.autre]].filter(x => +x[1] > 0).map(x => x[0] + ' ' + atlEur(x[1]));
   const m = +r.marge_cents || 0, l1 = '💶 Payé ' + atlEur(r.euros_cents) + ((+r.credits_achetes || 0) ? ' (' + (+r.credits_achetes).toLocaleString('fr-FR') + ' 💎 achetés)' : '') + atlOffTxt(r) + ' · dépensé ' + (+r.credits || 0).toLocaleString('fr-FR') + ' 💎 · coût réel ' + atlEur(r.cout_cents) + (parts.length ? ' (' + parts.join(' · ') + ')' : '') + ' · ' + (m >= 0 ? 'marge +' : 'perte −') + atlEur(Math.abs(m));
   const l1b = (+r.generations || 0) + ' générations' + ((+r.ratees || 0) ? ', dont ' + r.ratees + ' ratée' + (+r.ratees > 1 ? 's' : '') : '') + ((+r.sans_prix || 0) ? ' · ' + r.sans_prix + ' sans prix connu' : '') + ((+r.offertes || 0) ? ' · offert : ' + atlEur(r.offert_cents) + ' (' + r.offertes + ' génération' + (+r.offertes > 1 ? 's' : '') + ' pour un ticket offert)' : '');   // v128
@@ -20714,7 +20723,7 @@ function atlSTab(heads, lignes, cls) {
   const w = atlEl('div', 'atl-swrap'); w.appendChild(t); return w;
 }
 async function atlSuivi() {
-  { const c = atlCred(); if (!c || !c.patron) return; }   // 2.0.1 : le Suivi pour PATOU et BENJAMIN seuls
+  { const c = atlCred(); if (!c || !c.patron || !c.admin) return; }   // 2.1.13 : at_admins.suivi aussi   // 2.0.1 : le Suivi pour PATOU et BENJAMIN seuls
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z) return;
   z.textContent = ''; z.hidden = false; z.classList.add('suivi');
   const P = atlEl('div', 'atl-suivi'); P.addEventListener('click', e => e.stopPropagation()); z.appendChild(P);
