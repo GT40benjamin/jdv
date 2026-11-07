@@ -6059,3 +6059,12 @@ body:has(#jdw-atelier:not([hidden]) > .atl-mod:not([hidden])) #jdw-atelier{z-ind
 .atl-reac.on .atl-reacb{opacity:1;transform:translate(-50%,0)}
 @media (hover:hover){.atl-reac:hover .atl-reacb{opacity:1;transform:translate(-50%,0)}}
 .atl-mreac + .atl-m{margin-top:6px}
+/* 7 nov. 2026 — Suivi en vrais euros : 4 cartes (reçu, crédits dépensés, coût réel, résultat), achetés / offerts, colonne Argent */
+.atl-sres{grid-template-columns:repeat(4,minmax(0,1fr))}
+.atl-sresd{font-size:12px;line-height:1.35;color:var(--muted)}
+.atl-ssplit{color:#ffd88a !important}
+.atl-seu{color:#ffe7a3}
+@media (max-width:900px){.atl-sres{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:420px){.atl-sres{grid-template-columns:1fr}}
+/* téléphone : une fenêtre de l'Atelier ouverte (Suivi, Mes demandes, image en grand, fenêtres) passe devant la barre d'onglets du bas */
+#jdw-atelier:has(.atl-zoom:not([hidden])) .atl-estabs,#jdw-atelier:has(.atl-mod:not([hidden])) .atl-estabs{display:none!important}
