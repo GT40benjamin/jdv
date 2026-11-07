@@ -169,7 +169,7 @@
     R.innerHTML = '<header class="crea-bar"><button class="crea-rond crea-menu" type="button" aria-label="Mes projets">☰</button>'
       + '<button class="crea-rond crea-retour" type="button" aria-label="Retour">‹</button>'
       + '<div class="crea-marque"><img alt="" src="' + AV() + '"><b></b></div><div class="crea-fil"></div>'
-      + '<button class="crea-rond crea-monde" type="button"></button><button class="crea-cred" type="button" title="Tes crédits : en avoir plus"></button></header>'
+      + '<button class="crea-rond crea-son" type="button"></button><button class="crea-rond crea-monde" type="button"></button><button class="crea-cred" type="button" title="Tes crédits : en avoir plus"></button></header>'
       + '<div class="crea-ciel" aria-hidden="true"></div>'
       + '<div class="crea-corps"><nav class="crea-arbre crea-carte" aria-label="Mes projets"></nav><main class="crea-outil"></main>'
       + '<aside class="crea-masc crea-carte" aria-label="Discussion avec ' + PK() + '"></aside></div>'
@@ -185,6 +185,11 @@
     q('.crea-flot').addEventListener('click', () => { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); setTimeout(() => { const t = q('.crea-masc textarea'); if (t) t.focus({ preventScroll: true }); }, 60); });
     q('.crea-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0], nv = e.target.dataset.nv; e.target.value = ''; delete e.target.dataset.nv; if (!f) return; if (nv && AIM.vue === 'nouveau') imageNouveau(f); else importer(f); });
     q('.crea-cred').addEventListener('click', () => { try { atlRecharger(); } catch (e) {} });
+    // l'admin (7 nov.) : le bouton 🔊 / 🔇 des autres écrans (l'Atelier des jeux, à côté de « Mes demandes ») — le MÊME réglage partagé
+    // (jdw.atl.mus) : couper ici coupe partout, la musique de l'Atelier comme le petit son « paillettes » d'une retouche prête
+    q('.crea-son').addEventListener('click', () => { const on = !sonOn(); try { store.set('jdw.atl.mus', on); } catch (e) {}
+      try { if (typeof ATL !== 'undefined' && ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic(''); } } catch (e) {}
+      sonMaj(); });
     q('.crea-monde').addEventListener('click', () => { const n = !R.classList.contains('nuit'); try { store.set('jdw.crea.monde', n ? 'nuit' : 'jour'); } catch (e) {} monde(); });
     monde();
     try { if (store.get('jdw.crea.pkreplie', false)) R.classList.add('pk-replie'); } catch (e) {}
@@ -655,8 +660,13 @@
   // l'état d'UNE version vient de SON champ etat (jamais déduit des autres)
   const etatLib = x => x.etat === 'prete' && x.path ? '' : ['ratee', 'refusee'].includes(x.etat) ? ' · ratée' : x.etat === 'controle' ? ' · en vérification' : ['en_cours', 'envoi'].includes(x.etat) ? ' · en cours' : x.etat === 'prete' ? ' · sans image' : ' · ' + (x.etat || '?');
   // SAMBA (7 nov.) : « un petit son de scintillement quand c'est prêt » — 4 notes douces qui montent (~0,7 s), le bouton son de la borne décide
+  const sonOn = () => { try { return store.get('jdw.atl.mus', true) !== false; } catch (e) { return true; } };
+  function sonMaj() {   // notre bouton ET celui de l'Atelier des jeux (même réglage)
+    const on = sonOn();
+    for (const b of document.querySelectorAll('#jdw-crea .crea-son, .atl-musb')) { b.textContent = on ? '🔊' : '🔇'; b.title = on ? 'Couper le son' : 'Remettre le son'; b.setAttribute('aria-label', b.title); b.setAttribute('aria-pressed', on ? 'false' : 'true'); }
+  }
   function scintille() {
-    if (adm()) return;
+    if (adm() || !sonOn()) return;
     try { if (typeof muted !== 'undefined' && muted) return; Audio.ensure(); [[1568, 0], [2093, 110], [2637, 230], [3136, 360]].forEach(([f, d]) => setTimeout(() => { try { Audio.tone(f, 0.32, 'sine', 0.035); } catch (e) {} }, d)); } catch (e) {}
   }
   // v176 : une image ajoutée pour en modifier une autre (at_creations.pour_creation → « pour ») n'est pas une image à part
@@ -676,6 +686,7 @@
   // ---------- rendu ----------
   function render() {
     AIM.sigReac = (AIM.msgs || []).map(m => m.reaction || '').join('');   // les réactions affichées (voir suivre)
+    sonMaj();
     fermerCopier();
     if (!AIM.root || !AIM.open) return;
     const R = AIM.root, q = s => R.querySelector(s);
@@ -686,6 +697,7 @@
       fil.append(E('span', 'lien', adm() ? '· Projets des joueurs' : '· Mes projets'), E('span', 'lien', ' › '), E('strong', '', ti));
       if (adm()) { const ab = E('span', 'crea-admb', '🛡️ '); ab.append(E('span', 'l', 'Vue admin · '), joueurAdm()); fil.appendChild(ab); }
     }
+    fil.prepend(E('span', 'crea-filmarq', 'CRÉE AVEC ' + PK().toUpperCase()));   // au téléphone, la 1re ligne du titre (avant : ::before, que le titre ne pouvait pas cacher)
     q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
     let so = AIM.solde; if (typeof so !== 'number') { try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {} }   // sans SQL v160 : le solde de l'Atelier (testeurs, 6 nov.)
     q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + (adm() ? joueurAdm() + ' ' : '') + so + (etroit() || adm() ? '' : ' crédits') : '';
@@ -694,7 +706,7 @@
     // testeur 2 (915 px, téléphone couché) : sous 1280 px le panneau de {g} se replie tout seul dans un atelier livré (la photo n'avait que ~200 px) ;
     // un toucher sur sa languette le rouvre, et ce choix est gardé
     if (sansPanneau() && innerWidth < 1280 && innerWidth >= 700 && !AIM.pkOuvert) R.classList.add('pk-replie');   // la grande discussion au centre replie le panneau de droite
-    { let k = R.querySelector('.crea-admbt'); if (adm()) { if (!k) { k = B('crea-rond crea-admbt', '🛡️ Admin', () => fenetreAdmin()); const cr = q('.crea-cred'); cr.parentNode.insertBefore(k, cr); }
+    { let k = R.querySelector('.crea-admbt'); if (adm()) { if (!k) { k = B('crea-rond crea-admbt', null, () => fenetreAdmin()); k.append('🛡️', E('span', 'l', ' Admin')); k.title = 'Admin'; k.setAttribute('aria-label', 'Admin'); const cr = q('.crea-cred'); cr.parentNode.insertBefore(k, cr); }
       k.title = 'Mode admin : projet de ' + joueurAdm(); } else if (k) k.remove(); }
     if (AIM.vue === 'guide') { const f = R.querySelector('.crea-disc .crea-fil2'), a = document.activeElement;
       AIM.discEtat = { bas: f ? f.scrollHeight - f.scrollTop - f.clientHeight < 40 : true, foc: !!(a && a.tagName === 'TEXTAREA' && a.closest('.crea-disc .crea-saisie')) }; }
@@ -826,6 +838,8 @@
     setTimeout(() => { const t = R.querySelector('.crea-masc textarea'); if (t && !TOUCH) t.focus({ preventScroll: true }); }, 60);
   }
   function renderOutil() {
+    { const O0 = AIM.root.querySelector('.crea-outil'), vF = AIM.vue === 'guide' && champActif(O0) && O0.querySelector('.crea-disc .crea-fil2');
+      if (vF) { const F = filGuide(); vF.replaceWith(F); tenirFil(F, 'disc'); return; } }   // on écrit dans la discussion en grand : seuls les messages changent
     const O = AIM.root.querySelector('.crea-outil'), sy = O.scrollTop, ae = document.activeElement, demFoc = !!(ae && ae.tagName === 'TEXTAREA' && ae.closest('.crea-outil .crea-dem')), sel = demFoc ? [ae.selectionStart, ae.selectionEnd] : null;
     O.textContent = '';
     if (demFoc) setTimeout(() => { const t = O.querySelector('.crea-dem textarea'); if (t) { t.focus({ preventScroll: true }); try { t.setSelectionRange(sel[0], sel[1]); } catch (e) {} } }, 0);
@@ -834,7 +848,7 @@
     AIM.root.style.backgroundImage = AIM.vue === 'nouveau' || fd ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
     if (AIM.vue === 'nouveau') { renderNouveau(O); return; }
     if (AIM.vue === 'versions_at') AIM.vue = 'route';   // l'admin (7 nov.) : « Feuille de route et Versions, ça va ensemble »
-    if (AIM.vue === 'guide') { renderGuideCentre(O, AIM.discEtat || {}); AIM.discEtat = null; return; }
+    if (AIM.vue === 'guide') { renderGuideCentre(O, AIM.discEtat || {}); AIM.discEtat = null; return; }   // (le cas « on écrit » est traité plus haut)
     if (!AIM.d) {   // l'admin (6 nov., 23 h) : JAMAIS un chargement sans fin. Une erreur (ou 10 s sans réponse) → un message clair + Réessayer
       const c = E('div', 'crea-carte crea-page'), v = E('div', 'crea-vide');
       const trop = Date.now() - (AIM.ouvAt || 0) > 10000;
@@ -931,8 +945,15 @@
           for (const e of els.slice(0, 3)) { const m = E('img'); m.alt = ''; m.loading = 'lazy'; m.src = urlImg(e.v.path, 96); m.title = e.y.titre || 'Élément'; bd.appendChild(m); }
           bd.title = 'Éléments de « ' + (x.titre || 'Mon image') + ' » : ' + els.map(e => e.y.titre || 'Élément').join(', '); t.appendChild(bd); }
         r.appendChild(t); }
-      S.appendChild(Fm);
-      const centrer = () => { const on = Fm.querySelector('.crea-vt.on'); if (on && Fm.isConnected && Fm.scrollWidth > Fm.clientWidth) Fm.scrollLeft = Math.max(0, on.offsetLeft - Fm.offsetLeft - (Fm.clientWidth - on.offsetWidth) / 2); };
+      // l'admin (7 nov., 2.1.22 : « à 1366 et au téléphone, la 3e tuile est coupée ») : les tuiles rétrécissent pour tenir ; s'il y en a trop quand
+      // même, un dégradé et une flèche ‹ › montrent qu'on peut faire défiler (jamais une tuile coupée sans le dire)
+      const Fw = E('div', 'crea-filmw'), fg = B('fl g', '‹', () => Fm.scrollBy({ left: -Fm.clientWidth * 0.7 })), fd = B('fl d', '›', () => Fm.scrollBy({ left: Fm.clientWidth * 0.7 }));
+      fg.setAttribute('aria-label', 'Photos précédentes'); fd.setAttribute('aria-label', 'Photos suivantes'); fg.tabIndex = fd.tabIndex = -1;
+      { const h = Fm.querySelector('.crea-filmg > .h'); if (h) Fw.appendChild(h); }   // le titre « Mes photos » ne défile pas (ni ne s'estompe)
+      Fw.append(Fm, fg, fd); S.appendChild(Fw);
+      const fleches = () => { if (!Fm.isConnected) return; const plus = Fm.scrollWidth - Fm.clientWidth > 2; Fw.classList.toggle('plus-g', plus && Fm.scrollLeft > 2); Fw.classList.toggle('plus-d', plus && Fm.scrollLeft + Fm.clientWidth < Fm.scrollWidth - 2); };
+      Fm.addEventListener('scroll', fleches, { passive: true }); try { new ResizeObserver(fleches).observe(Fm); } catch (e) {}
+      const centrer = () => { const on = Fm.querySelector('.crea-vt.on'); if (on && Fm.isConnected && Fm.scrollWidth > Fm.clientWidth) Fm.scrollLeft = Math.max(0, on.offsetLeft - Fm.offsetLeft - (Fm.clientWidth - on.offsetWidth) / 2); fleches(); };
       requestAnimationFrame(centrer); }
     // 👁️ {g} regarde la photo : son commentaire (ce qu'il voit, ce qu'il propose, le prix), « Oui, fais-le » ou « Je veux autre chose »
     if (act && !att) carteRegard(c, act);   // l'admin (7 nov.) : plus de {g} au milieu (doublon avec « Retoucher ») ; la demande « regarde » part toujours toute seule, sa réponse est dans le panneau de droite
@@ -1034,7 +1055,7 @@
     const cfg = atelierDe(AIM.fiche), L = resultats(), p = E('div', 'crea-carte crea-page');
     const h = E('div', 'crea-h', '✨ ' + cfg.resultat.toUpperCase()); h.appendChild(E('small', '', L.length ? L.length + ' prête' + (L.length > 1 ? 's' : '') + ' à télécharger' : '')); p.appendChild(h);
     if (!L.length) { p.append(E('p', 'crea-vide-t', cfg.videResultat), B('crea-bt', '🖼️ Aller dans mon atelier', () => { AIM.vue = 'atelier'; render(); })); p.lastChild.style.alignSelf = 'flex-start'; O.appendChild(p); return; }
-    const g = E('div', 'crea-res');
+    const g = E('div', 'crea-res'), vus = [];   // vus : les tuiles affichées, pour « ☑️ Sélectionner » (atelier-impression.js)
     for (const c of (AIM.d && AIM.d.creations) || []) {
       const rs = c.versions.filter(v => v.outil !== 'import' && v.etat === 'prete' && v.path).sort((a, b) => b.n - a.n); if (!rs.length) continue;
       const orig = c.versions.find(x => x.outil === 'import' && x.etat === 'prete' && x.path), ok = rs.concat(orig ? [orig] : []);
@@ -1048,9 +1069,10 @@
         const o = E('option'); o.value = x.id; o.textContent = numAff(c, x) + etatLib(x); o.disabled = !(x.etat === 'prete' && x.path); if (x.id === v.id) o.selected = true; sel.appendChild(o); }
       sel.addEventListener('change', () => { AIM.resSel[c.id] = sel.value; render(); });
       const t = E('div', 't'), tt = E('div', 'tt'); tt.append(E('b', '', c.titre || 'Mon image'), sel); t.append(tt, E('small', '', resume(v)));
-      d.append(i, t, B('crea-bt violet', '⬇️ Télécharger ' + numAff(c, v), () => telecharger(c, v))); g.appendChild(d);
+      d.append(i, t, B('crea-bt violet', '⬇️ Télécharger ' + numAff(c, v), () => telecharger(c, v))); g.appendChild(d); vus.push({ c, v, el: d });
     }
     p.appendChild(g); O.appendChild(p);
+    try { const X = window.jdwImpression; if (X) X.brancher({ page: p, tete: h, grille: g, tuiles: vus, url: urlImg, numAff, toast, adm: adm() }); } catch (e) { try { console.error('[atelier-impression]', e); } catch (x) {} }
   }
   // 🗺️ la feuille de route du projet (la fiche que {g} remplit, comme pour un jeu)
   const ROUTE_LAB = { idee: '💡 L’idée', but: '🎯 Le but', photos: '📷 Les photos', retouches: '✨ Les retouches', style: '🎨 Le style', outils: '🧰 Les outils', prix: '💎 Les prix', resume: '📝 Le résumé' };
@@ -1161,6 +1183,12 @@
     const p = E('div', 'crea-carte crea-page crea-disc'), h = E('div', 'crea-disc-h'), im = E('img'), tx = E('div');
     im.alt = ''; im.src = AV(); tx.append(E('b', '', PK()), E('small', '', adm() ? '🛡️ La conversation de ' + joueurAdm() + ' · tu réponds comme ' + PK() : '● en ligne · je t’écoute'));
     h.append(im, tx); p.appendChild(h);
+    const F = filGuide(); p.appendChild(F);
+    const S = saisie('Écris à ' + PK() + '… (c’est gratuit)'); p.appendChild(S); O.appendChild(p);
+    tenirFil(F, 'disc');
+    if (et.foc) S.querySelector('textarea').focus({ preventScroll: true });
+  }
+  function filGuide() {
     const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
     // la même discussion que les jeux : ses bulles, et les OFFRES « Choisir » de l'Interface (atlDiscBulleDem) à leur place dans le temps
     const T = v => Date.parse(v || '') || 0, items = filMasc().map(m => ({ t: T(m.at), el: () => bulle(m) }));
@@ -1172,13 +1200,20 @@
     if (!items.length) F.appendChild(E('p', 'crea-vide-t', 'Écris-moi ici ce que tu veux faire 😊'));
     for (const it of items) { try { F.appendChild(it.el()); } catch (e) {} }
     if (AIM.prop) F.appendChild(propCarte());
-    p.appendChild(F);
-    const S = saisie('Écris à ' + PK() + '… (c’est gratuit)'); p.appendChild(S); O.appendChild(p);
-    tenirFil(F, 'disc');
-    if (et.foc) S.querySelector('textarea').focus({ preventScroll: true });
+    return F;
   }
+  function filMascEl() {
+    const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
+    for (const m of filMasc().slice(-60)) F.appendChild(bulle(m));
+    if (AIM.prop) F.appendChild(propCarte());
+    return F;
+  }
+  // l'admin (7 nov., téléphone : le clavier s'ouvrait et se fermait en boucle) : un champ OÙ L'ON ÉCRIT n'est jamais recréé — enlever un champ
+  // de la page lui fait perdre le focus, et au téléphone le clavier se ferme. Pendant qu'on écrit, un rendu ne remplace que les messages.
+  const champActif = Z => { const a = document.activeElement; return !!(a && Z && Z.contains(a) && a.closest('.crea-saisie')); };
   function renderMasc() {
     const P = AIM.root.querySelector('.crea-masc');
+    if (AIM.vue !== 'nouveau' && champActif(P)) { const vF = P.querySelector('.crea-fil2'); if (vF) { const F = filMascEl(); vF.replaceWith(F); tenirFil(F, 'masc'); return; } }
     const foc = !!(document.activeElement && document.activeElement.tagName === 'TEXTAREA' && AIM.root.contains(document.activeElement) && document.activeElement.closest('.crea-saisie'));
     P.textContent = '';
     AIM.root.classList.toggle('nv', AIM.vue === 'nouveau');   // pendant la création : la discussion est AU CENTRE, pas de panneau à droite
@@ -1189,10 +1224,7 @@
     const rep = B('crea-pkrep', etroit() ? '✕' : '⟩', e => { e.stopPropagation(); if (etroit()) AIM.root.classList.remove('pk-plein'); else { AIM.root.classList.add('pk-replie'); try { store.set('jdw.crea.pkreplie', true); } catch (x) {} } });
     rep.setAttribute('aria-label', etroit() ? 'Retour à l’outil' : 'Replier ' + PK());
     t.append(im, tx, rep); P.appendChild(t);
-    const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
-    for (const m of filMasc().slice(-60)) F.appendChild(bulle(m));
-    if (AIM.prop) F.appendChild(propCarte());
-    P.appendChild(F);
+    const F = filMascEl(); P.appendChild(F);
     const S = saisie(); P.appendChild(S);
     // tout en bas, maintenant et une fois les bulles posées (images, polices), sauf si on est remonté lire ; redescendre tout en bas = on suit à nouveau
     tenirFil(F, 'masc');
@@ -1470,6 +1502,15 @@
     c.appendChild(r); setTimeout(() => der && der.focus(), 30);
   }
 
-  addEventListener('resize', () => { if (AIM.open) { clearTimeout(AIM.rz); AIM.rz = setTimeout(render, 150); } });
+  // l'admin (7 nov., téléphone : « le clavier monte et descend quand j'entre dans ce champ ») : le clavier qui s'ouvre change la HAUTEUR de la
+  // fenêtre ; un rendu recréait le champ, il perdait le focus, le clavier se fermait, la hauteur revenait… en boucle. On ne redessine plus
+  // que si la LARGEUR change (téléphone tourné, fenêtre élargie), et jamais pendant qu'on écrit dans l'atelier (on attend que le champ soit lâché)
+  const ecrit = () => { const a = document.activeElement; return !!(a && AIM.root && AIM.root.contains(a) && (a.tagName === 'TEXTAREA' || a.isContentEditable || (a.tagName === 'INPUT' && !/^(checkbox|radio|range|button|submit|reset|file|color|image|hidden)$/i.test(a.type || '')))); };
+  AIM.rzW = innerWidth;
+  addEventListener('resize', () => {
+    if (!AIM.open || innerWidth === AIM.rzW) return;
+    clearTimeout(AIM.rz); AIM.rz = setTimeout(() => { if (ecrit()) { AIM.rzAttente = true; return; } AIM.rzW = innerWidth; render(); }, 150);
+  });
+  document.addEventListener('focusout', () => setTimeout(() => { if (AIM.rzAttente && AIM.open && !ecrit()) { AIM.rzAttente = false; AIM.rzW = innerWidth; render(); } }, 200));
   document.addEventListener('visibilitychange', () => { if (!document.hidden && AIM.open && AIM.fiche) Promise.all([charger(), chargerMsgs()]).then(render); });
 })();

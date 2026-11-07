@@ -1,0 +1,134 @@
+/* ===== « Crée avec {g} » : choisir → télécharger / partager / imprimer les photos retouchées (équipe Outils, atelier-impression.js) ===== */
+.crea-h.imp-tete{flex-wrap:wrap}
+.crea-h .imp-selb{margin-left:auto;padding:7px 13px;font-size:13.5px;font-family:var(--display)}
+.crea-h .imp-selb.on{background:#efe6ff;color:#4b2a9a;box-shadow:0 3px 0 #cdb9f2}
+.imp-tout{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;margin:-4px 0 0}
+.imp-lien{border:0;background:none;padding:4px 2px;font:800 14px var(--body);color:#6a3fc2;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.imp-lien:hover{color:#43237f}
+.imp-astuce{font-size:13px;color:#6b6280;font-weight:600}
+/* la case sur chaque tuile */
+.crea-resi.imp-tuile{position:relative;transition:box-shadow .15s,border-color .15s,transform .15s}
+.crea-resi.imp-tuile .i{cursor:pointer}
+.crea-resi.imp-on{border-color:#8a5ce6;box-shadow:0 0 0 3px #8a5ce6,0 6px 18px rgba(80,30,160,.22)}
+.imp-case{position:absolute;left:14px;top:14px;z-index:2;width:34px;height:34px;display:grid;place-items:center;cursor:pointer}
+.imp-case input{position:absolute;inset:0;margin:0;opacity:0;cursor:pointer}
+.imp-coche{width:28px;height:28px;border-radius:9px;background:rgba(255,255,255,.94);border:2.5px solid #8a7fa3;box-shadow:0 2px 6px rgba(30,10,60,.25);display:grid;place-items:center;transition:background .12s,border-color .12s}
+.imp-coche::after{content:"";width:12px;height:7px;border-left:3.5px solid #fff;border-bottom:3.5px solid #fff;transform:translateY(-2px) rotate(-45deg);opacity:0}
+.imp-case input:checked + .imp-coche{background:#7446d6;border-color:#7446d6}
+.imp-case input:checked + .imp-coche::after{opacity:1}
+.imp-case input:focus-visible + .imp-coche{outline:3px solid #ffb443;outline-offset:2px}
+/* la barre du bas */
+.crea-page.imp-mode{padding-bottom:0}
+.imp-barre{position:sticky;bottom:0;z-index:3;margin:auto -18px 0;padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;
+  background:rgba(255,255,255,.97);border-top:1.5px solid #e6dcf7;box-shadow:0 -8px 22px rgba(40,20,80,.1);border-radius:0 0 22px 22px}
+.imp-n{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.imp-n b{font-family:var(--display);font-size:16px;color:#2a1f45}
+.imp-info{font-size:13px;color:#5f5874;font-weight:600;line-height:1.3}
+.imp-acts{display:flex;gap:8px;flex-wrap:wrap}
+.imp-acts .crea-bt{padding:9px 14px;font-size:14px}
+.imp-acts .crea-bt:not(.violet){background:linear-gradient(#5aa7ff,#2f7be0);box-shadow:0 4px 0 #1d5aa8,0 7px 16px rgba(30,90,180,.22)}
+.imp-acts .crea-bt.imp-go{animation:imp-pouls .9s ease-in-out 2}
+@keyframes imp-pouls{50%{transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){.imp-acts .crea-bt.imp-go{animation:none}}
+.imp-acts .crea-bt:disabled{opacity:.45;cursor:default;filter:grayscale(.4)}
+.imp-ico{flex:0 0 auto}
+/* pendant la sélection, la bulle flottante de {g} laisse la place à la barre, sur TOUS les écrans (téléphone couché compris ; « ✔️ Terminer » la remet) */
+.crea:has(.crea-page.imp-mode) .crea-flot{display:none!important}
+@media (max-width:699px){
+  .imp-barre{padding-left:12px;padding-right:12px;border-radius:0;gap:8px}
+  .imp-acts{width:100%;gap:7px}
+  .imp-acts .crea-bt{flex:1 1 0;min-width:0;flex-direction:column;gap:3px;white-space:normal;text-align:center;line-height:1.1;padding:8px 4px 9px;font-size:12.5px}
+  .imp-acts .imp-ico{font-size:19px;line-height:1}
+}
+.crea.nuit .imp-barre{background:rgba(35,27,82,.97);border-top-color:#4a3c94}
+.crea.nuit .imp-n b{color:#f4edff}
+.crea.nuit .imp-info,.crea.nuit .imp-astuce{color:#d6cbef}
+.crea.nuit .imp-lien{color:#c7b2ff}
+.crea.nuit .crea-h .imp-selb.on{background:#3a2d7a;color:#f4edff;box-shadow:0 3px 0 #1d154a}
+
+/* ===== la fenêtre d'aperçu avant impression ===== */
+.imp-fen{position:fixed;inset:0;z-index:2147482600;background:rgba(20,8,45,.62);display:grid;place-items:center;padding:16px;
+  --cv:#3b1d6e;--cv2:#6a3fc2;--cdoux:#6b6280;font-family:var(--body);color:#1f1a2b;color-scheme:light}
+.imp-fc{width:min(1180px,100%);height:min(860px,100%);background:#fbf9ff;border-radius:22px;box-shadow:0 24px 60px rgba(20,0,60,.4);display:flex;flex-direction:column;overflow:hidden}
+.imp-ft{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1.5px solid #ece4f8;background:#fff}
+.imp-ft h2{margin:0;font-family:var(--display);font-size:19px;color:#3b1d6e;flex:1}
+.imp-x{width:38px;height:38px;border-radius:12px;border:0;background:#f1ebfb;color:#3b1d6e;font-size:18px;font-weight:800;cursor:pointer}
+.imp-x:hover{background:#e4d8fa}
+.imp-fb{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:0}
+.imp-attente{grid-column:1/-1;display:grid;place-items:center;font-size:16px;font-weight:700;color:#5f5874;padding:40px;text-align:center}
+.imp-vue{min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;background:#ebe6f3}
+.imp-page{flex:1;min-height:0;width:100%;display:grid;place-items:center;overflow:hidden}
+.imp-page canvas{display:block;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.12),0 12px 30px rgba(30,10,60,.22)}
+.imp-pag{display:flex;align-items:center;gap:12px}
+.imp-lp{font:800 14px var(--body);color:#3b1d6e;min-width:120px;text-align:center}
+.imp-minis{display:flex;gap:10px;overflow-x:auto;max-width:100%;padding:4px 4px 6px;scrollbar-width:thin}
+.imp-mini{flex:0 0 auto;border:0;background:none;padding:3px;border-radius:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+.imp-mini canvas{display:block;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.imp-mini small{font:700 11.5px var(--body);color:#5f5874}
+.imp-mini.on{outline:3px solid #8a5ce6}
+.imp-mini.verso small{color:#8a5ce6}
+.imp-res{font:800 14.5px var(--body);color:#2a1f45;text-align:center}
+.imp-conseil{font-size:13px;color:#5f5874;text-align:center;max-width:560px;line-height:1.35}
+.imp-reg{min-height:0;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px;border-left:1.5px solid #ece4f8;background:#fff;scrollbar-width:thin}
+.imp-bloc[hidden]{display:none}
+.imp-bh{font-family:var(--display);font-size:13.5px;letter-spacing:.4px;color:#6a3fc2;margin-bottom:7px;text-transform:uppercase}
+.imp-choix{display:flex;flex-direction:column;gap:6px}
+.imp-choix.deux{flex-direction:row}
+.imp-choix.deux .imp-opt{flex:1 1 0;min-width:0}
+.imp-opt{text-align:left;border:2px solid #e6dcf5;background:#fff;border-radius:14px;padding:9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;font-family:var(--body);color:#2a1f45}
+.imp-opt b{font-size:14.5px}
+.imp-opt small{font-size:12.5px;color:#6b6280;font-weight:600;line-height:1.25}
+.imp-opt:hover{border-color:#c9b4f3}
+.imp-opt.on{border-color:#7446d6;background:#f4eeff;box-shadow:0 0 0 1px #7446d6}
+.imp-opt:focus-visible,.imp-pm:focus-visible,.imp-mini:focus-visible,.imp-dosi:focus-visible,.imp-x:focus-visible{outline:3px solid #ffb443;outline-offset:2px}
+.imp-ex{display:flex;flex-direction:column;gap:6px}
+.imp-exl{display:flex;align-items:center;gap:9px;padding:5px;border-radius:12px;background:#f8f5fd}
+.imp-exl img{width:38px;height:38px;object-fit:cover;border-radius:8px;flex:0 0 auto;background:#eee}
+.imp-exnom{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:#2a1f45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp-pmw{display:flex;align-items:center;gap:4px}
+.imp-pm{width:32px;height:32px;border-radius:10px;border:0;background:#e9e0f8;color:#3b1d6e;font:800 18px var(--body);cursor:pointer;display:grid;place-items:center}
+.imp-pm:hover:not(:disabled){background:#dccdf6}
+.imp-pm:disabled{opacity:.35;cursor:default}
+.imp-exn{min-width:26px;text-align:center;font:800 15px var(--body);color:#2a1f45}
+.imp-cb{display:flex;align-items:center;gap:9px;padding:6px 2px;font-size:14.5px;font-weight:700;color:#2a1f45;cursor:pointer}
+.imp-cb input{width:20px;height:20px;accent-color:#7446d6;cursor:pointer}
+.imp-cb.off{opacity:.45;cursor:default}
+.imp-dos{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px;margin-top:4px}
+.imp-dos[hidden]{display:none}
+.imp-dosi{border:2px solid #e6dcf5;border-radius:10px;padding:2px;background:#fff;cursor:pointer;aspect-ratio:1}
+.imp-dosi img{width:100%;height:100%;object-fit:cover;border-radius:7px;display:block}
+.imp-dosi.on{border-color:#7446d6;box-shadow:0 0 0 2px #7446d6}
+.imp-fp{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));border-top:1.5px solid #ece4f8;background:#fff}
+.imp-msg{flex:1 1 200px;min-width:0;font-size:13.5px;font-weight:700;color:#4b2a9a;line-height:1.3}
+.imp-fp .crea-bt:disabled{opacity:.45;cursor:default}
+.imp-fp .crea-bt:not(.violet):not(.blanc){background:linear-gradient(#5aa7ff,#2f7be0);box-shadow:0 4px 0 #1d5aa8,0 7px 16px rgba(30,90,180,.22)}
+.imp-cadre{position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none}
+/* téléphone (et petites fenêtres) : l'aperçu en haut, les réglages dessous, les boutons toujours en bas */
+@media (max-width:820px){
+  .imp-fen{padding:0}
+  .imp-fc{width:100%;height:100%;border-radius:0}
+  .imp-ft{padding:10px 12px}
+  .imp-ft h2{font-size:17px}
+  .imp-fb{display:flex;flex-direction:column;overflow:auto}
+  .imp-vue{flex:0 0 auto;padding:12px}
+  .imp-page{flex:0 0 auto;height:min(52vh,420px)}
+  .imp-reg{flex:0 0 auto;overflow:visible;border-left:0;border-top:1.5px solid #ece4f8;padding:12px}
+  .imp-fp{padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));gap:6px}
+  .imp-msg{flex-basis:100%;order:-1}
+  .imp-fp .crea-bt{flex:1 1 0;min-width:0;white-space:normal;text-align:center;line-height:1.15;padding:9px 8px;font-size:13.5px}
+  .imp-fp .crea-bt.blanc{flex:0 0 auto;padding:9px 12px}
+}
+@media (max-height:500px){   /* téléphone couché (même large) : plein écran, la page en grand, les flèches suffisent */
+  .imp-fen{padding:0}
+  .imp-fc{width:100%;height:100%;border-radius:0}
+  .imp-ft{padding:8px 12px}
+  .imp-ft h2{font-size:16px}
+  .imp-fb{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,44%);overflow:hidden}
+  .imp-vue{overflow:auto;padding:8px;gap:6px}
+  .imp-page{height:auto;flex:1 1 auto;min-height:170px}
+  .imp-minis{display:none}
+  .imp-conseil{font-size:12px}
+  .imp-reg{overflow:auto;border-top:0;border-left:1.5px solid #ece4f8;padding:10px 12px}
+  .imp-fp{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+  .imp-msg{flex-basis:auto;order:0}
+}
