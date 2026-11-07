@@ -6022,3 +6022,7 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-admact .btn{justify-content:flex-start;text-align:left;white-space:normal;min-height:46px}
 .atl-admc .atl-admfer{justify-self:end}
 @media (max-width:600px){.atl-admact{grid-template-columns:1fr}.atl-admc .atl-admfer{justify-self:stretch}}
+/* 2.1.13 (l'admin : « on ne peut plus acheter de crédits ») : #jdw-atelier (z 20) est SOUS l'écran « Crée avec » (#jdw-crea, z 21, son voisin dans body) :
+   une fenêtre de l'Atelier (« 💎 Mes crédits », « Il te manque des crédits », 🛡️ Admin…) ouverte depuis cet écran s'ouvrait derrière lui, invisible.
+   Tant qu'une fenêtre de l'Atelier est ouverte, l'Atelier passe au-dessus de l'écran « Crée avec » (le voile de la fenêtre cache le reste). */
+body:has(#jdw-atelier:not([hidden]) > .atl-mod:not([hidden])) #jdw-atelier{z-index:23}
