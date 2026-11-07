@@ -84,8 +84,10 @@
   // statut juste : « V1 · prêt » quand il est livré (jamais « en essai », c'est un mot de jeu), sinon « En préparation avec {g} »
   const estAtelier = id => typeDe(id) !== 'jeu' && !!ATELIERS[typeDe(id)];
   const miniUrl = (id, w) => { const x = AIM.types[id] || {}, u = livre(id) && x.retouche ? urlImg(x.retouche, w) : ''; return u || (ROOT + atelierDe(id).miniature); };
-  const statutAt = id => livre(id) ? 'V' + Math.max(1, ((AIM.types[id] || {}).version | 0) || versionAt(id)) + ' · prêt' : 'En préparation avec ' + PK();
+  const statutAt = id => livre(id) ? 'V' + verAtelier(id) + ' · prêt' : 'En préparation avec ' + PK();
   const versionAt = id => { try { const pj = atlProjets().find(x => x && x.id === id); return (pj && pj.version | 0) || 0; } catch (e) { return 0; } };
+  // la version de l'atelier = at_fiches.version_jeu (at_esp_types → « version », joueur ET admin) ; avant, l'en-tête lisait seulement la liste du joueur : « V1 » en vue admin
+  const verAtelier = id => Math.max(1, ((AIM.types[id] || {}).version | 0), versionAt(id));
   const toast = t => { try { atlToast(t); } catch (e) { try { toastCheer(t); } catch (e2) {} } };
   const dire = m => { m.pk = m.pk === undefined ? 1 : m.pk; m.at = new Date().toISOString(); AIM.loc.push(m); };   // un mot de {g} (ou du joueur) seulement sur cet appareil
   const pourquoi = e => String((e && e.message) || e || '');
@@ -726,7 +728,7 @@
   // le menu du projet d'un atelier livré (comme le menu d'un jeu : {g} en haut, les sections, ← Mes projets)
   function renderMenuAtelier(A) {
     const cfg = atelierDe(AIM.fiche), pj = AIM.types[AIM.fiche] || {};
-    const h = E('div', 'crea-mat-h'); h.append(E('b', '', (AIM.d && AIM.d.titre) || pj.titre || cfg.nom), E('small', '', '🧪 ' + cfg.nom + ' · V' + Math.max(1, versionAt(AIM.fiche))));
+    const h = E('div', 'crea-mat-h'); h.append(E('b', '', (AIM.d && AIM.d.titre) || pj.titre || cfg.nom), E('small', '', '🧪 ' + cfg.nom + ' · V' + verAtelier(AIM.fiche)));
     A.appendChild(h);
     const pk = B('crea-mat-pk', null, () => ouvrirGuide()), im = E('img'), t = E('span'); im.alt = ''; im.src = AV();
     t.append(E('b', '', PK()), E('small', '', enAttente() ? 'prépare ta photo…' : 'Je suis là ! Une idée ?')); pk.append(im, t); A.appendChild(pk);
@@ -1017,7 +1019,7 @@
   function renderVersionsAt(O) {
     const p = E('div', 'crea-carte crea-page crea-vats'); p.appendChild(E('div', 'crea-h', '🗂️ LES VERSIONS'));
     const vs = (AIM.fi && Array.isArray(AIM.fi.versions) ? AIM.fi.versions.slice() : []).filter(v => v && (v.v | 0)).sort((a, b) => (b.v | 0) - (a.v | 0));
-    if (!vs.length) { const n = Math.max(1, versionAt(AIM.fiche)); const r = E('div', 'crea-vat'); r.append(E('b', '', 'V' + n + ' · ton atelier'), E('p', '', 'Préparé par ' + PK() + ' pour toi. Chaque amélioration de ton atelier arrive ici comme une nouvelle version.')); p.appendChild(r); }
+    if (!vs.length) { const n = verAtelier(AIM.fiche); const r = E('div', 'crea-vat'); r.append(E('b', '', 'V' + n + ' · ton atelier'), E('p', '', 'Préparé par ' + PK() + ' pour toi. Chaque amélioration de ton atelier arrive ici comme une nouvelle version.')); p.appendChild(r); }
     for (const v of vs) {
       const d0 = new Date(v.at), r = E('div', 'crea-vat');
       r.append(E('b', '', 'V' + v.v + (isNaN(d0) ? '' : ' · ' + d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }))), E('p', '', String(v.note || '')));
