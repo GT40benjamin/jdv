@@ -488,7 +488,8 @@
       if (typeof d.solde === 'number') { if (AIM.solde != null && d.solde !== AIM.solde && !adm()) bougerCred(); AIM.solde = d.solde; }
       if (d.prix) AIM.prix = d.prix;
       const cs = d.creations || [];
-      if (!cs.some(c => c.id === AIM.cur)) AIM.cur = imageRecente(cs);   // l'admin (2.1.17, SAMBA) : on ouvrait « Image 5 » (la dernière importée) au lieu de la carte travaillée
+      { const ps = cs.filter(x => !x.pour || !cs.some(y => y.id === x.pour)); const cur = cs.find(x => x.id === AIM.cur);
+        if (!cur) AIM.cur = imageRecente(ps.length ? ps : cs); else if (cur.pour && cs.some(y => y.id === cur.pour)) AIM.cur = cur.pour; }   // une image ajoutée s'ouvre dans son image cible   // l'admin (2.1.17, SAMBA) : on ouvrait « Image 5 » (la dernière importée) au lieu de la carte travaillée
       for (const c of cs) { const n = c.versions.filter(v => v.etat === 'prete').length;
         if (AIM.nPretes[c.id] != null && n > AIM.nPretes[c.id]) { delete AIM.voir[c.id]; delete AIM.resSel[c.id];
           const nv = c.versions.filter(v => v.etat === 'prete' && v.outil !== 'import').sort((a, b) => b.n - a.n)[0];
@@ -610,6 +611,10 @@
     if (adm()) return;
     try { if (typeof muted !== 'undefined' && muted) return; Audio.ensure(); [[1568, 0], [2093, 110], [2637, 230], [3136, 360]].forEach(([f, d]) => setTimeout(() => { try { Audio.tone(f, 0.32, 'sine', 0.035); } catch (e) {} }, d)); } catch (e) {}
   }
+  // v176 : une image ajoutée pour en modifier une autre (at_creations.pour_creation → « pour ») n'est pas une image à part
+  const principales = () => ((AIM.d && AIM.d.creations) || []).filter(x => !x.pour || !((AIM.d.creations || []).some(y => y.id === x.pour)));
+  const sourcesDe = c => ((AIM.d && AIM.d.creations) || []).filter(x => x.pour === c.id);
+  const derniere = x => (x.versions || []).filter(v => v.etat === 'prete' && v.path).sort((a, b) => b.n - a.n)[0] || null;
   // l'image travaillée le plus récemment : la plus récente de ses versions prêtes / en cours / en vérification ; sinon la dernière importée
   function imageRecente(cs) {
     let best = null, t0 = -1;
@@ -822,7 +827,7 @@
     const G = E('div', 'crea-oimg' + (atelierOuvert(AIM.fiche) ? ' at' : ''));
     // la scène
     const S = E('div', 'crea-carte crea-scene'), L = E('div', 'crea-lh');
-    const toutes = (AIM.d && AIM.d.creations) || [];
+    const toutes = principales();
     if (toutes.length > 1) {   // l'admin (2.1.17) : un petit sélecteur d'images dans la grande vue
       const w = E('label', 'crea-isel'), sl = E('select'); w.appendChild(E('span', '', '🖼️'));
       for (const x of toutes) { const o = E('option'); o.value = x.id; o.textContent = x.titre || 'Mon image'; if (x.id === c.id) o.selected = true; sl.appendChild(o); }
@@ -858,12 +863,10 @@
     if (AIM.etinc && act && AIM.etinc.v === act.id && Date.now() - AIM.etinc.at < 1700) { const k = E('div', 'crea-etinc'); k.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 9; i++) { const e = E('span', '', '✨'); e.style.left = (8 + (i * 37) % 84) + '%'; e.style.top = (14 + (i * 53) % 70) + '%'; e.style.animationDelay = (i * 70) + 'ms'; k.appendChild(e); } Cd.appendChild(k); }
     // l'admin (7 nov.) : sous la photo, l'ORIGINALE (un clic la remet dans la grande vue : la prochaine retouche partira d'elle) et la PILE des
     // retouches (la dernière dessus, « N versions ») ; la pile se regarde seulement : on change de version par la liste posée sur l'image
-    { const orig = c.versions.find(v => v.outil === 'import' && v.etat === 'prete' && v.path), rs = c.versions.filter(v => v.outil !== 'import' && v.etat === 'prete' && v.path).sort((a, b) => b.n - a.n);
+    { const rs = c.versions.filter(v => v.outil !== 'import' && v.etat === 'prete' && v.path).sort((a, b) => b.n - a.n), src = sourcesDe(c);
       const enCours = c.versions.some(v => v.outil !== 'import' && ['envoi', 'controle', 'en_cours'].includes(v.etat));
-      if (orig || rs.length || enCours) {
+      if (rs.length || enCours || src.length) {
         const bar = E('div', 'crea-vbar');
-        if (orig) { const o = B('crea-vcarte orig' + (act && act.id === orig.id && mode === 'image' ? ' on' : ''), null, () => { AIM.voir[c.id] = orig.id; AIM.mode = 'image'; AIM.cmp = null; AIM.pos = 0.5; render(); });
-          const i = E('span', 'i'); i.style.backgroundImage = 'url("' + urlImg(orig.path, 200) + '")'; o.append(i, E('b', '', 'Originale')); o.title = 'Revenir à l’originale : la prochaine retouche partira d’elle'; bar.appendChild(o); }
         if (rs.length || enCours) { const p = E('div', 'crea-vcarte pile' + (rs.length > 1 ? ' plus' : '')), st = E('span', 'st');
           for (const v of rs.slice(0, 3).reverse()) { const i = E('span', 'i'); i.style.backgroundImage = 'url("' + urlImg(v.path, 200) + '")'; st.appendChild(i); }
           if (!rs.length) st.appendChild(E('span', 'i vide'));
@@ -871,30 +874,29 @@
           if (rs.length) p.appendChild(E('span', 'badge', rs.length + ' version' + (rs.length > 1 ? 's' : '')));
           if (enCours) p.appendChild(E('span', 'badge cours', enVerif() ? '⏳ je vérifie ta retouche…' : '⏳ en cours'));
           bar.appendChild(p); }
+        // les images ajoutées POUR cette image (ex. les crêpes de la Carte Ylix) : intégrées à elle, plus des images à part
+        for (const x of src) { const v = derniere(x); if (!v) continue; const k = E('div', 'crea-vcarte src'); const i = E('span', 'i'); i.style.backgroundImage = 'url("' + urlImg(v.path, 200) + '")';
+          k.append(i, E('b', '', '📎 ' + (x.titre || 'Image ajoutée'))); k.title = 'Image ajoutée pour modifier « ' + (c.titre || 'cette image') + ' »'; bar.appendChild(k); }
         S.appendChild(bar);
       } }
     // 👁️ {g} regarde la photo : son commentaire (ce qu'il voit, ce qu'il propose, le prix), « Oui, fais-le » ou « Je veux autre chose »
     if (act && !att) carteRegard(c, act);   // l'admin (7 nov.) : plus de {g} au milieu (doublon avec « Retoucher ») ; la demande « regarde » part toujours toute seule, sa réponse est dans le panneau de droite
-    // « Dis ce que tu veux changer »
-    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 10000; ta.placeholder = etroit() ? '✨ Que veux-tu faire ?' : '✨ ' + atelierDe(AIM.fiche).invite + '… « éclaircis-la, floute le fond »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
-    ta.value = AIM.brouillon || ''; ta.addEventListener('input', () => { AIM.brouillon = ta.value; });
-    const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) { toast('Le micro ne marche pas ici : écris au clavier'); } }); mic.setAttribute('aria-label', 'Parler au micro');
-    ch.append(ta, mic);
-    // le chef (7 nov., SAMBA 9 h 19 : « rien n'est arrivé ») : le bouton répond TOUJOURS — il envoie, ou il dit pourquoi pas (jamais grisé en silence)
-    const go = B('crea-bt go', null, () => { const t = (ta.value || AIM.brouillon || '').trim(); if (t.length < 3) { ta.focus(); toast('Dis-moi ce que tu veux changer ✏️'); return; }
-      if (!act) { toast('Ta photo arrive, encore un instant 📸'); journal('retoucher : photo pas prête'); return; }
-      if (enAttente()) { toast(enVerif() ? '⏳ Je vérifie ta retouche… attends qu’elle arrive' : '⏳ Ta photo est en cours : attends qu’elle arrive'); return; }
-      fabriquer('parole', t, () => { ta.value = ''; AIM.brouillon = ''; }); });
-    go.append(E('span', 'lbl', 'Retoucher '), '✨ ', E('span', 'crea-prix', (AIM.prix.image | 0) + ' ' + D)); go.setAttribute('aria-label', 'Retoucher mon image'); if (!act || att) { go.classList.add('attend'); go.setAttribute('aria-disabled', 'true'); }
-    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TOUCH) { e.preventDefault(); go.click(); } });
-    dem.append(ch, go); S.appendChild(dem); G.appendChild(S);
+    // l'admin (7 nov., ordre clair) : plus de case « Dis-moi ce que tu veux faire… » ni de bouton « Retoucher » au milieu — toute demande passe
+    // par {g} (panneau de droite, bulle au téléphone) ; à la place, de BELLES TUILES : une par image du projet (dernière version + nom)
+    { const ps = principales(); if (ps.length) { const T = E('div', 'crea-tuiles'); T.appendChild(E('div', 'crea-h', '🖼️ ' + (ps.length > 1 ? 'MES IMAGES' : 'MON IMAGE')));
+      const g = E('div', 'crea-tuilesg');
+      for (const x of ps) { const v = derniere(x), t = B('crea-tuile' + (x.id === c.id ? ' on' : ''), null, () => { AIM.cur = x.id; AIM.cmp = null; AIM.pos = 0.5; render(); });
+        const im = E('span', 'i'); if (v) { const m = E('img'); m.alt = ''; m.src = urlImg(v.path, 360); im.appendChild(m); } else im.appendChild(E('span', 'crea-anneau'));
+        t.append(im, E('b', '', x.titre || 'Mon image')); t.title = 'Ouvrir « ' + (x.titre || 'Mon image') + ' » en grand'; g.appendChild(t); }
+      T.appendChild(g); S.appendChild(T); } }
+    G.appendChild(S);
     // les versions : la liste déroulante posée sur l'image (l'admin, 7 nov.) — plus de bande de vignettes
     // outils + mon image
     const col = E('div', 'crea-colo'), ob = E('div', 'crea-carte crea-boite'); ob.appendChild(E('div', 'crea-h', '🧰 OUTILS'));
     const gr = E('div', 'crea-grille');
     const outil = (e, t, prix, bg, fn, off) => { const b = B('crea-ot', null, fn); const ic = E('span', 'e', e); ic.style.background = bg; b.append(ic, E('b', '', t), E('span', 'crea-prix' + (prix === 'gratuit' ? ' gratuit' : prix === 'bientôt' ? ' bientot' : ''), prix)); if (off) b.disabled = true; gr.appendChild(b); };
     const libre = !!act && !att, px = (AIM.prix.image | 0) + ' ' + D;
-    const OUTILS_FN = { parler: () => { ta.focus(); try { atlMicBascule(ta, mic); } catch (e) {} }, style: () => styles(c), recadrer: () => recadrer(c, act) };
+    const OUTILS_FN = { parler: () => ouvrirGuide(), style: () => styles(c), recadrer: () => recadrer(c, act) };   // « Retoucher en parlant » : on le dit à {g}
     for (const o of atelierDe(AIM.fiche).outils || []) {
       if (o.ext) { const X = window.jdwOutilsPhoto;
         try { if (X && o.k === '*' && typeof X.boutons === 'function') { const sauf = (atelierDe(AIM.fiche).outils || []).filter(x => x.ext && x.k !== '*').map(x => x.k);   // les outils ext déjà placés ailleurs dans la liste

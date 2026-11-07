@@ -699,3 +699,19 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 .crea-isel{display:flex;align-items:center;gap:6px;min-width:0;max-width:min(60%,360px)}
 .crea-isel select{min-width:0;max-width:100%;border:1.5px solid #e2d8ef;border-radius:999px;padding:5px 26px 5px 10px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%233b1d6e'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--cv);font:400 15px var(--display);-webkit-appearance:none;appearance:none;cursor:pointer;text-overflow:ellipsis;text-transform:uppercase}
 .crea.nuit .crea-isel select{background-color:#2a215c;border-color:#4a3c94;color:#efe6ff}
+/* réactions de {g} (badge de l'Interface, atlReacBadge) : la règle de l'Interface ne cale le badge que sur SES bulles (.atl-b) ;
+   sans elle, le badge se plaçait par rapport à un autre parent et ne se voyait pas (l'admin, 2.1.17) */
+.crea-b.atl-breac{position:relative;margin-bottom:15px}
+/* l'admin (7 nov.) : les TUILES des images du projet, dans la place de la case et du bouton retirés */
+.crea-tuiles{display:flex;flex-direction:column;gap:8px}
+.crea-tuilesg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.crea-tuile{display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:16px;background:#fff;border:1.5px solid #ece4f6;color:#2a1f45;text-align:left;box-shadow:0 4px 14px rgba(40,20,80,.08);cursor:pointer}
+.crea-tuile:hover{border-color:#cdb8f0;transform:translateY(-1px)}
+.crea-tuile.on{border-color:var(--cv2);box-shadow:0 0 0 3px #e4d7ff}
+.crea-tuile .i{display:grid;place-items:center;aspect-ratio:4/3;border-radius:11px;overflow:hidden;background:#fff repeating-conic-gradient(#ece6f6 0 25%,#fff 0 50%) 0 0/16px 16px}
+.crea-tuile .i img{max-width:100%;max-height:100%;object-fit:contain}
+.crea-tuile b{font-size:14px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crea-vcarte.src{opacity:.95}
+.crea-vcarte.src .i{width:46px;height:36px}
+.crea.nuit .crea-tuile{background:#2a215c;border-color:#4a3c94;color:#efe6ff}
+@media (max-width:699px){.crea-tuilesg{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
