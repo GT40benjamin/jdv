@@ -568,6 +568,50 @@
     Cd.addEventListener('pointerup', fin); Cd.addEventListener('pointercancel', fin);
     appl(); requestAnimationFrame(appl);
   }
+  // l'admin (7 nov.) : « au clic droit sur la carte, on doit pouvoir copier directement » — clic droit (PC) ou appui long (téléphone) sur l'image
+  // affichée : un petit menu « 📋 Copier l'image » (la version affichée, en pleine qualité : le fichier lui-même, sans le zoom ni les calques)
+  // et « ⬇️ Télécharger » ; rien quand un outil (épingle, gomme, dessin…) est ouvert : son éditeur garde la main
+  function menuCopier(el, versionEn) {
+    let tl = null, p0 = null;
+    const ouvrir = (x, y) => {
+      if (document.documentElement.classList.contains('ao-ouvert')) return false;
+      const c = curCrea(), vs = [].concat(versionEn(x, y) || []).filter(v => v && v.path); if (!c || !vs.length) return false;
+      fermerCopier(); const M = E('div', 'crea-ctx'); M.setAttribute('role', 'menu');
+      const it = (t, fn) => { const b = B('', t, async e => { e.stopPropagation(); fermerCopier(); await fn(); }); b.setAttribute('role', 'menuitem'); M.appendChild(b); return b; };
+      // une image : « Copier l'image (V15) » ; Comparer (deux images) : les deux, nommées (toucher l'image déplace la ligne : on ne devine pas)
+      const nomV = (v, i) => numAff(c, v) + (vs.length > 1 ? (i ? ' (après)' : ' (avant)') : '');
+      vs.forEach((v, i) => { const b = it(vs.length > 1 ? '📋 Copier ' + nomV(v, i) : '📋 Copier l’image (' + numAff(c, v) + ')', () => copierImage(c, v)); if (!i) b.focus({ preventScroll: true }); });
+      vs.forEach((v, i) => it('⬇️ Télécharger ' + nomV(v, i), () => telecharger(c, v)));
+      M.addEventListener('pointerdown', e => e.stopPropagation()); M.addEventListener('contextmenu', e => e.preventDefault());
+      document.body.appendChild(M); const r = M.getBoundingClientRect();
+      M.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px'; M.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+      AIM.ctxM = M; return true;
+    };
+    el.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.crea-vsel, .crea-zoomb')) return; if (ouvrir(e.clientX, e.clientY)) { e.preventDefault(); e.stopPropagation(); } });
+    // téléphone : appui long (iPhone n'envoie pas de « contextmenu ») ; un doigt qui bouge ou un 2e doigt (pincer) l'annule
+    const stop = () => { clearTimeout(tl); tl = null; };
+    el.addEventListener('pointerdown', e => { stop(); if (e.pointerType !== 'touch' || (e.target.closest && e.target.closest('.crea-vsel, .crea-zoomb'))) return; p0 = { x: e.clientX, y: e.clientY, id: e.pointerId };
+      tl = setTimeout(() => { tl = null; if (!AIM.ctxM) ouvrir(p0.x, p0.y); }, 550); }, true);
+    el.addEventListener('pointermove', e => { if (tl && p0 && (e.pointerId !== p0.id || Math.hypot(e.clientX - p0.x, e.clientY - p0.y) > 10)) stop(); }, true);
+    for (const k of ['pointerup', 'pointercancel']) el.addEventListener(k, stop, true);
+    el.style.webkitTouchCallout = 'none';
+  }
+  function fermerCopier() { if (AIM.ctxM) { AIM.ctxM.remove(); AIM.ctxM = null; } }
+  document.addEventListener('pointerdown', e => { if (AIM.ctxM && !AIM.ctxM.contains(e.target)) fermerCopier(); }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && AIM.ctxM) { fermerCopier(); e.stopPropagation(); } }, true);
+  addEventListener('scroll', fermerCopier, true); addEventListener('resize', fermerCopier);
+  async function copierImage(c, v) {
+    // la promesse va DANS le ClipboardItem (Safari garde ainsi le geste du joueur pendant le téléchargement) ; une photo JPG devient PNG
+    const png = (async () => { const r = await fetch(urlImg(v.path), { cache: 'force-cache' }); if (!r.ok) throw new Error('image ' + r.status);
+      const b = await r.blob(); if (b.type === 'image/png') return b;
+      const bm = await createImageBitmap(b), cv = document.createElement('canvas'); cv.width = bm.width; cv.height = bm.height; cv.getContext('2d').drawImage(bm, 0, 0);
+      return await new Promise((ok, ko) => cv.toBlob(x => x ? ok(x) : ko(new Error('png')), 'image/png')); })();
+    try {
+      if (!navigator.clipboard || typeof ClipboardItem === 'undefined') throw new Error('presse-papiers absent');
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+      toast('📋 Image copiée (' + numAff(c, v) + ') : colle-la où tu veux');
+    } catch (e) { png.catch(() => {}); journal('copier : ' + pourquoi(e).slice(0, 80)); toast('Ton appareil ne permet pas de copier l’image ici : touche « ⬇️ Télécharger »'); }
+  }
   // le point d'accroche des outils de l'équipe « outils » (atelier-outils.js) : tout ce qu'il leur faut, rien de plus
   function outilCtx(c, act, att) {
     return { fiche: AIM.fiche, creation: c, version: act, src: act ? urlImg(act.path) : '', libre: !!act && !att, adm: adm(), nom: nom(), prix: AIM.prix, solde: AIM.solde,
@@ -632,6 +676,7 @@
   // ---------- rendu ----------
   function render() {
     AIM.sigReac = (AIM.msgs || []).map(m => m.reaction || '').join('');   // les réactions affichées (voir suivre)
+    fermerCopier();
     if (!AIM.root || !AIM.open) return;
     const R = AIM.root, q = s => R.querySelector(s);
     const pj = AIM.fiche && AIM.types[AIM.fiche];
@@ -856,14 +901,15 @@
       const e1 = listeVersions(c, avant, 'avant', 'Avant'), e2 = listeVersions(c, act, 'apres', 'Après'); e1.style.left = '10px'; e2.style.right = '10px'; Cd.append(e1, e2);
       const poser = x => { AIM.pos = Math.max(0, Math.min(1, x)); Cd.querySelector('.apres').style.clipPath = 'inset(0 0 0 ' + (AIM.pos * 100) + '%)'; Cd.querySelector('.ligne').style.left = Cd.querySelector('.poignee').style.left = (AIM.pos * 100) + '%'; };
       let tire = false; const xr = e => { const r = Cd.getBoundingClientRect(); return (e.clientX - r.left) / r.width; };
-      Cd.addEventListener('pointerdown', e => { tire = true; try { Cd.setPointerCapture(e.pointerId); } catch (x) {} poser(xr(e)); });
+      Cd.addEventListener('pointerdown', e => { if (e.button === 2) return; tire = true; try { Cd.setPointerCapture(e.pointerId); } catch (x) {} poser(xr(e)); });
       Cd.addEventListener('pointermove', e => { if (tire) poser(xr(e)); });
       Cd.addEventListener('pointerup', () => { tire = false; }); Cd.addEventListener('pointercancel', () => { tire = false; });
       Cd.tabIndex = 0; Cd.setAttribute('aria-label', 'Avant / après : flèches gauche et droite'); Cd.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); poser(AIM.pos + (e.key === 'ArrowLeft' ? -0.08 : 0.08)); } });
       setTimeout(() => poser(AIM.pos), 0);
+      menuCopier(Cd, () => [avant, act]);
     } else if (mode === 'cote') {
-      for (const [v, k, t] of [[avant, 'avant', 'Avant'], [act, 'apres', 'Après']]) { const d = E('div'); d.appendChild(img(v.path)); const e = listeVersions(c, v, k, t); e.style.left = '10px'; d.appendChild(e); Cd.appendChild(d); }
-    } else { const im = img(act.path); Cd.appendChild(im); const e = listeVersions(c, act, 'image', ''); e.style.left = '10px'; Cd.appendChild(e); zoomable(Cd, im, act); }
+      for (const [v, k, t] of [[avant, 'avant', 'Avant'], [act, 'apres', 'Après']]) { const d = E('div'); d.appendChild(img(v.path)); const e = listeVersions(c, v, k, t); e.style.left = '10px'; d.appendChild(e); Cd.appendChild(d); menuCopier(d, () => v); }
+    } else { const im = img(act.path); Cd.appendChild(im); const e = listeVersions(c, act, 'image', ''); e.style.left = '10px'; Cd.appendChild(e); zoomable(Cd, im, act); menuCopier(Cd, () => act); }
     S.appendChild(Cd); depotSur(Cd);
     if (AIM.etinc && act && AIM.etinc.v === act.id && Date.now() - AIM.etinc.at < 1700) { const k = E('div', 'crea-etinc'); k.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 9; i++) { const e = E('span', '', '✨'); e.style.left = (8 + (i * 37) % 84) + '%'; e.style.top = (14 + (i * 53) % 70) + '%'; e.style.animationDelay = (i * 70) + 'ms'; k.appendChild(e); } Cd.appendChild(k); }
     // l'admin (7 nov., 2.1.19 : « une seule tuile par projet, toutes les unes à côté des autres ») : sous l'image, UNE tuile par photo du projet
