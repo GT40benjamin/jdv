@@ -611,3 +611,9 @@
 .crea.nuit .crea-disc-h b{color:#f4edff}
 .crea.nuit .crea-disc-h small{color:#8fe0b0}
 .crea.nuit .crea-disc .crea-saisie{border-top-color:#3a2f73}
+/* la discussion au centre : grandes bulles comme celles des jeux, et les cartes d'offres de l'Interface */
+.crea-disc .crea-b{font-size:16px;line-height:1.5;padding:12px 16px;max-width:min(78%,760px)}
+.crea-disc .crea-lpk img{width:40px;height:40px}
+.crea-disc .crea-of{margin:10px 0;max-width:min(92%,760px)}
+.crea-disc .crea-of .atl-mc{max-width:100%}
+.crea-disc .crea-of.atl-chat{display:block;background:transparent;border:0;box-shadow:none;overflow:visible;border-radius:0;min-height:0}

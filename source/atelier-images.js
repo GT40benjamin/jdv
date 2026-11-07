@@ -482,6 +482,8 @@
     try {
       const r = adm() ? await rpc('at_admin_lire', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true }) : await rpc('at_lire', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true });
       AIM.fi = (r && r.fiche) || AIM.fi || null;
+      if (adm()) AIM.demsAdm = (r && Array.isArray(r.demandes_projet)) ? r.demandes_projet : AIM.demsAdm || [];
+      else if (atelierOuvert(AIM.fiche)) { try { await atlDemCharger(); } catch (e) {} }   // ses offres « Choisir » (cartes de l'Interface) dans la conversation
       AIM.msgs = ((r && r.messages) || []).filter(m => !m.remplacee).map(m => ({ t: String(m.texte || ''), pk: !!m.atelier, at: m.at }));
     } catch (e) {}
   }
@@ -518,7 +520,7 @@
     q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + (adm() ? joueurAdm() + ' ' : '') + so + (etroit() || adm() ? '' : ' crédits') : '';
     R.classList.toggle('at-centre', sansPanneau());
     if (AIM.vue === 'guide') { const f = R.querySelector('.crea-disc .crea-fil2'), a = document.activeElement;
-      AIM.discEtat = { bas: f ? f.scrollHeight - f.scrollTop - f.clientHeight < 40 : true, foc: !!(a && a.tagName === 'TEXTAREA' && a.closest('.crea-disc')) }; }
+      AIM.discEtat = { bas: f ? f.scrollHeight - f.scrollTop - f.clientHeight < 40 : true, foc: !!(a && a.tagName === 'TEXTAREA' && a.closest('.crea-disc .crea-saisie')) }; }
     renderArbre(); renderOutil(); renderMasc(); renderFlot();
   }
   // ---------- l'arbre « Mes projets » : la VRAIE jaquette (atlPvJaq de l'Interface), son STATUT et ses BULLES, lus tels quels sur les cartes
@@ -614,7 +616,7 @@
     const R = AIM.root; if (!R) return;
     if (sansPanneau()) {   // l'admin (7 nov.) : « {g} n'a pas à être à droite ET au milieu » → sa conversation s'ouvre au centre, comme les autres menus
       R.classList.remove('tiroir', 'pk-plein'); AIM.vue = 'guide'; AIM.vuAt = Date.now(); render();
-      setTimeout(() => { const t = R.querySelector('.crea-disc textarea'); if (t) { t.focus({ preventScroll: true }); try { t.setSelectionRange(t.value.length, t.value.length); } catch (e) {} } }, 60);
+      setTimeout(() => { const t = R.querySelector('.crea-disc .crea-saisie textarea'); if (t) { t.focus({ preventScroll: true }); try { t.setSelectionRange(t.value.length, t.value.length); } catch (e) {} } }, 60);
       return;
     }
     if (etroit()) { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); }
@@ -896,11 +898,18 @@
     im.alt = ''; im.src = AV(); tx.append(E('b', '', PK()), E('small', '', adm() ? '🛡️ La conversation de ' + joueurAdm() + ' · tu réponds comme ' + PK() : '● en ligne · je t’écoute'));
     h.append(im, tx); p.appendChild(h);
     const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
-    const L = filMasc(); if (!L.length) F.appendChild(E('p', 'crea-vide-t', 'Écris-moi ici ce que tu veux faire 😊'));
-    for (const m of L) F.appendChild(bulle(m));
+    // la même discussion que les jeux : ses bulles, et les OFFRES « Choisir » de l'Interface (atlDiscBulleDem) à leur place dans le temps
+    const T = v => Date.parse(v || '') || 0, items = filMasc().map(m => ({ t: T(m.at), el: () => bulle(m) }));
+    let dems = []; try { dems = (adm() ? (AIM.demsAdm || []) : atlDiscDems({ id: AIM.fiche })).filter(atlPropOuverte); } catch (e) { dems = []; }
+    for (const x of dems) items.push({ t: T(x.etat_at || x.at), el: () => { const w = E('div', 'crea-of atl-chat'); w.appendChild(atlDiscBulleDem(x, x.etat_at || x.at));   // atl-chat : les couleurs claires de la discussion de l'Interface
+      if (adm()) for (const b of w.querySelectorAll('button')) { b.disabled = true; b.title = joueurAdm() + ' choisit lui-même'; }
+      return w; } });
+    items.sort((a, b) => a.t - b.t);
+    if (!items.length) F.appendChild(E('p', 'crea-vide-t', 'Écris-moi ici ce que tu veux faire 😊'));
+    for (const it of items) { try { F.appendChild(it.el()); } catch (e) {} }
     if (AIM.prop) F.appendChild(propCarte());
     p.appendChild(F);
-    const S = saisie(); p.appendChild(S); O.appendChild(p);
+    const S = saisie('Écris à ' + PK() + '… (c’est gratuit)'); p.appendChild(S); O.appendChild(p);
     if (et.bas !== false) F.scrollTop = F.scrollHeight;
     if (et.foc) S.querySelector('textarea').focus({ preventScroll: true });
   }
@@ -989,7 +998,7 @@
       const r = await rpc('at_esp_fabriquer', { p_name: nom(), p_creation: c.id, p_outil: outil, p_consigne: consigne }, { quiet: true });
       if (typeof r.solde === 'number') { AIM.solde = r.solde; bougerCred(); }
       if (apres) apres();
-      AIM.root.classList.remove('pk-plein');
+      AIM.root.classList.remove('pk-plein'); if (AIM.vue === 'guide') AIM.vue = 'atelier';   // « Oui » dans la conversation : retour à Mon atelier pour voir la photo se faire
       await Promise.all([charger(), chargerMsgs()]); render();
     } catch (e) {
       const m = pourquoi(e);
