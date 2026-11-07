@@ -29,7 +29,7 @@
     p = String(p || '');
     let u = '';
     if (/^i\/[0-9a-f-]{36}\.(png|jpg|webp)$/.test(p)) u = base() + '/storage/v1/object/public/atelier-ia/' + p;
-    else if (/^e\/[0-9a-f-]{36}\.jpg$/.test(p)) u = base() + '/storage/v1/object/public/atelier/' + p;
+    else if (/^e\/[0-9a-f-]{36}\.(jpg|png)$/.test(p)) u = base() + '/storage/v1/object/public/atelier/' + p;
     if (u && w) u = u.replace('/object/public/', '/render/image/public/') + '?width=' + w + '&quality=78';
     return u;
   }
@@ -70,6 +70,8 @@
         { k: 'parler', e: '🗣️', t: 'Retoucher en parlant', prix: 'image', bg: '#efe6ff' },
         { k: 'style', e: '🖌️', t: 'Changer le style', prix: 'image', bg: '#e2f4ff' },
         { k: 'recadrer', e: '✂️', t: 'Recadrer', prix: 'gratuit', bg: '#e5f7ea' },
+        // ext : bouton et outil fabriqués par l'équipe « outils » (source/atelier-outils.js → window.jdwOutilsPhoto.bouton(k, ctx)) ; absent = rien
+        { k: 'texte', ext: true }, { k: 'epingle', ext: true }, { k: 'fond', ext: true }, { k: 'elements', ext: true },
         { k: 'enlever', e: '🧽', t: 'Enlever un objet', prix: 'bientot', bg: '#ffe9e1' },
         { k: 'ajouter', e: '🌟', t: 'Ajouter un objet', prix: 'bientot', bg: '#fff4cf' },
         { k: 'agrandir', e: '🔍', t: 'Agrandir', prix: 'bientot', bg: '#ffe6f3' }
@@ -514,7 +516,7 @@
     }, 3000);
   }
   // la liste déroulante des versions posée sur l'image : une ligne par version (numéro, résumé court de la demande, prix) ; ratées / en cours grisées
-  const resume = v => { const t = v.outil === 'import' ? 'Originale' : v.outil === 'recadrer' ? 'Recadrée' : String(v.consigne || 'Retouche').replace(/\s+/g, ' ').trim();
+  const resume = v => { const t = v.outil === 'import' ? 'Originale' : v.outil === 'recadrer' ? 'Recadrée' : v.outil === 'texte' ? 'Texte' : v.outil === 'fond' ? 'Sans fond' : v.outil === 'elements' ? 'Éléments déplacés' : String(v.consigne || 'Retouche').replace(/\s+/g, ' ').trim();
     if (t.length <= 34) return t; const m = t.slice(0, 34); return m.slice(0, Math.max(18, m.lastIndexOf(' '))) + '…'; };
   // l'admin (7 nov.) : ZOOMER dans la grande vue — ➖ / % / ➕ / ⟲ en bas à droite, molette autour du curseur (1× à 6×), glisser une fois zoomé,
   // pincer et double-toucher (×2 / retour) au téléphone ; rien n'anime en boucle
@@ -544,6 +546,17 @@
     const fin = e => { pts.delete(e.pointerId); if (pts.size < 2) d0 = 0; };
     Cd.addEventListener('pointerup', fin); Cd.addEventListener('pointercancel', fin);
     appl(); requestAnimationFrame(appl);
+  }
+  // le point d'accroche des outils de l'équipe « outils » (atelier-outils.js) : tout ce qu'il leur faut, rien de plus
+  function outilCtx(c, act, att) {
+    return { fiche: AIM.fiche, creation: c, version: act, src: act ? urlImg(act.path) : '', libre: !!act && !att, adm: adm(), nom: nom(), prix: AIM.prix, solde: AIM.solde,
+      toast, modOuvrir, modFermer, lectureSeule, manque, ouvrirGuide,
+      recharger: async () => { await Promise.all([charger(), chargerMsgs()]); render(); },
+      choisirVersion: id => { AIM.voir[c.id] = id; AIM.mode = 'image'; AIM.cmp = null; render(); },
+      setSolde: x => { AIM.solde = x; bougerCred(); },
+      deposer: (path, blob) => deposer(path, blob),
+      retoucher: consigne => fabriquer('parole', consigne),
+      parler: async texte => { await rpc('at_esp_parler', { p_name: nom(), p_fiche: AIM.fiche, p_texte: texte, p_micro: false }, { quiet: true }); await chargerMsgs(); render(); } };
   }
   function listeVersions(c, v, k, lib) {
     const w = E('label', 'crea-vsel' + (k === 'image' ? '' : ' v-' + k)), s = E('select');
@@ -845,6 +858,7 @@
     const libre = !!act && !att, px = (AIM.prix.image | 0) + ' ' + D;
     const OUTILS_FN = { parler: () => { ta.focus(); try { atlMicBascule(ta, mic); } catch (e) {} }, style: () => styles(c), recadrer: () => recadrer(c, act) };
     for (const o of atelierDe(AIM.fiche).outils || []) {
+      if (o.ext) { const X = window.jdwOutilsPhoto; if (X && typeof X.bouton === 'function') { try { const b = X.bouton(o.k, outilCtx(c, act, att)); if (b) gr.appendChild(b); } catch (e) { journal('outil ' + o.k + ' : ' + pourquoi(e).slice(0, 80)); } } continue; }
       const fn = OUTILS_FN[o.k], bientot = o.prix === 'bientot' || !fn;
       outil(o.e, o.t, bientot ? 'bientôt' : o.prix === 'gratuit' ? 'gratuit' : px, o.bg, bientot ? null : fn, bientot || !libre);
     }
@@ -1194,9 +1208,9 @@
     }
   }
   async function deposer(path, blob) {
-    if (!/^e\/[0-9a-f-]{36}\.jpg$/.test(String(path || ''))) throw new Error('réponse');
-    const tok = await acctToken(profile);
-    const up = await netFetch(base() + '/storage/v1/object/atelier/' + path, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'image/jpeg' }, body: blob }, 60000);
+    if (!/^e\/[0-9a-f-]{36}\.(jpg|png)$/.test(String(path || ''))) throw new Error('réponse');
+    const tok = await acctToken(profile), ct = /\.png$/.test(path) ? 'image/png' : 'image/jpeg';
+    const up = await netFetch(base() + '/storage/v1/object/atelier/' + path, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': ct }, body: blob }, 60000);
     if (!up.ok) throw new Error('envoi ' + up.status);
   }
   function recadrer(c, act) {
