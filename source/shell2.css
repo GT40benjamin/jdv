@@ -6022,3 +6022,13 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-admact .btn{justify-content:flex-start;text-align:left;white-space:normal;min-height:46px}
 .atl-admc .atl-admfer{justify-self:end}
 @media (max-width:600px){.atl-admact{grid-template-columns:1fr}.atl-admc .atl-admfer{justify-self:stretch}}
+/* 2.1.13 (l'admin : « comme sur WhatsApp ») : la réaction de la mascotte sur un message du joueur — badge rond au coin bas de sa bulle */
+.atl-b.atl-breac{position:relative;margin-bottom:15px}
+.atl-reac{position:absolute;left:8px;bottom:-15px;z-index:2;display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 5px;border:0;border-radius:999px;background:#fff;box-shadow:0 1px 4px rgba(20,12,40,.28),0 0 0 2px rgba(255,255,255,.9);font:16px/1 var(--body);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.atl-reac .atl-reace{display:block;line-height:1;transform:translateY(.5px)}
+.atl-reac:focus-visible{outline:2px solid #7c4dff;outline-offset:2px}
+.atl-reacb{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translate(-50%,4px);white-space:nowrap;padding:6px 10px;border-radius:12px;background:#2a1f45;color:#fff;font:700 13px/1.2 var(--body);box-shadow:0 6px 18px rgba(20,12,40,.3);opacity:0;pointer-events:none;transition:opacity .15s,transform .15s}
+.atl-reacb::after{content:'';position:absolute;left:50%;top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:#2a1f45}
+.atl-reac.on .atl-reacb{opacity:1;transform:translate(-50%,0)}
+@media (hover:hover){.atl-reac:hover .atl-reacb{opacity:1;transform:translate(-50%,0)}}
+.atl-mreac + .atl-m{margin-top:6px}

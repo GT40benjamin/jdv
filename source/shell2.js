@@ -16244,6 +16244,12 @@ function atlRenderFiche() {
   else if (atlFull() && !atlChoix()) { const b = atlEl('button', 'btn btn-play atl-sendp', '📮 Envoyer mon projet — ' + (f.prix | 0) + ' 💎'); b.type = 'button'; b.addEventListener('click', atlEnvoyer); cta.appendChild(b); cta.appendChild(atlEl('p', 'atl-fwait', 'Tu veux changer quelque chose ? Dis à l’Atelier le numéro de la section (1 à 9) et ce que tu veux à la place.')); }
   else if (!atlChoix()) cta.appendChild(atlEl('p', 'atl-fwait', 'L’Atelier remplit ta fiche avec toi. Pour changer une section, dis-lui son numéro (1 à 9).'));
 }
+function atlReacBadge(r) {
+  r = String(r).trim().slice(0, 16); const t = gNM() + ' a réagi ' + r, b = atlEl('button', 'atl-reac'); b.type = 'button'; b.setAttribute('aria-label', t);
+  b.append(atlEl('span', 'atl-reace', r), atlEl('span', 'atl-reacb', t));
+  b.addEventListener('click', e => { e.stopPropagation(); for (const o of document.querySelectorAll('.atl-reac.on')) if (o !== b) o.classList.remove('on'); b.classList.toggle('on'); clearTimeout(b._t); if (b.classList.contains('on')) b._t = setTimeout(() => b.classList.remove('on'), 2600); });
+  return b;
+}
 function atlBubble(m, wel) {
   const at = !!m.atelier, li = atlEl('div', 'atl-m ' + (at ? 'atl-a' : 'atl-p') + (wel ? ' atl-wel' : '') + (m.pending ? ' pending' : ''));
   if (at) li.appendChild(atlGuideAv());
@@ -16256,6 +16262,9 @@ function atlBubble(m, wel) {
     if (Array.isArray(m.images) && m.images.length && !m.planche) { if (m.images.every(it => it && it.apercu)) { bub.appendChild(atlEl('p', 'atl-apercu', '👀 Aperçu de ton jeu')); li.classList.add('atl-mapercu'); } bub.appendChild(atlImgs(m)); }   // 2.0.104 : un aperçu (SQL v114), jamais un élément du jeu
     if (m.image) { const a = atlEl('a', 'atl-bimg'); a.href = atlImgUrl(m.image); a.target = '_blank'; a.rel = 'noopener'; const im = atlEl('img'); im.alt = 'Image jointe'; im.loading = 'lazy'; im.src = atlImgUrl(m.image); im.onerror = () => { a.replaceWith(atlEl('em', 'atl-miss', '🖼️ image pas arrivée')); }; a.appendChild(im); bub.appendChild(a); }
   }
+  // 2.1.13 (l'admin : « comme sur WhatsApp ») : la réaction de la mascotte sur un message du joueur (at_messages.reaction, SQL v172), petit badge rond
+  // accroché au coin bas de la bulle ; survol (souris) ou toucher (téléphone) : « <mascotte> a réagi ❤️ »
+  if (!at && !wel && m.reaction) bub.appendChild(atlReacBadge(m.reaction)), bub.classList.add('atl-breac'), li.classList.add('atl-mreac');
   col.appendChild(bub);
   // 2.0.36 (Benjamin : « il m'a répondu avec des questions, mais peut-on faire la forme question ? ») : les encarts, comme dans les tickets
   if (at && !wel && Array.isArray(m.questions) && m.questions.length && m.remplacee && !m.q_envoye) { col.appendChild(atlRemplacee(true)); li.classList.add('atl-mremp'); }
@@ -16669,8 +16678,9 @@ function atlProjMsgs(W, f) {
   try { atlDiscMaj(W, f); } catch (e) {}   // 2.0.93
   const l = W.querySelector('.atl-pmsgs:not(.atl-disclog)'); if (!l) return;
   const ms = atlMsgs().filter(m => m.texte || m.image || (Array.isArray(m.images) && m.images.length && !m.planche));
-  if (l.dataset.n === String(ms.length)) return;
-  const bas = l.scrollHeight - l.scrollTop - l.clientHeight < 60 || !l.dataset.n; l.dataset.n = String(ms.length); l.textContent = '';
+  const sg = ms.length + ':' + ms.map(m => m.reaction || '').join('');   // 2.1.13 : une réaction qui arrive redessine aussi
+  if (l.dataset.n === sg) return;
+  const bas = l.scrollHeight - l.scrollTop - l.clientHeight < 60 || !l.dataset.n; l.dataset.n = sg; l.textContent = '';
   for (const m of ms) l.appendChild(atlBubble(m));
   if (!ms.length) l.appendChild(atlEl('p', 'atl-chv', 'Pas encore de message.'));
   if (bas) l.scrollTop = l.scrollHeight;
@@ -16719,14 +16729,14 @@ function atlDiscFil(f) {
     for (const m of atlMsgs()) {
       if (dids.has(m.id) || !(m.texte || m.image || (Array.isArray(m.images) && m.images.length && !m.planche))) continue;
       if (m.atelier && reps.some(r => String(m.texte || '').includes(r))) continue;
-      add(m.at, 'mm' + m.id + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : ''), !!m.atelier, () => atlBubble(m), !m.atelier);
+      add(m.at, 'mm' + m.id + (m.reaction ? '♥' + m.reaction : '') + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : ''), !!m.atelier, () => atlBubble(m), !m.atelier);
     }
     if (f.design && f.design.f) { const da = f.design.at || f.created_at; add(da, 'dz' + f.design.f, true, () => atlDesignBulle(f, da)); }
   }
   const attIds0 = new Set(atlDiscDems(f).filter(x => x && !['faite', 'impossible', 'regroupee'].includes(x.etat) && (atlPropOuverte(x) || atlQAttente(x))).map(x => x.id));   // 2.0.136 : leurs offres vont dans la carte du bas
   const rgIds = new Set(atlDiscDems(f).filter(x => x && x.etat === 'regroupee').map(x => x.id));   // 2.0.136 (v147) : un ticket regroupé ne laisse que sa ligne « 🔗 Regroupée »
   for (const m of atlDiscMsgs().concat((ATL.discPend || []).filter(m => m.fiche === f.id))) if (!(m.demande && rgIds.has(m.demande)))
-    add(m.at, 'm' + (m.id || 'p') + (m.pending ? 'p' : '') + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : '') + (m.demande ? atlDiscSig(dem(m.demande)) + '~' + m.demande : ''), !!m.atelier && !m.pending, () => atlBubble(m.demande && attIds0.has(m.demande) ? Object.assign({}, m, { sansOffre: true }) : m), !m.atelier && !m.pending);
+    add(m.at, 'm' + (m.id || 'p') + (m.reaction ? '♥' + m.reaction : '') + (m.pending ? 'p' : '') + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : '') + (m.demande ? atlDiscSig(dem(m.demande)) + '~' + m.demande : ''), !!m.atelier && !m.pending, () => atlBubble(m.demande && attIds0.has(m.demande) ? Object.assign({}, m, { sansOffre: true }) : m), !m.atelier && !m.pending);
   // 2.0.136 (l'admin) : plusieurs tickets livrés dans la même version = UNE bulle (« ✅ Livré dans la V2 : 4 corrections », liste dépliable)
   const livres = {}; for (const x of atlDiscDems(f)) if (x && x.etat === 'faite' && (x.version_livree | 0)) (livres[x.version_livree | 0] = livres[x.version_livree | 0] || []).push(x);
   for (const [v, xs] of Object.entries(livres)) {
