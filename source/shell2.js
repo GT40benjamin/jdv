@@ -16974,7 +16974,19 @@ function atlEssaye(f, v) {
   e[f.id] = v; const k = Object.keys(e); if (k.length > 80) delete e[k[0]]; store.set('jdw.atl.essaye', e);
 }
 // 2.0.134 : « le 5 nov. à 14 h 12 »
-function atlQuand(iso) { const d = new Date(iso); if (isNaN(d)) return ''; return 'le ' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' à ' + d.getHours() + ' h ' + String(d.getMinutes()).padStart(2, '0'); }
+// 7 nov. 2026 (Benjamin : « mets l'heure aux versions ») : la date d'une version à l'heure de PARIS (at_versions.at), « 7 novembre à 19 h 20 »,
+// « aujourd'hui à 19 h 20 » le jour même (jour de Paris), l'année seulement si ce n'est pas celle d'aujourd'hui ; court = « 7 nov. »
+function atlDateVer(iso, court) {
+  const d = new Date(iso); if (!iso || isNaN(d)) return '';
+  const P = (x, o) => { try { return new Intl.DateTimeFormat('fr-FR', Object.assign({ timeZone: 'Europe/Paris' }, o)).formatToParts(x); } catch (e) { return new Intl.DateTimeFormat('fr-FR', o).formatToParts(x); } };
+  const pt = (x, o, t) => (P(x, o).find(q => q.type === t) || {}).value || '';
+  const jour = x => pt(x, { year: 'numeric' }, 'year') + '-' + pt(x, { month: '2-digit' }, 'month') + '-' + pt(x, { day: '2-digit' }, 'day');
+  const hp = P(d, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }), heure = (+((hp.find(q => q.type === 'hour') || {}).value || 0)) + ' h ' + ((hp.find(q => q.type === 'minute') || {}).value || '00');
+  const now = new Date(); if (jour(d) === jour(now)) return 'aujourd’hui à ' + heure;
+  const an = pt(d, { year: 'numeric' }, 'year') !== pt(now, { year: 'numeric' }, 'year');
+  return P(d, Object.assign({ day: 'numeric', month: court ? 'short' : 'long' }, an ? { year: 'numeric' } : {})).map(q => q.value).join('') + ' à ' + heure;
+}
+function atlQuand(iso) { const t = atlDateVer(iso, true); return t && !/^aujourd/.test(t) ? 'le ' + t : t; }   // « sortie le 6 nov. à 19 h 00 » / « sortie aujourd'hui à 19 h 20 »
 // le bandeau a été VU : on quitte la page du projet (autre projet, liste, fermeture de l'Atelier) → il ne revient plus, sur aucun appareil
 function atlVSortieVue(garder) { const x = ATL && ATL.vSortieVue; if (!x || x.id === garder) return; ATL.vSortieVue = null; try { if ((atlEssaye({ id: x.id }) | 0) < x.v) atlEssaye({ id: x.id }, x.v); } catch (e) {} }
 function atlVSortie(W, f) {
@@ -17383,7 +17395,7 @@ function atlEspace(W, box, f, g, pane) {
     const vs = (Array.isArray(f.versions) ? f.versions.slice() : []).filter(v => v && (v.v | 0)).sort((a, b) => (b.v | 0) - (a.v | 0));
     if (!vs.length) { const c = atlEl('div', 'atl-vh atl-escard atl-vvide'); c.appendChild(atlEl('p', '', 'Ta première version arrive : elle s’affichera ici.')); p.appendChild(c); }   // 2.1.13 (testeur) : lisible, dans une carte claire
     for (const v of vs) { const d0 = new Date(v.at), r = atlEl('div', 'atl-vh atl-escard');
-      r.append(atlEl('b', '', 'V' + v.v + ((v.v | 0) === (f.version_publiee | 0) ? ' · 🌍 en ligne' : '') + (isNaN(d0) ? '' : ' · ' + d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }))), atlEl('p', '', v.note || ''));
+      r.append(atlEl('b', '', 'V' + v.v + ((v.v | 0) === (f.version_publiee | 0) ? ' · 🌍 en ligne' : '') + (isNaN(d0) ? '' : ' · ' + atlDateVer(v.at))), atlEl('p', '', v.note || ''));
       if (Array.isArray(v.demandes) && v.demandes.length) { const ul = atlEl('ul'); for (const t of v.demandes.slice(0, 8)) ul.appendChild(atlEl('li', '', String(t))); r.appendChild(ul); }
       p.appendChild(r); } }
   // 🛍️, 📊, ⚙️ : les sections
@@ -18397,7 +18409,7 @@ function atlRenderRoute(liste) {
     const sv = sec('📜 Les versions de ton jeu');
     for (const v of f.versions) {
       const d0 = new Date(v.at), r = atlEl('div', 'atl-vh');
-      r.append(atlEl('b', '', 'V' + v.v + (isNaN(d0) ? '' : ' · ' + d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))), atlEl('p', '', v.note || ''));
+      r.append(atlEl('b', '', 'V' + v.v + (isNaN(d0) ? '' : ' · ' + atlDateVer(v.at, true))), atlEl('p', '', v.note || ''));
       if (Array.isArray(v.demandes) && v.demandes.length) { const ul = atlEl('ul'); for (const t of v.demandes.slice(0, 6)) ul.appendChild(atlEl('li', '', String(t))); r.appendChild(ul); }
       sv.appendChild(r);
     }
