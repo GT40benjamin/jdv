@@ -1700,6 +1700,7 @@ function mount(root, api) {
     }
     for (const o of decorsAutour(nx, ny, 80)) { const r = o.d.r; if (!r || sousBase(o.x, o.y)) continue; const dx = nx - o.x, dy = (ny - o.y) * 1.8, d = Math.hypot(dx, dy); if (d < r + 15 && d > 0.01) { const k = (r + 15 - d) / d; nx += dx * k; ny += dy * k / 1.8; } }
     for (const o of [epave, NAV]) { if (!o) continue; const dx = nx - o.x, dy = (ny - o.y) * 1.5, d = Math.hypot(dx, dy); if (d < 95 && d > 0.01) { nx += dx / d * (95 - d); ny += dy / d * (95 - d) / 1.5; } }
+    { const M = montagneGrotte(); if (M) { const ex = (nx - M.x) / M.rx, ey = (ny - M.y) / M.ry, d = Math.hypot(ex, ey); if (d < 1 && d > 0.001) { nx = M.x + ex / d * M.rx; ny = M.y + ey / d * M.ry; } } }   /* V27 (ticket e800ac43) : la montagne de la grotte ne se gravit pas */
     // les murs de toutes les bases ici (on glisse le long, axe par axe)
     if (solideBase(J.x, J.y - 6)) {   // V17 : il est DANS un mur : on le pose sur la case libre la plus proche
       let best = null; for (let r = 24; r < 260 && !best; r += 24) for (let a = 0; a < TAU; a += 0.4) { const px = J.x + Math.cos(a) * r, py = J.y + Math.sin(a) * r; if (!solideBase(px, py - 6) && !TER.info(px, py).liq) { best = { x: px, y: py }; break; } }
@@ -3620,7 +3621,7 @@ function mount(root, api) {
   function basesIci() { const L = []; const m = maBase(); if (m) L.push({ nom: moiNom, b: m, moi: true }); for (const [n, b] of BASES) if (n !== moiNom) L.push({ nom: n, b, moi: false }); return L; }
   function pieceEn(x, y) { const gx = Math.floor(x / G64), gy = Math.floor(y / G64); for (const B of basesIci()) { const p = B.b.p[cleCase(gx, gy)]; if (p) return { p, B, gx, gy }; } return null; }
   // un décor (rocher, cristal, touffe) posé sous une pièce de base, ou tout contre, n'est plus là
-  function sousBase(x, y) { if (!BASES.size && !maBase()) return false; for (const dx of [-20, 0, 20]) if (pieceEn(x + dx, y - 6)) return true; return false; }
+  function sousBase(x, y) { if (decorMontagne(x, y)) return true; if (!BASES.size && !maBase()) return false;   /* V27 : rien ne pousse sur la montagne de la grotte, ni devant son entrée */ for (const dx of [-20, 0, 20]) if (pieceEn(x + dx, y - 6)) return true; return false; }
   // collisions : murs, fenêtres, clôtures et gros meubles
   // V22 : les murs sont FINS (une bande au pied de la case, ou au milieu pour un mur qui file vers le haut) : seule cette bande bloque ; la porte bloque à ses montants
   function solideBase(x, y) {
@@ -4531,7 +4532,7 @@ function mount(root, api) {
         c.th += angDiff(c.th, Math.atan2(dx, dy)) * Math.min(1, dt * (sp.taille > 200 ? 2.5 : 6));
         let nx = c.x + Math.sin(c.th) * v * dt, ny = c.y + Math.cos(c.th) * v * dt;
         const sauvage = !c.allie && !c.compKey && !c.suit;
-        const bloque = (x, y) => TER.info(x, y).liq || solideBase(x, y) || (sauvage && (dansAbri(x, y) || dansAbri(x, y - 12)));   /* V24 : la maison est un abri : aucune bête sauvage n'y entre */
+        const bloque = (x, y) => TER.info(x, y).liq || solideBase(x, y) || dansMontagne(x, y) || (sauvage && (dansAbri(x, y) || dansAbri(x, y - 12)));   /* V27 : personne ne marche sur la montagne */   /* V24 : la maison est un abri : aucune bête sauvage n'y entre */
         if (bloque(nx, ny) && !bloque(c.x, c.y)) {   // (déjà dans l'eau ou la lave : on le laisse en sortir)
           // contourner l'obstacle (eau, mur) : on essaie de biais des deux côtés avant d'abandonner
           let ok = false; for (const da of [0.8, -0.8, 1.6, -1.6]) { const a2 = c.th + da, qx = c.x + Math.sin(a2) * v * dt, qy = c.y + Math.cos(a2) * v * dt; if (!bloque(qx, qy)) { nx = qx; ny = qy; c.th += da * Math.min(1, dt * 4); ok = true; break; } }
@@ -8834,7 +8835,8 @@ function mount(root, api) {
   function objetsCrash(objets) {
     if (!crashV17()) return;
     for (const q of lieuxCrash()) {
-      if (q.id === 'grotte') objets.push({ y: q.y, draw: () => { const im = IMG['p-lieu_l10-0']; if (!im) { chargerFamille('arene'); return; } const h = 330 * Z, w = im.width * h / im.height, x = sx(q.x), y = sy(q.y);
+      if (q.id === 'grotte') objets.push({ y: q.y - 40, draw: t => dessinerMontagne(t) });   /* derrière l'explorateur quand il est devant l'entrée */   /* V27 (ticket e800ac43) : une montagne avec la grotte à son pied */
+      else if (q.id === 'grotte_avant_v27') objets.push({ y: q.y, draw: () => { const im = IMG['p-lieu_l10-0']; if (!im) { chargerFamille('arene'); return; } const h = 330 * Z, w = im.width * h / im.height, x = sx(q.x), y = sy(q.y);
         if (x < -w || x > W + w || y < -40 || y > H + h) return; ctx.drawImage(im, x - w / 2, y - h + 30 * Z, w, h);
         if (Math.hypot(q.x - J.x, q.y - J.y) < 900) apres.push(() => etiquetteMonde('🕳️ Grotte de cristal', x, y - h, y + 34 * Z, '#e0c8ff', 13)); } });
       else objets.push({ y: q.y, draw: () => { const im = IMG.epave; if (!im) return; const h = 170 * Z, w = im.width * h / im.height, x = sx(q.x), y = sy(q.y); if (x < -w || x > W + w || y < -40 || y > H + h) return;
@@ -9076,6 +9078,7 @@ function mount(root, api) {
     for (let cy = r0 - 1; cy <= r1 + 1; cy++) for (let cx = c0 - 1; cx <= c1 + 1; cx++) {
       const h = MONDE.hash(PL.seed, cx, cy, 4711); if ((h % 100) > 100 * k * 0.6) continue;
       const x = cx * C + 140 + (h >>> 7) % 480, y = cy * C + 140 + (h >>> 13) % 480;
+      if (dansMontagne(x, y, 420) || dansMontagne(x, y - 260, 420)) continue;   /* V27 : jamais de hautes herbes sur la montagne de la grotte, ni devant son entrée */
       const q = massifSec(PL.key + ':' + cx + ',' + cy, x, y, 150 + (h >>> 19) % 120, h); if (q) out.push(q);
     }
     // près du crash : toujours 2 massifs (on les découvre tout de suite)
@@ -11084,7 +11087,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   function murEntre(x0, y0, x1, y1) { const n = Math.max(4, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 12)); for (let i = 1; i < n; i++) { const k = i / n, x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k; if (solideBase(x, y) || vaisseauIci(x, y)) return true; } return false; }
   // V27 (ticket f0e13e3e, « l'astrofaune rentre à l'intérieur du vaisseau ! il doit contourner ») : l'épave et la navette sont des obstacles pour mon compagnon.
   // Une ellipse qui couvre la coque VUE à l'écran (un peu au-dessus du sol : derrière la coque, on le croirait dedans).
-  function vaisseauxIci() { const L = []; if (epave) L.push({ x: epave.x, y: epave.y - 28, rx: 128, ry: 78 }); if (NAV && !(NAV.epave && epave)) L.push({ x: NAV.x, y: NAV.y - 18, rx: 100, ry: 58 }); return L; }
+  function vaisseauxIci() { const L = []; const MG = montagneGrotte(); if (MG) L.push({ x: MG.x, y: MG.y, rx: MG.rx + 20, ry: MG.ry + 14 }); if (epave) L.push({ x: epave.x, y: epave.y - 28, rx: 128, ry: 78 }); if (NAV && !(NAV.epave && epave)) L.push({ x: NAV.x, y: NAV.y - 18, rx: 100, ry: 58 }); return L; }
   function vaisseauIci(x, y) { for (const o of vaisseauxIci()) { const dx = (x - o.x) / o.rx, dy = (y - o.y) / o.ry; if (dx * dx + dy * dy < 1) return true; } return false; }
   function horsVaisseau(x, y) {   // le point le plus proche, juste en dehors des vaisseaux
     for (const o of vaisseauxIci()) { const dx = (x - o.x) / o.rx, dy = (y - o.y) / o.ry, d = Math.hypot(dx, dy); if (d < 1) { const k = 1.08 / Math.max(0.05, d), ux = d < 0.05 ? -1 : dx, uy = d < 0.05 ? 0.6 : dy; x = o.x + ux * k * o.rx; y = o.y + uy * k * o.ry; } }
@@ -11238,6 +11241,50 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(bx, by, 0, bx, by, 40 * Z); g.addColorStop(0, 'rgba(255,240,200,' + Math.max(0, 0.8 - p * 2) + ')'); g.addColorStop(1, 'rgba(255,200,255,0)'); ctx.fillStyle = g; ctx.fillRect(bx - 40 * Z, by - 40 * Z, 80 * Z, 80 * Z);
     ctx.restore();
   }
+  // e800ac43 (« la grotte, on ne la voit pas : il faut une vraie grotte dans une sorte de montagne, haute, qu'on ne peut pas gravir ») :
+  // la grotte de cristal s'ouvre au pied d'une MONTAGNE de roche (dessinée une fois), infranchissable ; plus de hautes herbes devant
+  function montagneGrotte() { if (typeof crashV17 !== 'function' || !crashV17() || dansGrotte() || !PL) return null; const L = lieuCrash('grotte'); return L ? { x: L.x, y: L.y - 200, rx: 440, ry: 205, L } : null; }
+  function dansMontagne(x, y, m) { const M = montagneGrotte(); if (!M) return false; const dx = (x - M.x) / (M.rx + (m || 0)), dy = (y - M.y) / (M.ry + (m || 0)); return dx * dx + dy * dy < 1; }
+  let MONT_SP = null;
+  function spriteMontagne() {
+    if (MONT_SP) return MONT_SP;
+    const cv = document.createElement('canvas'); cv.width = 1000; cv.height = 620; const c = cv.getContext('2d'), B = 590;
+    const sil = [[30, B], [90, 430], [150, 360], [215, 300], [270, 250], [330, 290], [380, 190], [430, 95], [480, 150], [530, 120], [590, 200], [650, 160], [720, 270], [790, 230], [860, 330], [920, 420], [975, B]];
+    const trace = () => { c.beginPath(); sil.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); };
+    // la roche (dégradé), l'ombre à droite, les facettes claires à gauche
+    let g = c.createLinearGradient(0, 90, 0, B); g.addColorStop(0, '#a79c90'); g.addColorStop(0.55, '#7d7268'); g.addColorStop(1, '#564d47'); trace(); c.fillStyle = g; c.fill();
+    c.save(); trace(); c.clip();
+    c.fillStyle = 'rgba(40,32,40,0.38)'; c.beginPath(); c.moveTo(430, 95); c.lineTo(480, 150); c.lineTo(530, 120); c.lineTo(590, 200); c.lineTo(650, 160); c.lineTo(720, 270); c.lineTo(790, 230); c.lineTo(860, 330); c.lineTo(980, B); c.lineTo(560, B); c.lineTo(520, 330); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,248,235,0.18)';
+    for (const [a, b, d] of [[[270, 250], [215, 300], [300, 420]], [[430, 95], [380, 190], [440, 300]], [[650, 160], [600, 230], [660, 300]], [[790, 230], [750, 300], [800, 360]]]) { c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.closePath(); c.fill(); }
+    // les crêtes claires (un peu de neige au sommet), les fissures
+    c.fillStyle = '#ece6dc';
+    for (const [x, y, w] of [[430, 95, 34], [530, 120, 26], [650, 160, 24], [270, 250, 20]]) { c.beginPath(); c.moveTo(x, y); c.lineTo(x - w, y + w * 1.2); c.lineTo(x - w * 0.3, y + w * 0.9); c.lineTo(x + w * 0.2, y + w * 1.3); c.lineTo(x + w * 0.8, y + w * 1.0); c.closePath(); c.fill(); }
+    c.strokeStyle = 'rgba(40,30,36,0.55)'; c.lineWidth = 4; c.lineCap = 'round';
+    for (const Lg of [[[340, 330], [370, 380], [355, 430]], [[640, 300], [610, 360], [630, 420]], [[760, 360], [790, 420]], [[200, 420], [230, 470]], [[470, 230], [455, 280], [480, 320]]]) { c.beginPath(); Lg.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke(); }
+    // l'herbe au pied (elle se fond dans le sol)
+    c.fillStyle = '#5c8f3c'; c.beginPath(); c.moveTo(0, B + 30); for (let x = 0; x <= 1000; x += 25) c.lineTo(x, B - 22 - ((x * 37) % 23)); c.lineTo(1000, B + 30); c.closePath(); c.fill();
+    c.restore();
+    trace(); c.strokeStyle = '#2d2433'; c.lineWidth = 6; c.lineJoin = 'round'; c.stroke();
+    // l'entrée de la grotte : une arche noire, des pierres autour, des cristaux violets qui brillent
+    const mx = 500, mw = 108, mh = 175;
+    c.save(); c.beginPath(); c.moveTo(mx - mw, B); c.lineTo(mx - mw, B - mh * 0.45); c.quadraticCurveTo(mx, B - mh * 1.45, mx + mw, B - mh * 0.45); c.lineTo(mx + mw, B); c.closePath();
+    g = c.createRadialGradient(mx, B - 40, 10, mx, B - 60, 160); g.addColorStop(0, '#000000'); g.addColorStop(0.7, '#140c22'); g.addColorStop(1, '#2a1c3c'); c.fillStyle = g; c.fill(); c.strokeStyle = '#3a302c'; c.lineWidth = 16; c.stroke(); c.strokeStyle = '#2d2433'; c.lineWidth = 4; c.stroke(); c.restore();
+    c.save(); c.globalCompositeOperation = 'lighter'; g = c.createRadialGradient(mx, B - 50, 0, mx, B - 50, 120); g.addColorStop(0, 'rgba(200,138,255,0.45)'); g.addColorStop(1, 'rgba(200,138,255,0)'); c.fillStyle = g; c.fillRect(mx - 130, B - 180, 260, 200); c.restore();
+    for (const [x, y, h, a] of [[mx - 128, B - 8, 70, -0.25], [mx - 150, B - 2, 44, -0.5], [mx + 126, B - 6, 64, 0.25], [mx + 150, B, 40, 0.5], [mx - 30, B - 4, 30, -0.1], [mx + 40, B - 2, 26, 0.15]]) {
+      c.save(); c.translate(x, y); c.rotate(a); c.beginPath(); c.moveTo(-h * 0.22, 0); c.lineTo(-h * 0.18, -h * 0.75); c.lineTo(0, -h); c.lineTo(h * 0.18, -h * 0.75); c.lineTo(h * 0.22, 0); c.closePath();
+      c.fillStyle = '#c88aff'; c.fill(); c.strokeStyle = '#2d2433'; c.lineWidth = 3; c.stroke(); c.fillStyle = 'rgba(255,255,255,0.55)'; c.beginPath(); c.moveTo(-h * 0.1, -h * 0.2); c.lineTo(-h * 0.08, -h * 0.7); c.lineTo(0, -h * 0.85); c.closePath(); c.fill(); c.restore(); }
+    MONT_SP = { cv, ax: 500, ay: B }; return MONT_SP;
+  }
+  function dessinerMontagne(t) {
+    const M = montagneGrotte(); if (!M) return; const S = spriteMontagne(), k = Z * 0.95, x = sx(M.L.x), y = sy(M.L.y + 30), w = S.cv.width * k, h = S.cv.height * k;
+    if (x < -w || x > W + w || y < -40 || y > H + h) return;
+    ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(x, y - 6 * Z, 470 * Z, 40 * Z, 0, 0, TAU); ctx.fill();
+    ctx.drawImage(S.cv, x - S.ax * k, y - S.ay * k, w, h);
+    const p = 0.5 + 0.5 * Math.sin(t * 2.2); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.25 + 0.2 * p; const g = ctx.createRadialGradient(x, y - 60 * Z, 0, x, y - 60 * Z, 150 * Z); g.addColorStop(0, 'rgba(210,150,255,0.9)'); g.addColorStop(1, 'rgba(210,150,255,0)'); ctx.fillStyle = g; ctx.fillRect(x - 160 * Z, y - 220 * Z, 320 * Z, 240 * Z); ctx.restore();
+    if (Math.hypot(M.L.x - J.x, M.L.y - J.y) < 1200) apres.push(() => etiquetteMonde('🕳️ Grotte de cristal', x, y - 200 * Z, y + 30 * Z, '#e0c8ff', 13));
+  }
+  function decorMontagne(x, y) { const M = montagneGrotte(); if (!M) return false; if (dansMontagne(x, y, 60)) return true; return Math.abs(x - M.L.x) < 250 && y > M.L.y - 20 && y < M.L.y + 240; }   // le chemin de l'entrée reste dégagé
 
 
   // =================================================================== LA BOUCLE
@@ -11329,7 +11376,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     _test: {
       state: () => state, J: () => J, PL: () => PL, look: () => look, cine: () => cine,
       crash: () => ({ dep: GAL.depart.i, v17: crashV17(), bid: PL && PL.bid, heure: heure(), phase: phaseJour(heure()), lum: PL && PL.lum, nav: NAV && { x: NAV.x, y: NAV.y, cassee: NAV.cassee, epave: NAV.epave, brume: !!NAV.brume }, epave: epave && { x: epave.x, y: epave.y, repare: !!epave.repare }, pieces: E0().pieces.slice(), posees: E0().posees.slice(), sol: piecesSol.map(q => ({ id: q.id, x: Math.round(q.x), y: Math.round(q.y) })), lieux: lieuxCrash(), radar: E0().radar, radarT: E0().radarT, faune: CR.map(c => ({ e: c.esp, s: c.crash, n: c.nivFixe, nuit: !!c.chasseNuit, x: Math.round(c.x), y: Math.round(c.y) })), cache: CRASH.cache, abri: CRASH.abri, action: actionBtn && actionBtn.txt, etape: crashV17() ? etapeCrash() : null }),
-      setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, btnsT: () => tapBtns.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h, t: b.t || '' })), blesserT: d => blesserJoueur(d), vieT: () => COMBAT.vie, setVieT(v) { COMBAT.vie = v; }, soignerMoiT: () => soignerMoi(), creaT: () => ({ on: CREATEUR, ouvert: !!CREA }), afListeT: () => Object.keys(AF).filter(id => !AF[id].ancienne && PANT_DE[id]).map(id => ({ id, tl: AF[id].tl, st: AF[id].st, ailes: !!(PANTINS[PANT_DE[id]] || {}).ailes, auto: !!(PANTINS[PANT_DE[id]] || {}).auto })), filonsT: rad => filonsAutour(J.x, J.y, rad).map(o => ({ x: Math.round(o.x), y: Math.round(o.y), m: o.f.m.id })), entrerGrotte, sortirGrotte, GRT: () => GRT, entrerGrotteT: () => entrerGrotte(), dansGrotte, ouvrirEquipe, fermerEquipe, EQW: () => EQW && { sel: EQW.sel, zones: EQW.zones.map(z => ({ x: z.x, y: z.y, w: z.w, h: z.h, ou: z.ou, i: z.i, place: z.place, bete: z.bete })) }, massifsT: () => massifsHerbe().map(m => ({ x: m.x, y: m.y, r: m.r })), dansHerbeT: () => dansHerbe(), ouCacheT: () => ouCache(tG), sonsT: () => Object.keys(SONS), nappesT: () => nappes(tG).map(n => ({ x: n.x, y: n.y, r: n.r })), dansBrumeT: () => dansBrume(tG), echelleUI: () => ({ W, H, U, dpr, portrait }), sacOuvrir(v) { sacOuvert = v; }, sacSelT: () => sacSel, jeterSac, ongletT: () => ongletC, cosmoT: () => cosmoOuvert, autoMineT: () => autoMine && { arrive: !!autoMine.arrive }, sacFlashT: () => sacFlash, curseur: () => curseurActuel, sac: () => nb(E0().sac), remplirSac(n) { E0().sac.fer = (E0().sac.fer || 0) + n; }, bulleTest: () => bulle && { s: bulle.s, pensee: !!bulle.pensee, t: +bulle.t.toFixed(1) }, fileP: () => PENS_FILE.length, ecran: (x, y) => [sx(x), sy(y)], dpr: () => dpr, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, filonsT: (x, y, r) => filonsAutour(x, y, r).map(o => ({ x: o.x, y: o.y, m: o.f.m.id, q: o.f.qte })), messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
+      setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, btnsT: () => tapBtns.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h, t: b.t || '' })), blesserT: d => blesserJoueur(d), vieT: () => COMBAT.vie, setVieT(v) { COMBAT.vie = v; }, soignerMoiT: () => soignerMoi(), creaT: () => ({ on: CREATEUR, ouvert: !!CREA }), afListeT: () => Object.keys(AF).filter(id => !AF[id].ancienne && PANT_DE[id]).map(id => ({ id, tl: AF[id].tl, st: AF[id].st, ailes: !!(PANTINS[PANT_DE[id]] || {}).ailes, auto: !!(PANTINS[PANT_DE[id]] || {}).auto })), filonsT: rad => filonsAutour(J.x, J.y, rad).map(o => ({ x: Math.round(o.x), y: Math.round(o.y), m: o.f.m.id })), entrerGrotte, sortirGrotte, GRT: () => GRT, lieuxCrashT: () => lieuxCrash().map(q => ({ id: q.id, x: q.x, y: q.y })), entrerGrotteT: () => entrerGrotte(), dansGrotte, ouvrirEquipe, fermerEquipe, EQW: () => EQW && { sel: EQW.sel, zones: EQW.zones.map(z => ({ x: z.x, y: z.y, w: z.w, h: z.h, ou: z.ou, i: z.i, place: z.place, bete: z.bete })) }, massifsT: () => massifsHerbe().map(m => ({ x: m.x, y: m.y, r: m.r })), dansHerbeT: () => dansHerbe(), ouCacheT: () => ouCache(tG), sonsT: () => Object.keys(SONS), nappesT: () => nappes(tG).map(n => ({ x: n.x, y: n.y, r: n.r })), dansBrumeT: () => dansBrume(tG), echelleUI: () => ({ W, H, U, dpr, portrait }), sacOuvrir(v) { sacOuvert = v; }, sacSelT: () => sacSel, jeterSac, ongletT: () => ongletC, cosmoT: () => cosmoOuvert, autoMineT: () => autoMine && { arrive: !!autoMine.arrive }, sacFlashT: () => sacFlash, curseur: () => curseurActuel, sac: () => nb(E0().sac), remplirSac(n) { E0().sac.fer = (E0().sac.fer || 0) + n; }, bulleTest: () => bulle && { s: bulle.s, pensee: !!bulle.pensee, t: +bulle.t.toFixed(1) }, fileP: () => PENS_FILE.length, ecran: (x, y) => [sx(x), sy(y)], dpr: () => dpr, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, filonsT: (x, y, r) => filonsAutour(x, y, r).map(o => ({ x: o.x, y: o.y, m: o.f.m.id, q: o.f.qte })), messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
       objectif() { const o = objectif(); return o && { id: o.c.id, etape: o.etape, lieu: o.lieu, sys: o.sys, k: o.k, saut: o.saut && o.saut.nom }; },
       transfert: () => transfert, ouvrirTransfertT: s => ouvrirTransfert(s || 'soute'), transi: () => transi, passerSaut, sauter(i, sec) { transi = sec ? { sorte: 'saut', t: 0, d: 5, vers: i, cout: 0 } : { sorte: 'saut', t: 0, d: 2, vers: i, cout: 1 }; state = 'transi'; stT = 0; }, razUI: () => razUI, setRaz(v) { razUI = v; }, recommencer, recupererAncienne, pause(v) { setPaused(v); }, sauver, carte: () => carte, dest: () => dest, poserDest, carteCibles: () => carteCibles, toucherCarte(x, y) { toucherCarteLocale({ x, y }); }, objSel: () => carte && carte.objSel, infos(v) { if (carte) carte.infos = v; }, carteVue(v) { if (carte) carte.vue = v; }, utiliserBidons, nbBidons, estCoupee, coupees, capSoute, stockRelie, capRelie, dangerFaune, misEtat, evt, CHAINES, missionSuivie, etabli: () => etabliOuvert, ouvrirEtabli() { etabliOuvert = true; }, onglet2(o) { ongletJ = o; }, raidMaintenant() { const b = maBase(); if (b) b.raidT = 0; }, sommeil: () => sommeil, fabriquer(id) { fabriquer(RECETTES.find(r => r.id === id)); }, ouvrirTransfert, fermerTransfert() { transfert = null; }, action: () => actionBtn && actionBtn.txt, faireAction() { if (actionBtn && actionBtn.f) actionBtn.f(); }, NAVp: () => NAV, base: () => maBase(),
       jouer, creation() { state = 'creation'; stT = 0; }, cineT(x) { if (!cine) lancerCine(); cine.t = x; }, finCine, decoller,
