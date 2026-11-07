@@ -527,7 +527,8 @@
       const avant = JSON.stringify(AIM.d && AIM.d.creations), nm = AIM.msgs.length;
       await Promise.all([charger(), chargerMsgs()]);
       const sigR = AIM.msgs.map(m => m.reaction || '').join('');
-      if (JSON.stringify(AIM.d && AIM.d.creations) !== avant || AIM.msgs.length !== nm || sigR !== AIM.sigReac) { AIM.sigReac = sigR; render(); }   // une réaction qui arrive redessine
+      // une réaction qui arrive redessine ; on compare à ce qui est À L'ÉCRAN (noté à chaque rendu) : avant, le 1er relevé redessinait pour rien et fermait « … a réagi »
+      if (JSON.stringify(AIM.d && AIM.d.creations) !== avant || AIM.msgs.length !== nm || sigR !== AIM.sigReac) render();
     }, 3000);
   }
   // la liste déroulante des versions posée sur l'image : une ligne par version (numéro, résumé court de la demande, prix) ; ratées / en cours grisées
@@ -627,6 +628,7 @@
 
   // ---------- rendu ----------
   function render() {
+    AIM.sigReac = (AIM.msgs || []).map(m => m.reaction || '').join('');   // les réactions affichées (voir suivre)
     if (!AIM.root || !AIM.open) return;
     const R = AIM.root, q = s => R.querySelector(s);
     const pj = AIM.fiche && AIM.types[AIM.fiche];

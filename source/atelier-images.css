@@ -724,3 +724,5 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 .crea-b .atl-reac.on .atl-reacb.bas{transform:translate(-50%,0)}
 .crea-b .atl-reacb.bas::after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:#2a1f45}
 @media (hover:hover){.crea-b .atl-reac:hover .atl-reacb.bas{transform:translate(-50%,0)}}
+/* téléphone : la confirmation du prix s'ouvre PAR-DESSUS la discussion en plein écran (elle était dessous : « Oui, crée-la » intouchable) */
+.crea.pk-plein .crea-mod{position:fixed;z-index:10}
