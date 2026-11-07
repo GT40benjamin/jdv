@@ -1822,6 +1822,7 @@ function mount(root, api) {
     dessinerSols(); drawLieu(t);
     objets.sort((a, b) => a.y - b.y);
     const lueurs = [];
+    if (CB) anneauTour(t);   /* V27 (ticket 95ed1319) : l'anneau au sol sous celui qui joue (sous les bêtes) */
     for (const o of objets) {
       if (o.draw) { o.draw(t); continue; }
       if (o.joueur) { drawJ(t); continue; }
@@ -6829,9 +6830,9 @@ function mount(root, api) {
         try { api.celebrate && api.celebrate(); } catch (e) { /* rien */ }
         evt('tue', G.e); evt('capture', G.e);
         planifier(1.6, tourSuivant);
-      } else { K.G.c.cache = false; dire2(['Oh non, ' + K.G.nom + ' s’est échappé !', 'Presque ! ' + K.G.nom + ' est sorti !', 'Raté de peu !'][Math.min(2, K.sec)]); son('impact', 0.5); planifier(1.0, tourSuivant); }
+      } else { K.tf = tG; K.G.c.cache = false; dire2(['Oh non, ' + K.G.nom + ' s’est échappé !', 'Presque ! ' + K.G.nom + ' est sorti !', 'Raté de peu !'][Math.min(2, K.sec)] + ' L’Astrobal se casse…'); son('impact', 0.5); planifier(1.2, tourSuivant); }
     }
-    if (K.t > fin + 0.2) CB.cap = K.fini && !K.ok ? null : CB.cap;
+    if (K.t > fin + 0.95) CB.cap = K.fini && !K.ok ? null : CB.cap;   /* V27 : le temps de la voir sauter et se casser */
   }
 
   // ---------------------------------------------------------------- la fin du combat
@@ -7180,6 +7181,7 @@ function mount(root, api) {
     let x = K.x0 + (tx - K.x0) * k, y = K.y0 + (ty - K.y0) * k - Math.sin(k * Math.PI) * 160, rot = 0;
     if (K.t > 1.0) { const tt = K.t - 1.0, n = Math.floor(tt / 0.8); if (n < K.sec && !K.fini) rot = Math.sin((tt % 0.8) / 0.8 * TAU * 2) * 0.5 * (1 - (tt % 0.8) / 0.8); y = ty + 20; x = tx; }
     const X = sx(x), Y = sy(y), r = 14 * U;
+    if (K.fini && !K.ok) { const u = tG - (K.tf || tG); if (u > 0.95) { CB.cap = null; return; } balleRatee(K, X, Y, r, u, t); return; }   /* V27 (ticket 693b0c39) : elle saute, se casse, puis disparaît (avant : elle restait au sol pendant les tours suivants) */
     dessinerAstrobal(X, Y, r, b, rot + (K.t < 1 ? K.t * 8 : 0), t);
     if (K.t > 0.9 && K.t < 1.15) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gg = ctx.createRadialGradient(sx(tx), sy(ty - 30), 0, sx(tx), sy(ty - 30), 120 * Z); gg.addColorStop(0, 'rgba(255,255,255,0.9)'); gg.addColorStop(1, 'rgba(255,200,255,0)'); ctx.fillStyle = gg; ctx.fillRect(0, 0, W, H); ctx.restore(); }
     if (K.fini && K.ok) { for (let i = 0; i < 3; i++) { const a = tG * 3 + i * TAU / 3; ctx.fillStyle = '#ffe36a'; ctx.font = Math.round(18 * U) + 'px system-ui'; ctx.textAlign = 'center'; ctx.fillText('★', X + Math.cos(a) * 30 * U, Y - 20 * U + Math.sin(a) * 12 * U); } }
@@ -8964,7 +8966,8 @@ function mount(root, api) {
     const L = [{ ico: '🏠', txt: 'Construire', f: () => { construire = true; bSouris = null; if (!bMat) bMat = matDefaut(); son('ui', 0.5); }, on: false, c: '#ffb34a' },
       { ico: '⭐', txt: 'Équipe', f: () => ouvrirEquipe(), on: !!EQW, c: '#ffd23a' },
       { ico: '📖', txt: 'Cosmodex', f: () => { if (ongletC === 'equipe') ongletC = 'faune'; ouvrirCosmo(true); }, on: cosmoOuvert, c: '#5ef0ff' },
-      { ico: '🗺️', txt: 'Carte', f: () => { son('ui', 0.5); ouvrirCarte(); }, on: false, c: '#8aff9a' }];   // V22 : la carte de la planète, aussi au doigt (avant : M / Select seulement)
+      { ico: '🗺️', txt: 'Carte', f: () => { son('ui', 0.5); ouvrirCarte(); }, on: false, c: '#8aff9a' },
+      { ico: '🎒', txt: 'Sac', f: () => { son('ui', 0.5); sacOuvert = true; }, on: false, c: '#ff8ab0' }];   /* V27 (ticket 280423f7, « à droite il faut le sac aussi ! ») */   // V22 : la carte de la planète, aussi au doigt (avant : M / Select seulement)
     if (CREATEUR) L.push({ ico: '🧪', txt: 'Créateur', f: () => ouvrirCreateur(), on: !!CREA, c: '#7affc8' });   // V17 : le mode créateur
     const tw = portrait ? 56 * U : 150 * U, y0 = portrait ? barresY() + 56 * U : 122 * U + 46; let th = 44 * U, gap = 8 * U;
     if (!portrait && auDoigt) { const dispo = H - 88 * U - y0, n = L.length; if (n * th + (n - 1) * gap > dispo) { gap = 5 * U; th = Math.max(30 * U, (dispo - (n - 1) * gap) / n); } }   /* V27 : couché au doigt, la pile finit au-dessus des boutons ronds (haut du rond = H − 82 U) */
@@ -11207,6 +11210,28 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   }
   // 06bbc288 : « dans la pièce » = sous un toit ou sur un plancher, mais PAS sur le seuil (la case de la porte, d'un mur) : sinon mon compagnon s'arrêtait sous la porte
   function dansPiece(x, y) { if (!dansAbri(x, y)) return false; const q = pieceEn(x, y); return !(q && FERME_MAISON[q.p.t]); }
+  // 95ed1319 (« celui à qui c'est le tour doit avoir un cercle pour le désigner ») : un anneau au sol, sous celui qui joue (doré pour mon camp, rouge en face), qui pulse
+  function anneauTour(t) {
+    if (!CB || CB.phase === 'fin' || !CB.actif || CB.actif.ko || CB.actif.pris) return; const F = CB.actif;
+    const moi = CB.moi.includes(F), c = moi ? '255,226,90' : '255,110,110', p = 0.5 + 0.5 * Math.sin(t * 5), rb = F.c ? Math.max(40, rayonCorps(F.c) * 1.05) : 42, r = rb * Z;
+    ctx.save(); ctx.translate(sx(F.x), sy(F.y));
+    ctx.fillStyle = 'rgba(' + c + ',' + (0.14 + 0.1 * p) + ')'; ctx.beginPath(); ctx.ellipse(0, 0, r * 1.25, r * 0.42, 0, 0, TAU); ctx.fill();
+    ctx.shadowColor = 'rgba(' + c + ',0.95)'; ctx.shadowBlur = 12 * Z; ctx.strokeStyle = 'rgba(' + c + ',' + (0.75 + 0.25 * p) + ')'; ctx.lineWidth = 3.5 * Z; ctx.beginPath(); ctx.ellipse(0, 0, r * 1.25, r * 0.42, 0, 0, TAU); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.lineWidth = 2 * Z; ctx.strokeStyle = 'rgba(' + c + ',' + (0.5 * (1 - p)) + ')'; ctx.beginPath(); ctx.ellipse(0, 0, r * (1.25 + 0.25 * p), r * (0.42 + 0.08 * p), 0, 0, TAU); ctx.stroke();
+    ctx.restore();
+  }
+  // 693b0c39 (« l'astrobal ratée doit sauter et se casser ») : elle bondit hors de la bête, puis éclate en morceaux qui retombent
+  function balleRatee(K, X, Y, r, u, t) {
+    const b = K.balle, c0 = (b.c && b.c[0]) || '#ff5060', c1 = (b.c && b.c[1]) || '#ffffff';   // les 2 moitiés de la couleur de la balle, des éclats blancs et dorés
+    if (u < 0.42) { const k = u / 0.42, hx = X + k * 46 * Z, hy = Y - Math.sin(k * Math.PI) * 74 * Z; dessinerAstrobal(hx, hy, r, b, k * 9, t); return; }
+    const p = u - 0.42, bx = X + 46 * Z, by = Y; if (!K.casse) { K.casse = true; son('impact', 0.6); flash = Math.max(flash, 0.12); }
+    ctx.save(); ctx.globalAlpha = Math.max(0, 1 - Math.pow(p / 0.55, 3));
+    for (let i = 0; i < 8; i++) { const a = -Math.PI / 2 + (i - 3.5) * 0.42, v = (85 + (i % 3) * 30) * Z, x = bx + Math.cos(a) * v * p, y = by + Math.sin(a) * v * p + 420 * Z * p * p, s = r * (i < 2 ? 0.95 : 0.55);
+      ctx.save(); ctx.translate(x, y); ctx.rotate(p * (6 + i)); ctx.fillStyle = i < 2 ? c0 : i % 2 ? '#ffffff' : '#ffe36a'; ctx.strokeStyle = 'rgba(20,10,42,0.9)'; ctx.lineWidth = 2;
+      ctx.beginPath(); if (i < 2) ctx.arc(0, 0, s, i ? 0 : Math.PI, i ? Math.PI : TAU); else { ctx.moveTo(-s, s * 0.6); ctx.lineTo(0, -s); ctx.lineTo(s, s * 0.7); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
+    ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(bx, by, 0, bx, by, 40 * Z); g.addColorStop(0, 'rgba(255,240,200,' + Math.max(0, 0.8 - p * 2) + ')'); g.addColorStop(1, 'rgba(255,200,255,0)'); ctx.fillStyle = g; ctx.fillRect(bx - 40 * Z, by - 40 * Z, 80 * Z, 80 * Z);
+    ctx.restore();
+  }
 
 
   // =================================================================== LA BOUCLE
