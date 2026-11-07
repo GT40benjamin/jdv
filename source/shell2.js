@@ -17163,7 +17163,8 @@ function atlRegChamp(meta, val, defVal, onSet) {
   meta = meta || {}; const lab = String(meta.nom || meta.titre || atlRegNomCle(meta.k || ''));
   const t = meta.type || (typeof val === 'number' ? 'nombre' : typeof val === 'boolean' ? 'oui_non' : typeof val === 'string' ? (Array.isArray(meta.choix) ? 'choix' : 'texte') : Array.isArray(val) && val.every(x => typeof x === 'number') ? 'nombres' : 'json');
   const marque = (e, v) => e.classList.toggle('mod', JSON.stringify(v) !== JSON.stringify(defVal));
-  if (meta.lecture) return atlEl('span', 'atl-rgro', typeof val === 'object' ? JSON.stringify(val) : val === true ? '✔️' : val === false ? '—' : String(val == null ? '' : val));
+  const libChoix = v => { const o = Array.isArray(meta.choix) && meta.choix.find(x => x && typeof x === 'object' && JSON.stringify(x.v) === JSON.stringify(v)); return o ? String(o.t || o.v) : null; };
+  if (meta.lecture) return atlEl('span', 'atl-rgro', libChoix(val) || (typeof val === 'object' && val !== null ? JSON.stringify(val) : val === true ? '✔️' : val === false ? '—' : String(val == null ? '' : val)));
   const borne = n => Number.isFinite(n) && (meta.min == null || n >= meta.min) && (meta.max == null || n <= meta.max);
   const num = (v0, set) => { const e = atlEl('input', 'atl-rgin'); e.type = 'number'; e.inputMode = 'decimal'; e.value = v0 == null ? '' : String(v0); if (meta.min != null) e.min = meta.min; if (meta.max != null) e.max = meta.max; e.step = meta.pas != null ? meta.pas : 'any';
     e.addEventListener('input', () => { const s = String(e.value).replace(',', '.').trim(), n = Number(s), ok = s !== '' && borne(n); e.classList.toggle('ko', !ok); set(ok ? n : undefined, !ok); }); return e; };
@@ -17275,7 +17276,8 @@ function atlRegTable(cols, ch, L, mk, idTable) {
   const w = atlEl('div', 'atl-rgtw'), outils = atlEl('div', 'atl-rgtools'), q = atlEl('input', 'atl-rgq'); q.type = 'search'; q.placeholder = '🔎 Chercher…'; q.setAttribute('aria-label', 'Chercher');
   const filtres = cols.filter(c => { const vs = new Set(L.map(x => x.row[c]).filter(v => typeof v === 'string' && v)); return (ch.get(c) && Array.isArray(ch.get(c).choix)) || (vs.size >= 2 && vs.size <= 30 && L.every(x => typeof x.row[c] === 'string' || x.row[c] == null)); }).slice(0, 4);
   const sels = filtres.map(c => { const s = atlEl('select', 'atl-rgf'), o0 = atlEl('option', '', (ch.get(c) && ch.get(c).nom) || atlRegNomCle(c)); o0.value = ''; s.appendChild(o0);
-    for (const v of [...new Set(L.map(x => x.row[c]).filter(v => v != null && v !== ''))].map(String).sort()) { const o = atlEl('option', '', v); o.value = v; s.appendChild(o); } s.setAttribute('aria-label', 'Filtrer : ' + ((ch.get(c) && ch.get(c).nom) || c)); s._c = c; return s; });
+    const lib = v => { const m = ch.get(c), o = m && Array.isArray(m.choix) && m.choix.find(x => x && typeof x === 'object' && String(x.v) === v); return o ? String(o.t || o.v) : v; };
+    for (const v of [...new Set(L.map(x => x.row[c]).filter(v => v != null && v !== ''))].map(String).sort()) { const o = atlEl('option', '', lib(v)); o.value = v; s.appendChild(o); } s.setAttribute('aria-label', 'Filtrer : ' + ((ch.get(c) && ch.get(c).nom) || c)); s._c = c; return s; });
   if (L.length > 12) { outils.appendChild(q); for (const s of sels) outils.appendChild(s); w.appendChild(outils); }
   const nb = atlEl('small', 'atl-rgnb'), wrap = atlEl('div', 'atl-swrap atl-rgw'), plus = atlEl('button', 'btn btn-ghost btn-sm atl-rgplus', 'Afficher plus'); plus.type = 'button';
   w.append(nb, wrap, plus);
