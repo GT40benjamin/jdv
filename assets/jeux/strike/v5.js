@@ -1,13 +1,13 @@
-// Strike Monstres V5 (offerte) : la V4 (un geste n'importe où, PC et téléphone debout comme couché, physique renforcée, machine à quilles) +
+// Strike Monstres V5.1 (offerte) : la V4 (un geste n'importe où, PC et téléphone debout comme couché, physique renforcée, machine à quilles) +
 // un lancer très en biais tombe dans la vraie rigole ronde et y roule jusqu'au bout sans toucher de quille ; plus d'aperçu de trajectoire :
-// on vise au feeling. Moteur v5/moteur.bin ; menu, images et sons de la V3.
+// on vise au feeling. V5.1 : le geste se mesure à l'heure réelle de chaque échantillon (PC lent). Moteur v5/moteur.bin ; menu, images et sons de la V3.
 // Strike Monstres V2 — un jeu de l'Atelier (projet de COCOMOUTARDE), refait de zéro en vraie 3D : salle de bowling néon, piste vernie
 // qui reflète, vraies quilles en 3D qui basculent, roulent et se cognent (physique maison), têtes de monstres qui grimacent en tombant,
 // le bras du joueur et son geste de lancer, juke-box à 4 disques, bruit de la salle, têtes des copains de la salle sur une quille de temps en temps.
 // Ce petit module dessine la vignette et charge le moteur (assets/jeux/strike/v5/moteur.bin : three.js r180, licence MIT, + le jeu, gzippé).
 // Images des monstres : v2/tetes.bin ; vignette : v2/apercu.bin ; sons : v1/sons.bin ; musiques assets/music/strike-1..4.mp3. Une variable globale en plus : window.JDW_STRIKE.
 (function () {
-const WANT = "1d3ea83e";
+const WANT = "141deed2";
 const ROOT = () => window.JDW_ROOT || '';
 
 /* ---------- la vignette : deux images de la vraie scène 3D (la boule arrive sur les monstres, puis la cascade et « STRIKE ! ») ---------- */
