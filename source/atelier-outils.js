@@ -116,7 +116,7 @@
 
   // ---------- la fenêtre d'un outil : barre, scène (canvas + zoom), panneau, pied ----------
   function editeur(titre, aide) {
-    fermerEd();
+    fermerEd(); try { bulleCacher(); } catch (e) {}
     const R = E('div', 'ao-ed'); R.setAttribute('role', 'dialog'); R.setAttribute('aria-modal', 'true'); R.setAttribute('aria-label', titre);
     const bar = E('div', 'ao-barre'), h = E('div', 'ao-titre'); h.append(E('b', '', titre), E('small', '', aide || ''));
     const x = B('ao-x', '✕'); x.setAttribute('aria-label', 'Fermer sans rien changer'); bar.append(h, x);
@@ -370,6 +370,91 @@
   // tous les boutons d'un type d'atelier, dans l'ordre du registre (l'accroche des Études : une seule ligne { k: '*', ext: true })
   const boutons = (type, ctx, sauf) => REGISTRE.filter(o => o.ateliers.includes(type || 'images') && !(sauf || []).includes(o.k)).map(o => bouton(o.k, ctx));   // sauf : ceux que l'atelier place lui-même ailleurs
   const libelle = k => (OUTILS[k] && OUTILS[k].libelle) || '';
+
+  // ---------- LA BULLE D'AIDE des tuiles « Outils » (l'admin, 7 nov. : « au survol, une explication claire ») ----------
+  // Souris : la bulle vient au survol (0,35 s). Doigt : appui long sur la tuile, ou le petit « ? » du coin. Elle n'est jamais coupée par
+  // l'écran : à gauche de la tuile si la place y est (colonne à droite au PC), sinon dessus, sinon dessous, toujours dans la fenêtre.
+  // Les tuiles de l'atelier (Études) sont reconnues par leur titre : AUCUN fichier en commun, rien n'est ajouté dans leurs tuiles.
+  const AIDES = {
+    epingle: 'Touche un endroit de ta photo pour le montrer à {g} : il saura exactement de quoi tu parles. Tu peux en mettre plusieurs, chacune avec un petit mot.',
+    texte: 'Écris le texte exact que tu veux sur ta photo : choisis une zone, tape ton texte, puis la police et la couleur. Idéal pour corriger un mot mal écrit.',
+    gomme: 'Frotte sur ta photo pour effacer un mot, un trait ou une tache : je remplis avec la couleur du fond. Zoome pour gommer un tout petit détail.',
+    dessin: 'Dessine au pinceau, ou colorie une zone fermée d’un seul toucher avec le pot de peinture, dans la couleur de ton choix.',
+    fond: 'Retire le fond autour de ton dessin ou de ton personnage : il devient transparent, prêt à être posé ailleurs.',
+    elements: 'Entoure un texte ou un dessin, puis déplace-le, agrandis-le ou tourne-le. Tu ne paies qu’au moment de valider.',
+    ajout: 'Ajoute ta propre image (un dessin, une photo) : je retire son fond, puis tu la places, l’agrandis ou la tournes où tu veux.',
+    parler: 'Dis ou écris ce que tu veux changer sur ta photo : {g} fait la retouche pour toi. Le prix est annoncé avant : moins cher quand {g} peut la faire sans dessin nouveau.',
+    style: 'Redessine toute ta photo dans un style : dessin animé, aquarelle, pixel… Chaque style donne une nouvelle version.',
+    recadrer: 'Garde seulement la partie de la photo que tu veux : tire le cadre ou ses coins, ou choisis une forme (carré, téléphone…).',
+    agrandir: 'Bientôt : rendre ta photo plus grande et plus nette, sans la flouter.'
+  };
+  const TITRES_ATELIER = { 'Retoucher en parlant': 'parler', 'Changer le style': 'style', 'Recadrer': 'recadrer', 'Agrandir': 'agrandir' };
+  const cleTuile = b => b.dataset.outil || TITRES_ATELIER[((b.querySelector('b') || {}).textContent || '').trim()] || '';
+  let BULLE = null, bulleT = 0, bulleDe = null, bulleSur = null;
+  function bulleMontrer(b) {
+    const k = cleTuile(b); if (!AIDES[k]) return;
+    if (!BULLE) { BULLE = E('div', 'ao-bulle'); BULLE.setAttribute('role', 'tooltip'); BULLE.id = 'ao-bulle'; document.body.appendChild(BULLE); }
+    const titre = ((b.querySelector('b') || {}).textContent || '').trim(), ic = ((b.querySelector('.e') || {}).textContent || '').trim();
+    BULLE.textContent = '';
+    BULLE.append(E('b', '', (ic ? ic + ' ' : '') + titre), E('p', '', AIDES[k].replace(/\{g\}/g, PKN())));
+    if (b.dataset.mot) BULLE.appendChild(E('p', 'mot', '⚠️ ' + b.dataset.mot));
+    BULLE.className = 'ao-bulle'; BULLE.style.left = '0px'; BULLE.style.top = '0px'; BULLE.hidden = false;
+    const r = b.getBoundingClientRect(), bw = BULLE.offsetWidth, bh = BULLE.offsetHeight, vw = innerWidth, vh = innerHeight, m = 8, g = 10;
+    let x, y, cote;
+    if (r.left - g - bw >= m) { cote = 'gauche'; x = r.left - g - bw; y = r.top + r.height / 2 - bh / 2; }
+    else if (r.top - g - bh >= m) { cote = 'dessus'; x = r.left + r.width / 2 - bw / 2; y = r.top - g - bh; }
+    else if (r.bottom + g + bh <= vh - m) { cote = 'dessous'; x = r.left + r.width / 2 - bw / 2; y = r.bottom + g; }
+    else if (r.right + g + bw <= vw - m) { cote = 'droite'; x = r.right + g; y = r.top + r.height / 2 - bh / 2; }
+    else { cote = 'dessus'; x = r.left + r.width / 2 - bw / 2; y = m; }
+    x = clamp(x, m, vw - bw - m); y = clamp(y, m, vh - bh - m);
+    BULLE.style.left = Math.round(x) + 'px'; BULLE.style.top = Math.round(y) + 'px'; BULLE.classList.add(cote, 'va');
+    // la petite pointe vers la tuile (elle suit la tuile même quand la bulle est décalée pour rester dans l'écran)
+    if (cote === 'gauche' || cote === 'droite') BULLE.style.setProperty('--pointe', clamp(r.top + r.height / 2 - y, 14, bh - 14) + 'px');
+    else BULLE.style.setProperty('--pointe', clamp(r.left + r.width / 2 - x, 14, bw - 14) + 'px');
+    bulleDe = b; b.setAttribute('aria-describedby', 'ao-bulle');
+  }
+  function bulleCacher() { clearTimeout(bulleT); bulleT = 0; bulleSur = null; if (BULLE) { BULLE.hidden = true; BULLE.classList.remove('va'); } if (bulleDe) { bulleDe.removeAttribute('aria-describedby'); bulleDe = null; } }
+  const tuile = e => { const t = e.target && e.target.closest ? e.target.closest('#jdw-crea .crea-ot') : null; return t; };
+  // souris : survol (aussi sur une tuile grisée : on écoute le document et on regarde ce qui est sous le pointeur)
+  let px0 = -1, py0 = -1;
+  const tuileSous = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest ? el.closest('#jdw-crea .crea-ot') : null; };
+  document.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    px0 = e.clientX; py0 = e.clientY;
+    let b = tuile(e) || tuileSous(e.clientX, e.clientY);
+    if (b === bulleDe || (b && b === bulleSur)) return;
+    if (!b) { if (bulleDe || bulleT) bulleCacher(); return; }
+    bulleCacher(); bulleSur = b;
+    bulleT = setTimeout(() => {   // l'atelier redessine ses tuiles de temps en temps : on reprend la tuile qui est sous la souris
+      bulleT = 0; bulleSur = null; const c = b.isConnected ? b : tuileSous(px0, py0); if (c && !ED_ACTIF) bulleMontrer(c);
+    }, 350);
+  }, { passive: true });
+  // clavier : la tuile qui a le focus montre aussi sa bulle
+  document.addEventListener('focusin', e => { const b = tuile(e); if (b && b.matches(':focus-visible')) bulleMontrer(b); });
+  // une tuile que l'atelier retire en se redessinant perd aussi le focus (encore dans la page à ce moment-là) : on décide au tour suivant —
+  // tuile retirée → la bulle reste et suivre() la replace sur la nouvelle tuile ; focus vraiment parti ailleurs → la bulle s'en va
+  document.addEventListener('focusout', e => { const b = tuile(e); if (!b || b !== bulleDe) return;
+    setTimeout(() => { if (bulleDe !== b) return; if (!b.isConnected) { suivre(); return; } if (document.activeElement !== b) bulleCacher(); }, 0); });
+  // doigt : appui long n'importe où sur la tuile, ou toucher le « ? » du coin (24 px en haut à droite) ; l'outil ne s'ouvre pas alors
+  let appui = null, bloquerClic = 0;
+  document.addEventListener('touchstart', e => {
+    const b = tuile(e); if (!b) { if (bulleDe) bulleCacher(); return; }
+    const t = e.touches[0], r = b.getBoundingClientRect();
+    if (t.clientX > r.right - 30 && t.clientY < r.top + 30) { bulleMontrer(b); bloquerClic = Date.now(); return; }   // le « ? »
+    appui = { b, x: t.clientX, y: t.clientY, t: setTimeout(() => { const c = memeTuile(b); if (c) bulleMontrer(c); bloquerClic = Date.now(); appui = null; }, 450) };
+  }, { passive: true });
+  document.addEventListener('touchmove', e => { if (appui && Math.hypot(e.touches[0].clientX - appui.x, e.touches[0].clientY - appui.y) > 10) { clearTimeout(appui.t); appui = null; } }, { passive: true });
+  document.addEventListener('touchend', () => { if (appui) { clearTimeout(appui.t); appui = null; } }, { passive: true });
+  document.addEventListener('click', e => { if (Date.now() - bloquerClic < 700 && tuile(e)) { e.preventDefault(); e.stopPropagation(); } }, true);   // après l'aide, pas d'ouverture
+  document.addEventListener('contextmenu', e => { if (tuile(e) && TOUCH_()) e.preventDefault(); });
+  // la bulle s'en va : un clic ailleurs, le défilement, Échap, une fenêtre d'outil qui s'ouvre
+  document.addEventListener('pointerdown', e => { if (bulleDe && e.pointerType === 'mouse') bulleCacher(); }, true);   // un clic (même sur la tuile : l'outil s'ouvre) range la bulle
+  // défilement, nouvelle taille, tuiles redessinées par l'atelier : la bulle suit SA tuile (retrouvée par son outil), sinon s'en va
+  const memeTuile = b => (b && b.isConnected ? b : [...document.querySelectorAll('#jdw-crea .crea-ot')].find(x => b && cleTuile(x) === cleTuile(b)) || null);
+  const suivre = () => { if (!bulleDe || !BULLE || BULLE.hidden) return; const c = memeTuile(bulleDe); const r = c && c.getBoundingClientRect(); if (c && r.width && r.bottom > 0 && r.top < innerHeight) bulleMontrer(c); else bulleCacher(); };
+  addEventListener('scroll', () => { if (bulleDe) requestAnimationFrame(suivre); }, true);
+  addEventListener('resize', () => { if (bulleDe) requestAnimationFrame(suivre); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && bulleDe) bulleCacher(); });
 
   // ======================================================================================================================
   // ✏️ ÉCRIRE / CORRIGER UN TEXTE

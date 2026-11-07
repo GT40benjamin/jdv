@@ -33,7 +33,7 @@ html.ao-ouvert,html.ao-ouvert body{overflow:hidden}
 .crea-bt.ao-petit{padding:8px 11px;font-size:13.5px;border-radius:12px;min-height:38px}
 .crea-bt.ao-petit.on{background:#ffd65a;border-color:#e3b93a;color:#2a1846;box-shadow:0 3px 0 #c79a1d}
 .crea-bt.ao-rouge{color:#c0283a}
-.ao-large{width:100%;justify-content:flex-start}
+.ao-large{width:100%;justify-content:flex-start;white-space:normal;flex-wrap:wrap;row-gap:3px;line-height:1.15}
 .ao-ta{width:100%;box-sizing:border-box;border:1.5px solid #e2d8ea;border-radius:12px;padding:9px 11px;font:inherit;font-size:16px;line-height:1.35;resize:vertical;min-height:46px;background:#fff;color:#1f1a2b;outline:none}
 .ao-ta:focus{border-color:var(--cv2);box-shadow:0 0 0 3px #e4d7ff}
 .ao-polices{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -84,7 +84,9 @@ html.ao-ouvert,html.ao-ouvert body{overflow:hidden}
   .ao-scene{flex:0 0 auto;height:min(52vh,calc(100vw * 1.05))}
   .ao-pan{flex:1;width:auto;border-left:0;border-top:1px solid #e7ddf3;padding:10px 12px 14px}
   .ao-titre small{font-size:12.5px}
-  .ao-pied .crea-bt{flex:1}
+  .ao-pied{gap:8px;padding-left:10px;padding-right:10px}
+  .ao-pied .crea-bt{flex:1 1 0;min-width:0;white-space:normal;flex-wrap:wrap;row-gap:2px;text-align:center;line-height:1.15;padding:8px 10px}
+  .ao-pied .crea-bt.blanc{flex:0 0 auto;padding:8px 14px}
   .ao-ok{min-width:0}
   .ao-zoom{right:6px;bottom:6px;padding:2px;gap:0;border-radius:12px}
   .ao-zoom button{width:34px;height:34px;font-size:15px}
@@ -112,3 +114,21 @@ body > .ao-conf{position:fixed;z-index:2147482500;--cv:#3b1d6e;--cv2:#6a3fc2;--c
 .ao-actuelle b{font-variant-numeric:tabular-nums;color:var(--cv)}
 .ao-zoom.vert{flex-direction:column;padding:3px 2px}
 .ao-zoom.vert .pc{min-width:0;font-size:11px;padding:2px 0}
+/* la bulle d'aide des tuiles « Outils » (survol à la souris ; appui long ou « ? » au doigt) — jamais coupée par l'écran (placée en JS) */
+.ao-bulle{position:fixed;z-index:2147481000;width:max-content;max-width:min(290px,calc(100vw - 16px));padding:11px 14px 12px;border-radius:16px;background:#fff;color:#2a1846;
+  border:1.5px solid #e4d7ff;box-shadow:0 10px 30px rgba(40,10,90,.22),0 2px 6px rgba(40,10,90,.12);font-family:var(--body);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .14s,transform .14s}
+.ao-bulle.va{opacity:1;transform:none}
+.ao-bulle b{display:block;font-family:var(--display);color:var(--cv,#3b1d6e);font-size:14.5px;margin-bottom:4px;letter-spacing:.2px}
+.ao-bulle p{margin:0;font-size:14px;line-height:1.42;color:#4e4660}
+.ao-bulle p.mot{margin-top:6px;padding-top:6px;border-top:1px dashed #e4d7ff;color:#8a4a10}
+.ao-bulle::after{content:"";position:absolute;width:12px;height:12px;background:#fff;border:1.5px solid #e4d7ff;transform:rotate(45deg)}
+.ao-bulle.gauche::after{right:-7px;top:calc(var(--pointe,50%) - 6px);border-left:0;border-bottom:0}
+.ao-bulle.droite::after{left:-7px;top:calc(var(--pointe,50%) - 6px);border-right:0;border-top:0}
+.ao-bulle.dessus::after{bottom:-7px;left:calc(var(--pointe,50%) - 6px);border-left:0;border-top:0}
+.ao-bulle.dessous::after{top:-7px;left:calc(var(--pointe,50%) - 6px);border-right:0;border-bottom:0}
+@media (prefers-reduced-motion:reduce){.ao-bulle{transition:none}}
+/* au doigt : le petit « ? » du coin de chaque tuile (le toucher montre la bulle sans ouvrir l'outil) */
+@media (pointer:coarse){
+  #jdw-crea .crea-ot{position:relative}
+  #jdw-crea .crea-ot::after{content:"?";position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:#efe8ff;color:#6a3fc2;font:800 12px/18px var(--body);text-align:center;opacity:.9}
+}
