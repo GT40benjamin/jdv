@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🖼️ Crée avec {g} : écris tout ce que tu imagines (borne 2.1.12)
+[borne] ✍️ Dans ton atelier, tu peux maintenant écrire jusqu'à 10 000 caractères pour dire ce que tu veux : l'imagination n'a pas de limite.
+[borne] ⚡ Un projet s'ouvre directement sur ta vraie page, sans écran vide pendant le chargement.
 [borne] ## 🖼️ Crée avec {g} : ton atelier sur mesure (borne 2.1.11)
 [borne] 🖼️ Quand {g} a aménagé ton atelier, tu y entres directement : dépose ta photo, elle s'affiche en grand, et {g} te dit ce qu'il propose avec le prix, avant de faire quoi que ce soit.
 [borne] ✨ Tes photos retouchées sont rangées à part, prêtes à télécharger.
