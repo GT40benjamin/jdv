@@ -6175,3 +6175,5 @@ body:has(#jdw-crea:not([hidden])) #jdw-atelier:has(> .atl-mod:not([hidden])) > :
 .atl-invl .atl-invs:first-child{margin-top:0}
 .atl-invou{margin:0;padding:8px 10px;border-radius:10px;background:rgba(124,214,160,.12);border:1px solid rgba(124,214,160,.35);font-size:14px}
 .atl-invj{white-space:normal}
+/* 7 nov. 2026 : la fenêtre « X t'invite à jouer… » (▶️ Rejoindre) n'est jamais cachée par un bandeau de nouveauté (cri de perte, plein écran…) */
+body:has(#jdw-liveinv:not([hidden])) .fs-tip{display:none!important}
