@@ -5995,3 +5995,13 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-tkc .atl-dem2.neuf,.atl-tkc .atl-dem2.nouveau,.atl-tkc .atl-dem2.q{outline:0;box-shadow:none;border-color:rgba(255,255,255,.1)}
 .atl-tkc .atl-demtx,.atl-tkc .atl-demplus{display:none}.atl-tkt.ouv .atl-tktx{display:block;-webkit-line-clamp:unset}   /* la demande une seule fois : en entier dans l'en-tête du ticket */
 @media (max-width:600px){.atl-tkno{display:inline;font-size:11px;letter-spacing:0}.atl-tkd{font-size:11.5px}.atl-tkb{padding:3px 8px;font-size:12px}}
+/* 2.1.12 (l'admin) : ouverture d'un projet — titre connu + petit chargement tant que la fiche n'est pas lue (plus jamais « Mon jeu sans nom » vide) */
+.atl-ouvre{position:relative;z-index:1;flex:1 1 auto;min-height:0;display:grid;place-items:center;padding:16px}
+#jdw-atelier.crea-mt > .atl-ouvre{color:#2a1f45}#jdw-atelier.crea-mt > .atl-ouvre p{color:#6b6280}
+#jdw-atelier.crea-mt > .atl-ouvre .atl-ouvsp{border-color:rgba(124,77,255,.18);border-top-color:#7c4dff}
+#jdw-atelier.crea-mt.crea-nuit > .atl-ouvre{color:#f2ecff}#jdw-atelier.crea-mt.crea-nuit > .atl-ouvre p{color:#b9acd8}
+.atl-ouvre .atl-ouvc{min-height:0;padding:24px 16px;animation:atlOuvIn .25s ease .15s both}
+.atl-ouvre .atl-ouvt{font:800 clamp(20px,3vw,30px)/1.15 var(--body);max-width:min(92vw,720px);overflow-wrap:anywhere}
+.atl-ouvsp{width:34px;height:34px;border-radius:50%;border:4px solid rgba(255,255,255,.14);border-top-color:#ffd34d;animation:atlSpin .8s linear infinite}
+.atl-ouvbt{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:6px}
+@keyframes atlOuvIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}

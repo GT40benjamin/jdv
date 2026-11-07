@@ -16069,6 +16069,8 @@ function atlRender() {
   try { atlAdminBandeau(); } catch (e) {}
   setTimeout(() => { try { atlEnTete(ATL.root); } catch (e) {} }, 0);   // 3 nov. 2 h 20 : l'en-tête toujours complet
   const liste = !ATL.cur && !ATL.nouveau, R = ATL.root;
+  if (!liste && atlOuvreEnCours()) { atlOuvreVue(R); return; }   // 2.1.12 : la fiche du projet ouvert n'est pas encore lue
+  { const P0 = R.querySelector('.atl-ouvre'); if (P0) { P0.hidden = true; P0.dataset.k = ''; } R.classList.remove('ouvre'); }
   const bases = !liste && atlBasesOn(), wiz = !liste && !bases && atlWizOn();
   R.querySelector('.atl-main').hidden = liste || wiz || bases; R.querySelector('.atl-projets').hidden = !liste; R.querySelector('.atl-wiz').hidden = !wiz; R.querySelector('.atl-bases').hidden = !bases;
   atlNom(liste);
@@ -16139,7 +16141,35 @@ function atlOuvrir(id) {
   ATL.demOngP = ''; ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = null; ATL.lance = 0; ATL.tab = (((ATL.dem || {}).demandes || []).some(x => x && x.fiche === id && ((x.nouveau && x.reponse) || atlPropOuverte(x) || atlQAttente(x))) ? 'demandes' : ''); ATL.pSig = ''; ATL.basesOn = false; ATL.bq = 0; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
   const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (inp) { inp.placeholder = 'Décris ton jeu…'; inp.value = ''; }
   ATL.basesEnCours = false; ATL.prefill = true; ATL.brLast = '';   // un brouillon rouvert : son texte revient dans la case
+  ATL.ouvre = id; ATL.ouvreErr = ''; atlOuvreMinuteur();   // 2.1.12 (l'admin) : jusqu'à ce que la fiche soit lue, un écran « J'ouvre le projet… » (jamais « Mon jeu sans nom » vide)
   atlRender(); atlLoad(true);
+}
+// 2.1.12 : l'ouverture d'un projet (le sien ou, en mode admin, celui d'un joueur) — titre connu + petit chargement tant que sa fiche n'est pas lue
+const atlOuvreEnCours = () => !!(ATL.cur && ATL.ouvre === ATL.cur && !ATL.nouveau && !atlFiche());
+function atlTitreConnu(id) {
+  try { const pj = atlProjets().find(x => x && x.id === id) || ((ATL.tous && Array.isArray(ATL.tous.l)) ? ATL.tous.l.find(x => x && x.id === id) : null); return String((pj && pj.titre) || '').trim(); } catch (e) { return ''; }
+}
+function atlOuvreMinuteur() { clearTimeout(ATL.ouvreT); ATL.ouvreT = setTimeout(() => { if (ATL.open && atlOuvreEnCours() && !ATL.ouvreErr) { ATL.ouvreErr = 'lent'; atlRender(); } }, 12000); }
+function atlOuvreRelire() { ATL.ouvreErr = ''; ATL.err = 0; atlOuvreMinuteur(); atlRender(); atlLoad(true); }
+function atlOuvreVue(R) {
+  for (const q of ['.atl-main', '.atl-projets', '.atl-wiz', '.atl-bases', '.atl-route', '.atl-frise']) { const e = R.querySelector(q); if (e) e.hidden = true; }
+  R.classList.remove('liste', 'wiz', 'a1'); R.classList.add('route', 'ouvre');
+  const t = atlTitreConnu(ATL.cur), nom = t || 'Ton projet', err = ATL.ouvreErr;
+  const n = R.querySelector('.atl-nom'), bt = R.querySelector('.atl-nomb'); if (n && !R.querySelector('.atl-nomr input')) { n.textContent = nom; n.classList.remove('liste', 'edit'); } if (bt) bt.hidden = true;
+  const hs = R.querySelector('.atl-hs'); if (hs) hs.textContent = err ? 'Pas encore ouvert' : 'J’ouvre le projet…';
+  const sh = R.querySelector('.atl-sendh'); if (sh) sh.hidden = true;
+  R.querySelector('.atl-back').setAttribute('aria-label', 'Mes projets');
+  let P = R.querySelector('.atl-ouvre'); if (!P) { P = atlEl('div', 'atl-ouvre'); R.querySelector('.atl-projets').before(P); }
+  P.hidden = false; const k = ATL.cur + '|' + (err ? 1 : 0) + '|' + nom; if (P.dataset.k === k) return; P.dataset.k = k; P.textContent = '';
+  const w = atlEl('div', 'atl-charge atl-ouvc');
+  if (err) {
+    w.append(atlGuideAv('atl-wav'), atlEl('b', '', 'Je n’arrive pas encore à ouvrir ' + (t ? '« ' + t + ' »' : 'ce projet')), atlEl('p', '', err === 'lent' ? 'Ça prend plus de temps que d’habitude : on réessaie ?' : 'La connexion a un souci : on réessaie ?'));
+    const re = atlEl('button', 'btn btn-play', '↻ Réessayer'); re.type = 'button'; re.addEventListener('click', atlOuvreRelire);
+    const li = atlEl('button', 'btn btn-ghost', '← Mes projets'); li.type = 'button'; li.addEventListener('click', () => atlListe());
+    const rr = atlEl('div', 'atl-ouvbt'); rr.append(re, li); w.appendChild(rr);
+    if (!TOUCH) setTimeout(() => { if (re.isConnected && !P.hidden) re.focus({ preventScroll: true }); }, 30);
+  } else w.append(atlEl('span', 'atl-ouvsp'), atlEl('b', 'atl-ouvt', nom), atlEl('p', '', 'J’ouvre le projet…'));
+  P.appendChild(w);
 }
 function atlNouveau() {
   const cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
@@ -16150,7 +16180,7 @@ function atlNouveau() {
 }
 function atlListe() { atlBrFlush(); ATL.basesEnCours = false; atlFrameStop(); atlMicStop(); atlLetterClose(true); atlErr(''); ATL.cur = null; ATL.nouveau = false; ATL.choix = null; atlRender(); ATL.demAt = 0; atlLoad(true); atlDemCharger(true);   /* 2.0.103 : « Mes projets » relu à chaque retour (badges jamais périmés) */ atlLoad(true); }
 function atlRenderFiche() {
-  const R = ATL.root; if (!R || ATL.editing) return;   // une section en cours de modification n'est pas redessinée
+  const R = ATL.root; if (!R || ATL.editing || atlOuvreEnCours()) return;   // une section en cours de modification n'est pas redessinée
   const f = atlFiche(), fi = (f && f.fiche && typeof f.fiche === 'object') ? f.fiche : {}, et = atlEtat(), mine = f && (ATL_ACTIVE.has(et) || et === 'acceptee');
   const ff = mine ? fi : {};
   R.querySelector('.atl-ft').textContent = mine && f.titre ? f.titre : 'Mon jeu (titre à trouver)';
@@ -16255,7 +16285,7 @@ function atlBubble(m, wel) {
   li.appendChild(col); return li;
 }
 function atlRenderChat() {
-  const R = ATL.root; if (!R || R.querySelector('.atl-chin:focus')) return;   // un élément en cours d'ajout sur une planche : pas de rafraîchissement
+  const R = ATL.root; if (!R || atlOuvreEnCours() || R.querySelector('.atl-chin:focus')) return;   // un élément en cours d'ajout sur une planche : pas de rafraîchissement
   if ([...R.querySelectorAll('.atl-log .atl-q input')].some(e => e.value.trim() || document.activeElement === e)) return;   // 2.0.36 : une réponse en cours d'écriture
   const log = R.querySelector('.atl-log'), atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
   const f = atlFiche(), et = atlEtat(), mine = f && (ATL_ACTIVE.has(et) || et === 'acceptee');
@@ -20156,12 +20186,14 @@ async function atlLoad(force) {
   const me = cleanName(profile.name);
   if (ATL.name !== me) { ATL.name = me; ATL.data = null; ATL.pend = []; }
   if (ATL.busy) return; ATL.busy = true;
+  const vise = ATL.cur || null;
   try {
-    const r = await rpc('at_lire', { p_name: profile.name, p_fiche: ATL.cur || null }, { quiet404: true, quiet: true });
+    const r = await rpc('at_lire', { p_name: profile.name, p_fiche: vise }, { quiet404: true, quiet: true });
     if (cleanName(profile.name) !== me) return;
     const lastAll = () => atlProjets().reduce((m, x) => (x.reponse_at && String(x.reponse_at) > m ? String(x.reponse_at) : m), '');
     const before = lastAll();
     ATL.data = r && typeof r === 'object' ? r : { fiche: null, messages: [], projets: [] }; ATL.err = 0;
+    if (ATL.ouvre && ATL.ouvre === vise) { ATL.ouvre = ''; ATL.ouvreErr = ''; clearTimeout(ATL.ouvreT); }   // 2.1.12 : la fiche de ce projet est lue
     atlGuideMaj(ATL.data.guide);
     const after = lastAll();
     if (after && after > before && before && ATL.root) { ATL.root.classList.add('atl-joie'); clearTimeout(ATL.joieT); ATL.joieT = setTimeout(() => ATL.root && ATL.root.classList.remove('atl-joie'), 2600); }   // la réponse arrive : il saute de joie
@@ -20169,8 +20201,8 @@ async function atlLoad(force) {
     else if (after && after > before && before && ATL.toastedFor !== after) { ATL.toastedFor = after; try { atlToast('✉️ ' + gNM() + ' t’a répondu !'); } catch (e) {} }
     atlDoux(atlRender, !force, 'load', atlSigVue()); if (ATL.open) atlDemCharger(false);
     if (ATL.open && ATL.allerNonLu && ATL.allerNonLu === ATL.cur && atlFiche()) { ATL.allerNonLu = ''; setTimeout(atlAllerNonLu, 250); }   // 2.0.135   // 3 nov. : demandes, réponses et versions en direct (toutes les 20 s) ; 2.0.134 : en douceur
-  } catch (e) { if (e && e.status === 404) ATL.off = true; ATL.err++; ATL.errMsg = String((e && e.message) || ''); if (!ATL.data && ATL.open) try { atlRender(); } catch (x) {} if (/projet inconnu/.test(String(e && e.message)) && ATL.cur) { ATL.cur = null; ATL.err = 0; atlRender(); } }
-  finally { ATL.busy = false; atlTileState(); try { refreshBell(); } catch (e) {} atlSchedule(); }
+  } catch (e) { if (e && e.status === 404) ATL.off = true; ATL.err++; ATL.errMsg = String((e && e.message) || ''); if (ATL.open && ATL.ouvre && ATL.ouvre === vise && ATL.cur === vise && !/projet inconnu/.test(ATL.errMsg)) { ATL.ouvreErr = ATL.errMsg || 'reseau'; try { atlRender(); } catch (x) {} } if (!ATL.data && ATL.open) try { atlRender(); } catch (x) {} if (/projet inconnu/.test(String(e && e.message)) && ATL.cur) { ATL.cur = null; ATL.err = 0; atlRender(); } }
+  finally { ATL.busy = false; if (ATL.open && ATL.ouvre && ATL.ouvre === ATL.cur && vise !== ATL.cur && !ATL.ouvreErr) setTimeout(() => atlLoad(true), 0);   /* 2.1.12 : une lecture d'un autre projet était en route */ atlTileState(); try { refreshBell(); } catch (e) {} atlSchedule(); }
 }
 function atlSchedule() {
   if (!ATL) return; clearTimeout(ATL.pollT);
