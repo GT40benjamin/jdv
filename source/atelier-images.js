@@ -40,10 +40,17 @@
   function livre(id) {
     if (typeDe(id) !== 'images') return false;
     if ((AIM.types[id].images | 0) > 0) return true;
+    const x = AIM.types[id];   // SQL v166 : la version et l'état viennent avec le type (l'admin n'a pas le projet d'un joueur dans sa liste)
+    if ((x.version | 0) >= 1 || ['alpha', 'publie_salle', 'publie_monde'].includes(String(x.etat || ''))) return true;
     let pj = null; try { pj = atlProjets().find(x => x && x.id === id); } catch (e) {}
     return !!pj && ((pj.version | 0) >= 1 || ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')));
   }
   const atelierOuvert = id => typeDe(id) === 'images' && livre(id);
+  // VUE ADMIN (7 nov.) : l'atelier d'un autre joueur (type « autre », SQL v166) se LIT seulement : rien n'est écrit ni dépensé à sa place ;
+  // seule la discussion reste ouverte : l'admin y répond comme {g} (at_admin_agir 'discussion', comme le mode admin de l'Interface)
+  const adm = () => !!(AIM.fiche && AIM.types[AIM.fiche] && AIM.types[AIM.fiche].autre && AIM.vue !== 'nouveau');
+  const joueurAdm = () => { const j = (AIM.types[AIM.fiche] || {}).joueur || ''; try { return dispName(j) || j; } catch (e) { return j; } };
+  const lectureSeule = () => { if (!adm()) return false; toast('🛡️ Vue admin : tu regardes l’atelier de ' + joueurAdm() + ' sans rien y changer'); return true; };
   // l'admin (7 nov.) : LE MODÈLE DES ATELIERS. Un atelier livré a la page d'un projet, comme un jeu : le menu du projet à gauche, la zone de
   // travail au centre, la discussion de {g} à part. Ce qui change d'un type à l'autre vient d'ICI (menus, libellés, invite, résultat, fond) :
   // un nouveau type d'atelier = une entrée de plus, jamais un cas spécial pour un joueur
@@ -68,6 +75,7 @@
     try {
       const r = await rpc('at_esp_types', { p_name: nom() }, { quiet: true, quiet404: true });
       AIM.types = {}; for (const p of (r && r.projets) || []) AIM.types[p.id] = p;
+      for (const p of (r && r.autres) || []) if (p && p.id && !AIM.types[p.id]) AIM.types[p.id] = Object.assign({}, p, { autre: true });   // admins (SQL v166) : les ateliers des joueurs
       if (r && r.prix) AIM.prix = r.prix; if (r && typeof r.solde === 'number') AIM.solde = r.solde;
       AIM.typesAt = Date.now(); AIM.off = false;
     } catch (e) { if (/404|could not find|does not exist/i.test(pourquoi(e))) AIM.off = true; AIM.typesAt = Date.now(); }
@@ -75,6 +83,8 @@
 
   // ---------- surcharges de l'Atelier ----------
   atlOuvrir = function (id) {   // eslint-disable-line no-global-assign
+    // l'admin (7 nov.) : l'atelier LIVRÉ d'un joueur ouvert depuis « PROJETS DES JOUEURS » = le même atelier que le joueur (vue admin)
+    if (!AIM.types[id] && ATL.adminVoir && ATL.adminVoir.id === id) { chargerTypes(true).then(() => (atelierOuvert(id) ? ouvrir(id) : _ouvrir(id))); return; }
     if (AIM.types[id]) { if (atelierOuvert(id)) return ouvrir(id); if (AIM.open) fermer(); return _ouvrir(id); }
     if (AIM.open && !(AIM.types[id])) fermer();
     if (Date.now() - AIM.typesAt > 60000) { chargerTypes(true).then(() => (atelierOuvert(id) ? ouvrir(id) : _ouvrir(id))); return; }
@@ -445,7 +455,7 @@
     try {
       const d = await rpc('at_esp_lire', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true });
       const avant = AIM.d; AIM.d = d; AIM.errLire = '';
-      if (typeof d.solde === 'number') { if (AIM.solde != null && d.solde !== AIM.solde) bougerCred(); AIM.solde = d.solde; }
+      if (typeof d.solde === 'number') { if (AIM.solde != null && d.solde !== AIM.solde && !adm()) bougerCred(); AIM.solde = d.solde; }
       if (d.prix) AIM.prix = d.prix;
       const cs = d.creations || [];
       if (!cs.some(c => c.id === AIM.cur)) AIM.cur = cs.length ? cs[0].id : null;
@@ -461,7 +471,7 @@
   async function chargerMsgs() {
     if (!AIM.fiche) return;
     try {
-      const r = await rpc('at_lire', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true });
+      const r = adm() ? await rpc('at_admin_lire', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true }) : await rpc('at_lire', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true });
       AIM.fi = (r && r.fiche) || AIM.fi || null;
       AIM.msgs = ((r && r.messages) || []).filter(m => !m.remplacee).map(m => ({ t: String(m.texte || ''), pk: !!m.atelier, at: m.at }));
     } catch (e) {}
@@ -491,11 +501,12 @@
     const fil = q('.crea-fil'); fil.textContent = '';
     if (AIM.vue !== 'nouveau') {   // l'admin (6 nov. soir) : plus de « · Mes projets › Nouveau projet » en haut, seulement « CRÉE AVEC … »
       const ti = (AIM.d && AIM.d.titre) || (pj && pj.titre) || 'Mes images';
-      fil.append(E('span', 'lien', '· Mes projets'), E('span', 'lien', ' › '), E('strong', '', ti));
+      fil.append(E('span', 'lien', adm() ? '· Projets des joueurs' : '· Mes projets'), E('span', 'lien', ' › '), E('strong', '', ti));
+      if (adm()) { const ab = E('span', 'crea-admb', '🛡️ '); ab.append(E('span', 'l', 'Vue admin · '), joueurAdm()); fil.appendChild(ab); }
     }
     q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
     let so = AIM.solde; if (typeof so !== 'number') { try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {} }   // sans SQL v160 : le solde de l'Atelier (testeurs, 6 nov.)
-    q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + so + (etroit() ? '' : ' crédits') : '';
+    q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + (adm() ? joueurAdm() + ' ' : '') + so + (etroit() || adm() ? '' : ' crédits') : '';
     renderArbre(); renderOutil(); renderMasc(); renderFlot();
   }
   // ---------- l'arbre « Mes projets » : la VRAIE jaquette (atlPvJaq de l'Interface), son STATUT et ses BULLES, lus tels quels sur les cartes
@@ -584,7 +595,7 @@
     }
     A.appendChild(E('div', 'crea-mat-sp'));
     const r = B('crea-nd crea-mat-ret', null, () => { AIM.root.classList.remove('tiroir'); fermerVersProjets(); }); r.append(E('i', '', '←'), E('span', 'nm', 'Mes projets')); A.appendChild(r);
-    A.appendChild(E('div', 'crea-pied', 'Ce que tu crées ici reste privé : toi seul le vois.'));
+    A.appendChild(E('div', 'crea-pied', adm() ? '🛡️ Vue admin : l’atelier de ' + joueurAdm() + ', tel qu’il le voit. Tu peux lui répondre comme ' + PK() + ' ; rien d’autre n’est changé.' : 'Ce que tu crées ici reste privé : toi seul le vois.'));
   }
   function ouvrirGuide() {
     const R = AIM.root; if (!R) return;
@@ -625,7 +636,7 @@
     v.append(im, E('b', '', titre), E('p', '', texte), B('crea-bt', '＋ Importer une image', () => choisirFichier()), E('p', '', 'Gratuit · JPEG, PNG ou WebP · 5 Mo au plus'));
     v.lastChild.style.fontSize = '13px'; c.appendChild(v); O.appendChild(c);
   }
-  function choisirFichier() { if (enAttenteImport()) { toast('Je regarde encore ta photo… 👀'); return; } AIM.root.querySelector('.crea-file').click(); }
+  function choisirFichier() { if (lectureSeule()) return; if (enAttenteImport()) { toast('Je regarde encore ta photo… 👀'); return; } AIM.root.querySelector('.crea-file').click(); }
   const enAttenteImport = () => !!(AIM.d && (AIM.d.creations || []).some(c => c.versions.some(v => v.etat === 'controle' || v.etat === 'envoi')));
 
   function renderAtelier(O) {
@@ -712,7 +723,7 @@
   function depotSur(el) {   // glisser-déposer une photo (PC)
     el.addEventListener('dragover', e => { if (!e.dataTransfer || ![...(e.dataTransfer.types || [])].includes('Files')) return; e.preventDefault(); el.classList.add('survol'); });
     el.addEventListener('dragleave', () => el.classList.remove('survol'));
-    el.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f) return; e.preventDefault(); el.classList.remove('survol'); importer(f); });
+    el.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f) return; e.preventDefault(); el.classList.remove('survol'); if (lectureSeule()) return; importer(f); });
   }
   // 👁️ la demande part dans la discussion du projet (gratuit, at_esp_parler) avec le chemin de la photo : {g} la regarde et répond ;
   // sa réponse s'affiche ici en commentaire, sous la photo. Tout se relit dans les messages (rien de gardé sur l'appareil)
@@ -746,7 +757,7 @@
     K.classList.add('vu'); K.append(im, col); return K;
   }
   async function regarder(c, a) {
-    if (!c || !a || !a.path) return;
+    if (!c || !a || !a.path || lectureSeule()) return;
     const t = '👁️ Regarde ma photo « ' + (c.titre || 'Mon image') + ' » (V' + a.n + ') et dis-moi ce que tu me proposes, avec le prix. (' + a.path + ')';
     const at = new Date().toISOString(); AIM.msgs.push({ t, at }); render();
     try { await rpc('at_esp_parler', { p_name: nom(), p_fiche: AIM.fiche, p_texte: t, p_micro: false }, { quiet: true }); }
@@ -800,7 +811,8 @@
     for (const v of c.versions) {
       const cours = ['envoi', 'controle', 'en_cours'].includes(v.etat), rate = v.etat === 'ratee' || v.etat === 'refusee';
       const b = B('crea-vign' + (v.id === c.actuelle ? ' on' : '') + (cours ? ' cours' : '') + (rate ? ' rate' : ''), null, async () => {
-        if (v.etat === 'prete' && v.id !== c.actuelle) { try { await rpc('at_esp_choisir', { p_name: nom(), p_creation: c.id, p_version: v.id }, { quiet: true }); c.actuelle = v.id; AIM.pos = 0.5; render(); charger(); } catch (e) { toast('Oups, réessaie'); } }
+        if (v.etat === 'prete' && v.id !== c.actuelle && adm()) { c.actuelle = v.id; AIM.pos = 0.5; render(); }   // vue admin : on regarde l'autre version, rien n'est écrit
+        else if (v.etat === 'prete' && v.id !== c.actuelle) { try { await rpc('at_esp_choisir', { p_name: nom(), p_creation: c.id, p_version: v.id }, { quiet: true }); c.actuelle = v.id; AIM.pos = 0.5; render(); charger(); } catch (e) { toast('Oups, réessaie'); } }
         else if (rate) toast(v.etat === 'refusee' ? 'Celle-là, je n’ai pas pu la faire (crédits rendus)' : 'Celle-là a raté : tes crédits t’ont été rendus');
         else if (cours) toast('⏳ Je la fabrique… elle arrive !');
       });
@@ -841,7 +853,7 @@
     const row = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), inp = E('input'); inp.value = AIM.d.titre || ''; inp.maxLength = 60; inp.style.cssText = 'flex:1;border:0;outline:0;font:inherit;font-size:15px;padding:8px 0;background:none';
     ch.appendChild(inp);
     const ok = B('crea-bt violet', 'Renommer', async () => {
-      const v = inp.value.trim(); if (!v) return; ok.disabled = true;
+      const v = inp.value.trim(); if (!v || lectureSeule()) return; ok.disabled = true;
       try { await rpc('at_fiche_etape', { p_name: nom(), p_fiche: AIM.fiche, p_cle: 'titre', p_valeur: v }, { quiet: true }); AIM.d.titre = v; if (AIM.types[AIM.fiche]) AIM.types[AIM.fiche].titre = v; try { const pj = atlProjets().find(x => x.id === AIM.fiche); if (pj) pj.titre = v; } catch (e) {} toast('✏️ Projet renommé'); render(); }
       catch (e) { toast(/filtre/.test(pourquoi(e)) ? 'Ce nom-là, je ne peux pas le garder 🙈' : 'Oups, réessaie'); } finally { ok.disabled = false; }
     });
@@ -849,6 +861,7 @@
     p.appendChild(E('p', '', 'Tes images restent privées : personne d’autre ne les voit. Une nouvelle image = ' + (AIM.prix.image | 0) + ' ' + D + ' ; importer, recadrer, revenir à une version et télécharger sont gratuits.'));
     p.lastChild.style.cssText = 'margin:0;color:#6b6280;font-size:14px';
     const del = B('crea-bt rouge', '🗑️ Supprimer ce projet', () => {
+      if (lectureSeule()) return;
       modal('🗑️ Supprimer « ' + (AIM.d.titre || 'ce projet') + ' » ?', 'Ce projet et toutes ses images disparaîtront. Les crédits déjà utilisés ne sont pas rendus.', [['Annuler', 'blanc', modFermer], ['Supprimer', 'rouge', async (b) => {
         b.disabled = true;
         try { await rpc('at_supprimer', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true }); delete AIM.types[AIM.fiche]; try { ATL.data.projets = ATL.data.projets.filter(x => x.id !== AIM.fiche); } catch (e) {} modFermer(); toast('🗑️ Projet supprimé'); fermerVersProjets(); }
@@ -905,11 +918,11 @@
       setTimeout(() => choisirType(k, k === 'jeu' ? t : ''), 450); render();
       return;
     }
-    AIM.msgs.push({ t, at: new Date().toISOString() }); render();
-    try { await rpc('at_esp_parler', { p_name: nom(), p_fiche: AIM.fiche, p_texte: t, p_micro: false }, { quiet: true }); }
+    AIM.msgs.push({ t, at: new Date().toISOString(), pk: adm() }); render();
+    try { if (adm()) await rpc('at_admin_agir', { p_name: nom(), p_fiche: AIM.fiche, p_action: 'discussion', p_args: { texte: t } }, { quiet: true }); else await rpc('at_esp_parler', { p_name: nom(), p_fiche: AIM.fiche, p_texte: t, p_micro: false }, { quiet: true }); }
     catch (e) { dire({ pk: 1, t: 'Oups, ton message n’est pas parti. Réessaie 🙏' }); render(); return; }
     const c = curCrea(), a = c && verDe(c, c.actuelle);
-    if (a && !enAttente() && !/\?\s*$/.test(t) && t.length >= 4) { AIM.prop = t; render(); }
+    if (a && !adm() && !enAttente() && !/\?\s*$/.test(t) && t.length >= 4) { AIM.prop = t; render(); }
     chargerMsgs().then(render);
   }
   const filMasc = () => (AIM.vue === 'nouveau' ? AIM.loc : AIM.msgs.concat(AIM.loc).sort((a, b) => String(a.at || '').localeCompare(String(b.at || ''))));
@@ -929,7 +942,7 @@
 
   // ---------- actions ----------
   async function fabriquer(outil, consigne, apres) {
-    const c = curCrea(); if (!c || AIM.busy) return;
+    const c = curCrea(); if (!c || AIM.busy || lectureSeule()) return;
     const p = AIM.prix.image | 0;
     if (typeof AIM.solde === 'number' && AIM.solde < p) { manque(p); return; }
     const cle = 'jdw.crea.okprix.' + nom();
@@ -970,7 +983,7 @@
     void c;
   }
   async function importer(file) {
-    if (!AIM.fiche || AIM.busy) return; AIM.busy = true;
+    if (!AIM.fiche || AIM.busy || lectureSeule()) return; AIM.busy = true;
     dire({ pk: 1, t: 'Je reçois ta photo… 📸' }); render();
     try {
       const blob = await jpegDe(file);
@@ -1003,6 +1016,7 @@
     if (!up.ok) throw new Error('envoi ' + up.status);
   }
   function recadrer(c, act) {
+    if (lectureSeule()) return;
     if (!act || !act.path) return;
     const M = modOuvrir(true);
     M.append(E('h2', '', '✂️ Recadrer'), E('p', '', 'Tire le cadre ou ses coins. Gratuit : ça fait une nouvelle version.'));
@@ -1078,6 +1092,7 @@
     } catch (e) { try { window.open(u, '_blank', 'noopener'); } catch (x) {} }
   }
   function renommerImage(c) {
+    if (lectureSeule()) return;
     const M = modOuvrir(); M.appendChild(E('h2', '', '✏️ Renommer l’image'));
     const ch = E('div', 'crea-champ'), inp = E('input'); inp.value = c.titre || ''; inp.maxLength = 60; inp.style.cssText = 'flex:1;border:0;outline:0;font:inherit;font-size:15px;padding:8px 0;background:none'; ch.appendChild(inp); M.appendChild(ch);
     const ok = B('crea-bt violet', 'Renommer', async () => { const v = inp.value.trim(); if (!v) return; try { await rpc('at_esp_image', { p_name: nom(), p_creation: c.id, p_titre: v }, { quiet: true }); c.titre = v; modFermer(); render(); } catch (e) { toast('Ce nom-là, je ne peux pas le garder 🙈'); } });
@@ -1085,6 +1100,7 @@
     setTimeout(() => inp.focus(), 30);
   }
   function retirerImage(c) {
+    if (lectureSeule()) return;
     modal('🗑️ Retirer « ' + (c.titre || 'cette image') + ' » ?', 'L’image et toutes ses versions disparaissent de ton atelier. Les crédits déjà utilisés ne sont pas rendus.', [['Annuler', 'blanc', modFermer], ['Retirer', 'rouge', async (b) => {
       b.disabled = true; try { await rpc('at_esp_image', { p_name: nom(), p_creation: c.id, p_retirer: true }, { quiet: true }); modFermer(); AIM.cur = null; await charger(); render(); } catch (e) { b.disabled = false; toast('Oups, réessaie'); }
     }]]);
