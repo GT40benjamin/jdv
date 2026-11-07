@@ -6022,3 +6022,11 @@ body.atl-on #jdw-lib{content-visibility:hidden}
 .atl-admact .btn{justify-content:flex-start;text-align:left;white-space:normal;min-height:46px}
 .atl-admc .atl-admfer{justify-self:end}
 @media (max-width:600px){.atl-admact{grid-template-columns:1fr}.atl-admc .atl-admfer{justify-self:stretch}}
+/* 2.1.13 (l'admin : « Feuille de route et Versions, ça va ensemble ») : une seule page, la feuille de route puis les versions */
+.atl-espace .atl-pane > .atl-ph3.atl-esvh3{margin-top:26px}
+.atl-espace .atl-pane[data-k="route"] .atl-vh{margin:0 0 10px;padding:14px 18px}
+.atl-espace .atl-pane[data-k="route"] .atl-vh b{font:900 15px var(--body);color:#4a2370}
+.atl-espace .atl-pane[data-k="route"] .atl-vh p{font:600 15px/1.5 var(--body)}.atl-espace .atl-pane[data-k="route"] .atl-vh li{font:600 14px/1.45 var(--body)}
+.atl-esb[data-k="route"] .lab{line-height:1.2}
+.atl-est.deux .lab{white-space:normal;line-height:1.05;text-align:center;font-size:10px}
+.atl-estabs:has(.atl-est:nth-child(8)) .atl-est.deux .lab{font-size:9.5px;letter-spacing:-.25px}
