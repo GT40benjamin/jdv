@@ -17378,6 +17378,7 @@ function atlEspace(W, box, f, g, pane) {
     for (const [k, ic, lab] of SECT) T.appendChild(bouton(k, ic, k === 'route' ? 'Feuille & versions' : k === 'params' ? 'Réglages' : k === 'reglages' ? 'Réglages du jeu' : lab, 'atl-est' + (k === 'admin' || k === 'reglages' ? ' rouge' : '') + (k === 'route' || k === 'reglages' ? ' deux' : '')));   // 2.1.13 : les versions aussi au téléphone
     R0.appendChild(T); }
   W._pk = [pk1, pk2];
+  setTimeout(() => { try { atlJeuVnMaj(); } catch (e) {} }, 0);   // 7 nov. 2026 : la pastille « Vn » qui arrive, à côté de « Mon jeu »
   // 🗺️ la feuille de route, en entier
   { const p = pane('route'); p.appendChild(atlEl('h3', 'atl-ph3', '🗺️ La feuille de route de ton jeu'));
     const c = atlEl('section', 'atl-escard atl-esroute'), dl = atlEl('dl');
@@ -19758,7 +19759,38 @@ function atlHsTxt(f) {
   const ec = atlAdminIci() ? (ATL.data.demandes_projet || []).some(x => x && x.etat === 'en_cours') : atlDemEnCours().some(x => x.fiche === f.id && x.etat === 'en_cours');
   return ec || atlTravaille(f) ? '🛠️ ' + gNM() + ' travaille sur la nouvelle version' : et === 'alpha' ? 'Ton jeu est prêt à tester !' : 'Ton jeu est publié';
 }
-function atlHsMaj() { try { for (const b of document.querySelectorAll('#jdw-atelier .atl-espk')) if (b._maj) b._maj(); } catch (e) {} try { const R = ATL.root, f = atlFiche(), h = R && R.querySelector('.atl-hs'); if (h && f && ATL.cur === f.id && R.querySelector('.atl-pbox')) { const t = atlHsTxt(f); if (h.textContent !== t) h.textContent = t; } } catch (e) {} }
+// 7 nov. 2026 (Benjamin) : à côté de « 🎮 Mon jeu » (menu de gauche et onglet du bas), pendant que la mascotte prépare la version suivante :
+// une pastille « V26 » + un petit rond qui tourne (arrêté si l'appareil demande moins d'animations) ; survol (appui long au téléphone) :
+// « Pooky prépare ta V26… Tu pourras l'essayer ici dès qu'elle est prête. » ; la pastille part dès que la version est prête. Joueur et admin.
+function atlJeuVnMaj() {
+  const R = ATL && ATL.root; if (!R) return;
+  const f = atlFiche(); let v = f && ATL.cur === f.id ? atlTravaille(f) : 0;
+  if (!v && f && ATL.cur === f.id && atlAdminIci()) { try { if (atlTravEnCours().length) v = ((f.version | 0) || 1) + 1; } catch (e) {} }   // vue admin : les demandes du projet regardé en travail
+  for (const b of R.querySelectorAll('.atl-esb[data-k="jeu"], .atl-est[data-k="jeu"]')) {
+    let e = b.querySelector('.atl-esvn');
+    if (!v) { if (e) { e.remove(); const q = document.getElementById('atl-esvn-bulle'); if (q) q.classList.remove('on'); } continue; }
+    const adm = atlAdminIci(), qui = adm ? dispName((((ATL.data && ATL.data.admin_voir) || {}).joueur) || f.name || '') : '';
+    const txt = gNM() + ' prépare ' + (adm ? 'la V' + v + (qui ? ' de ' + qui : '') : 'ta V' + v) + '… Tu pourras l’essayer ici dès qu’elle est prête.';
+    if (e && e.dataset.v === String(v) && e.dataset.t === txt) continue;
+    if (e) e.remove();
+    e = atlEl('span', 'atl-esvn'); e.dataset.v = String(v); e.dataset.t = txt; e.setAttribute('role', 'status'); e.setAttribute('aria-label', txt);
+    e.append(atlEl('i', 'atl-esspin'), atlEl('b', '', 'V' + v));
+    // la bulle vit dans <body> (un parent flouté du menu couperait une bulle « fixed ») : une seule pour toute la page
+    const bulle = () => { let q = document.getElementById('atl-esvn-bulle'); if (!q) { q = atlEl('div', 'atl-esvnb'); q.id = 'atl-esvn-bulle'; q.setAttribute('role', 'tooltip'); document.body.appendChild(q); } return q; };
+    const montrer = () => { const q = bulle(), r = e.getBoundingClientRect(), bas = !!e.closest('.atl-est'), w = Math.min(260, innerWidth - 16); q.textContent = txt; q.style.maxWidth = w + 'px';
+      q.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px'; if (bas) { q.style.top = ''; q.style.bottom = (innerHeight - r.top + 10) + 'px'; } else { q.style.bottom = ''; q.style.top = (r.bottom + 8) + 'px'; } q.classList.add('on'); };
+    const cacher = () => { const q = document.getElementById('atl-esvn-bulle'); if (q) q.classList.remove('on'); };
+    e.addEventListener('pointerenter', ev => { if (ev.pointerType === 'mouse') montrer(); });
+    e.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse') cacher(); });
+    let tm = 0, long = false;   // appui long (téléphone) : la bulle, sans changer d'onglet
+    e.addEventListener('pointerdown', ev => { if (ev.pointerType === 'mouse') return; long = false; clearTimeout(tm); tm = setTimeout(() => { long = true; montrer(); setTimeout(cacher, 3200); }, 450); });
+    for (const k of ['pointerup', 'pointercancel']) e.addEventListener(k, () => clearTimeout(tm));
+    e.addEventListener('click', ev => { if (long) { ev.preventDefault(); ev.stopPropagation(); long = false; } }, true);
+    e.addEventListener('contextmenu', ev => ev.preventDefault());
+    b.appendChild(e);
+  }
+}
+function atlHsMaj() { try { for (const b of document.querySelectorAll('#jdw-atelier .atl-espk')) if (b._maj) b._maj(); } catch (e) {} try { atlJeuVnMaj(); } catch (e) {} try { const R = ATL.root, f = atlFiche(), h = R && R.querySelector('.atl-hs'); if (h && f && ATL.cur === f.id && R.querySelector('.atl-pbox')) { const t = atlHsTxt(f); if (h.textContent !== t) h.textContent = t; } } catch (e) {} }
 function atlTravailMaj() {
   const R = ATL && ATL.root, W = R && R.querySelector('.atl-wiz'), p = W && W.querySelector('.atl-pane[data-k="jeu"]'); if (!p || !ATL.cur) return;
   const l = atlTravEnCours();   // 2.0.59 : en vue admin, celles du joueur (2.0.60 : sans champ « fiche », elles sont toutes de ce projet)
