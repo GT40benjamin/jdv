@@ -576,3 +576,14 @@
 .crea.nuit .crea-resi .t small,.crea.nuit .crea-vide-t,.crea.nuit .crea-route dd,.crea.nuit .crea-vat p,.crea.nuit .crea-vat ul{color:#d6cbef}
 .crea.nuit .crea-vat{background:#231b52;border-color:#4a3c94}
 .crea.nuit.studio{background-color:#16141b!important;background-image:radial-gradient(70% 55% at 50% 42%,rgba(190,180,215,.35),rgba(190,180,215,0) 72%),radial-gradient(22% 30% at 6% 14%,rgba(255,236,200,.35),rgba(255,236,200,0) 70%),radial-gradient(22% 30% at 94% 14%,rgba(200,220,255,.32),rgba(200,220,255,0) 70%),linear-gradient(180deg,#3a3642 0%,#57525e 50%,#3a3642 100%)!important}
+/* le testeur (7 nov.) : PC 1366 — la case « Dis-moi ce que tu veux faire… » était écrasée (« Dis-r ») : sous ~1500 px, les outils passent SOUS
+   la photo dans un atelier livré, et la case prend sa propre ligne dès que la place manque ; au téléphone, le bouton dit « Retoucher » */
+.crea-oimg.at .crea-dem{flex-wrap:wrap}
+.crea-oimg.at .crea-dem .crea-champ{flex:1 1 280px;min-width:min(100%,240px)}
+.crea-oimg.at .crea-dem .crea-bt.go{flex:0 0 auto;margin-left:auto}
+.crea .crea-oimg.at .crea-dem .crea-bt.go .lbl{display:inline}
+@media (min-width:900px) and (max-width:1499px){
+  .crea-oimg.at{grid-template-columns:minmax(0,1fr);grid-template-rows:auto}
+  .crea-oimg.at > *{grid-column:1;grid-row:auto}
+  .crea-oimg.at .crea-colo{grid-column:1;grid-row:auto;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:var(--cg)}
+}
