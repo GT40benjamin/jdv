@@ -3636,6 +3636,7 @@ function mount(root, api) {
   let baseSauveT = -1;
   function baseModifiee() { baseSauveT = tG + 1.5; sauver(); envoyer({ t: 'B', pk: PL.key }); }
   function majBase(dt) {
+    if (state === 'jeu') toitsAutoAnciens();   /* V27 : une fois, les maisons déjà fermées reçoivent leur toit */
     if (baseSauveT > 0 && tG > baseSauveT) { baseSauveT = -1; const b = maBase(); if (b && MONDEX && MONDEX.ecrire) { try { MONDEX.ecrire('base:' + moiNom + ':' + PL.key, b); } catch (e) { /* rien */ } } }
     // les portes s'ouvrent quand quelqu'un approche
     for (const B of basesIci()) for (const k in B.b.p) { const q = B.b.p[k]; if (q.t !== 'porte') continue; const [gx, gy] = k.split(',').map(Number), cx = gx * G64 + 32, cy = gy * G64 + 32; let pres = J && Math.hypot(J.x - cx, J.y - cy) < 90; if (!pres) for (const a of AUTRES.values()) { const e = etatAutre(a); if (e && a.lieu === 'P' && a.sys === PL.sys && a.k === PL.k && Math.hypot(e.x - cx, e.y - cy) < 90) pres = true; } const avant = q.ouv || 0; q.ouv = clamp(avant + (pres ? dt * 4 : -dt * 3), 0, 1); if ((avant === 0 && q.ouv > 0) || (avant === 1 && q.ouv < 1)) son('porte', 0.6, cx, cy); }
@@ -3669,7 +3670,7 @@ function mount(root, api) {
     if (def.t === 'toit' || def.t === 'dome') {
       const et = b.t[k]; if (et && et.t === bSel && et.m === bMat && et.c === bCoul) return;
       if (!peutPayer(def.cout)) { dire('⛏️ Il te manque : ' + Object.keys(def.cout).map(id => def.cout[id] + ' ' + MIN[id].nom.toLowerCase()).join(', ')); return; }
-      if (et) rendre(PB[et.t].cout); payer(def.cout); b.t[k] = { t: bSel, m: bMat, c: bCoul }; burst(cx, cy - 40, '#ffe9a8', 8, 120, 60); baseModifiee(); return;
+      if (et && !et.a) rendre(PB[et.t].cout); payer(def.cout); b.t[k] = { t: bSel, m: bMat, c: bCoul }; burst(cx, cy - 40, '#ffe9a8', 8, 120, 60); baseModifiee(); return;
     }
     if (def.solide && J && Math.abs(J.x - cx) < G64 * 0.5 + 14 && J.y - 6 >= gy * G64 - 14 && J.y - 6 <= gy * G64 + G64 + 14) { dire('🚧 Pas sur moi ! Je recule d’abord d’une case.', 2.5); return; }   // V17 : il restait coincé dans son mur
     const ex = b.p[k];
@@ -3685,11 +3686,12 @@ function mount(root, api) {
     burst(cx, cy - 10, '#ffe9a8', 8, 120, 60); son('construit', 0.7); baseModifiee();
     if (def.antenne && !E0().antenne) antennePosee();   // V24 : la liaison avec l'Agence
     evt('pose', bSel); if (dangerFaune() >= 2) evt('poseDanger');
+    if (FERME_MAISON[bSel]) toitsAuto(b, true);   /* V27 (ticket 37433408) : les murs reliés → le toit se pose tout seul */
     if (bSel === 'coffre' && infoCoffres().n === 1) robotDit('Bip ! Tes coffres sont reliés : ce que tu ranges ici, tu le retrouves dans le coffre de chaque base.', 5, null, 'relies');
   }
   function retirer2(gx, gy) {
     const b = maBase(); if (!b) return; const k = cleCase(gx, gy);
-    if (b.t && b.t[k] && (bSel === 'toit' || bSel === 'dome' || !b.p[k])) { rendre(PB[b.t[k].t].cout); delete b.t[k]; baseModifiee(); return; }
+    if (b.t && b.t[k] && (bSel === 'toit' || bSel === 'dome' || !b.p[k])) { if (!b.t[k].a) rendre(PB[b.t[k].t].cout); delete b.t[k]; baseModifiee(); return; }   /* V27 : un toit posé tout seul ne rend pas de fer */
     const q = b.p[k]; if (!q) return;
     rendre(PB[q.t].cout); if (PB[q.t].fabrique) { const X2 = E0(); X2.machines = X2.machines || {}; X2.machines[q.t] = (X2.machines[q.t] || 0) + 1; }
     if (q.sous) b.p[k] = { t: q.sous, m: q.m, c: q.c }; else delete b.p[k];
@@ -3975,7 +3977,7 @@ function mount(root, api) {
     const dedans = J && toits.some(o => J.x >= o.x - 70 && J.x <= o.x + G64 + 70 && J.y >= o.y - 40 && J.y <= o.y + G64 + 70 && enDessous(o));
     const lev = (G64 * 0.62 - HMUR - EPM + 4) * Z;   // le toit est posé sur le haut des murs (V22 : murs plus hauts et plus fins)
     // V22 : dedans (ou en construisant dedans), le toit DISPARAÎT en 0,2 s ; il revient quand on sort
-    toitA += ((dedans ? 0 : 1) - toitA) * 0.16; const aT = toitA < 0.03 ? 0 : toitA;
+    toitA += ((dedans || (construire && bSel !== 'toit' && bSel !== 'dome') ? 0 : 1) - toitA) * 0.16;   /* V27 : en construction, le toit s'efface (on voit dedans pour poser le lit) ; il revient pour poser un toit */ const aT = toitA < 0.03 ? 0 : toitA;
     const ici = new Set(toits.map(o => cleCase(Math.round(o.x / G64), Math.round(o.y / G64))));
     // V24 : le toit s'arrête sur le haut du mur du sud (avant, la dernière rangée cachait le bas du mur) ; un petit débord de 10 px
     const hToit = o => { const gx = Math.round(o.x / G64), gy = Math.round(o.y / G64); if (ici.has(cleCase(gx, gy + 1))) return G64 * Z + 0.8; const q = o.B.b.p[cleCase(gx, gy)]; return q && (q.t === 'mur' || q.t === 'fenetre' || q.t === 'porte') ? (EPM - 4 + 10) * Z : G64 * Z + 0.8; };
@@ -9204,7 +9206,10 @@ function mount(root, api) {
     miniBete(b.e, x + w / 2, y + h * (petite ? 0.4 : 0.4), Math.min(w * 0.72, h * (petite ? 0.52 : 0.56)), true, true);
     const s = stats(b.e, b.n, b), pv = (b.pv == null ? s.pv : b.pv) / s.pv;
     ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = '#fff';
-    ctx.font = '800 ' + Math.round((petite ? 11 : 14) * U) + 'px ' + FB; ctx.fillText(petite ? AF[b.e].nom : AF[b.e].nom + ' · niv. ' + b.n, x + w / 2, y + h * (petite ? 0.68 : 0.74), w - 8 * U);
+    const EV = evoCarte(b);   /* V27 (demande de PATOU) : le stade d'évolution et le niveau où elle évolue, sur chaque carte */
+    ctx.font = '800 ' + Math.round((petite ? 11 : 14) * U) + 'px ' + FB; ctx.fillText(petite ? AF[b.e].nom : AF[b.e].nom + ' · niv. ' + b.n, x + w / 2, y + h * (petite ? 0.68 : 0.66), w - 8 * U);
+    if (!petite) { ctx.font = '700 ' + Math.round(11 * U) + 'px ' + FB; ctx.fillStyle = '#9fe8ff'; ctx.fillText(ctx.measureText(EV.long).width > w - 10 * U ? EV.moyen : EV.long, x + w / 2, y + h * 0.66 + 18 * U, w - 10 * U); ctx.fillStyle = '#fff'; }
+    else if (EV.court) { ctx.font = '800 ' + Math.round(10.5 * U) + 'px ' + FB; const place = w - 12 * U - (ctx.measureText(String(b.n)).width + 10 * U); ctx.font = '800 ' + Math.round(9.5 * U) + 'px ' + FB; let tx = EV.court, cw = ctx.measureText(tx).width + 9 * U; if (cw > place) { tx = EV.serre; cw = ctx.measureText(tx).width + 7 * U; } if (cw > place) { tx = EV.st; cw = ctx.measureText(tx).width + 9 * U; }   /* à côté de la pastille du niveau, jamais dessus */ ctx.fillStyle = 'rgba(159,232,255,0.95)'; ctx.beginPath(); ctx.roundRect(x + w - 4 * U - cw, y + 4 * U, cw, 16 * U, 8 * U); ctx.fill(); ctx.fillStyle = '#10223a'; ctx.textBaseline = 'middle'; ctx.fillText(tx, x + w - 4 * U - cw / 2, y + 12 * U); ctx.textBaseline = 'top'; ctx.fillStyle = '#fff'; }
     if (petite) { ctx.font = '800 ' + Math.round(10.5 * U) + 'px ' + FB; const ns = String(b.n), nw = ctx.measureText(ns).width + 10 * U; ctx.fillStyle = 'rgba(255,233,168,0.95)'; ctx.beginPath(); ctx.roundRect(x + 4 * U, y + 4 * U, nw, 16 * U, 8 * U); ctx.fill(); ctx.fillStyle = '#1e1a2e'; ctx.textBaseline = 'middle'; ctx.fillText(ns, x + 4 * U + nw / 2, y + 12 * U); }   // le niveau en pastille
     else { ctx.font = Math.round(13 * U) + 'px system-ui'; ctx.textAlign = 'left'; ctx.fillText(AF[b.e].t.map(k => TYPES[k].ico).join(' '), x + 10 * U, y + 10 * U); }
     ctx.restore();
@@ -10212,7 +10217,7 @@ function mount(root, api) {
     emplacements: { bebe_3stades: 2, moyen_3stades: 3, final_3stades: 4, bebe_2stades: 2, final_2stades: 4, unique_debut: 2, unique_niv_a: 18, unique_a: 3, unique_niv_b: 34, unique_b: 4, legende: 4 },
     rangs: { cout: [0.5, 1, 2, 4], puissance: 0.08, precision: 2, chance: 0.05 },
     entrainement: { parStat: 30, total: 90, cout0: 6, coutPas: 2, pvParPoint: 2 },
-    poussiere: { base: 2, parNiv: 0.25, feroce: 1.6, rival: 3, boss: 8, capture: 5, captureRar: 5, premiere: 20, niveau: 0.5, archive: 150, depart: 3 },
+    poussiere: { base: 1, parNiv: 0.15, feroce: 1.6, rival: 3, boss: 8, capture: 2, captureRar: 2, premiere: 8, niveau: 0.2, archive: 60, depart: 3 },   /* V27 (ticket 58f83968, « la poussière est plutôt rare ») : ≈ 3 fois moins (avant : 2 / 0,25 / 5 / 5 / 20 / 0,5 / 150) */
     general: { zone: 0.7, potentiel: 0.03 },
     // pv, force, pouvoir, défense, résistance, vitesse, énergie (au stade final, avant le niveau)
     gabarits: { rapide: [70, 95, 70, 65, 60, 120, 80], costaud: [110, 115, 60, 90, 70, 55, 60], tank: [120, 80, 60, 125, 100, 45, 70], mage: [80, 55, 120, 70, 105, 90, 125], equilibre: [90, 90, 90, 90, 90, 90, 90], geant: [140, 110, 90, 100, 90, 40, 80] },
@@ -11071,6 +11076,65 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     for (const S of GAL.sys) { if (!S.station || S.i === danger || MONDE.REGIONS[S.reg].moteur > X.amel.moteur) continue; const d = Math.hypot(S.x - S0.x, S.y - S0.y); if (d < bd) { bd = d; best = S; } }
     return best || stationPlusProche(S0);
   }
+  // =================================================================== V27 : les tickets de PATOU (7 nov. soir)
+  // 37433408 (demande de l'admin) : « les toits, on va les laisser se faire seuls une fois que les 4 murs sont reliés : ça validera la maison et le toit sera bien mis ».
+  // Dès que des murs (fenêtres et porte comprises) ferment une pièce, le toit se pose tout seul sur TOUTE la maison (murs compris), offert.
+  // Les clôtures ne ferment pas une maison (un enclos n'a pas de toit). Une très grande cour (> 150 cases) n'a pas de toit non plus.
+  // Un toit posé tout seul est marqué « a » : le retirer ne rend pas de fer (sinon on gagnerait du fer gratuit).
+  const FERME_MAISON = { mur: 1, fenetre: 1, porte: 1 };
+  function piecesFermees(b) {
+    // les cases DEDANS : celles qu'on ne peut pas atteindre depuis l'extérieur sans traverser un mur (4 voisins, case par case)
+    const ks = Object.keys(b.p || {}); if (!ks.length) return [];
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const k of ks) { const [gx, gy] = k.split(',').map(Number); x0 = Math.min(x0, gx); x1 = Math.max(x1, gx); y0 = Math.min(y0, gy); y1 = Math.max(y1, gy); }
+    x0--; y0--; x1++; y1++; const nx = x1 - x0 + 1, ny = y1 - y0 + 1; if (nx * ny > 4000) return [];
+    const mur = (gx, gy) => { const q = b.p[cleCase(gx, gy)]; return !!(q && FERME_MAISON[q.t]); };
+    const vu = new Uint8Array(nx * ny), F = [];
+    for (let i = 0; i < nx; i++) for (const j of [0, ny - 1]) { vu[j * nx + i] = 1; F.push([i, j]); }
+    for (let j = 1; j < ny - 1; j++) for (const i of [0, nx - 1]) { vu[j * nx + i] = 1; F.push([i, j]); }
+    for (let h = 0; h < F.length; h++) { const [i, j] = F[h]; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, c = j + dj; if (a < 0 || c < 0 || a >= nx || c >= ny || vu[c * nx + a]) continue; vu[c * nx + a] = 1; if (!mur(x0 + a, y0 + c)) F.push([a, c]); } }
+    // les pièces : chaque groupe de cases dedans (pas un mur, jamais atteint) + les murs qui le touchent (8 voisins)
+    const dedans = new Set(); for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) if (!vu[j * nx + i]) dedans.add(cleCase(x0 + i, y0 + j));
+    const pieces = [], pris = new Set();
+    for (const k0 of dedans) {
+      if (pris.has(k0)) continue; const cases = [], P = [k0]; pris.add(k0);
+      for (let h = 0; h < P.length; h++) { const [gx, gy] = P[h].split(',').map(Number); cases.push(P[h]); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k2 = cleCase(gx + dx, gy + dy); if (dedans.has(k2) && !pris.has(k2)) { pris.add(k2); P.push(k2); } } }
+      if (cases.length > 150) continue;   // une cour, pas une maison
+      const tout = new Set(cases); for (const k of cases) { const [gx, gy] = k.split(',').map(Number); for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) if (mur(gx + dx, gy + dy)) tout.add(cleCase(gx + dx, gy + dy)); }
+      pieces.push({ dedans: cases, toit: [...tout] });
+    }
+    return pieces;
+  }
+  // le toit d'une maison : comme les toits que le joueur a déjà posés dessus (s'il y en a), sinon de la matière des murs
+  function styleToit(b, P) {
+    const n = new Map(); let best = null, bn = 0;
+    for (const k of P.toit) { const t = b.t && b.t[k]; if (t && t.t === 'toit') { const c = t.m + '|' + t.c, v = (n.get(c) || 0) + 1; n.set(c, v); if (v > bn) { bn = v; best = { m: t.m, c: t.c }; } } }
+    if (best) return best;
+    for (const k of P.toit) { const q = b.p[k]; if (q && FERME_MAISON[q.t]) { const c = q.m + '|' + (q.c || 0), v = (n.get(c) || 0) + 1; n.set(c, v); if (v > bn) { bn = v; best = { m: q.m, c: q.c || 0 }; } } }
+    return best || { m: 'bois', c: 0 };
+  }
+  function toitsAuto(b, dire0) {
+    if (!b) return 0; b.t = b.t || {}; let n = 0, xs = 0, ys = 0;
+    for (const P of piecesFermees(b)) { const st = styleToit(b, P); for (const k of P.toit) if (!b.t[k]) { b.t[k] = { t: 'toit', m: st.m, c: st.c, a: 1 }; n++; const [gx, gy] = k.split(',').map(Number); xs += gx; ys += gy; } }
+    if (n) {
+      const cx = (xs / n) * G64 + 32, cy = (ys / n) * G64 + 32; burst(cx, cy - 40, '#ffe9a8', 16, 160, 80); son('construit', 0.9);
+      if (dire0) dire('🏠 Tes murs sont reliés : le toit se pose tout seul !' + (maisonOk(b) ? ' ✅ Maison validée.' : ' Il ne manque plus qu’un lit pour y dormir.'), 4.5);
+      baseModifiee();
+    }
+    return n;
+  }
+  // une seule fois par base : les maisons déjà fermées des anciennes parties reçoivent leur toit (avec le message : on voit que c'est nouveau)
+  function toitsAutoAnciens() { const b = PL && maBase(); if (!b || b.toitAuto27) return; b.toitAuto27 = 1; toitsAuto(b, true); }
+  // 23 h 05 (demande de PATOU, sur « Mon équipe ») : « il faut leur niveau d'évolution aussi à chaque astromon » : le stade et le niveau où elle évolue, sur chaque carte
+  function evoCarte(b) {
+    const a = AF[b.e]; if (!a) return { st: '', court: '', long: '' };
+    if (a.legende) return { st: '★', court: '★', long: '★ Légendaire' };
+    const st = a.nst === 1 ? '1/1' : (a.st + 1) + '/' + a.nst, C = a.vers && a.evo ? a.evo : null;
+    let ev = '', evc = '';
+    if (C) { if (C.n) { ev = 'évolue au niv. ' + C.n; evc = '→ ' + C.n; } else if (C.objet) { ev = 'évolue avec ' + OBJETS[C.objet].nom; evc = '→ ' + (OBJETS[C.objet].ico || '✨'); } else if (C.ami) { ev = 'évolue quand elle t’aime'; evc = '→ 💛'; } else if (C.duo) { ev = 'évolue après 3 attaques communes'; evc = '→ 🤝'; } else if (C.nuit) { ev = 'évolue la nuit'; evc = '→ 🌙'; } else { ev = 'évolue bientôt'; evc = '→ ?'; } }
+    else ev = a.nst === 1 ? 'n’évolue pas' : 'forme finale';
+    return { st, court: evc ? st + ' ' + evc : st, serre: evc ? st + evc.replace(' ', '') : st, long: (a.nst === 1 ? 'Stade unique' : 'Stade ' + st) + ' · ' + ev, moyen: st + ' · ' + ev.replace('évolue au niv.', 'évolue niv.') };
+  }
 
 
   // =================================================================== LA BOUCLE
@@ -11168,7 +11232,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
       jouer, creation() { state = 'creation'; stT = 0; }, cineT(x) { if (!cine) lancerCine(); cine.t = x; }, finCine, decoller,
       tp(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, setLook(l) { look = Object.assign({}, EXPL_PANTIN.DEF, l); }, cat(i) { creaCat = i; },
       trouver(bid) { for (const S of GAL.sys) { if (!S.proche) continue; for (let k = 0; k < S.nbp; k++) if (MONDE.planete(S.i, k).bid === bid) return { sys: S.i, k }; } return null; }, trouverLoin(bid) { for (const S of GAL.sys) for (let k = 0; k < S.nbp; k++) if (MONDE.planete(S.i, k).bid === bid) return { sys: S.i, k }; return null; },
-      poser(t, m, gx, gy) { bSel = t; bMat = m; poser(gx, gy); }, choisirPiece(t) { bSel = t; bFam = PB[t].fam; }, epave: () => epave, robotDitT: (t, d) => robotDit(t, d || 8), etat: () => state, padT: () => ({ hud: padHud, f: padF && padF.b ? { x: Math.round(padF.b.x), y: Math.round(padF.b.y), w: Math.round(padF.b.w) } : null, eq: equipeOuverte(), cosmo: cosmoOuvert, cons: construire, etat: state, journal: !!journalOuvert }), missionT: () => mission(), tenueT: () => ({ t: actionTenue(), ET: ECHO_T, dans: dansGrotteEcho(), c: !!ECHO_C }), atterrirT: (sys, k) => arriverPlanete(sys, k), sautBloqueT: i => sautBloque(GAL.sys[i]), maisonT: () => maisonOk(maBase()), pastilleT: () => PASTI, reglagesT(o) { REG_FUSION = null; LISTES.clear(); const ap = api.reglages; api.reglages = o; try { REG(); } finally { api.reglages = ap; } return { pal3: REG().paliers[2], boss: REG().poussiere.boss, lf: ATT.lance_flammes.p, empl: REG().emplacements, gab: REG().gabarits.rapide, zone: REG().general.zone }; }, AF25: () => AF, AFL25: () => AF_LISTE, stats25: (id, n) => stats(id, n), coutApprendre, TYPES25: () => TYPES, GROUPEES25: () => GROUPEES, agir25(fi, id, ci, di) { const F = CB.moi.concat(CB.ennemis).find(q => q.gid === fi), C = CB.moi.concat(CB.ennemis).find(q => q.gid === ci), D = di && CB.moi.find(q => q.gid === di); CB.phase = 'anim'; agir(F, id, C, D); return true; }, ATT: () => ATT, attDe, listeAppr, emplacements, apprendre, equiper, ameliorer, entrainer, poussiereEt, gagnerPoussiere, ouvrirFiche, fiche: () => FICHE, migrer25, apprendreGroupee, groupeesPossibles, fx25: () => ({ p: FXP.length, o: FXO.length, c: FXC && FXC.nom }), REG, ouvrirEquipe, verrouAttaque, verrouPalier, penserT: s => { penser(s); return penseeOuverte(); }, penseeT: () => penseeOuverte(), abimerT(gy, hp) { const b = maBase(); let n = 0; for (const k in b.p) { const q = b.p[k]; if ((q.t === 'mur' || q.t === 'fenetre' || q.t === 'porte') && (gy == null || +k.split(',')[1] === gy)) { q.hp = hp; n++; } } return n; }, CRT: () => CR, archiveForce: () => { AGV.force = true; }, analyseT: () => AGV.an, echoT: () => ({ echo: E0().echo || 0, pris: !!E0().echoPris, c: ECHO_C, grotte: lieuGrotteEcho(), dans: dansGrotteEcho() }), entrerEcho: () => entrerGrotteEcho(), recitT: () => recit && { id: recit.c.id, p: recit.p || 0, n: recit.c.pages ? recit.c.pages.length : 1 }, rodT: () => CR.filter(c => c.rodeur || c.rodPart).map(c => ({ esp: c.esp, x: Math.round(c.x), y: Math.round(c.y), part: !!c.rodPart, clip: c.clip })), dangerT: () => texteDanger(), rodVite: () => { ROD.t = 0.1; }, rodGratte: () => { for (const c of CR) if (c.rodeur) c.gratteT = 0; }, abriT: () => CR.filter(c => !c.mort && !c.suit && !c.compKey && !c.allie && (dansAbri(c.x, c.y) || dansAbri(c.x, c.y - 12))).map(c => c.esp + '@' + Math.round(c.x) + ',' + Math.round(c.y)), nCR: () => CR.filter(c => !c.mort).length, embT: () => EMB && { phase: EMB.phase, ligne: EMB.ligne, vague: EMB.vague, t: EMB.t, n: EN.filter(e => /^croc/.test(e.t) && !e.mort).length }, vsT: () => ({ coque: VS.coque, bouclier: VS.bouclier }), blesserV(d) { blesserVaisseau(d); }, chapitreT: () => { const c = chapitre(); return c && c.id; }, objectifT: () => { const o = objectif(); return o && o.etape; }, habitatT(x, y) { let eau = 0; for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; if (TER.info(x + Math.cos(a) * 260, y + Math.sin(a) * 210).liq) eau++; } let hum = 0; for (const [dx, dy] of [[0, 0], [200, 0], [-200, 0], [0, 160], [0, -160]]) hum += TER.info(x + dx, y + dy).m; return { eau, hum: +(hum / 5).toFixed(2), hab: habitatEn(x, y) }; }, ouvrirEq() { ouvrirEquipe(); }, fleurProche() { let best = null, bd = 1e9; for (let R = 600; R <= 4200 && !best; R += 1200) for (const o of decorsAutour(J.x, J.y, R)) { if (!fleurDe(o.d, o.x, o.y)) continue; const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd) { bd = d; best = { x: o.x, y: o.y, n: fleurDe(o.d, o.x, o.y), type: o.d.type }; } } return best; }, gommeT: () => GOMME && { src: GOMME.src, on: GOMME.on }, construire(v) { construire = v; if (v && !bMat) bMat = matDefaut(); }, nbBases: () => BASES.size,
+      poser(t, m, gx, gy) { bSel = t; bMat = m; poser(gx, gy); }, retirerT(t, gx, gy) { bSel = t; retirer2(gx, gy); }, toitsAutoT: () => toitsAuto(maBase(), true), choisirPiece(t) { bSel = t; bFam = PB[t].fam; }, epave: () => epave, robotDitT: (t, d) => robotDit(t, d || 8), etat: () => state, padT: () => ({ hud: padHud, f: padF && padF.b ? { x: Math.round(padF.b.x), y: Math.round(padF.b.y), w: Math.round(padF.b.w) } : null, eq: equipeOuverte(), cosmo: cosmoOuvert, cons: construire, etat: state, journal: !!journalOuvert }), missionT: () => mission(), tenueT: () => ({ t: actionTenue(), ET: ECHO_T, dans: dansGrotteEcho(), c: !!ECHO_C }), atterrirT: (sys, k) => arriverPlanete(sys, k), sautBloqueT: i => sautBloque(GAL.sys[i]), maisonT: () => maisonOk(maBase()), pastilleT: () => PASTI, reglagesT(o) { REG_FUSION = null; LISTES.clear(); const ap = api.reglages; api.reglages = o; try { REG(); } finally { api.reglages = ap; } return { pal3: REG().paliers[2], boss: REG().poussiere.boss, lf: ATT.lance_flammes.p, empl: REG().emplacements, gab: REG().gabarits.rapide, zone: REG().general.zone }; }, AF25: () => AF, AFL25: () => AF_LISTE, stats25: (id, n) => stats(id, n), coutApprendre, TYPES25: () => TYPES, GROUPEES25: () => GROUPEES, agir25(fi, id, ci, di) { const F = CB.moi.concat(CB.ennemis).find(q => q.gid === fi), C = CB.moi.concat(CB.ennemis).find(q => q.gid === ci), D = di && CB.moi.find(q => q.gid === di); CB.phase = 'anim'; agir(F, id, C, D); return true; }, ATT: () => ATT, attDe, listeAppr, emplacements, apprendre, equiper, ameliorer, entrainer, poussiereEt, gagnerPoussiere, ouvrirFiche, fiche: () => FICHE, migrer25, apprendreGroupee, groupeesPossibles, fx25: () => ({ p: FXP.length, o: FXO.length, c: FXC && FXC.nom }), REG, ouvrirEquipe, verrouAttaque, verrouPalier, penserT: s => { penser(s); return penseeOuverte(); }, penseeT: () => penseeOuverte(), abimerT(gy, hp) { const b = maBase(); let n = 0; for (const k in b.p) { const q = b.p[k]; if ((q.t === 'mur' || q.t === 'fenetre' || q.t === 'porte') && (gy == null || +k.split(',')[1] === gy)) { q.hp = hp; n++; } } return n; }, CRT: () => CR, archiveForce: () => { AGV.force = true; }, analyseT: () => AGV.an, echoT: () => ({ echo: E0().echo || 0, pris: !!E0().echoPris, c: ECHO_C, grotte: lieuGrotteEcho(), dans: dansGrotteEcho() }), entrerEcho: () => entrerGrotteEcho(), recitT: () => recit && { id: recit.c.id, p: recit.p || 0, n: recit.c.pages ? recit.c.pages.length : 1 }, rodT: () => CR.filter(c => c.rodeur || c.rodPart).map(c => ({ esp: c.esp, x: Math.round(c.x), y: Math.round(c.y), part: !!c.rodPart, clip: c.clip })), dangerT: () => texteDanger(), rodVite: () => { ROD.t = 0.1; }, rodGratte: () => { for (const c of CR) if (c.rodeur) c.gratteT = 0; }, abriT: () => CR.filter(c => !c.mort && !c.suit && !c.compKey && !c.allie && (dansAbri(c.x, c.y) || dansAbri(c.x, c.y - 12))).map(c => c.esp + '@' + Math.round(c.x) + ',' + Math.round(c.y)), nCR: () => CR.filter(c => !c.mort).length, embT: () => EMB && { phase: EMB.phase, ligne: EMB.ligne, vague: EMB.vague, t: EMB.t, n: EN.filter(e => /^croc/.test(e.t) && !e.mort).length }, vsT: () => ({ coque: VS.coque, bouclier: VS.bouclier }), blesserV(d) { blesserVaisseau(d); }, chapitreT: () => { const c = chapitre(); return c && c.id; }, objectifT: () => { const o = objectif(); return o && o.etape; }, habitatT(x, y) { let eau = 0; for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; if (TER.info(x + Math.cos(a) * 260, y + Math.sin(a) * 210).liq) eau++; } let hum = 0; for (const [dx, dy] of [[0, 0], [200, 0], [-200, 0], [0, 160], [0, -160]]) hum += TER.info(x + dx, y + dy).m; return { eau, hum: +(hum / 5).toFixed(2), hab: habitatEn(x, y) }; }, ouvrirEq() { ouvrirEquipe(); }, fleurProche() { let best = null, bd = 1e9; for (let R = 600; R <= 4200 && !best; R += 1200) for (const o of decorsAutour(J.x, J.y, R)) { if (!fleurDe(o.d, o.x, o.y)) continue; const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd) { bd = d; best = { x: o.x, y: o.y, n: fleurDe(o.d, o.x, o.y), type: o.d.type }; } } return best; }, gommeT: () => GOMME && { src: GOMME.src, on: GOMME.on }, construire(v) { construire = v; if (v && !bMat) bMat = matDefaut(); }, nbBases: () => BASES.size,
       rigDe: (p) => { const im = IMG['p-' + p + '-0']; if (!im) return null; const G = rig(p + ':0', im); return { w: G.w, h: G.h, yh: G.yh, yb: G.yb, legs: G.legs.map(l => ({ x0: l.x0, y0: l.y0, w: l.cv.width, h: l.cv.height, px: l.px, py: l.py, url: l.cv.toDataURL() })), corps: G.corps.toDataURL(), image: (() => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); return c.toDataURL(); })() }; },
       articlesBoutique, articleImage, ouvrirTenues, fermerTenues, choisirTenue, placesReserve, majBoutique,
       pro: () => PRO && { k: PROLOGUE[Math.min(PRO.i, PROLOGUE.length - 1)].k, j: PRO.j, choix: !!PRO.choix }, choisirPro,
