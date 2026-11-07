@@ -17696,7 +17696,10 @@ function atlTickets(O, ficheId) {
   if (f0 && f0.titre) titre.textContent = '« ' + f0.titre + ' »';
   rendre(); relire().then(() => { try { if (!atlAdminIci()) atlDemVues(); } catch (e) {} });
   minuterie = setInterval(relire, 8000);
-  setTimeout(() => { try { const b = P.querySelector('.atl-tkt .atl-tkth') || P.querySelector('.atl-tktab.on') || bk; b.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 60);
+  setTimeout(() => { try {   // manette : une offre à l'écran → le curseur sur « Choisir » (la conseillée d'abord), sinon le 1er ticket
+    const vu = e => { const r = e && e.getBoundingClientRect(); return !!r && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight; };
+    const of = [P.querySelector('.atl-tkt.ouv .atl-offre.conseil .atl-ofgo:not([disabled])'), P.querySelector('.atl-tkt.ouv .atl-ofgo:not([disabled])')].find(vu);
+    const b = of || P.querySelector('.atl-tkt .atl-tkth') || P.querySelector('.atl-tktab.on') || bk; b.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 60);
 }
 // ---- 21 h 15 (Benjamin) : « 🎮 Jouer » (la V1) = EXACTEMENT comme une tuile de la borne (plein écran, écran titre, barre, manettes, fin de
 // partie) ; « Quitter » revient à la page du projet. Pendant la partie : le petit guide flottant (déplaçable) et la touche P → arrêt sur image.
