@@ -1252,7 +1252,8 @@
     // l'équipe Atelier-tests (7 nov., ARGENT) : {g} annonçait « · 10 💎 », le joueur répondait « Oui, vas-y ! » et la page lui offrait SA retouche
     // « Oui, crée-la · 20 💎 » (avec « Oui, vas-y ! » comme consigne) : après une proposition chiffrée de {g}, la page ne propose plus rien —
     // {g} lance lui-même la retouche au prix annoncé sur le « oui » écrit (sa règle) ; même chose dès que la retouche par le code existe (v173)
-    const dpk = AIM.msgs.slice(0, -1).reverse().find(m => m.pk), chiffree = !!(dpk && offreDe(dpk.t)), parCode = (AIM.prix.retouche_code | 0) > 0;
+    const dpk = AIM.msgs.slice(0, -1).reverse().find(m => m.pk), parCode = (AIM.prix.retouche_code | 0) > 0;
+    const chiffree = !!(dpk && offreDe(dpk.t)) && /^\s*(oui|ouais|ok|okay|d['’]?accord|vas[- ]?y|go|fais[- ]le|c['’]?est bon|parfait|yes|👍|✅)/i.test(t);   // un « oui » à sa proposition (sans v173, une NOUVELLE demande garde l'ancienne offre)
     if (a && !adm() && !enAttente() && !chiffree && !parCode && !/\?\s*$/.test(t) && t.length >= 4) { AIM.prop = t; render(); }
     chargerMsgs().then(render);
   }
