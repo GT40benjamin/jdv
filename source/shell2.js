@@ -11401,7 +11401,7 @@ function backToLibrary() {
   setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic(menuMusic());
   fsLeave();
   if ($('jdw-back').dataset.atl) { const qb = $('jdw-back'); delete qb.dataset.atl; qb.innerHTML = '✕<span class="tb-word"> Quitter</span>'; qb.setAttribute('aria-label', 'Quitter la partie'); window.JDW_ATL_OFF = []; window.JDW_ATL_MUS_OFF = ''; }
-  if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; window.JDW_ATL_JEU = false; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); const t = ATL.retourTab || 'jeu'; ATL.retourTab = ''; setTimeout(() => { ATL.tab = t; atlOpen(); atlOuvrir(id); ATL.tab = t; }, 30); }   // jeu lancé depuis l'Atelier : retour au projet (onglet choisi)
+  if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; window.JDW_ATL_JEU = false; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); const t = ATL.retourTab; ATL.retourTab = ''; setTimeout(() => atlRevenir(id, t), 30); }   // jeu lancé depuis l'Atelier : retour au projet (onglet choisi)
   if (siteNew) setTimeout(maybeReload, 800);
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
@@ -17752,12 +17752,15 @@ function atlJouerVrai(f, pret, crea) {
   const off = retires.flatMap(a => [String((a && a.nom) || ''), String((a && a.nom_origine) || '')].filter(Boolean));
   window.JDW_ATL_OFF = off; window.JDW_ATL_MUS_OFF = retires.some(a => a && (a.sorte === 'musique' || a.cat === 'musique')) ? g.id : '';
   try { window.postMessage({ type: 'atl-off', noms: off }, location.origin); } catch (e) {}
+  // 2.1.13 (l'admin : quitter un jeu l'a ramené sur l'accueil de « Crée avec ») : quitter ramène TOUJOURS là où on l'a lancé —
+  // le même projet, le même onglet (Mon jeu, la discussion…) et, en vue admin, le projet du joueur EN MODE ADMIN (sinon at_lire ne le lit pas)
+  ATL.retour = { id: f.id, tab: ATL.open && ATL.cur === f.id && ATL.tab ? ATL.tab : 'jeu', admin: ATL.adminVoir && ATL.adminVoir.id === f.id ? ATL.adminVoir : null };
   atlClose();
   const qb = $('jdw-back'); qb.dataset.atl = '1'; qb.innerHTML = '↩<span class="tb-word"> Retour à l’Atelier</span>'; qb.setAttribute('aria-label', 'Retour à l’Atelier');
   try { markGameSeen(g.id); } catch (e) {}
   CREA = crea ? g.id : ''; creaBand(!!crea);   // 2.1.4 : le mode créateur, seulement pour ce lancement
   openGame(g, true);
-  if ($('jdw-play').hidden) { ATL.jeu = null; atlOpen(); atlOuvrir(f.id); return; }   // pas de partie (salle à choisir…)
+  if ($('jdw-play').hidden) { ATL.jeu = null; atlRevenir(f.id, ''); return; }   // pas de partie (salle à choisir…)
   atlFlotteur(true);
   try { window.postMessage({ type: 'atl-guide', nom: gNM(), a: gA(), de: gDe(), img: atlIaUrl(ATL_GUIDE.img) || ROOT + 'accueil/guide-portrait.webp' }, location.origin); } catch (e) {}
 }
@@ -17838,6 +17841,21 @@ function atlFinAtelier() {
   const row = $('jdw-again').closest('.row'); (row || $('jdw-again')).after(box);
 }
 function atlRetourProjet(tab) { ATL.retourTab = tab; backToLibrary(); }
+// 2.1.13 : le retour d'un jeu lancé depuis l'Atelier (✕, Échap, retour d'Android, B / Select de la manette, fin de partie) : le projet
+// et l'onglet d'où il a été lancé ; en vue admin, le mode admin est remis AVANT de rouvrir (l'ouverture de l'Atelier passe par la liste,
+// qui l'efface) — sans lui, le projet d'un joueur se relisait vide (« Mon jeu sans nom ») ou retombait sur l'accueil de « Crée avec »
+function atlRevenir(id, tab) {
+  const r = ATL.retour && ATL.retour.id === id ? ATL.retour : null, t = tab || (r && r.tab) || 'jeu'; ATL.retour = null;
+  // l'ouverture de l'Atelier (surchargée par les ateliers) repartait de « Crée avec » (cur vidé, liste qui efface le mode admin, écran
+  // « Nouveau projet » par-dessus) : on dit d'abord quel projet est ouvert, puis on ouvre — directement sur lui
+  if (r && r.admin) ATL.adminVoir = r.admin;
+  if (ATL_ON() && ONLINE && !isGuest() && !netOff()) { ATL.open = true; ATL.cur = id; ATL.nouveau = false; }
+  ATL.tab = t; atlOpen();
+  atlOuvrir(id); ATL.tab = t;
+  // la page du projet déjà construite ne repasse pas par le choix d'onglet : on remet celui d'où le jeu est parti, dès qu'il est affiché
+  if (t !== 'jeu') { let n = 0; const f = () => { if (!ATL.open || ATL.cur !== id || ATL.jeu) return; const W = ATL.root && ATL.root.querySelector('.atl-wiz:not([hidden])'), p = W && W.querySelector('.atl-pane[data-k="' + t + '"]');
+    if (p && atlFiche()) { if (p.hidden) atlProjTab(t); if (n < 8) { n += 4; setTimeout(f, 400); } return; } if (++n < 40) setTimeout(f, 150); }; setTimeout(f, 0); }
+}
 if (window.JDW_PG_TEST) window.__jdwAtl = { fin: sc => showEnd(sc), jouer: () => atlJouerVrai(atlFiche()), son: () => ({ joue: !!(ATL_SON && !ATL_SON.paused), t: ATL_SON ? ATL_SON.currentTime : 0, u: ATL_SON_U }), etat: () => ({ jeu: ATL.jeu, tab: ATL.tab, open: ATL.open }), lire: () => atlLoad(true), dem: () => JSON.stringify(atlDemEnCours().map(x => [x.id, (x.etapes || []).length])) };   // essais seulement
 if (navigator.webdriver) window.JDW_ESSAI_ARRET = () => { if (!ATL.jeu) ATL.jeu = 'essai'; atlArretJeu(); };   // 2.0.170 : bancs seulement (l'arrêt sur image hors Atelier)
 function atlArretJeu() {
