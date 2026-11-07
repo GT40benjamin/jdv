@@ -84,7 +84,7 @@
   // ---------- surcharges de l'Atelier ----------
   atlOuvrir = function (id) {   // eslint-disable-line no-global-assign
     // l'admin (7 nov.) : l'atelier LIVRÉ d'un joueur ouvert depuis « PROJETS DES JOUEURS » = le même atelier que le joueur (vue admin)
-    if (!AIM.types[id] && ATL.adminVoir && ATL.adminVoir.id === id) { chargerTypes(true).then(() => (atelierOuvert(id) ? ouvrir(id) : _ouvrir(id))); return; }
+    if (!AIM.types[id] && ATL.adminVoir && ATL.adminVoir.id === id) { const r = _ouvrir(id); chargerTypes(true).then(() => { if (atelierOuvert(id) && ATL.cur === id && !AIM.open) ouvrir(id); }); return r; }   // tout de suite comme avant (le mode admin de l'Interface tient) ; atelier livré → bascule
     if (AIM.types[id]) { if (atelierOuvert(id)) return ouvrir(id); if (AIM.open) fermer(); return _ouvrir(id); }
     if (AIM.open && !(AIM.types[id])) fermer();
     if (Date.now() - AIM.typesAt > 60000) { chargerTypes(true).then(() => (atelierOuvert(id) ? ouvrir(id) : _ouvrir(id))); return; }
