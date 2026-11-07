@@ -826,8 +826,8 @@ const MONDE = (() => {
   ];
   const METEO_NOM = { aucune: 'calme', pluie: 'pluie', neige: 'neige', sable: 'tempêtes de sable', cendres: 'pluie de cendres', spores: 'spores', etincelles: 'étincelles', tempete: 'tempête et éclairs' };
   const MINERAIS = [
-    { id: 'fer', nom: 'Fer', le: 'le fer', r: 0, c: '#b8b0a8', v: 4 }, { id: 'cuivre', nom: 'Cuivre', le: 'le cuivre', r: 0, c: '#e08a4a', v: 6 },
-    { id: 'argent', nom: 'Argent', le: 'l’argent', r: 1, c: '#e8eef4', v: 14 }, { id: 'or', nom: 'Or', le: 'l’or', r: 2, c: '#ffd23a', v: 30 },
+    { id: 'fer', nom: 'Fer', le: 'le fer', r: 0, c: '#8c7d72', v: 4 }, { id: 'cuivre', nom: 'Cuivre', le: 'le cuivre', r: 0, c: '#e08a4a', v: 6 },
+    { id: 'argent', nom: 'Argent', le: 'l’argent', r: 1, c: '#f2f7ff', v: 14 }, { id: 'or', nom: 'Or', le: 'l’or', r: 2, c: '#ffd23a', v: 30 },
     { id: 'platine', nom: 'Platine', le: 'le platine', r: 2, c: '#d8e4f0', v: 42 }, { id: 'cristal', nom: 'Cristal énergétique', le: 'le cristal énergétique', r: 2, c: '#5ee0ff', v: 50 },
     { id: 'diamant', nom: 'Diamant', le: 'le diamant', r: 3, c: '#bff8ff', v: 110 }, { id: 'xeno', nom: 'Minerai extraterrestre', le: 'le minerai extraterrestre', r: 3, c: '#7aff6a', v: 140 },
     { id: 'inconnu', nom: 'Métal inconnu', le: 'le métal inconnu', r: 4, c: '#c88aff', v: 320 }, { id: 'etoile', nom: 'Poussière d’étoile', le: 'la poussière d’étoile', r: 5, c: '#ffe8ff', v: 900 }
@@ -2443,7 +2443,7 @@ function mount(root, api) {
     c.fillStyle = roche; c.fill(); c.strokeStyle = '#2d2433'; c.lineWidth = 3; c.stroke();
     c.save(); c.clip(); c.fillStyle = 'rgba(255,255,255,0.2)'; c.beginPath(); c.ellipse(-18, -30, 24, 14, -0.4, 0, TAU); c.fill(); c.fillStyle = 'rgba(0,0,0,0.22)'; c.beginPath(); c.ellipse(32, -10, 24, 34, 0, 0, TAU); c.fill();
     // les veines brillantes
-    c.strokeStyle = m.c; c.lineWidth = 3.5; c.lineCap = 'round'; for (let i = 0; i < 3; i++) { c.beginPath(); let x = -40 + r() * 30, y = -6 - r() * 10; c.moveTo(x, y); for (let k = 0; k < 4; k++) { x += 10 + r() * 12; y -= 4 + r() * 8; c.lineTo(x, y); } c.stroke(); }
+    c.strokeStyle = m.id === 'fer' ? '#9a5530' : m.c; c.lineWidth = 3.5; c.lineCap = 'round'; for (let i = 0; i < 3; i++) {   /* V27 : veines de rouille sur le fer */ c.beginPath(); let x = -40 + r() * 30, y = -6 - r() * 10; c.moveTo(x, y); for (let k = 0; k < 4; k++) { x += 10 + r() * 12; y -= 4 + r() * 8; c.lineTo(x, y); } c.stroke(); }
     c.restore();
     // les cristaux / pépites qui dépassent
     const n = m.r >= 2 ? 4 : 3;
@@ -2451,7 +2451,10 @@ function mount(root, api) {
       c.save(); c.translate(x, y); c.rotate((r() - 0.5) * 0.8);
       if (m.r <= 1) { c.beginPath(); c.ellipse(0, 0, w + 2, w, 0, 0, TAU); }
       else { c.beginPath(); c.moveTo(-w, 0); c.lineTo(-w * 0.8, -hh * 0.7); c.lineTo(0, -hh); c.lineTo(w * 0.8, -hh * 0.7); c.lineTo(w, 0); c.closePath(); }
-      c.fillStyle = m.c; c.fill(); c.strokeStyle = '#2d2433'; c.lineWidth = 2; c.stroke(); c.fillStyle = 'rgba(255,255,255,0.55)'; c.beginPath(); c.ellipse(-w * 0.3, -hh * 0.45, w * 0.3, hh * 0.2, 0, 0, TAU); c.fill(); c.restore(); }
+      c.fillStyle = m.c; c.fill(); c.strokeStyle = '#2d2433'; c.lineWidth = 2; c.stroke(); c.fillStyle = m.id === 'fer' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.55)'; c.beginPath(); c.ellipse(-w * 0.3, -hh * 0.45, w * 0.3, hh * 0.2, 0, 0, TAU); c.fill();
+      if (m.id === 'fer') { c.fillStyle = '#b5602f'; c.beginPath(); c.arc(w * 0.3, w * 0.2, w * 0.38, 0, TAU); c.fill(); }   /* V27 : pépites de fer rouillées */
+      if (m.id === 'argent') { c.fillStyle = '#ffffff'; const s = 5, sx0 = w * 0.5, sy0 = -w * 0.6; c.beginPath(); c.moveTo(sx0, sy0 - s); c.quadraticCurveTo(sx0, sy0, sx0 + s, sy0); c.quadraticCurveTo(sx0, sy0, sx0, sy0 + s); c.quadraticCurveTo(sx0, sy0, sx0 - s, sy0); c.quadraticCurveTo(sx0, sy0, sx0, sy0 - s); c.fill(); }   /* pépites d'argent qui brillent */
+      c.restore(); }
     const o = { cv, ax: 90, ay: 128, haut: hautSprite(cv, 128) }; SPF.set(key, o); return o;
   }
   // V17 : le haut réel d'un dessin (1re ligne opaque) : l'ombre de la pierre qui flotte se pose dessus, jamais dans le vide
@@ -2481,8 +2484,11 @@ function mount(root, api) {
     ctx.save(); ctx.translate(x, y);
     if (m.r >= 2) { const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.8); g.addColorStop(0, m.c + '88'); g.addColorStop(1, m.c + '00'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 1.8, 0, TAU); ctx.fill(); }
     ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r * 0.85, -r * 0.2); ctx.lineTo(r * 0.5, r * 0.9); ctx.lineTo(-r * 0.5, r * 0.9); ctx.lineTo(-r * 0.85, -r * 0.2); ctx.closePath();
-    ctx.fillStyle = m.c; ctx.fill(); ctx.strokeStyle = '#2d2433'; ctx.lineWidth = Math.max(1.5, r * 0.14); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(-r * 0.85, -r * 0.2); ctx.lineTo(0, -r * 0.05); ctx.closePath(); ctx.fill();
+    if (m.id === 'argent') { const g = ctx.createLinearGradient(-r, -r, r, r); g.addColorStop(0, '#ffffff'); g.addColorStop(0.45, '#e6eefa'); g.addColorStop(1, '#9fb2cc'); ctx.fillStyle = g; } else ctx.fillStyle = m.c;
+    ctx.fill(); ctx.strokeStyle = '#2d2433'; ctx.lineWidth = Math.max(1.5, r * 0.14); ctx.stroke();
+    ctx.fillStyle = m.id === 'fer' ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(-r * 0.85, -r * 0.2); ctx.lineTo(0, -r * 0.05); ctx.closePath(); ctx.fill();
+    if (m.id === 'fer') { ctx.fillStyle = '#b5602f'; for (const [px, py, pr] of [[0.25, 0.3, 0.2], [-0.32, 0.45, 0.15], [0.4, -0.12, 0.11]]) { ctx.beginPath(); ctx.arc(px * r, py * r, pr * r, 0, TAU); ctx.fill(); } }   /* V27 (ticket e0e9cf74) : le fer, foncé et ROUILLÉ */
+    if (m.id === 'argent') { ctx.fillStyle = '#ffffff'; const s = r * 0.42, cx = r * 0.62, cy = -r * 0.72; ctx.beginPath(); ctx.moveTo(cx, cy - s); ctx.quadraticCurveTo(cx, cy, cx + s, cy); ctx.quadraticCurveTo(cx, cy, cx, cy + s); ctx.quadraticCurveTo(cx, cy, cx - s, cy); ctx.quadraticCurveTo(cx, cy, cx, cy - s); ctx.fill(); }   /* l'argent, clair et BRILLANT (une étincelle) */
     ctx.restore();
   }
 
@@ -3669,14 +3675,14 @@ function mount(root, api) {
     b.t = b.t || {};
     if (def.t === 'toit' || def.t === 'dome') {
       const et = b.t[k]; if (et && et.t === bSel && et.m === bMat && et.c === bCoul) return;
-      if (!peutPayer(def.cout)) { dire('⛏️ Il te manque : ' + Object.keys(def.cout).map(id => def.cout[id] + ' ' + MIN[id].nom.toLowerCase()).join(', ')); return; }
+      if (!peutPayer(def.cout)) { dire('⛏️ Il te manque : ' + Object.keys(def.cout).filter(id => qteDispo(id) < def.cout[id]).map(id => (def.cout[id] - qteDispo(id)) + ' ' + MIN[id].nom.toLowerCase() + ' (tu en as ' + qteDispo(id) + ' / ' + def.cout[id] + ')').join(', ')); return; }   /* V27 : seulement ce qui manque */
       if (et && !et.a) rendre(PB[et.t].cout); payer(def.cout); b.t[k] = { t: bSel, m: bMat, c: bCoul }; burst(cx, cy - 40, '#ffe9a8', 8, 120, 60); baseModifiee(); return;
     }
     if (def.solide && J && Math.abs(J.x - cx) < G64 * 0.5 + 14 && J.y - 6 >= gy * G64 - 14 && J.y - 6 <= gy * G64 + G64 + 14) { dire('🚧 Pas sur moi ! Je recule d’abord d’une case.', 2.5); return; }   // V17 : il restait coincé dans son mur
     const ex = b.p[k];
     if (TER.info(cx, cy).liq && !(ex && ex.t === 'sol')) { dire('🌊 Pose d’abord un sol (ponton) au bord.'); }
     if (ex && ex.t === bSel && ex.m === bMat) return;
-    if (!peutPayer(def.cout)) { dire('⛏️ Il te manque : ' + Object.keys(def.cout).map(id => def.cout[id] + ' ' + MIN[id].nom.toLowerCase()).join(', ')); return; }
+    if (!peutPayer(def.cout)) { dire('⛏️ Il te manque : ' + Object.keys(def.cout).filter(id => qteDispo(id) < def.cout[id]).map(id => (def.cout[id] - qteDispo(id)) + ' ' + MIN[id].nom.toLowerCase() + ' (tu en as ' + qteDispo(id) + ' / ' + def.cout[id] + ')').join(', ')); return; }   /* V27 : seulement ce qui manque */
     if (def.antenne) { if (!((E0().echo || 0) > 0)) { dire('💎 Il te faut la pierre d’écho pour l’antenne relais (au fond d’une grotte).', 4); return; } if (!maisonOk(b)) { dire('🏠 Construis d’abord ta maison : des murs, une porte et un lit.', 4); return; } }   // V24
     if (def.fabrique) { const X2 = E0(); X2.machines = X2.machines || {}; if (!(X2.machines[def.t] > 0)) { dire('🛠️ ' + def.nom + ' : fabrique-la d’abord à l’établi (il faut son plan, gagné en mission).', 4); return; } X2.machines[def.t]--; }
     // une pièce qui va sur un sol (meuble, mur…) remplace ce qui était là, sauf le sol : on le garde dessous
@@ -4105,19 +4111,23 @@ function mount(root, api) {
     const fams = [['struct', 'Structure', '🧱'], ['meuble', 'Meubles', '🛋️'], ['machine', 'Machines', '⚙️']];
     const fw = etroit ? (W - 20 * U - 12 * U) / 3 : 110 * U;
     let x = 10 * U;
-    fams.forEach(([f, n, ico]) => { bouton(x, py + 6 * U, fw, 32 * U, n, () => { bFam = f; const p = PIECES_B.find(q => q.fam === f); if (p) bSel = p.t; }, bFam === f, ico); x += fw + 6 * U; });
+    const PHf = (() => { const t0 = pieceHistoire(), d = t0 && PIECES_B.find(q => q.t === t0); return d && pieceDispo(d) ? d.fam : null; })();
+    fams.forEach(([f, n, ico]) => { bouton(x, py + 6 * U, fw, 32 * U, n, () => { bFam = f; const t0 = pieceHistoire(), d = t0 && PIECES_B.find(q => q.t === t0 && q.fam === f), p = d || PIECES_B.find(q => q.fam === f); if (p) bSel = p.t; }, bFam === f, ico); if (PHf === f && bFam !== f) clignote(x, py + 6 * U, fw, 32 * U, tG, 16 * U); x += fw + 6 * U; });   /* V27 : l'onglet de la pièce de l'histoire clignote ; en l'ouvrant, elle est choisie */
     let y2 = py + 6 * U; if (etroit) { x = 10 * U; y2 = py + 46 * U; } else x += 10 * U;
     const finCoul = W - 20 * U - COULEURS.length * 30 * U - 8 * U;
     for (const m in MATS) { if (x + 70 * U > finCoul) break; bouton(x, y2, 70 * U, 32 * U, MATS[m].nom, () => { bMat = m; }, bMat === m); x += 76 * U; }
     if (maBase() && x + 96 * U < finCoul) { bouton(x + 6 * U, y2, 90 * U, 32 * U, 'Amis', () => { amisOuvert = !amisOuvert; }, amisOuvert, '👥'); }
     COULEURS.forEach((c, i) => { const cx = W - 20 * U - (COULEURS.length - i) * 30 * U; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(cx + 13 * U, y2 + 16 * U, 11 * U, 0, TAU); ctx.fill(); ctx.strokeStyle = i === bCoul ? '#fff' : '#2d2433'; ctx.lineWidth = i === bCoul ? 3 : 2; ctx.stroke(); tapBtns.push({ x: cx, y: y2 + 2 * U, w: 26 * U, h: 28 * U, f: () => { bCoul = i; } }); });
-    const L = PIECES_B.filter(p => p.fam === bFam && pieceDispo(p)), pw = Math.min(118 * U, (W - 20 * U) / L.length);
+    const L = PIECES_B.filter(p => p.fam === bFam && pieceDispo(p)), pw = Math.min(118 * U, (W - 20 * U) / L.length), PH = pieceHistoire();
     L.forEach((p, i) => {
-      const bx = 10 * U + i * pw, by = py + 46 * U + r2, stockM = p.fabrique ? ((E0().machines || {})[p.t] || 0) : 0, ok = p.fabrique ? stockM > 0 : peutPayer(p.cout), sel = bSel === p.t;
+      const bx = 10 * U + i * pw, by = py + 46 * U + r2, stockM = p.fabrique ? ((E0().machines || {})[p.t] || 0) : 0, ok = p.fabrique ? stockM > 0 : peutPayer(p.cout) && !bloquePiece(p), sel = bSel === p.t;
+      if (PH === p.t) clignote(bx + 3, by, pw - 6, 82 * U, tG, 10 * U);   /* V27 (ticket fbd52bfe) : ce que l'histoire demande de poser */
       ctx.save(); ctx.fillStyle = sel ? 'rgba(255,210,110,0.3)' : 'rgba(255,255,255,0.07)'; ctx.strokeStyle = sel ? '#ffd27a' : 'rgba(255,255,255,0.2)'; ctx.lineWidth = sel ? 3 : 1.5; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx + 3, by, pw - 6, 82 * U, 10 * U) : ctx.rect(bx + 3, by, pw - 6, 82 * U); ctx.fill(); ctx.stroke();
-      ctx.globalAlpha = ok ? 1 : 0.45; ctx.fillStyle = '#fff'; ctx.font = Math.round(24 * U) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.ico, bx + pw / 2, by + 22 * U);
-      ctx.fillStyle = '#fff'; ctx.font = '700 ' + Math.round(11 * U) + 'px ' + FB; ctx.fillText(p.nom.replace(/ \(.*\)/, ''), bx + pw / 2, by + 46 * U, pw - 10 * U);
-      ctx.fillStyle = ok ? '#bcd0ff' : '#ff9a8a'; ctx.font = '600 ' + Math.round(10 * U) + 'px ' + FB; if (p.fabrique) ctx.fillText(stockM ? stockM + ' prête' + (stockM > 1 ? 's' : '') : '🛠️ à l’établi', bx + pw / 2, by + 66 * U, pw - 8 * U); else Object.keys(p.cout).slice(0, 2).forEach((id, k, A) => ctx.fillText(p.cout[id] + ' ' + MIN[id].nom.toLowerCase(), bx + pw / 2, by + (A.length > 1 ? 61 + k * 12 : 66) * U, pw - 8 * U));   // le prix en entier, sur 2 lignes
+      const comp = !p.fabrique && Object.keys(p.cout).length + (bloquePiece(p) ? 1 : 0) >= 4;   /* V27 : 4 lignes (3 minerais + la raison) : la tuile se serre */
+      ctx.globalAlpha = ok ? 1 : 0.45; ctx.fillStyle = '#fff'; ctx.font = Math.round((comp ? 18 : 24) * U) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.ico, bx + pw / 2, by + (comp ? 14 : 22) * U);
+      ctx.fillStyle = '#fff'; ctx.font = '700 ' + Math.round(11 * U) + 'px ' + FB; ctx.fillText(p.nom.replace(/ \(.*\)/, ''), bx + pw / 2, by + (comp ? 32 : 46) * U, pw - 10 * U);
+      ctx.fillStyle = ok ? '#bcd0ff' : '#ff9a8a'; ctx.font = '600 ' + Math.round(10 * U) + 'px ' + FB; if (p.fabrique) ctx.fillText(stockM ? stockM + ' prête' + (stockM > 1 ? 's' : '') : '🛠️ à l’établi', bx + pw / 2, by + 66 * U, pw - 8 * U); else { ctx.globalAlpha = 1; coutsTuile(p, bx, by, pw, comp); }   /* V27 : « ce que j'ai / ce qu'il faut » pour CHAQUE minerai (tickets edef01dc, ae6f84bb) */
+      if (PH === p.t) { ctx.globalAlpha = 1; ctx.font = '800 ' + Math.round(10 * U) + 'px ' + FB; ctx.fillStyle = '#ffe23a'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,8,30,0.9)'; const lab = '👉 ta mission', lw2 = ctx.measureText(lab).width / 2 + 4 * U, lx2 = Math.max(lw2, Math.min(W - lw2, bx + pw / 2)); ctx.strokeText(lab, lx2, by - 7 * U); ctx.fillText(lab, lx2, by - 7 * U); }   /* jamais coupé au bord de l'écran */
       ctx.restore();
       tapBtns.push({ x: bx, y: by, w: pw, h: 82 * U, f: () => { bSel = p.t; } });
     });
@@ -11164,6 +11174,31 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     ctx.restore();
     bouton(x + w - bw - 8 * U, y + (h - 34 * U) / 2, bw, 34 * U, (portrait ? 'Soigner' : 'Me soigner') + (nS ? ' (' + nS + ')' : ''), soignerMoi, !plein && nS > 0, '🍓');
   }
+  // ---- la tuile de construction (tickets de PATOU, 7 nov. soir)
+  // edef01dc : « on doit voir 4/4 ou 5/16 fer pour savoir combien on en a » : chaque coût = ce que j'ai / ce qu'il faut
+  // ae6f84bb : « j'ai 30 fer et 20 cuivre et je ne peux pas faire l'antenne relais : s'il manque quelque chose, dis-le dans la tuile » (le 3e coût, 8 cristal, était caché ; la pierre d'écho et la maison aussi)
+  // fbd52bfe : « ce que je dois fabriquer pour l'histoire, mets-le en surbrillance »
+  function qteDispo(id) { const X = E0(); return (X.sac[id] || 0) + (X.soute[id] || 0) + coffreQte(id); }
+  function bloquePiece(p) {   // la raison (courte) pour laquelle on ne peut pas poser cette pièce, à part les minerais
+    if (p.antenne) { if (!((E0().echo || 0) > 0)) return '💎 pierre d’écho'; if (!maisonOk(maBase())) return '🏠 maison d’abord'; }
+    return null;
+  }
+  function pieceHistoire() {   // la pièce que l'histoire (ou la mission suivie) demande de poser maintenant
+    try {
+      const o = objectif(), e = (o && o.etape) || '', b = maBase(), P = b ? Object.values(b.p) : [];
+      if (/Construis un radar/.test(e)) return 'radar';
+      if (/Construis ta maison/.test(e)) { if (P.filter(q => q.t === 'mur' || q.t === 'fenetre' || q.t === 'porte').length < 4) return 'mur'; if (!P.some(q => q.t === 'porte')) return 'porte'; if (!P.some(q => q.t === 'lit')) return 'lit'; }
+      if (/Pose l’antenne relais/.test(e)) return 'antenne';
+      const ms = missionSuivie(); if (ms && ms.but && ms.but.e === 'pose' && PB[ms.but.a]) return ms.but.a;
+    } catch (e) { /* rien */ }
+    return null;
+  }
+  function coutsTuile(p, bx, by, pw, comp) {   // les coûts : « 5/16 fer » (vert si assez, rouge sinon), sur 1 à 3 lignes ; ou la raison du blocage
+    const ids = Object.keys(p.cout), bl = bloquePiece(p), n = ids.length + (bl ? 1 : 0), fs = n >= 3 ? 9 : 10, lh = comp ? 10.5 : n >= 3 ? 10 : 12, y0 = by + (comp ? 44 : n >= 3 ? 55 : n === 2 ? 61 : 66) * U;
+    ctx.font = '700 ' + Math.round(fs * U) + 'px ' + FB;
+    ids.forEach((id, k) => { const a = qteDispo(id), c = p.cout[id]; ctx.fillStyle = a >= c ? '#9affb0' : '#ff9a8a'; ctx.fillText(Math.min(a, 999) + '/' + c + ' ' + MIN[id].nom.toLowerCase().replace('cristal énergétique', 'cristal'), bx + pw / 2, y0 + k * lh * U, pw - 8 * U); });
+    if (bl) { ctx.fillStyle = '#ffd27a'; ctx.fillText('🔒 ' + bl, bx + pw / 2, y0 + ids.length * lh * U, pw - 8 * U); }
+  }
 
 
   // =================================================================== LA BOUCLE
@@ -11255,9 +11290,9 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     _test: {
       state: () => state, J: () => J, PL: () => PL, look: () => look, cine: () => cine,
       crash: () => ({ dep: GAL.depart.i, v17: crashV17(), bid: PL && PL.bid, heure: heure(), phase: phaseJour(heure()), lum: PL && PL.lum, nav: NAV && { x: NAV.x, y: NAV.y, cassee: NAV.cassee, epave: NAV.epave, brume: !!NAV.brume }, epave: epave && { x: epave.x, y: epave.y, repare: !!epave.repare }, pieces: E0().pieces.slice(), posees: E0().posees.slice(), sol: piecesSol.map(q => ({ id: q.id, x: Math.round(q.x), y: Math.round(q.y) })), lieux: lieuxCrash(), radar: E0().radar, radarT: E0().radarT, faune: CR.map(c => ({ e: c.esp, s: c.crash, n: c.nivFixe, nuit: !!c.chasseNuit, x: Math.round(c.x), y: Math.round(c.y) })), cache: CRASH.cache, abri: CRASH.abri, action: actionBtn && actionBtn.txt, etape: crashV17() ? etapeCrash() : null }),
-      setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, btnsT: () => tapBtns.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h, t: b.t || '' })), blesserT: d => blesserJoueur(d), vieT: () => COMBAT.vie, setVieT(v) { COMBAT.vie = v; }, soignerMoiT: () => soignerMoi(), creaT: () => ({ on: CREATEUR, ouvert: !!CREA }), afListeT: () => Object.keys(AF).filter(id => !AF[id].ancienne && PANT_DE[id]).map(id => ({ id, tl: AF[id].tl, st: AF[id].st, ailes: !!(PANTINS[PANT_DE[id]] || {}).ailes, auto: !!(PANTINS[PANT_DE[id]] || {}).auto })), filonsT: rad => filonsAutour(J.x, J.y, rad).map(o => ({ x: Math.round(o.x), y: Math.round(o.y), m: o.f.m.id })), entrerGrotte, sortirGrotte, GRT: () => GRT, dansGrotte, ouvrirEquipe, fermerEquipe, EQW: () => EQW && { sel: EQW.sel, zones: EQW.zones.map(z => ({ x: z.x, y: z.y, w: z.w, h: z.h, ou: z.ou, i: z.i, place: z.place, bete: z.bete })) }, massifsT: () => massifsHerbe().map(m => ({ x: m.x, y: m.y, r: m.r })), dansHerbeT: () => dansHerbe(), ouCacheT: () => ouCache(tG), sonsT: () => Object.keys(SONS), nappesT: () => nappes(tG).map(n => ({ x: n.x, y: n.y, r: n.r })), dansBrumeT: () => dansBrume(tG), echelleUI: () => ({ W, H, U, dpr, portrait }), sacOuvrir(v) { sacOuvert = v; }, sacSelT: () => sacSel, jeterSac, ongletT: () => ongletC, cosmoT: () => cosmoOuvert, autoMineT: () => autoMine && { arrive: !!autoMine.arrive }, sacFlashT: () => sacFlash, curseur: () => curseurActuel, sac: () => nb(E0().sac), remplirSac(n) { E0().sac.fer = (E0().sac.fer || 0) + n; }, bulleTest: () => bulle && { s: bulle.s, pensee: !!bulle.pensee, t: +bulle.t.toFixed(1) }, fileP: () => PENS_FILE.length, ecran: (x, y) => [sx(x), sy(y)], dpr: () => dpr, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
+      setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, btnsT: () => tapBtns.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h, t: b.t || '' })), blesserT: d => blesserJoueur(d), vieT: () => COMBAT.vie, setVieT(v) { COMBAT.vie = v; }, soignerMoiT: () => soignerMoi(), creaT: () => ({ on: CREATEUR, ouvert: !!CREA }), afListeT: () => Object.keys(AF).filter(id => !AF[id].ancienne && PANT_DE[id]).map(id => ({ id, tl: AF[id].tl, st: AF[id].st, ailes: !!(PANTINS[PANT_DE[id]] || {}).ailes, auto: !!(PANTINS[PANT_DE[id]] || {}).auto })), filonsT: rad => filonsAutour(J.x, J.y, rad).map(o => ({ x: Math.round(o.x), y: Math.round(o.y), m: o.f.m.id })), entrerGrotte, sortirGrotte, GRT: () => GRT, dansGrotte, ouvrirEquipe, fermerEquipe, EQW: () => EQW && { sel: EQW.sel, zones: EQW.zones.map(z => ({ x: z.x, y: z.y, w: z.w, h: z.h, ou: z.ou, i: z.i, place: z.place, bete: z.bete })) }, massifsT: () => massifsHerbe().map(m => ({ x: m.x, y: m.y, r: m.r })), dansHerbeT: () => dansHerbe(), ouCacheT: () => ouCache(tG), sonsT: () => Object.keys(SONS), nappesT: () => nappes(tG).map(n => ({ x: n.x, y: n.y, r: n.r })), dansBrumeT: () => dansBrume(tG), echelleUI: () => ({ W, H, U, dpr, portrait }), sacOuvrir(v) { sacOuvert = v; }, sacSelT: () => sacSel, jeterSac, ongletT: () => ongletC, cosmoT: () => cosmoOuvert, autoMineT: () => autoMine && { arrive: !!autoMine.arrive }, sacFlashT: () => sacFlash, curseur: () => curseurActuel, sac: () => nb(E0().sac), remplirSac(n) { E0().sac.fer = (E0().sac.fer || 0) + n; }, bulleTest: () => bulle && { s: bulle.s, pensee: !!bulle.pensee, t: +bulle.t.toFixed(1) }, fileP: () => PENS_FILE.length, ecran: (x, y) => [sx(x), sy(y)], dpr: () => dpr, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, filonsT: (x, y, r) => filonsAutour(x, y, r).map(o => ({ x: o.x, y: o.y, m: o.f.m.id, q: o.f.qte })), messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
       objectif() { const o = objectif(); return o && { id: o.c.id, etape: o.etape, lieu: o.lieu, sys: o.sys, k: o.k, saut: o.saut && o.saut.nom }; },
-      transfert: () => transfert, transi: () => transi, passerSaut, sauter(i, sec) { transi = sec ? { sorte: 'saut', t: 0, d: 5, vers: i, cout: 0 } : { sorte: 'saut', t: 0, d: 2, vers: i, cout: 1 }; state = 'transi'; stT = 0; }, razUI: () => razUI, setRaz(v) { razUI = v; }, recommencer, recupererAncienne, pause(v) { setPaused(v); }, sauver, carte: () => carte, dest: () => dest, poserDest, carteCibles: () => carteCibles, toucherCarte(x, y) { toucherCarteLocale({ x, y }); }, objSel: () => carte && carte.objSel, infos(v) { if (carte) carte.infos = v; }, carteVue(v) { if (carte) carte.vue = v; }, utiliserBidons, nbBidons, estCoupee, coupees, capSoute, stockRelie, capRelie, dangerFaune, misEtat, evt, CHAINES, missionSuivie, etabli: () => etabliOuvert, ouvrirEtabli() { etabliOuvert = true; }, onglet2(o) { ongletJ = o; }, raidMaintenant() { const b = maBase(); if (b) b.raidT = 0; }, sommeil: () => sommeil, fabriquer(id) { fabriquer(RECETTES.find(r => r.id === id)); }, ouvrirTransfert, fermerTransfert() { transfert = null; }, action: () => actionBtn && actionBtn.txt, faireAction() { if (actionBtn && actionBtn.f) actionBtn.f(); }, NAVp: () => NAV, base: () => maBase(),
+      transfert: () => transfert, ouvrirTransfertT: s => ouvrirTransfert(s || 'soute'), transi: () => transi, passerSaut, sauter(i, sec) { transi = sec ? { sorte: 'saut', t: 0, d: 5, vers: i, cout: 0 } : { sorte: 'saut', t: 0, d: 2, vers: i, cout: 1 }; state = 'transi'; stT = 0; }, razUI: () => razUI, setRaz(v) { razUI = v; }, recommencer, recupererAncienne, pause(v) { setPaused(v); }, sauver, carte: () => carte, dest: () => dest, poserDest, carteCibles: () => carteCibles, toucherCarte(x, y) { toucherCarteLocale({ x, y }); }, objSel: () => carte && carte.objSel, infos(v) { if (carte) carte.infos = v; }, carteVue(v) { if (carte) carte.vue = v; }, utiliserBidons, nbBidons, estCoupee, coupees, capSoute, stockRelie, capRelie, dangerFaune, misEtat, evt, CHAINES, missionSuivie, etabli: () => etabliOuvert, ouvrirEtabli() { etabliOuvert = true; }, onglet2(o) { ongletJ = o; }, raidMaintenant() { const b = maBase(); if (b) b.raidT = 0; }, sommeil: () => sommeil, fabriquer(id) { fabriquer(RECETTES.find(r => r.id === id)); }, ouvrirTransfert, fermerTransfert() { transfert = null; }, action: () => actionBtn && actionBtn.txt, faireAction() { if (actionBtn && actionBtn.f) actionBtn.f(); }, NAVp: () => NAV, base: () => maBase(),
       jouer, creation() { state = 'creation'; stT = 0; }, cineT(x) { if (!cine) lancerCine(); cine.t = x; }, finCine, decoller,
       tp(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, setLook(l) { look = Object.assign({}, EXPL_PANTIN.DEF, l); }, cat(i) { creaCat = i; },
       trouver(bid) { for (const S of GAL.sys) { if (!S.proche) continue; for (let k = 0; k < S.nbp; k++) if (MONDE.planete(S.i, k).bid === bid) return { sys: S.i, k }; } return null; }, trouverLoin(bid) { for (const S of GAL.sys) for (let k = 0; k < S.nbp; k++) if (MONDE.planete(S.i, k).bid === bid) return { sys: S.i, k }; return null; },
