@@ -16010,7 +16010,7 @@ function atlBuild() {
   if (ATL.root) return ATL.root;
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'Crée avec ' + gNM());
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
-    + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><button class="atl-cred" type="button" hidden title="Recharger mes crédits"></button><button class="atl-abob" type="button" hidden title="Mon abonnement Atelier+">⭐ Atelier+</button><button class="btn btn-ghost btn-sm atl-demb" type="button" hidden>📋 Mes demandes</button><button class="btn btn-ghost btn-sm atl-musb" type="button" aria-label="Musique de l’Atelier"></button><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
+    + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><button class="atl-cred" type="button" hidden title="Recharger mes crédits"></button><button class="atl-abob" type="button" hidden title="Mon abonnement Atelier+">⭐ Atelier+</button><button class="btn btn-ghost btn-sm atl-demb" type="button" hidden>📋 Mes demandes</button><button class="btn btn-ghost btn-sm atl-musb" type="button" aria-label="Musique de l’Atelier"></button><button class="btn btn-ghost btn-sm atl-notb" type="button" hidden aria-label="Notifications"></button><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
     + '<div class="atl-frise" hidden></div><details class="atl-route" hidden><summary>🗺️ Feuille de route</summary><div class="atl-rbody"></div></details><div class="atl-projets" hidden></div><div class="atl-bases" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot"></p></div></aside>'
@@ -16038,6 +16038,7 @@ function atlBuild() {
   const musMaj = () => { const on = store.get('jdw.atl.mus', true) !== false; q('.atl-musb').textContent = on ? '🔊' : '🔇'; q('.atl-musb').title = on ? 'Couper la musique de l’Atelier' : 'Remettre la musique de l’Atelier'; };
   q('.atl-musb').addEventListener('click', () => { const on = store.get('jdw.atl.mus', true) === false; store.set('jdw.atl.mus', on); musMaj(); if (ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic(''); } });   // 2.0.137 : 🔇 = aucune musique (jamais celle de la borne)
   musMaj();
+  q('.atl-notb').addEventListener('click', () => { pushFenetre(); });   // 7 nov. 2026 : le réglage des notifications
   q('.atl-demb').addEventListener('click', () => { if (ATL.cur && ATL.root.querySelector('.atl-wiz .atl-ptab[data-k="demandes"]')) atlDemFeuille(); else if (ATL.adminVoir && ATL.cur === ATL.adminVoir.id) atlAdminDemandes(); else atlMesDemandes(); });   // 2.0.137 : la liste des tickets dans une fenêtre   // 21 h 50 : toucher son solde → « Recharger mes crédits »
   q('.atl-zoom').addEventListener('click', e => { const z = q('.atl-zoom'); if (atlFenEcrit(z) || (e.target !== z && e.target.closest('.atl-suivi, .atl-mcard, .atl-winbar'))) return; z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
   try { atlFenSuivre(); } catch (e) {}   // 2.0.63
@@ -16053,6 +16054,7 @@ function atlOpen() {
   if (where === 'menu') try { setWhere('atelier'); } catch (e) {}   // 2.0.134 : la présence (le serveur aussi) dit « dans l'Atelier »
   if (store.get('jdw.atl.mus', true) !== false) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic('');   // 22 h 45 : la musique de l'Atelier, douce (🔇 retenu sur l'appareil)
   atlRender(); atlLoad(true); setTimeout(atlBienvenue, 1200); atlDemCharger(true);
+  setTimeout(() => { pushRafraichir().catch(() => {}); }, 600);   // 7 nov. 2026 : 🔔 / 🔕 de la barre, carte « Me prévenir »
   setTimeout(() => { const i = ATL.root.querySelector('.atl-in'); if (i && !TOUCH) i.focus({ preventScroll: true }); }, 60);
 }
 function atlClose() {
@@ -16804,6 +16806,12 @@ function atlDiscFil(f) {
   } else if (av1 && !atlAtelierLivre(f) && !atlDiscDems(f).some(x => x.etat === 'en_cours')) {   // lancé, sans étape en direct : la mascotte est au travail
     L.push({ at: '', t: 9e15, k: 'construit', g: false, w: false, el: () => { const w = atlEl('div', 'atl-dthink atl-travb'), col = atlEl('div'); col.append(atlEl('b', '', '🛠️ Je construis ta V1 de « ' + (f.titre || 'ton jeu') + ' »'), atlEl('small', '', 'Je te préviens dès qu’elle est prête 🔔 · Tu peux m’écrire ici quand tu veux')); w.append(atlGuideAv('atl-wav'), col); return w; } });
   }
+  // 7 nov. 2026 : le joueur attend (son message sans réponse, une demande en cours, une version en préparation) → « 🔔 Me prévenir quand c'est prêt »
+  if (pushCarteOk()) {
+    const der = L.filter(x => x.t < 9e15).pop();
+    if ((der && !der.g) || L.some(x => x.k === 'construit') || atlDiscDems(f).some(x => x && ['envoyee', 'vue', 'en_cours'].includes(x.etat)) || atlVersionEnCours(f))
+      { const it = { at: '', t: 9e15, k: 'push' + PUSH.etat, g: false, w: false, el: () => pushCarte() }, iGo = L.findIndex(x => /^go/.test(x.k)); if (iGo >= 0) L.splice(iGo, 0, it); else L.push(it); }   // la carte « 🚀 Lancer » reste la dernière
+  }
   return L;
 }
 function atlDiscBloc(f) {
@@ -17027,7 +17035,7 @@ function atlPubBlocMaj(b, f) {
   if (publie) bt('Retirer de la borne', 'btn-ghost atl-pubret', async () => {
     if (!await atlConfirmer('Retirer ton jeu de la borne ?', 'Les joueurs ne le verront plus sur leur borne. Il reste à toi, en essai, avec ses versions, ses scores et sa boutique : tu pourras le republier quand tu veux.', 'Oui, retirer')) return;
     if (adm) await AP('non'); else await rpc('at_publication_retirer', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); await fin('↩️ Ton jeu n’est plus sur la borne.'); });
-  if (occ) b.appendChild(atlEl('p', 'atl-attends', atlAttendsTxt(occ)));
+  if (occ) b.appendChild(atlAttendsEl(occ));
   if (publie && vp > 0) {   // les mises à jour automatiques
     const lb = atlEl('label', 'atl-autopub'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = auto; lb.append(cb, atlEl('span', '', 'Publier automatiquement mes mises à jour'));
     cb.addEventListener('change', async () => { const on = cb.checked; cb.disabled = true;
@@ -17072,7 +17080,7 @@ function atlPubV(pv, f) {
   if (v > vp) {
     pv.appendChild(atlEl('p', 'atl-pubvie', '🎮 Sur la borne : V' + (vp || 1) + ' · ici, tu essaies la V' + v + '.'));
     if (!atlAdminIci()) {
-      const b = atlEl('button', 'btn btn-play atl-pubvb', '📢 Publier la V' + v); b.type = 'button'; if (occ) { b.disabled = true; b.title = atlAttendsTxt(occ); pv.appendChild(atlEl('p', 'atl-attends', atlAttendsTxt(occ))); }
+      const b = atlEl('button', 'btn btn-play atl-pubvb', '📢 Publier la V' + v); b.type = 'button'; if (occ) { b.disabled = true; b.title = atlAttendsTxt(occ); pv.appendChild(atlAttendsEl(occ)); }
       b.addEventListener('click', async () => {
         if (!await atlConfirmer('📢 Publier la V' + v + ' ?', 'Tes joueurs auront la V' + v + ' sur leur borne à la place de la V' + (vp || 1) + '.')) return;
         b.disabled = true;
@@ -19278,9 +19286,187 @@ async function atlStripe(corps, b, er) {
   } catch (e) { er.hidden = false; er.textContent = 'Pas de réseau : réessaie dans un moment.'; }
   finally { ATL.achat = false; b.disabled = false; b.classList.remove('wait'); b.innerHTML = old; }
 }
+// ---- 7 nov. 2026 (SAMBA via l'admin : « on ne peut pas savoir si c'est fait sans se connecter… mettre une ALERTE ») : NOTIFICATIONS hors de la
+// borne (Web Push). « 🔔 Me prévenir quand c'est prêt » (carte de la discussion quand le joueur attend, fenêtre 🔔 de la barre de l'Atelier) :
+// la permission n'est demandée QU'AU TOUCHER ; l'appareil s'abonne (pushManager.subscribe, clé VAPID publique donnée par la fonction Edge
+// atelier-push) et le serveur le retient pour CE joueur (at_push_abonner). Le serveur prévient quand la mascotte répond, qu'une version ou
+// une retouche est prête, qu'une demande est faite (notifs-push.sql : seulement si c'est encore non lu 90 s après, jamais la nuit, jamais le
+// contenu d'un message ni un prix). Toucher la notification ouvre le projet (?atelier=projet&f=…&o=… ou message du service worker).
+// « 🔕 Arrêter sur cet appareil » = at_push_arreter (+ désabonnement du navigateur quand plus aucun joueur de l'appareil n'en veut).
+// Appareil partagé (« Qui joue ? ») : un abonnement par joueur qui l'a demandé (jdw.push.noms). Sans clé (secrets pas posés) : rien n'apparaît.
+// iPhone : seulement la borne ajoutée à l'écran d'accueil (iOS 16.4+) ; appli Android (WebView) : pas de Web Push → explication.
+// Pour l'atelier photo (Études) : window.JDW_PUSH = { carte(), etat(), activer(), fenetre() }.
+const PUSH = { cle: '', cleAt: 0, cleP: null, etat: '', nom: '', at: 0, occupe: false };
+const PUSH_IOS = (() => { try { return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); } catch (e) { return false; } })();
+const pushB64 = s => { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); const b = atob(s + '==='.slice((s.length + 3) % 4)); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+const pushNoms = () => { const l = store.get('jdw.push.noms', []); return Array.isArray(l) ? l.filter(x => typeof x === 'string') : []; };
+function pushSorte() {   // 'ok' | 'ios' (à ajouter à l'écran d'accueil) | 'app' (appli Android) | 'bloque' (refusé dans le navigateur) | 'non'
+  if (IN_APP) return 'app';
+  const pm = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  if (PUSH_IOS && !pm && !FS_PWA) return 'ios';
+  if (!pm) return 'non';
+  try { if (Notification.permission === 'denied') return 'bloque'; } catch (e) { return 'non'; }
+  return 'ok';
+}
+async function pushCle() {
+  if (PUSH.cleAt && Date.now() - PUSH.cleAt < (PUSH.cle ? 36e5 : 6e5)) return PUSH.cle;
+  if (PUSH.cleP) return PUSH.cleP;
+  PUSH.cleP = (async () => {
+    let c = '';
+    try { const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/atelier-push?cle=1', { headers: { apikey: CFG.key } }, 8000); const j = r.ok ? await r.json() : null; if (j && /^[A-Za-z0-9_-]{86,88}$/.test(String(j.cle || ''))) c = j.cle; } catch (e) {}
+    PUSH.cle = c; PUSH.cleAt = Date.now(); PUSH.cleP = null; return c;
+  })();
+  return PUSH.cleP;
+}
+async function pushReg() { try { return await Promise.race([navigator.serviceWorker.ready, new Promise(r => setTimeout(() => r(null), 6000))]); } catch (e) { return null; } }
+function pushAppareil() {
+  const u = navigator.userAgent || '', os = /Android/.test(u) ? 'Android' : PUSH_IOS ? 'iPhone' : /Windows/.test(u) ? 'PC' : /Mac/.test(u) ? 'Mac' : /Linux|CrOS/.test(u) ? 'Linux' : '';
+  const nav = /Edg\//.test(u) ? 'Edge' : /Firefox\//.test(u) ? 'Firefox' : /SamsungBrowser/.test(u) ? 'Samsung' : /Chrome\//.test(u) ? 'Chrome' : /Safari\//.test(u) ? 'Safari' : '';
+  return [os, nav].filter(Boolean).join(' · ').slice(0, 40);
+}
+const pushPeut = () => ATL_ON() && ONLINE && !isGuest() && !!profile.name && !netOff();
+// l'état de CET appareil pour le joueur actuel (lu au serveur, 5 min) ; un abonnement du navigateur qui a changé d'adresse est ré-enregistré en silence
+async function pushRafraichir(force) {
+  if (!pushPeut()) return;
+  const moi = cleanName(profile.name), s = pushSorte();
+  if (!(await pushCle())) { PUSH.etat = ''; pushMaj(); return; }
+  if (s !== 'ok') { const av = PUSH.etat + PUSH.nom; PUSH.etat = s; PUSH.nom = moi; pushMaj(); if (av !== s + moi) pushFil(); return; }
+  if (!force && PUSH.nom === moi && PUSH.etat && Date.now() - PUSH.at < 3e5) { pushMaj(); return; }
+  let etat = 'off';
+  try {
+    const reg = await pushReg(), sub = reg && reg.pushManager ? await reg.pushManager.getSubscription() : null;
+    if (sub && Notification.permission === 'granted') {
+      const r = await rpc('at_push_etat', { p_name: profile.name, p_endpoint: sub.endpoint }, { quiet: true, quiet404: true });
+      if (r && r.abonne) etat = 'on';
+      else if (pushNoms().includes(moi)) { await pushEnregistrer(sub); etat = 'on'; }   // l'adresse du navigateur a changé : on la redonne
+    }
+  } catch (e) { etat = PUSH.nom === moi ? PUSH.etat || 'off' : 'off'; }
+  if (cleanName(profile.name) !== moi) return;
+  const avant = PUSH.etat + PUSH.nom;
+  PUSH.etat = etat; PUSH.nom = moi; PUSH.at = Date.now(); pushMaj();
+  if (avant !== PUSH.etat + PUSH.nom) pushFil();
+}
+function pushFil() { try { const f = atlFiche(), W = ATL.root && ATL.root.querySelector('.atl-wiz'); if (f && W) atlDiscMaj(W, f); } catch (e) {} }   // la carte « Me prévenir » paraît / s'en va
+async function pushEnregistrer(sub) {
+  const j = sub.toJSON(), k = j.keys || {};
+  await rpc('at_push_abonner', { p_name: profile.name, p_endpoint: j.endpoint, p_p256dh: k.p256dh, p_auth: k.auth, p_appareil: pushAppareil() }, { quiet: true });
+  const moi = cleanName(profile.name), l = pushNoms(); if (!l.includes(moi)) store.set('jdw.push.noms', l.concat([moi]).slice(-8));
+}
+// « 🔔 Me prévenir quand c'est prêt » : appelé PAR UN TOUCHER (la question du navigateur doit venir tout de suite après)
+async function pushActiver() {
+  if (PUSH.occupe || !pushPeut()) return false;
+  const s = pushSorte(); if (s !== 'ok') { pushFenetre(); return false; }
+  PUSH.occupe = true; pushMaj();
+  try {
+    let perm = Notification.permission;
+    if (perm !== 'granted') { try { perm = await Notification.requestPermission(); } catch (e) { perm = 'default'; } }   // en premier : Safari exige le toucher
+    if (perm !== 'granted') { PUSH.etat = pushSorte() === 'bloque' ? 'bloque' : 'off'; atlToast(perm === 'denied' ? '🔕 Les notifications sont bloquées pour ce site.' : 'D’accord : pas de notification pour l’instant.'); if (perm === 'denied') pushFenetre(); return false; }
+    const cle = await pushCle(); if (!cle) { atlToast('Les notifications arrivent bientôt.'); return false; }
+    const reg = await pushReg(); if (!reg || !reg.pushManager) throw new Error('sw');
+    let sub = await reg.pushManager.getSubscription();
+    if (sub) { let k = null; try { k = sub.options && sub.options.applicationServerKey ? new Uint8Array(sub.options.applicationServerKey) : null; } catch (e) {} const c = pushB64(cle);
+      if (k && (k.length !== c.length || k.some((x, i) => x !== c[i]))) { try { await sub.unsubscribe(); } catch (e) {} sub = null; } }   // les clés du serveur ont changé
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushB64(cle) });
+    await pushEnregistrer(sub);
+    PUSH.etat = 'on'; PUSH.nom = cleanName(profile.name); PUSH.at = Date.now();
+    atlToast('🔔 C’est noté ! Je te préviens ici dès que c’est prêt, même borne fermée.');
+    return true;
+  } catch (e) { atlToast('Je n’ai pas pu activer les notifications sur cet appareil. Réessaie dans un moment.'); return false; }
+  finally { PUSH.occupe = false; pushMaj(); setTimeout(pushFil, 2500); }
+}
+async function pushArreter() {
+  if (PUSH.occupe || !pushPeut()) return;
+  PUSH.occupe = true; pushMaj();
+  try {
+    const reg = await pushReg(), sub = reg && reg.pushManager ? await reg.pushManager.getSubscription() : null;
+    if (sub) await rpc('at_push_arreter', { p_name: profile.name, p_endpoint: sub.endpoint }, { quiet: true });
+    const moi = cleanName(profile.name), l = pushNoms().filter(x => x !== moi); store.set('jdw.push.noms', l);
+    if (sub && !l.length) { try { await sub.unsubscribe(); } catch (e) {} }   // plus aucun joueur de l'appareil n'en veut
+    PUSH.etat = 'off'; PUSH.at = Date.now();
+    atlToast('🔕 C’est arrêté : plus de notification sur cet appareil.');
+  } catch (e) { atlToast(atlWhy(e)); }
+  finally { PUSH.occupe = false; pushMaj(); }
+}
+// le bouton 🔔 / 🔕 de la barre de l'Atelier (le réglage) et la carte de la discussion
+function pushMaj() {
+  if (!ATL.root) return;
+  const b = ATL.root.querySelector('.atl-notb'); if (!b) return;
+  const vis = pushPeut() && !!PUSH.cle && !!PUSH.etat && PUSH.etat !== 'non';
+  b.hidden = !vis; b.textContent = PUSH.etat === 'on' ? '🔔' : '🔕'; b.classList.toggle('on', PUSH.etat === 'on'); b.classList.toggle('wait', PUSH.occupe);
+  b.title = PUSH.etat === 'on' ? 'Notifications : activées sur cet appareil' : 'Me prévenir quand c’est prêt';
+  b.setAttribute('aria-label', b.title);
+  for (const c of ATL.root.querySelectorAll('.atl-pushc')) { if (PUSH.etat === 'on' && !c.classList.contains('fait')) { c.classList.add('fait'); c.textContent = ''; c.append(atlEl('span', 'atl-pushi', '🔔'), atlEl('b', '', 'C’est noté : je te préviens dès que c’est prêt !')); } c.querySelectorAll('button').forEach(x => { x.disabled = PUSH.occupe; }); }
+}
+const pushTard = () => { const t = +store.get('jdw.push.tard.' + cleanName(profile.name || ''), 0) || 0; return Date.now() - t < 3 * 864e5; };
+function pushCarteOk() { return pushPeut() && !!PUSH.cle && PUSH.nom === cleanName(profile.name) && (PUSH.etat === 'off' || PUSH.etat === 'ios') && !pushTard() && !atlAdminIci(); }
+function pushCarte() {
+  const c = atlEl('div', 'atl-pushc'), tx = atlEl('div', 'atl-pusht'), ios = PUSH.etat === 'ios';
+  tx.append(atlEl('b', '', 'Pas besoin de rester ici !'), atlEl('small', '', ios ? 'Sur iPhone, ajoute d’abord la borne à ton écran d’accueil : je te montre comment.' : 'Je t’envoie une notification sur cet appareil quand c’est prêt, même si la borne est fermée.'));
+  const go = atlEl('button', 'btn btn-play btn-sm atl-pushgo', '🔔 Me prévenir quand c’est prêt'), tard = atlEl('button', 'atl-pushx', 'Plus tard'); go.type = tard.type = 'button';
+  go.addEventListener('click', e => { e.stopPropagation(); if (ios) pushFenetre(); else pushActiver(); });
+  tard.addEventListener('click', e => { e.stopPropagation(); store.set('jdw.push.tard.' + cleanName(profile.name || ''), Date.now()); c.remove(); });
+  const bt = atlEl('div', 'atl-pushb'); bt.append(go, tard);
+  c.append(atlEl('span', 'atl-pushi', '🔔'), tx, bt);
+  return c;
+}
+// la fenêtre du réglage (et les explications : iPhone, appli, bloqué, pas possible ici)
+function pushFenetre() {
+  if (!ATL.root) return;
+  const M = ATL.root.querySelector('.atl-mod'); if (!M) return;
+  M.textContent = ''; M.hidden = false;
+  const card = atlEl('div', 'atl-mcard atl-pushm'); M.appendChild(card);
+  const s = PUSH.etat || pushSorte(), on = s === 'on';
+  card.append(atlEl('h2', '', on ? '🔔 Notifications activées' : '🔔 Me prévenir quand c’est prêt'));
+  const P = t => card.appendChild(atlEl('p', 'atl-aide', t));
+  const ul = atlEl('ul', 'atl-pushl'); for (const t of ['🎮 ta nouvelle version est prête', '✨ ta retouche est prête', '✅ ta demande est faite', '💬 ' + gNM() + ' t’a répondu']) ul.appendChild(atlEl('li', '', t));
+  const row = atlEl('div', 'atl-pushr'), fermer = atlEl('button', 'btn btn-ghost', 'Fermer'); fermer.type = 'button';
+  fermer.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });   // atlFenFermer clique « Fermer » puis gère l'historique : jamais deux retours
+  if (on) {
+    P('Sur cet appareil, je te préviens quand :'); card.appendChild(ul);
+    P('Jamais la nuit (de 21 h 30 à 8 h) et rien de ce que tu écris : seulement le nom de ton projet.');
+    const st = atlEl('button', 'btn btn-ghost atl-pushstop', '🔕 Arrêter sur cet appareil'); st.type = 'button';
+    st.addEventListener('click', async () => { st.disabled = true; await pushArreter(); atlFenFermer(M); });
+    row.append(st, fermer);
+  } else if (s === 'ios') {
+    P('Sur iPhone et iPad, les notifications marchent quand la borne est sur ton écran d’accueil :');
+    const ol = atlEl('ol', 'atl-pushl'); for (const t of ['Dans Safari, touche le bouton Partager ⬆️ en bas de l’écran.', 'Choisis « Sur l’écran d’accueil », puis « Ajouter ».', 'Ouvre la borne avec sa nouvelle icône, puis reviens ici et touche 🔔.']) ol.appendChild(atlEl('li', '', t));
+    card.appendChild(ol); P('Il faut iOS 16.4 ou plus récent.'); row.append(fermer);
+  } else if (s === 'app') {
+    P('Dans l’appli de la borne, les notifications arrivent bientôt.');
+    P('En attendant : ouvre la borne dans Chrome (elixirgamestudio.com/jouer), va dans l’Atelier et touche 🔔. Tu recevras les notifications même appli fermée.');
+    row.append(fermer);
+  } else if (s === 'bloque') {
+    P('Les notifications sont bloquées pour ce site dans ton navigateur.');
+    P(TOUCH ? 'Pour les autoriser : touche le cadenas 🔒 à côté de l’adresse, puis « Autorisations » → « Notifications » → Autoriser. Reviens ensuite ici et touche 🔔.' : 'Pour les autoriser : clique sur le cadenas 🔒 à gauche de l’adresse, mets « Notifications » sur Autoriser, puis reviens ici et clique sur 🔔.');
+    row.append(fermer);
+  } else if (s === 'non') {
+    P('Ce navigateur ne sait pas recevoir de notifications. Essaie avec Chrome, Edge, Firefox ou Safari à jour.'); row.append(fermer);
+  } else {
+    P('Je t’envoie une notification sur cet appareil quand :'); card.appendChild(ul);
+    P('Même si la borne est fermée. Jamais la nuit (de 21 h 30 à 8 h), et rien de ce que tu écris : seulement le nom de ton projet. Tu peux l’arrêter quand tu veux ici.');
+    const go = atlEl('button', 'btn btn-play atl-pushgo', '🔔 Me prévenir quand c’est prêt'); go.type = 'button';
+    go.addEventListener('click', async () => { go.disabled = true; const ok = await pushActiver(); if (ok) atlFenFermer(M); else go.disabled = false; });
+    row.append(go, fermer);
+  }
+  card.appendChild(row);
+}
+// toucher une notification : aller au projet (borne déjà ouverte = message du service worker ; sinon l'adresse ?atelier=projet&f=…&o=…)
+function pushOuvrir(u) {
+  let f = '', o = ''; try { const sp = new URL(String(u || ''), location.href).searchParams; f = sp.get('f') || ''; o = sp.get('o') || ''; } catch (e) { return; }
+  if (!/^[0-9a-f-]{36}$/i.test(f)) f = ''; if (!['jeu', 'demandes', 'route'].includes(o)) o = '';
+  if (!$('jdw-play').hidden) { atlToast('🔔 Ton projet t’attend dans l’Atelier'); return; }   // en pleine partie : on ne la coupe pas
+  try { if (f) atlRevenir(f, o); else atlOpen(); } catch (e) { try { atlOpen(); } catch (x) {} }
+}
+try { if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { const d = e.data || {}; if (d.jdw === 'ouvrir') pushOuvrir(d.u); }); } catch (e) {}
+try { window.JDW_PUSH = { carte: () => (pushCarteOk() ? pushCarte() : null), etat: () => PUSH.etat, activer: pushActiver, fenetre: pushFenetre, maj: () => pushRafraichir(true) }; } catch (e) {}
 // le retour de Stripe (…/jouer/?atelier=merci ou annule) : l'Atelier s'ouvre, « Merci ! », les crédits arrivent (webhook) quelques secondes après
 (() => {
   let v = ''; try { const sp = new URLSearchParams(location.search); v = sp.get('atelier') || ''; if (v) { sp.delete('atelier'); const qs = sp.toString(); history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } } catch (e) { v = ''; }
+  if (v === 'projet') {   // 7 nov. 2026 : une notification touchée → le projet (attend le compte et l'Atelier, 20 s au plus)
+    let f = '', o = ''; try { const sp = new URLSearchParams(location.search); f = sp.get('f') || ''; o = sp.get('o') || ''; sp.delete('f'); sp.delete('o'); const qs = sp.toString(); history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } catch (e) {}
+    const t0 = Date.now(), essai = () => { if (pushPeut()) { pushOuvrir('?f=' + encodeURIComponent(f) + '&o=' + encodeURIComponent(o)); return; } if (Date.now() - t0 < 20000) setTimeout(essai, 500); };
+    setTimeout(essai, 1200); return;
+  }
   if (!['merci', 'annule', 'abonne', 'portail'].includes(v)) return;
   setTimeout(() => {
     try { atlOpen(); } catch (e) {}
@@ -20696,6 +20882,8 @@ function atlTravaille(f) {
   return pr || atlDemEnCours().some(x => x.fiche === f.id && x.etat === 'en_cours') ? ((f.version | 0) || 1) + 1 : 0;
 }
 function atlAttendsTxt(n) { return '⏳ Attends que ' + gNM() + ' ait fini ta V' + n + ' : tu pourras publier quand il se reposera.'; }
+// 7 nov. 2026 (l'admin : « mettre plus en évidence ») : un bandeau plein et contrasté, ⏳ plus grand (lisible sur la carte claire comme sur fond sombre)
+function atlAttendsEl(n) { const p = atlEl('p', 'atl-attends'); p.setAttribute('role', 'status'); p.append(atlEl('span', 'atl-attic', '⏳'), atlEl('span', 'atl-attx', atlAttendsTxt(n).replace(/^⏳\s*/, ''))); return p; }
 function atlBoutonsJeu(bn, f, sansTester) {
   const et = f.etat, row = atlEl('div', 'atl-jbtns'), occ = atlTravaille(f);
   const t = atlEl('button', 'btn btn-play btn-sm', '▶ Tester mon jeu'); t.type = 'button';
@@ -20708,7 +20896,7 @@ function atlBoutonsJeu(bn, f, sansTester) {
   if (!sansTester) row.appendChild(t);
   if (/^(alpha|publie_salle|publie_monde)$/.test(String(et || ''))) row.appendChild(atlPubListe(f, occ));   // 2.0.95 : une liste « Publication : »
   bn.appendChild(row);
-  if (occ && row.querySelector('button[disabled]:not(.atl-mannul), select[disabled]')) bn.appendChild(atlEl('p', 'atl-attends', atlAttendsTxt(occ)));   // sous les boutons, jamais hors de l'écran
+  if (occ && row.querySelector('button[disabled]:not(.atl-mannul), select[disabled]')) bn.appendChild(atlAttendsEl(occ));   // sous les boutons, jamais hors de l'écran
 }
 // 2.0.95 (l'admin : « remplace les 2 gros boutons par UNE liste déroulante Publication : ») : la liste montre toujours l'état (Non publié,
 // Dans mes salles, Mondial demandé, Mondial) ; chaque choix fait exactement ce que faisait son bouton, avec la même confirmation
@@ -20759,7 +20947,7 @@ function atlSTab(heads, lignes, cls) {
   }
   const w = atlEl('div', 'atl-swrap'); w.appendChild(t); return w;
 }
-const atlSplit = (a, o) => { a = Math.round(+a || 0); o = Math.round(+o || 0); return (a ? a.toLocaleString('fr-FR') + ' achetés' : '0 acheté') + ' · ' + o.toLocaleString('fr-FR') + ' offert' + (o > 1 ? 's' : ''); };   // 7 nov. 2026 : crédits dépensés achetés / offerts
+const atlSplit = (a, o, eu) => { a = Math.round(+a || 0); o = Math.round(+o || 0); return (a ? a.toLocaleString('fr-FR') + ' achetés' + (eu ? ' (' + eu + ')' : '') : '0 acheté') + ' · ' + o.toLocaleString('fr-FR') + ' offert' + (o > 1 ? 's' : ''); };   // 7 nov. 2026 : crédits dépensés achetés / offerts
 async function atlSuivi() {
   { const c = atlCred(); if (!c || !c.patron || !c.admin) return; }   // 2.1.13 : at_admins.suivi aussi   // 2.0.1 : le Suivi pour PATOU et BENJAMIN seuls
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z) return;
@@ -20811,7 +20999,7 @@ async function atlSuivi() {
   if (vraisEuros) {
     const ach = rs.credits_achetes | 0, offe = rs.credits_offerts | 0, rr = rs.resultat_cents | 0;
     carte('💶 Argent reçu ce mois', cts(rs.recu_cents), '', (rs.recu_abos_cents | 0) ? 'achats ' + cts(rs.recu_achats_cents) + ' · abonnements ' + cts(rs.recu_abos_cents) : 'achats de crédits payés (Stripe)');
-    carte('💎 Crédits dépensés ce mois', (ach + offe).toLocaleString('fr-FR') + ' 💎', '', atlSplit(ach, offe) + (ach ? ' (' + cts(rs.valeur_cents) + ')' : ''));
+    carte('💎 Crédits dépensés ce mois', (ach + offe).toLocaleString('fr-FR') + ' 💎', '', atlSplit(ach, offe, cts(rs.valeur_cents)));
     carte('🧾 Coût réel ce mois', cts(rs.cout_cents), '', (rs.hors_projets_cents | 0) ? 'dont ' + cts(rs.hors_projets_cents) + ' hors projets (supprimés, essais)' : 'toutes les générations du mois');
     carte('📈 Résultat du mois', (rr > 0 ? '+' : '') + cts(rr), rr < 0 ? 'atl-sneg' : 'atl-spos', 'argent reçu − coût réel');
   } else carte('⚠️ Serveur pas encore à jour', '—', '', 'Les vrais euros arrivent avec la mise à jour du serveur (suivi-vrais-euros).');
