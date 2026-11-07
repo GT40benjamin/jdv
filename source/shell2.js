@@ -17156,6 +17156,7 @@ function atlRegDiff(base, cur) {   // seulement les changements (undefined = rie
   if (atlRegObj(base) && atlRegObj(cur)) { const o = {}; let n = 0; for (const k of Object.keys(cur)) { const d = k in base ? atlRegDiff(base[k], cur[k]) : atlRegCopie(cur[k]); if (d !== undefined) { o[k] = d; n++; } } return n ? o : undefined; }
   return JSON.stringify(base) === JSON.stringify(cur) ? undefined : atlRegCopie(cur);
 }
+const atlRegCols = (ch, rows) => { const all = [...new Set(rows.flatMap(o => Object.keys(o)))]; return ch.size ? [...ch.keys()].filter(c => all.includes(c)) : all; };   // le schema choisit les colonnes (et leur ordre)
 const atlRegNomCle = k => String(k).replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
 // une case : nombre, texte, choix, oui/non, liste de nombres (« nombres ») ; tout le reste = JSON vérifié
 function atlRegChamp(meta, val, defVal, onSet) {
@@ -17233,14 +17234,14 @@ function atlReglagesEdit(p, f, g, d, J) {
     for (const k of ordre) { if (simples.includes(k)) continue;
       const s = sm.get(k) || schema.find(x => String(x.cles) === k) || {}, v = S.cur[k], dv = M0[k], ch = champsDe(s), titre = s.titre || atlRegNomCle(k);
       if (Array.isArray(v) && v.length && v.every(atlRegObj)) {   // liste d'objets : un tableau (par position)
-        const D = section(k, titre, s.aide), cols = [...new Set(v.flatMap(o => Object.keys(o)))];
+        const D = section(k, titre, s.aide), cols = atlRegCols(ch, v);
         D.appendChild(atlRegTable(cols, ch, v.map((row, i) => ({ id: String(i), row, def: (dv || [])[i] || {}, path: [k, i] })), mk, null));
       } else if (atlRegObj(v) && Object.values(v).length && Object.values(v).every(atlRegObj)) {   // table : id → ligne (ex. attaques)
-        const D = section(k, titre + ' · ' + Object.keys(v).length, s.aide), cols = [...new Set(Object.values(v).flatMap(o => Object.keys(o)))];
+        const D = section(k, titre + ' · ' + Object.keys(v).length, s.aide), cols = atlRegCols(ch, Object.values(v));
         D.appendChild(atlRegTable(cols, ch, Object.keys(v).map(id => ({ id, row: v[id], def: (dv || {})[id] || {}, path: [k, id] })), mk, true));
       } else if (atlRegObj(v)) {   // objet : un groupe de cases
         const D = section(k, titre, s.aide), gr = atlEl('div', 'atl-rggrid');
-        for (const c of Object.keys(v)) { const m = Object.assign({ k: c }, ch.get(c) || {}), l = atlEl('label', 'atl-rgch'); l.appendChild(atlEl('span', '', String(m.nom || atlRegNomCle(c)))); l.appendChild(mk([k, c], m, v[c], (dv || {})[c])); if (m.aide) l.appendChild(atlEl('small', '', String(m.aide))); gr.appendChild(l); }
+        for (const c of (ch.size ? [...ch.keys()].filter(c => c in v) : Object.keys(v))) { const m = Object.assign({ k: c }, ch.get(c) || {}), l = atlEl('label', 'atl-rgch'); l.appendChild(atlEl('span', '', String(m.nom || atlRegNomCle(c)))); l.appendChild(mk([k, c], m, v[c], (dv || {})[c])); if (m.aide) l.appendChild(atlEl('small', '', String(m.aide))); gr.appendChild(l); }
         D.appendChild(gr);
       } else { const D = section(k, titre, s.aide); D.appendChild(mk([k], Object.assign({ k }, ch.get(k) || {}), v, dv)); }
     }
