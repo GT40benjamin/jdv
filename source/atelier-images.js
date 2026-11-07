@@ -937,6 +937,7 @@
       // même, un dégradé et une flèche ‹ › montrent qu'on peut faire défiler (jamais une tuile coupée sans le dire)
       const Fw = E('div', 'crea-filmw'), fg = B('fl g', '‹', () => Fm.scrollBy({ left: -Fm.clientWidth * 0.7 })), fd = B('fl d', '›', () => Fm.scrollBy({ left: Fm.clientWidth * 0.7 }));
       fg.setAttribute('aria-label', 'Photos précédentes'); fd.setAttribute('aria-label', 'Photos suivantes'); fg.tabIndex = fd.tabIndex = -1;
+      { const h = Fm.querySelector('.crea-filmg > .h'); if (h) Fw.appendChild(h); }   // le titre « Mes photos » ne défile pas (ni ne s'estompe)
       Fw.append(Fm, fg, fd); S.appendChild(Fw);
       const fleches = () => { if (!Fm.isConnected) return; const plus = Fm.scrollWidth - Fm.clientWidth > 2; Fw.classList.toggle('plus-g', plus && Fm.scrollLeft > 2); Fw.classList.toggle('plus-d', plus && Fm.scrollLeft + Fm.clientWidth < Fm.scrollWidth - 2); };
       Fm.addEventListener('scroll', fleches, { passive: true }); try { new ResizeObserver(fleches).observe(Fm); } catch (e) {}
