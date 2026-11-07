@@ -59,11 +59,18 @@
       nom: 'Atelier photo',
       menu: [['atelier', '🖼️', 'Mon atelier'], ['guide', '💬', ''], ['resultats', '✨', 'Photos retouchées'], ['route', '🗺️', 'Feuille de route'], ['versions_at', '🗂️', 'Versions'], ['params', '⚙️', 'Paramètres']],
       depot: 'Dépose ta photo ici', ajouter: '＋ Ajouter une photo', invite: 'Dis-moi ce que tu veux faire avec cette photo',
-      resultat: 'Photos retouchées', videResultat: 'Tes photos retouchées arriveront ici : chaque retouche faite dans ton atelier, prête à télécharger.',
+      resultat: 'Photos retouchées',
+      // la MINIATURE du type dans les listes (Mes projets, Projets des joueurs) tant qu'aucune photo n'est retouchée ; jamais une manette
+      miniature: 'accueil/atelier-photo-mini.svg', videResultat: 'Tes photos retouchées arriveront ici : chaque retouche faite dans ton atelier, prête à télécharger.',
       fond: 'studio'
     }
   };
   const atelierDe = id => ATELIERS[typeDe(id)] || ATELIERS.images;
+  // l'admin (7 nov.) : un atelier dans une liste = la miniature de SON type, puis sa dernière photo retouchée (SQL v167 : « retouche ») ;
+  // statut juste : « V1 · prêt » quand il est livré (jamais « en essai », c'est un mot de jeu), sinon « En préparation avec {g} »
+  const estAtelier = id => typeDe(id) !== 'jeu' && !!ATELIERS[typeDe(id)];
+  const miniUrl = (id, w) => { const x = AIM.types[id] || {}, u = livre(id) && x.retouche ? urlImg(x.retouche, w) : ''; return u || (ROOT + atelierDe(id).miniature); };
+  const statutAt = id => livre(id) ? 'V' + Math.max(1, ((AIM.types[id] || {}).version | 0) || versionAt(id)) + ' · prêt' : 'En préparation avec ' + PK();
   const versionAt = id => { try { const pj = atlProjets().find(x => x && x.id === id); return (pj && pj.version | 0) || 0; } catch (e) { return 0; } };
   const toast = t => { try { atlToast(t); } catch (e) { try { toastCheer(t); } catch (e2) {} } };
   const dire = m => { m.pk = m.pk === undefined ? 1 : m.pk; m.at = new Date().toISOString(); AIM.loc.push(m); };   // un mot de {g} (ou du joueur) seulement sur cet appareil
@@ -133,8 +140,8 @@
     const ps = atlProjets(), tiles = R.querySelectorAll('.atl-pgrid .atl-pwrap > .atl-ptile');
     ps.forEach((pj, i) => {
       const t = tiles[i], x = AIM.types[pj.id]; if (!t || !x || x.type !== 'images') return;
-      const v = t.querySelector('.atl-pv'); if (v) { v.textContent = ''; const u = urlImg(x.image, 300); if (u) { const im = E('img'); im.alt = ''; im.src = u; v.appendChild(im); } else v.textContent = '🎨'; }
-      const s = t.querySelector('.atl-pver'); if (s) { s.className = 'atl-pver'; s.textContent = '🎨 Images · ' + (x.images | 0) + ' image' + ((x.images | 0) > 1 ? 's' : '') + ((x.en_cours | 0) ? ' · ⏳' : ''); }
+      const v = t.querySelector('.atl-pv'); if (v) { v.textContent = ''; const im = E('img'); im.alt = ''; im.src = miniUrl(pj.id, 300); v.appendChild(im); }
+      const s = t.querySelector('.atl-pver'); if (s) { s.className = 'atl-pver'; s.textContent = '📷 ' + atelierDe(pj.id).nom + ' · ' + statutAt(pj.id); }
       for (const q of t.querySelectorAll('.atl-pver2, .atl-pprepa')) q.remove();
     });
   }
@@ -459,7 +466,7 @@
       if (d.prix) AIM.prix = d.prix;
       const cs = d.creations || [];
       if (!cs.some(c => c.id === AIM.cur)) AIM.cur = cs.length ? cs[0].id : null;
-      if (AIM.types[d.id]) { AIM.types[d.id].titre = d.titre; AIM.types[d.id].images = cs.length; }
+      if (AIM.types[d.id]) { AIM.types[d.id].titre = d.titre; AIM.types[d.id].images = cs.length; const L = resultats(); if (L.length) AIM.types[d.id].retouche = L[0].v.path; }   // la miniature suit la dernière retouche
       if (avant && JSON.stringify(avant.creations) !== JSON.stringify(cs)) { AIM.pos = 0.5; }
       return true;
     } catch (e) {
@@ -528,9 +535,8 @@
   }
   function jaquette(pj, img) {
     const ic = E('span', 'ic jaq');
-    if (!img && typeDe(pj.id) === 'images') { ic.textContent = '🎨'; ic.style.background = '#efe6ff'; return ic; }   // un atelier pas encore livré : une ligne comme un jeu en montage
-    if (img) { const x = AIM.types[pj.id], u = x && urlImg(x.image, 120); if (u) { const im = E('img'); im.alt = ''; im.src = u; ic.appendChild(im); } else ic.textContent = '🎨'; ic.style.background = '#efe6ff'; }
-    else { try { atlPvJaq(ic, pj); } catch (e) { ic.textContent = '🎮'; } ic.style.background = '#2a1f45'; }
+    if (estAtelier(pj.id)) { const im = E('img'); im.alt = ''; im.src = miniUrl(pj.id, 120); ic.appendChild(im); ic.classList.add('at-mini'); return ic; }   // le sien ou celui d'un joueur (admin)
+    { try { atlPvJaq(ic, pj); } catch (e) { ic.textContent = '🎮'; } ic.style.background = '#2a1f45'; }
     return ic;
   }
   function ligneProjet(pj, opts) {
@@ -545,7 +551,8 @@
     const nb = (ca.bulles || []).filter(b => !/atl-(pprepa|pdc)\b/.test(b.c) && !/^(⏳|🛠️)/u.test(b.t)).reduce((t, b) => t + (parseInt((b.t.match(/\d+/) || [1])[0], 10) || 1), 0);   // seulement ce qui attend le joueur (questions, réponses, à choisir, à valider) ; pas « en préparation », « en cours », « mise de côté »
     if (nb) ic.appendChild(E('i', 'pastille', String(Math.min(99, nb))));   // la pastille rouge : le nombre de ses bulles (réponses, questions, à choisir…)
     const nm = E('span', 'nm', pj.titre || (img ? 'Mes images' : 'Sans nom'));
-    const st = opts.autre ? '👤 ' + (typeof dispName === 'function' ? dispName(pj.joueur || '') : pj.joueur || '') + (ca.statut ? ' · ' + ca.statut : '') : (typeDe(pj.id) === 'images' && !img) ? 'En préparation avec ' + PK() : ca.statut || (img ? 'Images' : 'Jeu');
+    const sa = estAtelier(pj.id) ? statutAt(pj.id) : ca.statut;
+    const st = opts.autre ? '👤 ' + (typeof dispName === 'function' ? dispName(pj.joueur || '') : pj.joueur || '') + (sa ? ' · ' + sa : '') : sa || 'Jeu';
     nm.appendChild(E('small', '', st));
     for (const b of (ca.bulles || []).slice(0, 2)) nm.appendChild(E('em', 'bulle ' + b.c.replace(/\batl-/g, 'b-'), b.t));
     n.append(E('span', 'fl', opts.autre ? '' : ouvert && AIM.ouverts[pj.id] ? '▾' : '▸'), ic, nm);

@@ -591,3 +591,6 @@
 .crea .crea-fil .crea-admb{margin-left:10px;padding:3px 10px;border-radius:999px;background:#ffe3e3;color:#b4232c;font-weight:800;font-size:12px;white-space:nowrap}
 @media (prefers-color-scheme:dark){.crea .crea-fil .crea-admb{background:#4a1d22;color:#ffb3b8}}
 @media (max-width:699px){.crea .crea-fil .crea-admb{margin-left:0;padding:1px 8px}.crea .crea-fil .crea-admb .l{display:none}}
+/* la miniature d'un atelier dans les listes (7 nov.) : l'image du type ou la dernière photo retouchée, jamais une manette */
+.crea-nd .ic.jaq.at-mini{background:transparent}
+.crea-nd .ic.jaq.at-mini > img{box-shadow:0 2px 6px rgba(40,20,80,.18)}
