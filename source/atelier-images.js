@@ -648,7 +648,7 @@
 
   function renderAtelier(O) {
     const c = curCrea();
-    if (!c) { if (atelierOuvert(AIM.fiche)) renderDepot(O); else videImport(O, 'Importe ta première image', 'Une photo de Pégase, un dessin, un paysage, ton animal… Ensuite, dis-moi ce que tu veux changer. (Pas de photo où l’on voit le visage d’une vraie personne.)'); return; }
+    if (!c) { if (atelierOuvert(AIM.fiche)) renderDepot(O); else videImport(O, 'Importe ta première image', 'Une photo, un dessin, un paysage, ton animal… Ensuite, dis-moi ce que tu veux changer.'); return; }
     const act = verDe(c, c.actuelle), att = c.versions.find(v => ['envoi', 'controle', 'en_cours'].includes(v.etat));
     const avant = act && (verDe(c, act.parent) || (act.n > 1 ? c.versions.find(v => v.n === 1 && v.etat === 'prete') : null));
     const G = E('div', 'crea-oimg' + (atelierOuvert(AIM.fiche) ? ' at' : ''));
@@ -722,7 +722,7 @@
     const im = E('img'); im.src = POSE('dessine'); im.alt = '';
     const bt = B('crea-bt', cfg.ajouter, e => { e.stopPropagation(); choisirFichier(); });
     z.append(im, E('b', '', TOUCH ? 'Ajoute ta photo' : cfg.depot), E('p', '', TOUCH ? 'Depuis ta galerie ou ton appareil photo.' : 'Glisse-la ici depuis ton ordinateur, ou choisis-la.'), bt,
-      E('small', '', 'Gratuit · JPEG, PNG, WebP ou HEIC (iPhone) · 5 Mo au plus · pas de photo où l’on voit le visage d’une vraie personne'));
+      E('small', '', 'Gratuit · JPEG, PNG, WebP ou HEIC (iPhone) · 5 Mo au plus'));
     z.addEventListener('click', () => choisirFichier());
     z.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choisirFichier(); } });
     depotSur(z); c.appendChild(z); O.appendChild(c);
