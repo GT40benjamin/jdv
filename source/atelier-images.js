@@ -612,7 +612,7 @@
   }
   function ouvrirGuide() {
     const R = AIM.root; if (!R) return;
-    if (sansPanneau()) {   // l'admin (7 nov.) : « Pooky n'a pas à être à droite ET au milieu » → sa conversation s'ouvre au centre, comme les autres menus
+    if (sansPanneau()) {   // l'admin (7 nov.) : « {g} n'a pas à être à droite ET au milieu » → sa conversation s'ouvre au centre, comme les autres menus
       R.classList.remove('tiroir', 'pk-plein'); AIM.vue = 'guide'; AIM.vuAt = Date.now(); render();
       setTimeout(() => { const t = R.querySelector('.crea-disc textarea'); if (t) { t.focus({ preventScroll: true }); try { t.setSelectionRange(t.value.length, t.value.length); } catch (e) {} } }, 60);
       return;
