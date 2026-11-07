@@ -619,3 +619,26 @@ CE QUE LE JEU FAIT : il décide ce que le mode débloque — au MINIMUM des vies
 ouverts) ; il peut aussi montrer un petit menu de test (aller au boss, donner les objets…). Il ne garde lui-même rien de ce qui est gagné
 dans ce mode (pièces, objets, avancement dans son propre localStorage) : utiliser `api.save` (déjà séparé) ou ne rien écrire si `api.createur`.
 Un jeu qui ignore le drapeau marche exactement comme avant (rien d'enregistré quand même).
+
+## Ajout 30 : les RÉGLAGES d'un jeu de l'Atelier (api.reglages, 7 nov. 2026 ; admins seulement, 1er jeu : Astrofaune V25)
+Un module peut exposer des valeurs que l'ADMIN modifie sans nouvelle version (onglet « 🎚️ Réglages du jeu » de la page du projet, admins
+seulement, SQL `reglages-jeux.sql` : `at_fiches.reglages`, `at_reglages_poser`) :
+```js
+reglages: {
+  v: 1,                    // version du format de TES réglages
+  defauts: { … },          // l'objet complet, JSON pur, sans euros ni secret
+  schema: [ … ],           // les sections, dans l'ordre d'affichage
+  fiches(r) { … }          // facultatif ; r = réglages fusionnés en cours → [{ id, titre, type, image?, sous?, colonnes: [{ cle, titre }], lignes: [{…}] }]
+}
+```
+Section du schema (`cle` = la clé dans `defauts`) :
+- `{ cle, titre, type: 'table', id: 'id', colonnes: [COL], recherche?, filtre? }` : `defauts[cle]` est un TABLEAU d'objets ; on modifie les
+  cases, on n'ajoute ni ne retire de ligne ; `id` = la colonne qui identifie une ligne ; `filtre` = une colonne pour filtrer (ex. 'type') ;
+- `{ cle, titre, type: 'objet', champs: [COL] }` : `defauts[cle]` est un objet { clé: valeur } ;
+- COL = `{ cle, titre, type: 'nombre' | 'texte' | 'choix' | 'oui_non', min?, max?, pas?, options?, lecture?, aide? }`
+  (`options` = `['feu', …]` ou `[{ v, t }]` ; `lecture: true` = affiché, pas modifiable).
+`fiches(r)` est rappelée à chaque modification (150 ms après ; plus espacé si elle dépasse 120 ms) : l'admin voit l'effet tout de suite.
+AU MONTAGE : `api.reglages` = ce que l'admin a enregistré, `{ v, valeurs: { <cle>: … }, at, par }`, avec SEULEMENT ce qui diffère des
+défauts (table : les lignes modifiées `{ id, champs changés }` ; objet : les clés changées), ou `null` (valeurs par défaut). Le JEU fusionne
+section par section (table : ligne par ligne selon `id` ; objet : clé par clé) ; si `v` ne correspond plus à sa version, à lui de décider.
+Un jeu sans `reglages` (ou qui ignore `api.reglages`) marche exactement comme avant.
