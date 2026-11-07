@@ -50,7 +50,7 @@
   const ATELIERS = {
     images: {
       nom: 'Atelier photo',
-      menu: [['atelier', '🖼️', 'Mon atelier'], ['pooky', '💬', ''], ['resultats', '✨', 'Photos retouchées'], ['route', '🗺️', 'Feuille de route'], ['versions_at', '🗂️', 'Versions'], ['params', '⚙️', 'Paramètres']],
+      menu: [['atelier', '🖼️', 'Mon atelier'], ['guide', '💬', ''], ['resultats', '✨', 'Photos retouchées'], ['route', '🗺️', 'Feuille de route'], ['versions_at', '🗂️', 'Versions'], ['params', '⚙️', 'Paramètres']],
       depot: 'Dépose ta photo ici', ajouter: '＋ Ajouter une photo', invite: 'Dis-moi ce que tu veux faire avec cette photo',
       resultat: 'Photos retouchées', videResultat: 'Tes photos retouchées arriveront ici : chaque retouche faite dans ton atelier, prête à télécharger.',
       fond: 'studio'
@@ -574,10 +574,10 @@
     const cfg = atelierDe(AIM.fiche), pj = AIM.types[AIM.fiche] || {};
     const h = E('div', 'crea-mat-h'); h.append(E('b', '', (AIM.d && AIM.d.titre) || pj.titre || cfg.nom), E('small', '', '🧪 ' + cfg.nom + ' · V' + Math.max(1, versionAt(AIM.fiche))));
     A.appendChild(h);
-    const pk = B('crea-mat-pk', null, () => ouvrirPooky()), im = E('img'), t = E('span'); im.alt = ''; im.src = AV();
+    const pk = B('crea-mat-pk', null, () => ouvrirGuide()), im = E('img'), t = E('span'); im.alt = ''; im.src = AV();
     t.append(E('b', '', PK()), E('small', '', enAttente() ? 'prépare ta photo…' : 'Je suis là ! Une idée ?')); pk.append(im, t); A.appendChild(pk);
     for (const [k, ic, lab] of cfg.menu) {
-      const b = B('crea-nd crea-mat-b' + (AIM.vue === k ? ' on' : ''), null, () => { AIM.root.classList.remove('tiroir'); if (k === 'pooky') { ouvrirPooky(); return; } AIM.vue = k; render(); });
+      const b = B('crea-nd crea-mat-b' + (AIM.vue === k ? ' on' : ''), null, () => { AIM.root.classList.remove('tiroir'); if (k === 'guide') { ouvrirGuide(); return; } AIM.vue = k; render(); });
       b.dataset.k = k; b.append(E('i', '', ic), E('span', 'nm', lab || PK()));
       if (k === 'resultats') { const n = resultats().length; if (n) b.appendChild(E('span', 'n', String(n))); }
       A.appendChild(b);
@@ -586,7 +586,7 @@
     const r = B('crea-nd crea-mat-ret', null, () => { AIM.root.classList.remove('tiroir'); fermerVersProjets(); }); r.append(E('i', '', '←'), E('span', 'nm', 'Mes projets')); A.appendChild(r);
     A.appendChild(E('div', 'crea-pied', 'Ce que tu crées ici reste privé : toi seul le vois.'));
   }
-  function ouvrirPooky() {
+  function ouvrirGuide() {
     const R = AIM.root; if (!R) return;
     if (etroit()) { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); }
     else { R.classList.remove('pk-replie'); try { store.set('jdw.crea.pkreplie', false); } catch (e) {} }
@@ -739,8 +739,8 @@
     else {
       col.append(E('b', '', '👁️ ' + PK() + ' a regardé ta photo'), E('p', '', sansChemin(r.rep.t)));
       const act2 = E('div', 'crea-regard-act');
-      const oui = B('crea-bt', '✨ Oui, fais-le · ' + px, () => { const t = proposition(r.rep.t); if (t.length < 3) { ouvrirPooky(); return; } fabriquer('parole', t); });
-      const non = B('crea-bt blanc', '💬 Je veux autre chose', () => ouvrirPooky());
+      const oui = B('crea-bt', '✨ Oui, fais-le · ' + px, () => { const t = proposition(r.rep.t); if (t.length < 3) { ouvrirGuide(); return; } fabriquer('parole', t); });
+      const non = B('crea-bt blanc', '💬 Je veux autre chose', () => ouvrirGuide());
       act2.append(oui, non); col.appendChild(act2);
     }
     K.classList.add('vu'); K.append(im, col); return K;
