@@ -46,6 +46,8 @@
     return !!pj && ((pj.version | 0) >= 1 || ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')));
   }
   const atelierOuvert = id => typeDe(id) === 'images' && livre(id);
+  // un atelier LIVRÉ n'a plus le panneau de {g} à droite (ni sa bulle flottante au téléphone) : le menu « 💬 {g} » ouvre la conversation au centre
+  const sansPanneau = () => !!(AIM.open && AIM.fiche && AIM.vue !== 'nouveau' && atelierOuvert(AIM.fiche));
   // VUE ADMIN (7 nov.) : l'atelier d'un autre joueur (type « autre », SQL v166) se LIT seulement : rien n'est écrit ni dépensé à sa place ;
   // seule la discussion reste ouverte : l'admin y répond comme {g} (at_admin_agir 'discussion', comme le mode admin de l'Interface)
   const adm = () => !!(AIM.fiche && AIM.types[AIM.fiche] && AIM.types[AIM.fiche].autre && AIM.vue !== 'nouveau');
@@ -57,7 +59,7 @@
   const ATELIERS = {
     images: {
       nom: 'Atelier photo',
-      menu: [['atelier', '🖼️', 'Mon atelier'], ['guide', '💬', ''], ['resultats', '✨', 'Photos retouchées'], ['route', '🗺️', 'Feuille de route'], ['versions_at', '🗂️', 'Versions'], ['params', '⚙️', 'Paramètres']],
+      menu: [['atelier', '🖼️', 'Mon atelier'], ['guide', '💬', ''], ['resultats', '✨', 'Photos retouchées'], ['route', '🗺️', 'Feuille de route & versions'], ['params', '⚙️', 'Paramètres']],
       depot: 'Dépose ta photo ici', ajouter: '＋ Ajouter une photo', invite: 'Dis-moi ce que tu veux faire avec cette photo',
       resultat: 'Photos retouchées',
       // la MINIATURE du type dans les listes (Mes projets, Projets des joueurs) tant qu'aucune photo n'est retouchée ; jamais une manette
@@ -514,6 +516,9 @@
     q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
     let so = AIM.solde; if (typeof so !== 'number') { try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {} }   // sans SQL v160 : le solde de l'Atelier (testeurs, 6 nov.)
     q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + (adm() ? joueurAdm() + ' ' : '') + so + (etroit() || adm() ? '' : ' crédits') : '';
+    R.classList.toggle('at-centre', sansPanneau());
+    if (AIM.vue === 'guide') { const f = R.querySelector('.crea-disc .crea-fil2'), a = document.activeElement;
+      AIM.discEtat = { bas: f ? f.scrollHeight - f.scrollTop - f.clientHeight < 40 : true, foc: !!(a && a.tagName === 'TEXTAREA' && a.closest('.crea-disc')) }; }
     renderArbre(); renderOutil(); renderMasc(); renderFlot();
   }
   // ---------- l'arbre « Mes projets » : la VRAIE jaquette (atlPvJaq de l'Interface), son STATUT et ses BULLES, lus tels quels sur les cartes
@@ -598,6 +603,7 @@
       const b = B('crea-nd crea-mat-b' + (AIM.vue === k ? ' on' : ''), null, () => { AIM.root.classList.remove('tiroir'); if (k === 'guide') { ouvrirGuide(); return; } AIM.vue = k; render(); });
       b.dataset.k = k; b.append(E('i', '', ic), E('span', 'nm', lab || PK()));
       if (k === 'resultats') { const n = resultats().length; if (n) b.appendChild(E('span', 'n', String(n))); }
+      if (k === 'guide' && AIM.vue !== 'guide') { const n = AIM.msgs.filter(m => m.pk && m.at && +new Date(m.at) > AIM.vuAt).length; if (n) b.appendChild(E('span', 'n', String(Math.min(9, n)))); }   // ses nouveaux messages
       A.appendChild(b);
     }
     A.appendChild(E('div', 'crea-mat-sp'));
@@ -606,6 +612,11 @@
   }
   function ouvrirGuide() {
     const R = AIM.root; if (!R) return;
+    if (sansPanneau()) {   // l'admin (7 nov.) : « Pooky n'a pas à être à droite ET au milieu » → sa conversation s'ouvre au centre, comme les autres menus
+      R.classList.remove('tiroir', 'pk-plein'); AIM.vue = 'guide'; AIM.vuAt = Date.now(); render();
+      setTimeout(() => { const t = R.querySelector('.crea-disc textarea'); if (t) { t.focus({ preventScroll: true }); try { t.setSelectionRange(t.value.length, t.value.length); } catch (e) {} } }, 60);
+      return;
+    }
     if (etroit()) { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); }
     else { R.classList.remove('pk-replie'); try { store.set('jdw.crea.pkreplie', false); } catch (e) {} }
     setTimeout(() => { const t = R.querySelector('.crea-masc textarea'); if (t && !TOUCH) t.focus({ preventScroll: true }); }, 60);
@@ -616,6 +627,8 @@
     AIM.root.classList.toggle('studio', fd === 'studio');
     AIM.root.style.backgroundImage = AIM.vue === 'nouveau' || fd ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
     if (AIM.vue === 'nouveau') { renderNouveau(O); return; }
+    if (AIM.vue === 'versions_at') AIM.vue = 'route';   // l'admin (7 nov.) : « Feuille de route et Versions, ça va ensemble »
+    if (AIM.vue === 'guide') { renderGuideCentre(O, AIM.discEtat || {}); AIM.discEtat = null; return; }
     if (!AIM.d) {   // l'admin (6 nov., 23 h) : JAMAIS un chargement sans fin. Une erreur (ou 10 s sans réponse) → un message clair + Réessayer
       const c = E('div', 'crea-carte crea-page'), v = E('div', 'crea-vide');
       const trop = Date.now() - (AIM.ouvAt || 0) > 10000;
@@ -633,8 +646,7 @@
     else if (AIM.vue === 'versions') renderVersions(O);
     else if (AIM.vue === 'reglages' || AIM.vue === 'params') renderReglages(O);
     else if (AIM.vue === 'resultats') renderResultats(O);
-    else if (AIM.vue === 'route') renderRoute(O);
-    else if (AIM.vue === 'versions_at') renderVersionsAt(O);
+    else if (AIM.vue === 'route') { renderRoute(O); renderVersionsAt(O); }
     else renderAtelier(O);
     O.scrollTop = sy;
   }
@@ -802,7 +814,7 @@
   }
   // 🗂️ les versions de l'ATELIER (livrées comme celles d'un jeu) ; les versions d'une photo sont dans « Mon atelier »
   function renderVersionsAt(O) {
-    const p = E('div', 'crea-carte crea-page'); p.appendChild(E('div', 'crea-h', '🗂️ LES VERSIONS DE TON ATELIER'));
+    const p = E('div', 'crea-carte crea-page crea-vats'); p.appendChild(E('div', 'crea-h', '🗂️ LES VERSIONS'));
     const vs = (AIM.fi && Array.isArray(AIM.fi.versions) ? AIM.fi.versions.slice() : []).filter(v => v && (v.v | 0)).sort((a, b) => (b.v | 0) - (a.v | 0));
     if (!vs.length) { const n = Math.max(1, versionAt(AIM.fiche)); const r = E('div', 'crea-vat'); r.append(E('b', '', 'V' + n + ' · ton atelier'), E('p', '', 'Préparé par ' + PK() + ' pour toi. Chaque amélioration de ton atelier arrive ici comme une nouvelle version.')); p.appendChild(r); }
     for (const v of vs) {
@@ -879,6 +891,19 @@
   }
 
   // ---------- {g}, À PART ----------
+  function renderGuideCentre(O, et) {
+    const p = E('div', 'crea-carte crea-page crea-disc'), h = E('div', 'crea-disc-h'), im = E('img'), tx = E('div');
+    im.alt = ''; im.src = AV(); tx.append(E('b', '', PK()), E('small', '', adm() ? '🛡️ La conversation de ' + joueurAdm() + ' · tu réponds comme ' + PK() : '● en ligne · je t’écoute'));
+    h.append(im, tx); p.appendChild(h);
+    const F = E('div', 'crea-fil2'); F.setAttribute('role', 'log'); F.setAttribute('aria-live', 'polite');
+    const L = filMasc(); if (!L.length) F.appendChild(E('p', 'crea-vide-t', 'Écris-moi ici ce que tu veux faire 😊'));
+    for (const m of L) F.appendChild(bulle(m));
+    if (AIM.prop) F.appendChild(propCarte());
+    p.appendChild(F);
+    const S = saisie(); p.appendChild(S); O.appendChild(p);
+    if (et.bas !== false) F.scrollTop = F.scrollHeight;
+    if (et.foc) S.querySelector('textarea').focus({ preventScroll: true });
+  }
   function renderMasc() {
     const P = AIM.root.querySelector('.crea-masc'), vieux = P.querySelector('.crea-fil2'), bas = vieux ? vieux.scrollHeight - vieux.scrollTop - vieux.clientHeight < 40 : true;
     const foc = !!(document.activeElement && document.activeElement.tagName === 'TEXTAREA' && AIM.root.contains(document.activeElement) && document.activeElement.closest('.crea-saisie'));

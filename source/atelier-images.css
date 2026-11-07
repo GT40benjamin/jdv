@@ -594,3 +594,20 @@
 /* la miniature d'un atelier dans les listes (7 nov.) : l'image du type ou la dernière photo retouchée, jamais une manette */
 .crea-nd .ic.jaq.at-mini{background:transparent}
 .crea-nd .ic.jaq.at-mini > img{box-shadow:0 2px 6px rgba(40,20,80,.18)}
+/* l'admin (7 nov.) : « Pooky n'a pas à être à droite ET au milieu » — un atelier livré n'a plus le panneau de droite ni la bulle flottante ;
+   la zone de travail prend la place ; la conversation complète s'ouvre au centre par le menu « 💬 » */
+.crea.at-centre .crea-masc,.crea.at-centre .crea-flot{display:none!important}
+.crea.at-centre .crea-outil{right:var(--cg)}
+@media (max-width:699px){.crea.at-centre .crea-outil{left:var(--cg);padding-bottom:calc(var(--cg) + env(safe-area-inset-bottom,0px))}}
+.crea-disc{display:flex;flex-direction:column;gap:0;padding:0;height:100%;min-height:0;overflow:hidden}
+.crea-disc-h{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #eee6ff}
+.crea-disc-h img{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#efe6ff}
+.crea-disc-h b{display:block;font-family:var(--display);font-size:17px;color:#2a1f45}
+.crea-disc-h small{display:block;font-size:13px;font-weight:700;color:#2f7d4f}
+.crea-disc .crea-fil2{flex:1;min-height:0;overflow:auto;padding:14px 16px}
+.crea-disc .crea-saisie{border-top:1px solid #eee6ff}
+.crea-vats{margin-top:var(--cg)}
+.crea.nuit .crea-disc-h{border-bottom-color:#3a2f73}
+.crea.nuit .crea-disc-h b{color:#f4edff}
+.crea.nuit .crea-disc-h small{color:#8fe0b0}
+.crea.nuit .crea-disc .crea-saisie{border-top-color:#3a2f73}
