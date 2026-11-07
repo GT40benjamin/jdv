@@ -286,6 +286,8 @@
 .crea-tarb2{margin-top:14px;padding-top:12px;border-top:2px dashed #e6dcf3}
 .crea-nouveau{margin:2px 0 8px}
 /* ===== Monde sombre (nuages de nuit), mémorisé sur l'appareil ===== */
+.crea-son{font-size:18px;margin-left:auto}
+.crea-son + .crea-monde{margin-left:0}
 .crea-monde{font-size:18px;margin-left:auto}
 .crea-monde + .crea-cred{margin-left:0}
 .crea.nuit{background-color:#120d2b}
@@ -834,3 +836,14 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 .crea-resi .tt b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .crea-resi .tt select{flex:0 0 auto}
 .crea-resi > .crea-bt{margin-top:auto}
+/* de 1280 à 1439 px : menu et panneau un peu plus étroits, pour que la photo garde au moins 300 px à côté de la colonne OUTILS sur deux colonnes */
+@media (min-width:1280px) and (max-width:1439px){.crea{--carb:232px;--cpk:330px}}
+/* téléphone : la barre du haut tient avec 🔊, 🌙, 🛡️ et les crédits (l'admin n'y voit plus que l'icône 🛡️, la pastille des crédits se resserre) */
+@media (max-width:699px){.crea .crea-admbt{padding:0;width:40px;flex:0 0 40px}.crea .crea-admbt .l{display:none}.crea-cred{padding:6px 10px;font-size:14px;gap:5px;min-width:0}.crea-son,.crea-monde{flex:0 0 36px;width:36px;height:36px}}
+@media (max-width:699px){.crea .crea-fil .crea-admb{display:none}}   /* téléphone, vue admin : le bouton 🛡️ dit déjà « admin » ; le titre garde sa place */
+/* téléphone : le titre prend la place qui reste ; s'il en a moins de 80 px (vue admin, 360 px), il se cache proprement au lieu d'afficher « C / M » */
+@media (max-width:699px){.crea-fil{container-type:inline-size;flex:1 1 0;min-width:0}}
+@container (max-width:80px){.crea-fil > *{visibility:hidden}}
+.crea-filmarq{display:none}
+@media (max-width:699px){.crea-fil::before{content:none;display:none}.crea-filmarq{display:block;font-family:var(--body);font-size:13px;font-weight:700;letter-spacing:.5px;color:var(--cdoux);overflow:hidden;text-overflow:ellipsis}.crea.nuit .crea-filmarq{color:#b9acd8}}
+.crea .crea-admbt{display:inline-flex;align-items:center;justify-content:center;gap:2px}   /* 🛡️ et « Admin » sur une ligne */

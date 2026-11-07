@@ -169,7 +169,7 @@
     R.innerHTML = '<header class="crea-bar"><button class="crea-rond crea-menu" type="button" aria-label="Mes projets">☰</button>'
       + '<button class="crea-rond crea-retour" type="button" aria-label="Retour">‹</button>'
       + '<div class="crea-marque"><img alt="" src="' + AV() + '"><b></b></div><div class="crea-fil"></div>'
-      + '<button class="crea-rond crea-monde" type="button"></button><button class="crea-cred" type="button" title="Tes crédits : en avoir plus"></button></header>'
+      + '<button class="crea-rond crea-son" type="button"></button><button class="crea-rond crea-monde" type="button"></button><button class="crea-cred" type="button" title="Tes crédits : en avoir plus"></button></header>'
       + '<div class="crea-ciel" aria-hidden="true"></div>'
       + '<div class="crea-corps"><nav class="crea-arbre crea-carte" aria-label="Mes projets"></nav><main class="crea-outil"></main>'
       + '<aside class="crea-masc crea-carte" aria-label="Discussion avec ' + PK() + '"></aside></div>'
@@ -185,6 +185,11 @@
     q('.crea-flot').addEventListener('click', () => { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); setTimeout(() => { const t = q('.crea-masc textarea'); if (t) t.focus({ preventScroll: true }); }, 60); });
     q('.crea-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0], nv = e.target.dataset.nv; e.target.value = ''; delete e.target.dataset.nv; if (!f) return; if (nv && AIM.vue === 'nouveau') imageNouveau(f); else importer(f); });
     q('.crea-cred').addEventListener('click', () => { try { atlRecharger(); } catch (e) {} });
+    // l'admin (7 nov.) : le bouton 🔊 / 🔇 des autres écrans (l'Atelier des jeux, à côté de « Mes demandes ») — le MÊME réglage partagé
+    // (jdw.atl.mus) : couper ici coupe partout, la musique de l'Atelier comme le petit son « paillettes » d'une retouche prête
+    q('.crea-son').addEventListener('click', () => { const on = !sonOn(); try { store.set('jdw.atl.mus', on); } catch (e) {}
+      try { if (typeof ATL !== 'undefined' && ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic(''); } } catch (e) {}
+      sonMaj(); });
     q('.crea-monde').addEventListener('click', () => { const n = !R.classList.contains('nuit'); try { store.set('jdw.crea.monde', n ? 'nuit' : 'jour'); } catch (e) {} monde(); });
     monde();
     try { if (store.get('jdw.crea.pkreplie', false)) R.classList.add('pk-replie'); } catch (e) {}
@@ -655,8 +660,13 @@
   // l'état d'UNE version vient de SON champ etat (jamais déduit des autres)
   const etatLib = x => x.etat === 'prete' && x.path ? '' : ['ratee', 'refusee'].includes(x.etat) ? ' · ratée' : x.etat === 'controle' ? ' · en vérification' : ['en_cours', 'envoi'].includes(x.etat) ? ' · en cours' : x.etat === 'prete' ? ' · sans image' : ' · ' + (x.etat || '?');
   // SAMBA (7 nov.) : « un petit son de scintillement quand c'est prêt » — 4 notes douces qui montent (~0,7 s), le bouton son de la borne décide
+  const sonOn = () => { try { return store.get('jdw.atl.mus', true) !== false; } catch (e) { return true; } };
+  function sonMaj() {   // notre bouton ET celui de l'Atelier des jeux (même réglage)
+    const on = sonOn();
+    for (const b of document.querySelectorAll('#jdw-crea .crea-son, .atl-musb')) { b.textContent = on ? '🔊' : '🔇'; b.title = on ? 'Couper le son' : 'Remettre le son'; b.setAttribute('aria-label', b.title); b.setAttribute('aria-pressed', on ? 'false' : 'true'); }
+  }
   function scintille() {
-    if (adm()) return;
+    if (adm() || !sonOn()) return;
     try { if (typeof muted !== 'undefined' && muted) return; Audio.ensure(); [[1568, 0], [2093, 110], [2637, 230], [3136, 360]].forEach(([f, d]) => setTimeout(() => { try { Audio.tone(f, 0.32, 'sine', 0.035); } catch (e) {} }, d)); } catch (e) {}
   }
   // v176 : une image ajoutée pour en modifier une autre (at_creations.pour_creation → « pour ») n'est pas une image à part
@@ -676,6 +686,7 @@
   // ---------- rendu ----------
   function render() {
     AIM.sigReac = (AIM.msgs || []).map(m => m.reaction || '').join('');   // les réactions affichées (voir suivre)
+    sonMaj();
     fermerCopier();
     if (!AIM.root || !AIM.open) return;
     const R = AIM.root, q = s => R.querySelector(s);
@@ -686,6 +697,7 @@
       fil.append(E('span', 'lien', adm() ? '· Projets des joueurs' : '· Mes projets'), E('span', 'lien', ' › '), E('strong', '', ti));
       if (adm()) { const ab = E('span', 'crea-admb', '🛡️ '); ab.append(E('span', 'l', 'Vue admin · '), joueurAdm()); fil.appendChild(ab); }
     }
+    fil.prepend(E('span', 'crea-filmarq', 'CRÉE AVEC ' + PK().toUpperCase()));   // au téléphone, la 1re ligne du titre (avant : ::before, que le titre ne pouvait pas cacher)
     q('.crea-marque b').textContent = 'CRÉE AVEC ' + PK().toUpperCase(); R.style.setProperty('--crea-nom', JSON.stringify('CRÉE AVEC ' + PK().toUpperCase()));
     let so = AIM.solde; if (typeof so !== 'number') { try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {} }   // sans SQL v160 : le solde de l'Atelier (testeurs, 6 nov.)
     q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + (adm() ? joueurAdm() + ' ' : '') + so + (etroit() || adm() ? '' : ' crédits') : '';
@@ -694,7 +706,7 @@
     // testeur 2 (915 px, téléphone couché) : sous 1280 px le panneau de {g} se replie tout seul dans un atelier livré (la photo n'avait que ~200 px) ;
     // un toucher sur sa languette le rouvre, et ce choix est gardé
     if (sansPanneau() && innerWidth < 1280 && innerWidth >= 700 && !AIM.pkOuvert) R.classList.add('pk-replie');   // la grande discussion au centre replie le panneau de droite
-    { let k = R.querySelector('.crea-admbt'); if (adm()) { if (!k) { k = B('crea-rond crea-admbt', '🛡️ Admin', () => fenetreAdmin()); const cr = q('.crea-cred'); cr.parentNode.insertBefore(k, cr); }
+    { let k = R.querySelector('.crea-admbt'); if (adm()) { if (!k) { k = B('crea-rond crea-admbt', null, () => fenetreAdmin()); k.append('🛡️', E('span', 'l', ' Admin')); k.title = 'Admin'; k.setAttribute('aria-label', 'Admin'); const cr = q('.crea-cred'); cr.parentNode.insertBefore(k, cr); }
       k.title = 'Mode admin : projet de ' + joueurAdm(); } else if (k) k.remove(); }
     if (AIM.vue === 'guide') { const f = R.querySelector('.crea-disc .crea-fil2'), a = document.activeElement;
       AIM.discEtat = { bas: f ? f.scrollHeight - f.scrollTop - f.clientHeight < 40 : true, foc: !!(a && a.tagName === 'TEXTAREA' && a.closest('.crea-disc .crea-saisie')) }; }
