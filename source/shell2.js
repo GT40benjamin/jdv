@@ -140,9 +140,11 @@ function atlModule(id, v) {
   }));
   ATL_MOD_FILE = p.catch(() => null); ATL_MODS.set(k, p); return p;
 }
+let INV_ESSAI = null;   // 7 nov. 2026 : partie rejointe sur l'invitation « en essai » d'un ami : { jeu, v } (effacé en quittant le jeu)
 function atlVoulue(id) {   // la version à jouer : cadre de l'Atelier (?v=), partie lancée depuis l'Atelier (la dernière), borne (la publiée)
   if (!ATL_NES.has(id)) return 0;
   if (CADRE) return +new URLSearchParams(location.search).get('v') | 0;
+  if (INV_ESSAI && INV_ESSAI.jeu === id) return INV_ESSAI.v;   // l'ami joue la version de l'invitation (en essai), pas la publiée
   try { if (ATL && ATL.jeu) { const f = atlFiche(); return f && f.jeu === id ? (f.version | 0) || 1 : 0; } } catch (e) {}
   const x = ATL_JEUX.get(id); return x ? x.version_publiee | 0 : 0;
 }
@@ -10840,8 +10842,15 @@ async function livInvRejoindre(id) {
   if (!livInvOk()) { if (isGuest()) guestAsk('Rejoindre un copain'); return; }
   let r = null; try { r = await rpc('live_invitation_repondre', { p_name: profile.name, p_id: id, p_oui: true }, { quiet: true }); } catch (e) { r = null; }
   if (!r) { toastCheer('Cette invitation n’est plus valable.', null, true); return; }
+  if (r.fini && r.essai) { livInvInfo(r.de, 'L’invitation de ' + dispName(r.de || '') + ' n’est plus valable 😕', 'Cette version de ' + String(r.titre || 'son jeu').replace(/\s*\(V\d+ en essai\)$/, '') + ' a changé depuis. Quand le jeu sera publié, tu le trouveras sur ta borne.'); return; }   // 7 nov. 2026 : version en essai publiée ou remplacée
   if (r.fini) { livInvInfo(r.de, 'La partie de ' + dispName(r.de || '') + (r.titre ? ' à ' + r.titre : '') + ' est finie 😕', 'Envie d’y jouer ? Ouvre le jeu et touche « 📣 Inviter » : à ton tour d’inviter les copains !'); return; }
-  const g = gameById(r.jeu); if (!g) { toastCheer('Ce jeu n’est pas encore sur ta borne : mets-la à jour.', r.de, true); return; }
+  let g = gameById(r.jeu);
+  if (r.essai && (r.version | 0) > 0) {   // 7 nov. 2026 : invitation à la version EN ESSAI d'un jeu de l'Atelier (pas dans la grille) : cette version-là
+    atlNe(r.jeu); let g2 = null; try { g2 = await atlModule(r.jeu, r.version | 0); } catch (e) { g2 = null; }
+    if (!g2) { toastCheer('Ce jeu n’est pas encore arrivé sur ta borne : réessaie dans un moment.', r.de, true); return; }
+    g = g2;
+  }
+  if (!g) { toastCheer('Ce jeu n’est pas encore sur ta borne : mets-la à jour.', r.de, true); return; }
   if (!$('jdw-play').hidden) backToLibrary();
   if (!room || +room.id !== +r.salle) {   // on passe dans la salle de l'invitation (j'en suis membre : le serveur l'a vérifié)
     let rm = null; try { rm = ((await rpc('list_rooms', { p_code: CODE(), p_name: profile.name || '' })) || []).find(z => +z.r_id === +r.salle) || null; } catch (e) { rm = null; }
@@ -10849,6 +10858,7 @@ async function livInvRejoindre(id) {
     await new Promise(ok => setTimeout(ok, 1200));
   }
   toastCheer('Je te rejoins à ' + (r.titre || g.title) + ' !', r.de, true);
+  if (r.essai && (r.version | 0) > 0) { INV_ESSAI = { jeu: r.jeu, v: r.version | 0 }; setTimeout(() => openGame(g, true), 300); return; }
   setTimeout(() => openGame(g), 300);
 }
 // b) le lien du message « ▶️ Rejoindre » (hub de Pégase) : jouer/?rejoindre=<id>
@@ -11397,6 +11407,7 @@ function backToLibrary() {
   howtoHide(false); menuFermer(); MENU.passe = '';   // 2.0.139
   flushPending(); OPEN_SEQ++;   // 2.0.44 : un jeu encore en chargement ne s'ouvre plus une fois revenu à l'accueil
   creaFin();   // 2.1.4 : le mode créateur s'arrête en quittant le jeu
+  INV_ESSAI = null;   // 7 nov. 2026 : la version d'une invitation en essai ne sert que pour cette partie
   if (CADRE_G) { try { unmountGame(); } catch (e) {} $('jdw-end').hidden = true; $('jdw-play').hidden = false; mountGame(CADRE_G); return; }   // page d'un projet : on rejoue
   waitRotate = null; $('jdw-rotate').hidden = true;
   unmountGame();
@@ -17020,7 +17031,10 @@ function atlVSortie(W, f) {
 function atlPubBloc(f, g) { const b = atlEl('section', 'atl-pubb atl-escard'); b._g = g; atlPubBlocMaj(b, f); return b; }
 function atlPubBlocMaj(b, f) {
   const et = String(f.etat || ''), v = (f.version | 0) || 1, vp = f.version_publiee | 0, asked = !!f.monde_demande_at, adm = atlAdminIci(), occ = atlTravaille(f), auto = f.auto_publier !== false;
-  const sig = [et, v, vp, asked ? 1 : 0, adm ? 1 : 0, occ, auto ? 1 : 0].join('|'); if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
+  // 7 nov. 2026 : un jeu À PLUSIEURS (api.live / api.monde de la version en essai) : « 🎮 Inviter un ami à jouer avec moi »
+  const gk = f.jeu + '@' + v, gm = ATL_MODS_OK.get(gk) || null, multi = v > vp && atlInvEssaiJeu(gm || (b._g && (b._g.__v | 0) === v ? b._g : null));
+  if (!gm && !ATL_MODS_OK.has(gk) && f.jeu && v > vp && atlNe(f.jeu)) atlModule(f.jeu, v).then(g2 => { if (g2 && b.isConnected) { b.dataset.sig = ''; atlPubBlocMaj(b, f); } }).catch(() => {});
+  const sig = [et, v, vp, asked ? 1 : 0, adm ? 1 : 0, occ, auto ? 1 : 0, multi ? 1 : 0].join('|'); if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
   const publie = et === 'publie_monde' || et === 'publie_salle';
   const ET = et === 'publie_monde' ? ['🌍', 'Publié sur la borne pour tout le monde', 'monde'] : et === 'publie_salle' ? ['🏠', 'Partagé à tes amis (tes salles)', 'salle'] : ['🧪', 'En essai (toi seul)', 'essai'];
   const hd = atlEl('div', 'atl-pubhd ' + ET[2]); hd.append(atlEl('span', 'atl-pubic', ET[0]), (() => { const d = atlEl('div'); d.append(atlEl('b', '', ET[1]),
@@ -17043,6 +17057,7 @@ function atlPubBlocMaj(b, f) {
     if (!room || !room.id) { atlToast('Rejoins d’abord une salle pour y partager ton jeu'); return; }
     if (!await atlConfirmer('🏠 Partager à tes amis ?', 'Ton jeu (V' + v + ') apparaîtra sur la borne des joueurs de TOUTES tes salles, avec son classement.')) return;
     await rpc('at_publier_salle', { p_name: profile.name, p_fiche: f.id, p_salle: room.id }, { quiet: true }); await fin('🏠 Partagé à tes amis !'); });
+  if (multi) { const x = atlEl('button', 'btn btn-ghost atl-invj', '🎮 Inviter un ami à jouer avec moi'); x.type = 'button'; x.addEventListener('click', () => atlInvEssai(f, v)); row.appendChild(x); }   // même pendant que la suivante se prépare
   if (asked && !adm) bt('↩️ Annuler ma demande', 'btn-ghost', async () => {
     if (!await atlConfirmer('↩️ Annuler ta demande ?', 'Ta demande de publication pour tout le monde sera retirée. Tu pourras la refaire plus tard.', 'Oui, annuler')) return;
     await rpc('at_monde_annuler', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); await fin('↩️ Demande annulée'); });
@@ -17057,6 +17072,85 @@ function atlPubBlocMaj(b, f) {
       catch (e) { cb.checked = !on; cb.disabled = false; atlToast('Pas possible pour l’instant : réessaie dans un moment.'); } });
     b.appendChild(lb);
   }
+}
+// ---- 7 nov. 2026 (Benjamin) : « 🎮 INVITER UN AMI À JOUER AVEC MOI » à la version EN ESSAI d'un jeu à plusieurs (api.live / api.monde).
+// Serveur source/invite-essai.sql : at_inviter_essai_amis (mes salles et leurs membres), at_inviter_essai (fiche, salle, amis). C'est
+// l'invitation de 2.0.126 (signal invjeu, conversation, ?rejoindre=<id>, 🔔) avec la fiche et la version : l'ami joue CETTE version (INV_ESSAI),
+// dans la salle que nous avons en commun ; elle disparaît dès que la version est publiée ou remplacée. 5 invitations en attente au plus.
+// Jamais de prix, de crédits ni de coûts.
+const atlInvEssaiJeu = g => !!(g && !g.stub && (g.live || g.monde));
+function atlInvEssai(f, v) {
+  if (!livInvOk()) { atlToast(isGuest() ? 'Crée ton compte pour inviter un ami' : 'Connecte-toi pour inviter un ami'); return; }
+  const old = document.getElementById('jdw-livmod'); if (old) old.remove();
+  const el = atlEl, titre = String(f.titre || 'ton jeu').slice(0, 40), MAXI = 5;
+  const M = el('div', 'liv-mod atl-invm'); M.id = 'jdw-livmod'; M.setAttribute('role', 'dialog'); M.setAttribute('aria-label', 'Inviter un ami à jouer avec moi');
+  const C = el('div', 'liv-card'); M.appendChild(C);
+  C.append(el('h2', '', '🎮 Inviter un ami à jouer avec moi'));
+  const sous = el('p', 'liv-sub'); sous.append('À ', el('b', '', titre), ' (V' + v + ' en essai), avec toi. Seuls tes invités pourront y jouer, et seulement à cette V' + v + '.'); C.append(sous);
+  const L = el('div', 'liv-l atl-invl'); L.append(el('p', 'liv-vide', 'Je cherche tes amis…')); C.append(L);
+  const ou = el('p', 'atl-invou'); ou.hidden = true; C.append(ou);
+  const msg = el('p', 'liv-msg', ''); C.append(msg);
+  const bt = el('div', 'liv-btns'), no = el('button', 'btn btn-ghost', 'Fermer'), go = el('button', 'btn btn-play', '🎮 Inviter'); no.type = go.type = 'button'; go.disabled = true; bt.append(no, go); C.append(bt);
+  const fermer = () => { M.remove(); document.removeEventListener('keydown', esc, true); };
+  const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); fermer(); } };
+  document.addEventListener('keydown', esc, true); no.addEventListener('click', fermer); M._fermer = fermer; M.addEventListener('click', e => { if (e.target === M) fermer(); });
+  document.body.appendChild(M);
+  const rows = []; let salles = [], fait = false;
+  const choisis = () => rows.filter(r => r.cb.checked);
+  const maj = () => {
+    const c = choisis(), s = c.length ? c[0].s : null;
+    for (const r of rows) r.cb.disabled = fait || (!r.cb.checked && c.length >= MAXI);
+    for (const r of rows) r.lab.classList.toggle('off', r.cb.disabled);
+    ou.hidden = !s; if (s) { ou.textContent = ''; ou.append('🏠 La partie se lance dans la salle ', el('b', '', s.salle_nom || ''), (room && +room.id === +s.salle ? '' : ' (tu y passes en lançant)') + '.'); }
+    if (!fait) { go.textContent = '🎮 Inviter' + (c.length ? ' (' + c.length + ')' : ''); go.disabled = !c.length; }
+  };
+  const peint = () => {
+    L.textContent = ''; rows.length = 0;
+    const avec = salles.filter(s => Array.isArray(s.membres) && s.membres.length);
+    if (!avec.length) { L.append(el('p', 'liv-vide', 'Personne d’autre dans tes salles pour l’instant. Invite des copains dans ta salle avec le bouton « Inviter » de l’accueil.')); maj(); return; }
+    avec.sort((a, b) => (room && +b.salle === +room.id ? 1 : 0) - (room && +a.salle === +room.id ? 1 : 0));   // ma salle d'abord
+    for (const s of avec) {
+      L.append(el('h3', 'atl-invs', '🏠 ' + (s.salle_nom || 'Ma salle')));
+      for (const m of s.membres) {
+        const nm = String(m.name || ''); if (!nm) continue;
+        const lab = el('label', 'liv-r'), cb = document.createElement('input'); cb.type = 'checkbox';
+        const vu = m.vu ? (Date.now() - Date.parse(m.vu)) / 60000 : 1e9;
+        const tx = el('span', 'liv-n'); tx.append(el('b', '', dispName(nm)), el('small', '', vu < 3 ? '🟢 en ligne' : 'hors ligne · le verra en ouvrant la borne'));
+        lab.append(cb, chatHead(nm, { passive: true }), tx); L.append(lab);
+        const r = { s, nm, cb, lab }; rows.push(r);
+        cb.addEventListener('change', () => { if (cb.checked) for (const o of rows) if (o.s !== s) o.cb.checked = false; maj(); });   // une seule salle : celle de la partie
+      }
+    }
+    maj();
+  };
+  rpc('at_inviter_essai_amis', { p_name: profile.name }, { quiet: true }).then(x => { salles = Array.isArray(x) ? x : []; if (M.isConnected) peint(); })
+    .catch(() => { L.textContent = ''; L.append(el('p', 'liv-vide', 'Je n’arrive pas à lire tes amis : vérifie le réseau et réessaie.')); });
+  go.addEventListener('click', async () => {
+    if (fait) return lancer();
+    const c = choisis(); if (!c.length) return; const s = c[0].s;
+    go.disabled = true; msg.textContent = 'J’envoie…';
+    try {
+      const out = await rpc('at_inviter_essai', { p_name: profile.name, p_fiche: f.id, p_salle: s.salle, p_a: c.map(r => r.nm) }, { quiet: true }) || {};
+      const E = Array.isArray(out.envois) ? out.envois : [], ok = E.filter(x => x && x.ok).map(x => dispName(x.a));
+      const pr = (k, t) => { const l = E.filter(x => x && x.raison === k).map(x => dispName(x.a)); return l.length ? ' ' + l.join(', ') + t : ''; };
+      msg.textContent = (ok.length ? '✅ Invitation envoyée à ' + ok.join(', ') + '. Lance la partie : on te rejoint !' : '')
+        + pr('deja', ' : invitation déjà envoyée il y a moins de 5 min.') + pr('refuse', ' a dit non il y a peu : on n’insiste pas.')
+        + (E.some(x => x && x.raison === 'cinq') ? ' ' + MAXI + ' invitations attendent déjà une réponse : attends qu’on te réponde avant d’en envoyer d’autres.' : '');
+      if (!E.length) msg.textContent = 'Personne à inviter dans cette salle.';
+      if (ok.length) { fait = true; salleP = s; go.textContent = '▶️ Lancer la partie'; go.disabled = false; maj(); }
+      else go.disabled = false;
+    } catch (e) { go.disabled = false; msg.textContent = /trop/.test(String(e && e.message)) ? 'Beaucoup d’invitations d’un coup : attends un peu.' : /jouable/.test(String(e && e.message)) ? 'Ton jeu n’est pas encore prêt à jouer à plusieurs.' : 'Pas envoyé : vérifie le réseau et réessaie.'; }
+  });
+  let salleP = null;
+  const lancer = async () => {   // dans la salle commune, puis la version en essai (comme « Essayer »)
+    const s = salleP; fermer(); if (!s) return;
+    if (!room || +room.id !== +s.salle) {
+      let rm = null; try { rm = ((await rpc('list_rooms', { p_code: CODE(), p_name: profile.name || '' })) || []).find(z => +z.r_id === +s.salle) || null; } catch (e) { rm = null; }
+      enterRoom({ id: s.salle, name: rm ? rm.r_name : (s.salle_nom || ''), priv: !!(rm && rm.r_private), owner: (rm && rm.r_owner) || null });
+      await new Promise(ok => setTimeout(ok, 1200));
+    }
+    atlJouerVrai(f);
+  };
 }
 // 2.1.2 (l'admin : « je veux la voir aussi en mode portrait ») : l'écran-titre du jeu, côte à côte, couché et debout (menu-portrait si le jeu
 // en a un, sinon l'image couchée recadrée comme sur un téléphone debout) ; rien si le jeu n'a pas d'image de menu
@@ -19685,7 +19779,8 @@ function pushFenetre() {
 }
 // toucher une notification : aller au projet (borne déjà ouverte = message du service worker ; sinon l'adresse ?atelier=projet&f=…&o=…)
 function pushOuvrir(u) {
-  let f = '', o = ''; try { const sp = new URL(String(u || ''), location.href).searchParams; f = sp.get('f') || ''; o = sp.get('o') || ''; } catch (e) { return; }
+  let f = '', o = ''; try { const sp = new URL(String(u || ''), location.href).searchParams; f = sp.get('f') || ''; o = sp.get('o') || '';
+    const rj = sp.get('rejoindre') || ''; if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(rj)) { livInvRejoindre(rj); return; } } catch (e) { return; }   // 7 nov. 2026 : 🔔 « X t'invite à jouer »
   if (!/^[0-9a-f-]{36}$/i.test(f)) f = ''; if (!['jeu', 'demandes', 'route'].includes(o)) o = '';
   if (!$('jdw-play').hidden) { atlToast('🔔 Ton projet t’attend dans l’Atelier'); return; }   // en pleine partie : on ne la coupe pas
   try { if (f) atlRevenir(f, o); else atlOpen(); } catch (e) { try { atlOpen(); } catch (x) {} }

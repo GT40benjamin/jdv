@@ -6170,3 +6170,8 @@ body:has(#jdw-crea:not([hidden])) #jdw-atelier:has(> .atl-mod:not([hidden])) > :
 /* l'onglet du bas (téléphone) : la pastille dans le coin, la bulle au-dessus de la barre */
 .atl-est .atl-esvn{position:absolute;top:1px;right:1px;margin:0;padding:1px 5px 1px 4px;gap:3px;font-size:10.5px}
 .atl-est .atl-esspin{width:8px;height:8px;border-width:1.5px}
+/* 7 nov. 2026 : « 🎮 Inviter un ami à jouer avec moi » (version en essai) : les amis groupés par salle */
+.atl-invl .atl-invs{margin:8px 2px 0;font:700 13px/1.2 var(--body,inherit);letter-spacing:.04em;text-transform:uppercase;color:#9fd8b8}
+.atl-invl .atl-invs:first-child{margin-top:0}
+.atl-invou{margin:0;padding:8px 10px;border-radius:10px;background:rgba(124,214,160,.12);border:1px solid rgba(124,214,160,.35);font-size:14px}
+.atl-invj{white-space:normal}
