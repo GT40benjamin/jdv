@@ -580,7 +580,7 @@
     const w = E('label', 'crea-vsel' + (k === 'image' ? '' : ' v-' + k)), s = E('select');
     if (lib) w.appendChild(E('span', 'l', lib + ' :'));
     for (const x of c.versions.slice().sort((a, b) => b.n - a.n)) {
-      const o = E('option'), pret = x.etat === 'prete' && !!x.path, etat = pret ? '' : ['ratee', 'refusee'].includes(x.etat) ? ' · ratée, rendus' : ' · en cours';
+      const o = E('option'), pret = x.etat === 'prete' && !!x.path, etat = ['ratee', 'refusee'].includes(x.etat) ? ' · ratée, rendus' : etatLib(x);
       o.value = x.id; o.textContent = (x.outil === 'import' ? 'Originale' : numAff(c, x) + ' · ' + resume(x)) + (x.prix ? ' · ' + x.prix + ' ' + D : x.outil === 'import' ? '' : ' · gratuit') + etat;
       o.disabled = !pret; if (x.id === (v && v.id)) o.selected = true; s.appendChild(o);
     }
@@ -601,11 +601,11 @@
     const v = AIM.voir[c.id]; if (!v || v === c.actuelle || adm()) return;
     await rpc('at_esp_choisir', { p_name: nom(), p_creation: c.id, p_version: v }, { quiet: true }); c.actuelle = v;
   }
-  // numéros À L'AFFICHAGE : l'originale n'a pas de numéro (« Originale »), les retouches s'appellent V1, V2… dans l'ordre
-  function numAff(c, v) {
-    if (!v) return ''; if (v.outil === 'import') return 'Originale';
-    const r = c.versions.filter(x => x.outil !== 'import').sort((a, b) => a.n - b.n); return 'V' + (r.findIndex(x => x.id === v.id) + 1);
-  }
+  // l'admin (7 nov., SAMBA « V14 ▾ ») : les numéros sont EXACTEMENT ceux de la base (champ n), l'import s'appelle « Originale » (sans numéro) ;
+  // on ne renumérote plus à l'affichage (V11 affichée = V12 en base : l'équipe et le joueur ne parlaient plus de la même image)
+  function numAff(c, v) { if (!v) return ''; return v.outil === 'import' ? 'Originale' : 'V' + v.n; }
+  // l'état d'UNE version vient de SON champ etat (jamais déduit des autres)
+  const etatLib = x => x.etat === 'prete' && x.path ? '' : ['ratee', 'refusee'].includes(x.etat) ? ' · ratée' : x.etat === 'controle' ? ' · en vérification' : ['en_cours', 'envoi'].includes(x.etat) ? ' · en cours' : x.etat === 'prete' ? ' · sans image' : ' · ' + (x.etat || '?');
   // SAMBA (7 nov.) : « un petit son de scintillement quand c'est prêt » — 4 notes douces qui montent (~0,7 s), le bouton son de la borne décide
   function scintille() {
     if (adm()) return;
@@ -983,12 +983,15 @@
     const g = E('div', 'crea-res');
     for (const c of (AIM.d && AIM.d.creations) || []) {
       const rs = c.versions.filter(v => v.outil !== 'import' && v.etat === 'prete' && v.path).sort((a, b) => b.n - a.n); if (!rs.length) continue;
-      const v = verDe(c, AIM.resSel[c.id]) && rs.includes(verDe(c, AIM.resSel[c.id])) ? verDe(c, AIM.resSel[c.id]) : rs[0];
+      const orig = c.versions.find(x => x.outil === 'import' && x.etat === 'prete' && x.path), ok = rs.concat(orig ? [orig] : []);
+      const v = verDe(c, AIM.resSel[c.id]) && ok.includes(verDe(c, AIM.resSel[c.id])) ? verDe(c, AIM.resSel[c.id]) : rs[0];
       const d = E('div', 'crea-resi'), i = B('i pile' + (rs.length > 1 ? ' plus' : ''), null, () => { AIM.cur = c.id; AIM.voir[c.id] = v.id; AIM.vue = 'atelier'; AIM.mode = 'image'; AIM.cmp = null; render(); }); i.title = 'Ouvrir dans mon atelier';
       const im = E('img'); im.alt = ''; im.src = urlImg(v.path, 700); i.appendChild(im);
       if (rs.length > 1) i.appendChild(E('span', 'badge', rs.length + ' versions'));
       const sel = E('select'); sel.setAttribute('aria-label', 'Version de « ' + (c.titre || 'Mon image') + ' »');
-      for (const x of c.versions.filter(x => x.outil !== 'import').sort((a, b) => b.n - a.n)) { const o = E('option'); o.value = x.id; o.textContent = numAff(c, x) + (x.etat === 'prete' && x.path ? '' : ['ratee', 'refusee'].includes(x.etat) ? ' · ratée' : ' · en cours'); o.disabled = !(x.etat === 'prete' && x.path); if (x.id === v.id) o.selected = true; sel.appendChild(o); }
+      // toutes les versions avec leur VRAI numéro, de la plus récente à la plus ancienne, et l'« Originale » (l'import) en dernier
+      for (const x of c.versions.filter(x => x.outil !== 'import').sort((a, b) => b.n - a.n).concat(c.versions.filter(x => x.outil === 'import'))) {
+        const o = E('option'); o.value = x.id; o.textContent = numAff(c, x) + etatLib(x); o.disabled = !(x.etat === 'prete' && x.path); if (x.id === v.id) o.selected = true; sel.appendChild(o); }
       sel.addEventListener('change', () => { AIM.resSel[c.id] = sel.value; render(); });
       const t = E('div', 't'), tt = E('div', 'tt'); tt.append(E('b', '', c.titre || 'Mon image'), sel); t.append(tt, E('small', '', resume(v)));
       d.append(i, t, B('crea-bt violet', '⬇️ Télécharger ' + numAff(c, v), () => telecharger(c, v))); g.appendChild(d);
