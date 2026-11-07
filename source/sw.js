@@ -15,7 +15,7 @@ const CORE = 'jdw-core-' + BUILD, MEDIA = 'jdw-media', FONTS = 'jdw-fonts';
 const SCOPE = self.registration.scope;                 // https://…/jdv/jouer/
 const ROOT = new URL('../', SCOPE).href;               // https://…/jdv/
 const ROOT_PATH = new URL(ROOT).pathname;
-const SHELL = ['manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+const SHELL = ['manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-badge-96.png'];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function putMedia(cache, rel, resp) {
@@ -78,6 +78,28 @@ self.addEventListener('message', e => {
   if (d.t === 'warm' && Array.isArray(d.list)) {
     e.waitUntil((async () => { for (const rel of d.list.slice(0, 40)) { if (typeof rel !== 'string' || !/^assets\/[a-z0-9/_.-]+$/.test(rel)) continue; try { await cacheAsset(rel); } catch (x) { return; } await sleep(150); } })());
   }
+});
+
+// 2.1.18 — NOTIFICATIONS (Web Push, fonction Edge atelier-push) : le joueur a touché « 🔔 Me prévenir quand c'est prêt ».
+// Le message (chiffré de bout en bout par le service de notification) = { t: titre, b: texte, tag: 'atl-<projet>', u: '?atelier=projet&f=…&o=…' } :
+// jamais le contenu d'un message ni un prix (écrit par la base). Toucher la notification : la borne déjà ouverte va au projet
+// (message { jdw: 'ouvrir', u }), sinon elle s'ouvre directement sur le projet. Seulement des adresses de la borne (portée jouer/).
+const PUSH_URL = u => { try { const x = new URL(String(u || ''), SCOPE); return x.origin === self.location.origin && x.pathname === new URL(SCOPE).pathname ? x.href : SCOPE; } catch (e) { return SCOPE; } };
+self.addEventListener('push', e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) { d = {}; }
+  const t = String(d.t || 'L’Atelier des jeux').slice(0, 60), b = String(d.b || 'Il y a du nouveau dans ton projet.').slice(0, 180);
+  e.waitUntil(self.registration.showNotification(t, { body: b, tag: String(d.tag || 'atl').slice(0, 64), renotify: true, lang: 'fr',
+    icon: ROOT + 'icon-192.png', badge: ROOT + 'icon-badge-96.png', data: { u: PUSH_URL(d.u) } }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const u = PUSH_URL(e.notification.data && e.notification.data.u);
+  e.waitUntil((async () => {
+    const L = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const c = L.find(x => x.url.startsWith(SCOPE));
+    if (c) { c.postMessage({ jdw: 'ouvrir', u }); try { await c.focus(); } catch (x) {} return; }
+    await self.clients.openWindow(u);
+  })());
 });
 
 const OFFLINE_HTML = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
