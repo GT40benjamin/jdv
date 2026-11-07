@@ -74,8 +74,6 @@
         // '*' : TOUS les outils de l'équipe « outils » (source/atelier-outils.js), dans l'ordre de SON registre et selon le type d'atelier
         // (window.jdwOutilsPhoto.boutons(type, ctx)) ; absent = rien
         { k: '*', ext: true },
-        { k: 'enlever', e: '🧽', t: 'Enlever un objet', prix: 'bientot', bg: '#ffe9e1' },
-        { k: 'ajouter', e: '🌟', t: 'Ajouter un objet', prix: 'bientot', bg: '#fff4cf' },
         { k: 'agrandir', e: '🔍', t: 'Agrandir', prix: 'bientot', bg: '#ffe6f3' }
       ], videResultat: 'Tes photos retouchées arriveront ici : chaque retouche faite dans ton atelier, prête à télécharger.',
       fond: 'studio'
