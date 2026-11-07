@@ -516,6 +516,35 @@
   // la liste déroulante des versions posée sur l'image : une ligne par version (numéro, résumé court de la demande, prix) ; ratées / en cours grisées
   const resume = v => { const t = v.outil === 'import' ? 'Originale' : v.outil === 'recadrer' ? 'Recadrée' : String(v.consigne || 'Retouche').replace(/\s+/g, ' ').trim();
     if (t.length <= 34) return t; const m = t.slice(0, 34); return m.slice(0, Math.max(18, m.lastIndexOf(' '))) + '…'; };
+  // l'admin (7 nov.) : ZOOMER dans la grande vue — ➖ / % / ➕ / ⟲ en bas à droite, molette autour du curseur (1× à 6×), glisser une fois zoomé,
+  // pincer et double-toucher (×2 / retour) au téléphone ; rien n'anime en boucle
+  function zoomable(Cd, im, v) {
+    const Z = AIM.zoom && AIM.zoom.v === v.id ? AIM.zoom : (AIM.zoom = { v: v.id, k: 1, x: 0, y: 0 });
+    const bx = E('div', 'crea-zoomb'), pc = E('span', 'pc');
+    const appl = () => { const w = Cd.clientWidth, h = Cd.clientHeight; Z.x = Math.min(0, Math.max(w - w * Z.k, Z.x)); Z.y = Math.min(0, Math.max(h - h * Z.k, Z.y));
+      im.style.transformOrigin = '0 0'; im.style.transform = Z.k > 1.001 ? 'translate(' + Z.x + 'px,' + Z.y + 'px) scale(' + Z.k + ')' : ''; pc.textContent = Math.round(Z.k * 100) + ' %'; Cd.classList.toggle('zoome', Z.k > 1.001); };
+    const vers = (k2, px, py) => { k2 = Math.max(1, Math.min(6, k2)); if (px == null) { px = Cd.clientWidth / 2; py = Cd.clientHeight / 2; } Z.x = px - (px - Z.x) * (k2 / Z.k); Z.y = py - (py - Z.y) * (k2 / Z.k); Z.k = k2; appl(); };
+    const bt = (t, lab, fn) => { const b = B('', t, e => { e.stopPropagation(); fn(); }); b.setAttribute('aria-label', lab); b.title = lab; b.addEventListener('pointerdown', e => e.stopPropagation()); return b; };
+    bx.append(bt('➖', 'Dézoomer', () => vers(Z.k / 1.5)), pc, bt('➕', 'Zoomer', () => vers(Z.k * 1.5)), bt('⟲', 'Image entière', () => { Z.k = 1; Z.x = 0; Z.y = 0; appl(); }));
+    bx.addEventListener('pointerdown', e => e.stopPropagation()); Cd.appendChild(bx);
+    Cd.addEventListener('wheel', e => { e.preventDefault(); const r = Cd.getBoundingClientRect(); vers(Z.k * (e.deltaY < 0 ? 1.2 : 1 / 1.2), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+    const pts = new Map(); let d0 = 0, k0 = 1, der = 0;
+    Cd.addEventListener('pointerdown', e => {
+      if (e.target.closest && e.target.closest('.crea-vsel, .crea-zoomb')) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { Cd.setPointerCapture(e.pointerId); } catch (x) {}
+      if (pts.size === 2) { const [a, b] = [...pts.values()]; d0 = Math.hypot(a.x - b.x, a.y - b.y); k0 = Z.k; der = 0; return; }
+      const t = Date.now(); if (t - der < 300) { const r = Cd.getBoundingClientRect(); if (Z.k > 1.001) { Z.k = 1; Z.x = 0; Z.y = 0; appl(); } else vers(2, e.clientX - r.left, e.clientY - r.top); der = 0; } else der = t;
+    });
+    Cd.addEventListener('pointermove', e => {
+      const p0 = pts.get(e.pointerId); if (!p0) return; const r = Cd.getBoundingClientRect();
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (d0) vers(k0 * d / d0, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top); return; }
+      if (Z.k > 1.001) { Z.x += e.clientX - p0.x; Z.y += e.clientY - p0.y; appl(); }
+    });
+    const fin = e => { pts.delete(e.pointerId); if (pts.size < 2) d0 = 0; };
+    Cd.addEventListener('pointerup', fin); Cd.addEventListener('pointercancel', fin);
+    appl(); requestAnimationFrame(appl);
+  }
   function listeVersions(c, v, k, lib) {
     const w = E('label', 'crea-vsel' + (k === 'image' ? '' : ' v-' + k)), s = E('select');
     if (lib) w.appendChild(E('span', 'l', lib + ' :'));
@@ -774,7 +803,7 @@
       setTimeout(() => poser(AIM.pos), 0);
     } else if (mode === 'cote') {
       for (const [v, k, t] of [[avant, 'avant', 'Avant'], [act, 'apres', 'Après']]) { const d = E('div'); d.appendChild(img(v.path)); const e = listeVersions(c, v, k, t); e.style.left = '10px'; d.appendChild(e); Cd.appendChild(d); }
-    } else { Cd.appendChild(img(act.path)); const e = listeVersions(c, act, 'image', ''); e.style.left = '10px'; Cd.appendChild(e); }
+    } else { const im = img(act.path); Cd.appendChild(im); const e = listeVersions(c, act, 'image', ''); e.style.left = '10px'; Cd.appendChild(e); zoomable(Cd, im, act); }
     S.appendChild(Cd); depotSur(Cd);
     // l'admin (7 nov.) : sous la photo, l'ORIGINALE (un clic la remet dans la grande vue : la prochaine retouche partira d'elle) et la PILE des
     // retouches (la dernière dessus, « N versions ») ; la pile se regarde seulement : on change de version par la liste posée sur l'image
