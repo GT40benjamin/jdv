@@ -11354,7 +11354,9 @@ let waitRotate = null;
 // du téléphone tourné, ou dont la version se chargeait encore) passait PAR-DESSUS le jeu choisi : chaque ouverture porte un numéro,
 // un chargement dépassé par un autre clic est abandonné, et le jeu précédent est démonté avant le nouveau
 let OPEN_SEQ = 0;
+let RETOUR_G = null;   // 2.1.13 : le dernier jeu ouvert (sa tuile, au retour sur la borne)
 function openGame(g, web, vok, os) {
+  if (g && g.id) RETOUR_G = g;
   if (os == null) os = ++OPEN_SEQ; else if (os !== OPEN_SEQ) return;
   if (!vok && g && ATL_NES.has(g.id)) { const v = atlVoulue(g.id), k = g.id + '@' + v; if (v && g.__v !== v) { if (ATL_MODS_OK.has(k)) g = ATL_MODS_OK.get(k) || g; else { atlModule(g.id, v).then(g2 => openGame(g2 || g, web, true, os)); return; } } }
   if (current || waitRotate) { waitRotate = null; $('jdw-rotate').hidden = true; try { unmountGame(); } catch (e) {} }
@@ -11390,6 +11392,7 @@ portraitMQ.addEventListener ? portraitMQ.addEventListener('change', () => { if (
 $('jdw-rotate-skip').addEventListener('click', () => { startAfterRotate.force = true; startAfterRotate(); });
 try { paysageMQ.addEventListener('change', () => { if (waitRotate && !orientMauvaise(waitRotate)) startAfterRotate(); }); } catch (e) {}
 function backToLibrary() {
+  const gq = (current && current.game) || waitRotate || RETOUR_G || null;   // 2.1.13 : le jeu qu'on quitte (pour revenir sur SA tuile)
   howtoHide(false); menuFermer(); MENU.passe = '';   // 2.0.139
   flushPending(); OPEN_SEQ++;   // 2.0.44 : un jeu encore en chargement ne s'ouvre plus une fois revenu à l'accueil
   creaFin();   // 2.1.4 : le mode créateur s'arrête en quittant le jeu
@@ -11402,6 +11405,9 @@ function backToLibrary() {
   fsLeave();
   if ($('jdw-back').dataset.atl) { const qb = $('jdw-back'); delete qb.dataset.atl; qb.innerHTML = '✕<span class="tb-word"> Quitter</span>'; qb.setAttribute('aria-label', 'Quitter la partie'); window.JDW_ATL_OFF = []; window.JDW_ATL_MUS_OFF = ''; }
   if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; window.JDW_ATL_JEU = false; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); const t = ATL.retourTab; ATL.retourTab = ''; setTimeout(() => atlRevenir(id, t), 30); }   // jeu lancé depuis l'Atelier : retour au projet (onglet choisi)
+  // 2.1.13 (l'admin : quitter ramène TOUJOURS là où on l'a lancé) : lancé depuis la borne ou la salle → retour sur la tuile du jeu, à l'écran
+  else if (gq && gq.title) { let n = 0; const vers = () => { try { if (!$('jdw-play').hidden || ++n > 25) return; const t = $('jdw-lib').hidden ? null : [...document.querySelectorAll('#jdw-lib button.tile')].find(b => b.getAttribute('aria-label') === 'Jouer à ' + gq.title && b.checkVisibility());
+    if (!t) { setTimeout(vers, 80); return; } const r = t.getBoundingClientRect(), L = $('jdw-lib').getBoundingClientRect(); if (r.top < Math.max(0, L.top) || r.bottom > Math.min(innerHeight, L.bottom)) t.scrollIntoView({ block: 'center' }); if (!TOUCH) t.focus({ preventScroll: true }); if (n < 6) setTimeout(vers, 120); } catch (e) {} }; setTimeout(vers, 60); }
   if (siteNew) setTimeout(maybeReload, 800);
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
