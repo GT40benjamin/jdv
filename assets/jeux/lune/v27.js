@@ -4079,14 +4079,17 @@ function mount(root, api) {
     const { gx, gy } = bFantome, x = gx * G64, y = gy * G64, b = maBase(), ok = !b || Math.hypot(x + 32 - b.ax, y + 32 - b.ay) <= RAYON_BASE;
     // la grille (cases de 64) autour de la base, ou autour de l'explorateur avant la 1re pièce : tout se cale dessus
     { const cx = b ? b.ax : J.x, cy = b ? b.ay : J.y, R = RAYON_BASE, g0x = Math.floor((cx - R) / G64), g1x = Math.ceil((cx + R) / G64), g0y = Math.floor((cy - R) / G64), g1y = Math.ceil((cy + R) / G64);
-      ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 1;
-      ctx.beginPath(); for (let i = g0x; i <= g1x; i++) { ctx.moveTo(sx(i * G64), sy(g0y * G64)); ctx.lineTo(sx(i * G64), sy(g1y * G64)); } for (let j = g0y; j <= g1y; j++) { ctx.moveTo(sx(g0x * G64), sy(j * G64)); ctx.lineTo(sx(g1x * G64), sy(j * G64)); } ctx.stroke(); ctx.restore(); }
+      ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;   /* V27 (ticket e3b563c1, « on se perd en mode construction ») : la grille est pâle au loin, nette autour de la case visée */
+      ctx.beginPath(); for (let i = g0x; i <= g1x; i++) { ctx.moveTo(sx(i * G64), sy(g0y * G64)); ctx.lineTo(sx(i * G64), sy(g1y * G64)); } for (let j = g0y; j <= g1y; j++) { ctx.moveTo(sx(g0x * G64), sy(j * G64)); ctx.lineTo(sx(g1x * G64), sy(j * G64)); } ctx.stroke();
+      for (let r = 1; r <= 3; r++) { ctx.strokeStyle = 'rgba(190,255,230,' + (0.34 - r * 0.08) + ')'; ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = gx - r; i <= gx + r + 1; i++) { ctx.moveTo(sx(i * G64), sy((gy - r) * G64)); ctx.lineTo(sx(i * G64), sy((gy + r + 1) * G64)); } for (let j = gy - r; j <= gy + r + 1; j++) { ctx.moveTo(sx((gx - r) * G64), sy(j * G64)); ctx.lineTo(sx((gx + r + 1) * G64), sy(j * G64)); } ctx.stroke(); }
+      ctx.restore(); }
     // V22 : le cadre est dessiné PAR-DESSUS la nuit (on le voit toujours) ; rouge = on efface (gomme)
     const ex = b && b.p[cleCase(gx, gy)], surSol = ex && COUCHE_SOL[ex.t] && !COUCHE_SOL[bSel], rouge = !ok || gommeActive();
     apres.push(() => { ctx.save(); ctx.globalAlpha = 0.6 + 0.2 * Math.sin(t * 6);
       ctx.fillStyle = rouge ? 'rgba(255,90,80,0.3)' : 'rgba(120,255,200,0.28)'; ctx.fillRect(sx(x), sy(y), G64 * Z, G64 * Z);
       ctx.strokeStyle = rouge ? '#ff6a5a' : '#7affd0'; ctx.lineWidth = 3; ctx.strokeRect(sx(x), sy(y), G64 * Z, G64 * Z);
       if (gommeActive()) { ctx.globalAlpha = 1; ctx.font = Math.round(22 * U) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🧽', sx(x) + G64 * Z * 0.5, sy(y) + G64 * Z * 0.5); }
+      else if (bSel && PB[bSel]) { ctx.globalAlpha = 1; const s = (PB[bSel].ico || '') + ' ' + PB[bSel].nom.replace(/ \(.*\)/, '') + (rouge ? ' · trop loin de ta base' : ''); ctx.font = '800 ' + Math.round(12 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(10,12,30,0.9)'; ctx.fillStyle = rouge ? '#ff9a8a' : '#bfffe8'; ctx.strokeText(s, sx(x) + G64 * Z * 0.5, sy(y) - 6 * U); ctx.fillText(s, sx(x) + G64 * Z * 0.5, sy(y) - 6 * U); }   /* V27 : ce qu'on va poser, écrit au-dessus de la case */
       ctx.restore(); });
     // la pièce elle-même, à moitié transparente, à la place exacte où elle sera posée
     // V22 : aussi sur un plancher (le lit, la table… à l'intérieur)
