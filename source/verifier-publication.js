@@ -14,7 +14,8 @@ const files = execSync('git ls-files -co --exclude-standard', { cwd: ROOT, encod
 const bad = [];
 // le module de l'espace privé est servi par la base, JAMAIS publié : ses marques (et le nom de sa mascotte) ne doivent être dans aucun fichier
 const PRIV_MARQUES = [['jdw', 'pk', 'win'].join('-'), ['pk', 'ov'].join('-') + '{', ['pk', 'billet', 'lire'].join('_')], PRIV_NOM = new RegExp(['po', 'oky'].join(''), 'i');
-const IMG_OK = [/^icon-(maskable-)?\d+\.png$/, /^android(-apktool)?\/.*ic_launcher(_round|_foreground|_background|_monochrome)?\.png$/, /^android\/icon-512\.png$/, /^accueil\/[a-z0-9_-]+\.(webp|jpg|jpeg|png|webm|svg)$/,
+const IMG_OK = [/^icon-(maskable-)?\d+\.png$/, /^icon-badge-96\.png$/,   // 2.1.21 : pastille des notifications (silhouette blanche d'une seule couleur, aucune photo ; vérifiée par le chef le 7 nov. 2026)
+/^android(-apktool)?\/.*ic_launcher(_round|_foreground|_background|_monochrome)?\.png$/, /^android\/icon-512\.png$/, /^accueil\/[a-z0-9_-]+\.(webp|jpg|jpeg|png|webm|svg)$/,
   /^assets\/pegase\/decor(_\d{2}[a-z]?)?(_portrait|_m)?_poster\.(jpg|webp)$/,   // affiche du décor filmé dans le jeu (prairie, aucune personne)
   /^assets\/ilo\/ilo_(boucle|bande_annonce)(_m)?_poster\.(jpg|webp)$/,
   /^assets\/remparts\.vignette\.webp$/,
