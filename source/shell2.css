@@ -6158,3 +6158,19 @@ input.atl-rgin[type=text]{width:150px}
    Désormais SEULE la fenêtre passe au-dessus : le reste de l'Atelier reste invisible, derrière on garde exactement l'écran où l'on était. */
 body:has(#jdw-crea:not([hidden])) #jdw-atelier:has(> .atl-mod:not([hidden])){background:none!important;box-shadow:none!important;border:0!important}
 body:has(#jdw-crea:not([hidden])) #jdw-atelier:has(> .atl-mod:not([hidden])) > :not(.atl-mod){visibility:hidden!important}
+/* 7 nov. 2026 : ⚡ MODE AUTO — le petit rond à côté du micro (même forme, même taille) et son menu */
+.atl-chat .atl-artw .atl-autob{position:absolute;right:46px;bottom:5px;width:36px;height:36px;min-height:0;padding:0;border-radius:50%;border:1px solid #d9cdea;background:#efe8fa;font-size:17px;line-height:1;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 0 rgba(60,30,100,.12)}
+.atl-chat .atl-artw:not(:has(.atl-armic)) .atl-autob{right:5px}
+.atl-chat .atl-artw .atl-autob.on{border-color:#f0b400;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffd34d 45%,#ff9a3d);box-shadow:0 0 0 3px rgba(255,200,60,.35)}
+.atl-chat .atl-artw .atl-autob:disabled{opacity:.6;cursor:progress}
+.atl-chat .atl-artw .atl-autob:focus-visible{outline:2px solid #7b55d6;outline-offset:2px}
+.atl-chat .atl-artw:has(.atl-autob) textarea{padding-right:88px}
+.atl-chat .atl-artw:has(.atl-autob):not(:has(.atl-armic)) textarea{padding-right:48px}
+.atl-automenu{position:fixed;z-index:2147483300;display:grid;gap:6px;padding:8px;box-sizing:border-box;border-radius:16px;background:#fff;border:1px solid #e2d8ef;box-shadow:0 14px 40px rgba(40,20,70,.28);color:#1f1a2b;font-family:var(--body)}
+.atl-autoit{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;padding:10px 12px;border:1px solid transparent;border-radius:12px;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit}
+.atl-autoit:hover,.atl-autoit:focus-visible{background:#f4effb;outline:none;border-color:#e2d8ef}
+.atl-autoit.sel{background:#f1ebfb;border-color:#cdb9ef}
+.atl-autoit.auto.sel{background:#fff6d6;border-color:#f0c64a}
+.atl-autoic{font-size:22px;line-height:1}
+.atl-autotx{display:grid;gap:2px}.atl-autotx b{font:800 15px/1.2 var(--body)}.atl-autotx small{font:13px/1.3 var(--body);color:#6b6480}
+.atl-autock{font:900 16px var(--body);color:#7b55d6;min-width:14px}

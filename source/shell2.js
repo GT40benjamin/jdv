@@ -16855,7 +16855,7 @@ function atlDiscBloc(f) {
     };
     go.addEventListener('click', envoyer);
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !atlPetit()) { e.preventDefault(); envoyer(); } });   // ordinateur : Entrée envoie, Maj+Entrée va à la ligne
-    const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
+    const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (f && f.id) tw.appendChild(atlAutoBouton(f)); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));   // 7 nov. 2026 : ⚡ mode auto, à côté du micro
     const rg = atlEl('p', 'atl-discrg'), np = atlEl('button', 'atl-discnp', '＋ Nouveau projet'); np.type = 'button'; np.addEventListener('click', atlNouveau);
     rg.append(document.createTextNode('Ici, on parle seulement de « ' + (f.titre || 'ton jeu') + ' ». Une idée pour un autre jeu ? '), np);
     row.append(tw, go); corps.append(row, msg); void rg; void aide;   // 2.0.162 : plus de pavé d'aide sous le champ
@@ -21392,6 +21392,55 @@ function atlMicEtat() {
   if (ATL && ATL.root) { const rc = ATL.root.querySelector('.atl-rec'); if (rc) rc.hidden = !(m && m.field && m.field.classList.contains('atl-in')); }
   if (ATL) ATL.rec = m;   // (ancien repère : un micro est ouvert)
 }
+// ---- 7 nov. 2026 (Benjamin, « comme dans Meshy ») : ⚡ MODE AUTO, par projet. Le petit rond à côté du micro ouvre un menu : « 🤚 Je valide moi-même »
+// (par défaut) ou « ⚡ Mode auto ». En mode auto, une proposition chiffrée de la mascotte jusqu'à auto_max_credits (20 💎) est acceptée TOUTE SEULE
+// par le serveur (source/mode-auto.sql : at_demande_proposer → at_auto_choisir, même chemin que le « oui ») ; au-dessus ou sans assez de crédits,
+// elle redemande. Jamais d'achat de crédits. at_auto_poser(p_name, p_fiche, p_on) : le joueur ou un admin ; la mascotte le dit dans la discussion.
+function atlAutoFiche(f) { try { const c = atlFiche(); if (c && f && c.id === f.id) return c; } catch (e) {} return f; }
+function atlAutoBouton(f) {
+  const b = atlEl('button', 'atl-autob'); b.type = 'button'; b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false');
+  b._peint = () => { const on = !!(atlAutoFiche(f) || {}).auto, mx = ATL.autoMax || 20;
+    b.textContent = on ? '⚡' : '🤚'; b.classList.toggle('on', on);
+    b.title = on ? 'Mode auto : ' + gNM() + ' lance tout seul (jusqu’à ' + mx + ' 💎)' : 'Je valide moi-même : ' + gNM() + ' attend ton « oui »';
+    b.setAttribute('aria-label', 'Comment ' + gNM() + ' lance tes demandes : ' + (on ? 'mode auto' : 'je valide moi-même')); };
+  b._peint(); b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); atlAutoMenu(b, f); });
+  return b;
+}
+function atlAutoMenu(b, f) {
+  const old = document.getElementById('atl-automenu'); if (old) { const ob = old._b; old._fermer(); if (ob === b) return; }
+  const on = !!(atlAutoFiche(f) || {}).auto, mx = ATL.autoMax || 20;
+  const M = atlEl('div', 'atl-automenu'); M.id = 'atl-automenu'; M.setAttribute('role', 'menu'); M.setAttribute('aria-label', 'Comment ' + gNM() + ' lance tes demandes'); M._b = b;
+  const fermer = () => { M.remove(); b.setAttribute('aria-expanded', 'false'); document.removeEventListener('pointerdown', dehors, true); document.removeEventListener('keydown', esc, true); removeEventListener('resize', fermer); };
+  const dehors = e => { if (!M.contains(e.target) && !b.contains(e.target)) fermer(); };
+  const esc = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermer(); try { b.focus(); } catch (x) {} } };
+  M._fermer = fermer;
+  const it = (val, ic, t, sous) => {
+    const x = atlEl('button', 'atl-autoit' + (val === on ? ' sel' : '') + (val ? ' auto' : '')); x.type = 'button'; x.setAttribute('role', 'menuitemradio'); x.setAttribute('aria-checked', String(val === on));
+    const tx = atlEl('span', 'atl-autotx'); tx.append(atlEl('b', '', t), atlEl('small', '', sous));
+    x.append(atlEl('span', 'atl-autoic', ic), tx, atlEl('span', 'atl-autock', val === on ? '✓' : ''));
+    x.addEventListener('click', () => { fermer(); atlAutoPoser(f, val, b); }); return x; };
+  M.append(it(false, '🤚', 'Je valide moi-même', gNM() + ' te montre le prix et attend ton « oui »'),
+    it(true, '⚡', 'Mode auto', gNM() + ' lance tout seul, jusqu’à ' + mx + ' 💎 par demande. Au-dessus, il te redemande.'));
+  document.body.appendChild(M);
+  const r = b.getBoundingClientRect(), w = Math.min(320, innerWidth - 16); M.style.width = w + 'px';
+  M.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px';
+  const h = M.getBoundingClientRect().height; M.style.top = (r.top - h - 8 >= 8 ? r.top - h - 8 : Math.min(innerHeight - h - 8, r.bottom + 8)) + 'px';
+  b.setAttribute('aria-expanded', 'true');
+  setTimeout(() => { if (M.isConnected) document.addEventListener('pointerdown', dehors, true); }, 0); document.addEventListener('keydown', esc, true); addEventListener('resize', fermer);
+  if (!TOUCH) try { (M.querySelector('.atl-autoit.sel') || M.querySelector('.atl-autoit')).focus(); } catch (e) {}
+}
+async function atlAutoPoser(f, on, b) {
+  const cf = atlAutoFiche(f); if (!cf || !!cf.auto === on) return;
+  for (const x of document.querySelectorAll('.atl-autob')) x.disabled = true;
+  try {
+    const r = await rpc('at_auto_poser', { p_name: profile.name, p_fiche: cf.id, p_on: on }, { quiet: true });
+    cf.auto = f.auto = !!(r && r.auto); if (r && r.max) ATL.autoMax = r.max | 0;
+    atlToast(cf.auto ? '⚡ Mode auto : ' + gNM() + ' lance tout seul, jusqu’à ' + (ATL.autoMax || 20) + ' 💎' : '🤚 ' + gNM() + ' te redemandera avant chaque lancement');
+    try { await atlLoad(true); } catch (e) {}
+  } catch (e) { atlToast('Pas possible pour l’instant : réessaie dans un moment.'); }
+  finally { for (const x of document.querySelectorAll('.atl-autob')) { x.disabled = false; if (x._peint) x._peint(); } }
+}
+try { if (navigator.webdriver) window.JDW_ESSAI_AUTO = () => { const f = atlFiche(); return f ? { id: f.id, auto: !!f.auto } : null; }; } catch (e) {}   // bancs seulement
 function atlMicBouton(field, cls) {   // le bouton 🎤 d'un champ (fenêtres) ; la touche rapide écrite dessus sur ordinateur
   const b = atlEl('button', cls || 'atl-armic', '🎤'); b.type = 'button'; b.setAttribute('aria-label', 'Parler au micro'); if (!TOUCH) { b.dataset.k = 'Ctrl+Espace'; b.title = 'Dicter (Ctrl+Espace)'; }
   b._champ = field; ATL_MICS.add(b); b.addEventListener('click', () => atlMicBascule(field, b)); return b;
