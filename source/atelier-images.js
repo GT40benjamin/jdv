@@ -473,7 +473,7 @@
 
   // ---------- un projet Images ----------
   async function ouvrir(id, vue) {
-    AIM.fiche = id; AIM.vue = vue || 'atelier'; AIM.prop = null; AIM.loc = []; AIM.msgs = []; AIM.vuAt = Date.now(); AIM.d = null; AIM.errLire = ''; AIM.ouvAt = Date.now(); AIM.pkLu = false;
+    AIM.fiche = id; AIM.vue = vue || 'atelier'; AIM.prop = null; AIM.loc = []; AIM.msgs = []; AIM.vuAt = Date.now(); AIM.d = null; AIM.errLire = ''; AIM.ouvAt = Date.now(); AIM.pkLu = false; AIM.mode = 'image';
     if (AIM.ouverts[id] === undefined) AIM.ouverts[id] = true;
     if (ATL.cur) { AIM.calme = true; try { atlListe(); } catch (e) {} AIM.calme = false; }   // l'Interface revient à sa liste dessous (un atelier ouvert depuis son montage)
     montrer(); render();
@@ -863,34 +863,27 @@
     } else { const im = img(act.path); Cd.appendChild(im); const e = listeVersions(c, act, 'image', ''); e.style.left = '10px'; Cd.appendChild(e); zoomable(Cd, im, act); }
     S.appendChild(Cd); depotSur(Cd);
     if (AIM.etinc && act && AIM.etinc.v === act.id && Date.now() - AIM.etinc.at < 1700) { const k = E('div', 'crea-etinc'); k.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 9; i++) { const e = E('span', '', '✨'); e.style.left = (8 + (i * 37) % 84) + '%'; e.style.top = (14 + (i * 53) % 70) + '%'; e.style.animationDelay = (i * 70) + 'ms'; k.appendChild(e); } Cd.appendChild(k); }
-    // l'admin (7 nov.) : sous la photo, l'ORIGINALE (un clic la remet dans la grande vue : la prochaine retouche partira d'elle) et la PILE des
-    // retouches (la dernière dessus, « N versions ») ; la pile se regarde seulement : on change de version par la liste posée sur l'image
-    { const rs = c.versions.filter(v => v.outil !== 'import' && v.etat === 'prete' && v.path).sort((a, b) => b.n - a.n), src = sourcesDe(c);
-      const enCours = c.versions.some(v => v.outil !== 'import' && ['envoi', 'controle', 'en_cours'].includes(v.etat));
-      if (rs.length || enCours || src.length) {
-        const bar = E('div', 'crea-vbar');
-        if (rs.length || enCours) { const p = E('div', 'crea-vcarte pile' + (rs.length > 1 ? ' plus' : '')), st = E('span', 'st');
-          for (const v of rs.slice(0, 3).reverse()) { const i = E('span', 'i'); i.style.backgroundImage = 'url("' + urlImg(v.path, 200) + '")'; st.appendChild(i); }
-          if (!rs.length) st.appendChild(E('span', 'i vide'));
-          p.append(st, E('b', '', rs.length ? 'Retouches' : 'Retouche'));
-          if (rs.length) p.appendChild(E('span', 'badge', rs.length + ' version' + (rs.length > 1 ? 's' : '')));
-          if (enCours) p.appendChild(E('span', 'badge cours', enVerif() ? '⏳ je vérifie ta retouche…' : '⏳ en cours'));
-          bar.appendChild(p); }
-        // les images ajoutées POUR cette image (ex. les crêpes de la Carte Ylix) : intégrées à elle, plus des images à part
-        for (const x of src) { const v = derniere(x); if (!v) continue; const k = E('div', 'crea-vcarte src'); const i = E('span', 'i'); i.style.backgroundImage = 'url("' + urlImg(v.path, 200) + '")';
-          k.append(i, E('b', '', '📎 ' + (x.titre || 'Image ajoutée'))); k.title = 'Image ajoutée pour modifier « ' + (c.titre || 'cette image') + ' »'; bar.appendChild(k); }
-        S.appendChild(bar);
-      } }
+    // l'admin (7 nov., 2.1.19 : « les tuiles versionnées en bas … où on peut facilement cliquer dessus pour revenir dessus ») : sous l'image,
+    // UNE RANGÉE de tuiles : une par version réussie de cette image (l'Originale, puis V2, V5… avec le VRAI numéro de la base), la retouche
+    // en cours, puis une par autre photo du projet (et les images ajoutées pour celle-ci, 📎) ; un clic = en grand (rien n'est écrit en base)
+    { const vs = c.versions.filter(v => v.etat === 'prete' && v.path).sort((a, b) => (a.outil === 'import') !== (b.outil === 'import') ? (a.outil === 'import' ? -1 : 1) : a.n - b.n);
+      const cours = c.versions.filter(v => v.outil !== 'import' && ['envoi', 'controle', 'en_cours'].includes(v.etat)), autres = principales().filter(x => x.id !== c.id), src = sourcesDe(c);
+      const Fm = E('div', 'crea-film'); Fm.setAttribute('role', 'list');
+      const tuile = (cls, path, lab, sous, fn, titre) => { const t = fn ? B('crea-vt ' + cls, null, fn) : E('div', 'crea-vt ' + cls); t.setAttribute('role', 'listitem');
+        const i = E('span', 'i'); if (path) { const m = E('img'); m.alt = ''; m.loading = 'lazy'; m.draggable = false; m.src = urlImg(path, 240); i.appendChild(m); } else i.appendChild(E('span', 'crea-anneau'));
+        t.append(i, E('b', '', lab)); if (sous) t.appendChild(E('small', '', sous)); if (titre) t.title = titre; return t; };
+      const groupe = h => { const g = E('div', 'crea-filmg'), r = E('div', 'r'); g.append(E('span', 'h', h), r); Fm.appendChild(g); return r; };
+      const g1 = groupe('🗂️ ' + (c.titre || 'Mon image') + (vs.length > 1 ? ' · ' + vs.length + ' versions' : ''));
+      for (const v of vs) g1.appendChild(tuile(act && v.id === act.id ? 'on' : '', v.path, numAff(c, v), v.outil === 'import' ? 'ta photo' : resume(v), () => { AIM.voir[c.id] = v.id; AIM.mode = 'image'; AIM.cmp = null; AIM.pos = 0.5; render(); }, numAff(c, v) + ' en grand'));
+      for (const v of cours) g1.appendChild(tuile('cours', null, 'V' + v.n, v.etat === 'controle' ? 'je vérifie…' : 'en cours…', null, 'V' + v.n + ' se prépare'));
+      if (autres.length || src.length) { const g2 = groupe('📷 ' + (autres.length + src.length > 1 ? 'Mes autres photos' : 'Mon autre photo'));
+        for (const x of autres) { const v = derniere(x); g2.appendChild(tuile('photo', v && v.path, x.titre || 'Mon image', v ? numAff(x, v) : '', () => { AIM.cur = x.id; AIM.mode = 'image'; AIM.cmp = null; AIM.pos = 0.5; render(); }, 'Ouvrir « ' + (x.titre || 'Mon image') + ' »')); }
+        for (const x of src) { const v = derniere(x); if (v) g2.appendChild(tuile('src', v.path, '📎 ' + (x.titre || 'Image ajoutée'), 'pour cette image', null, 'Image ajoutée pour modifier « ' + (c.titre || 'cette image') + ' »')); } }
+      S.appendChild(Fm);
+      const centrer = () => { const on = Fm.querySelector('.crea-vt.on'); if (on && Fm.isConnected) Fm.scrollLeft = Math.max(0, on.offsetLeft - Fm.offsetLeft - (Fm.clientWidth - on.offsetWidth) / 2); };
+      requestAnimationFrame(centrer); }
     // 👁️ {g} regarde la photo : son commentaire (ce qu'il voit, ce qu'il propose, le prix), « Oui, fais-le » ou « Je veux autre chose »
     if (act && !att) carteRegard(c, act);   // l'admin (7 nov.) : plus de {g} au milieu (doublon avec « Retoucher ») ; la demande « regarde » part toujours toute seule, sa réponse est dans le panneau de droite
-    // l'admin (7 nov., ordre clair) : plus de case « Dis-moi ce que tu veux faire… » ni de bouton « Retoucher » au milieu — toute demande passe
-    // par {g} (panneau de droite, bulle au téléphone) ; à la place, de BELLES TUILES : une par image du projet (dernière version + nom)
-    { const ps = principales(); if (ps.length) { const T = E('div', 'crea-tuiles'); T.appendChild(E('div', 'crea-h', '🖼️ ' + (ps.length > 1 ? 'MES IMAGES' : 'MON IMAGE')));
-      const g = E('div', 'crea-tuilesg');
-      for (const x of ps) { const v = derniere(x), t = B('crea-tuile' + (x.id === c.id ? ' on' : ''), null, () => { AIM.cur = x.id; AIM.cmp = null; AIM.pos = 0.5; render(); });
-        const im = E('span', 'i'); if (v) { const m = E('img'); m.alt = ''; m.src = urlImg(v.path, 360); im.appendChild(m); } else im.appendChild(E('span', 'crea-anneau'));
-        t.append(im, E('b', '', x.titre || 'Mon image')); t.title = 'Ouvrir « ' + (x.titre || 'Mon image') + ' » en grand'; g.appendChild(t); }
-      T.appendChild(g); S.appendChild(T); } }
     G.appendChild(S);
     // les versions : la liste déroulante posée sur l'image (l'admin, 7 nov.) — plus de bande de vignettes
     // outils + mon image
@@ -908,7 +901,13 @@
       const fn = OUTILS_FN[o.k], bientot = o.prix === 'bientot' || !fn;
       outil(o.e, o.t, bientot ? 'bientôt' : o.prix === 'gratuit' ? 'gratuit' : px, o.bg, bientot ? null : fn, bientot || !libre);
     }
-    ob.appendChild(gr); col.appendChild(ob);
+    // l'admin (7 nov., 2.1.19 : « en 100 % ça dépasse ») : les outils qui arrivent bientôt ne prennent plus une ligne chacun : une rangée d'icônes
+    { const bt = [...gr.querySelectorAll('.crea-ot')].filter(b => b.querySelector('.crea-prix.bientot'));
+      if (bt.length) { const R = E('div', 'crea-bientot'); R.appendChild(E('span', 'h', 'Bientôt'));
+        for (const b of bt) { const ic = b.querySelector('.e'), lab = ((b.querySelector('b') || {}).textContent || '').trim(), k = E('span', 'k'); k.textContent = ic ? ic.textContent : '•'; if (ic) k.style.background = ic.style.background;
+          k.title = lab + ' : bientôt'; k.setAttribute('aria-label', lab + ' : bientôt'); R.appendChild(k); b.remove(); }
+        ob.append(gr, R); } else ob.appendChild(gr); }
+    col.appendChild(ob);
     const mb = E('div', 'crea-carte crea-boite crea-actions'); mb.appendChild(E('div', 'crea-h', '📦 MON IMAGE'));
     const dl = B('crea-bt violet', '⬇️ Télécharger', () => telecharger(c, act)); if (!act) dl.disabled = true; dl.style.justifyContent = 'flex-start';
     const imp = B('crea-bt blanc', '＋ Importer une autre image', () => choisirFichier()); imp.style.justifyContent = 'flex-start';
