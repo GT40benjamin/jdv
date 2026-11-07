@@ -8753,7 +8753,10 @@ function mount(root, api) {
     const X = E0(); if (X.radar || !radarPose()) return;
     const t0 = X.radarT || 0; X.radarT = t0 + dt;
     if (t0 === 0) dire('📡 Le radar se déploie… (1 min)', 3);
-    if (X.radarT >= RADAR_T) {
+    /* V27 (ticket b73f416e, « il faut dire que l'analyse du radar est terminée et qu'il doit aller voir le radar ») : l'analyse finie, on va VOIR le radar ; il montre ce qu'il a trouvé quand on est à côté */
+    const R = posRadar(), pres = R && J && Math.hypot(J.x - R.x, J.y - (R.y + 20)) < 150;
+    if (X.radarT >= RADAR_T && !X.radarFini) { X.radarFini = true; son('ok', 0.9); if (!pres) { dire('📡 L’analyse du radar est terminée ! Va voir ton radar dans ta base : il va te montrer ce qu’il a trouvé.', 6); robotDit('Bip ! L’analyse du radar est terminée. Allons voir le radar : c’est là qu’on verra ce qu’il a trouvé !', 6); } sauver(); }
+    if (X.radarFini && pres) {
       X.radar = true; son('ok', 0.9); flash = 0.2; preparerCrashV17();
       dire('📡 Le radar capte 2 épaves au loin… et une énergie très forte au fond d’une grotte !', 6);
       setTimeout(() => { if (!dead) robotDit('L’ordinateur de bord et le propulseur sont dans ces épaves. Et cette énergie… c’est sûrement le cœur du réacteur ! Regarde la carte.', 7); }, 2500);
@@ -8761,6 +8764,7 @@ function mount(root, api) {
     }
   }
   const radarDeploie = () => { const X = E0(); return X.radar ? 1 : clamp((X.radarT || 0) / RADAR_T, 0, 1); };
+  function posRadar() { const b = maBase(); if (!b) return null; for (const k in b.p) if (b.p[k].t === 'radar') { const [gx, gy] = k.split(',').map(Number); return { x: gx * G64 + 32, y: gy * G64 + 32 }; } return null; }
   // le dessin du radar (dans la base) : un mât qui monte, une parabole qui tourne une fois déployé
   function dessinRadar(ctx, R, t) {
     const k = radarDeploie(), hm = 18 + 34 * k;
@@ -8769,6 +8773,7 @@ function mount(root, api) {
     ctx.fillStyle = '#dfe6f0'; ctx.beginPath(); ctx.ellipse(0, 0, 22, 12, -0.3, 0, Math.PI); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.strokeStyle = '#5a626e'; ctx.beginPath(); ctx.moveTo(0, 2); ctx.lineTo(10, -14); ctx.stroke(); ctx.fillStyle = k >= 1 ? (Math.sin(t * 6) > 0 ? '#7aff9a' : '#2a8a4a') : '#ffb020'; ctx.beginPath(); ctx.arc(10, -15, 3, 0, TAU); ctx.fill();
     ctx.restore();
+    if (k >= 1 && E0().radarFini && !E0().radar) { const a = 0.85 + 0.15 * Math.sin(t * 6); ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#ffe23a'; ctx.font = '800 14px ' + FB; ctx.textAlign = 'center'; ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(10,12,30,0.95)'; const s = '❗ Analyse terminée : viens voir'; ctx.strokeText(s, 0, -40 - hm); ctx.fillText(s, 0, -40 - hm); ctx.restore(); }   /* V27 */
     if (k >= 1) { const o = (t * 0.6) % 1; ctx.save(); ctx.strokeStyle = 'rgba(122,255,154,' + (1 - o) * 0.7 + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, -16 - hm, 20 + o * 60, -2.6, -0.5); ctx.stroke(); ctx.restore(); }
     else { ctx.save(); ctx.fillStyle = '#fff'; ctx.font = '800 11px ' + FB; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,12,30,0.8)'; const s = '📡 ' + Math.round(k * 100) + ' %'; ctx.strokeText(s, 0, -34 - hm); ctx.fillText(s, 0, -34 - hm); ctx.restore(); }
   }
@@ -8826,7 +8831,7 @@ function mount(root, api) {
     if (dansGrotte()) return X.pieces.includes('reacteur') || X.posees.includes('reacteur') ? 'Ressors de la grotte ☀️ et rapporte le cœur du réacteur à l’épave' : 'Trouve le cœur du réacteur 💎 au fond de la grotte';
     if (X.pieces.length) return 'Rapporte ' + PV(X.pieces[0]).nom + ' à l’épave 🔧 (' + n + ' / 6)';
     if (piecesSol.length) return 'Trouve les pièces de ton vaisseau ⭐ (' + n + ' / 6)';
-    if (!X.radar) return radarPose() ? 'Le radar se déploie 📡 (' + Math.round(radarDeploie() * 100) + ' %)' : 'Construis un radar 📡 dans ta base (machines) · ' + n + ' / 6';
+    if (!X.radar) return radarPose() ? (X.radarFini ? 'Va voir ton radar 📡 : son analyse est terminée' : 'Le radar se déploie 📡 (' + Math.round(radarDeploie() * 100) + ' %)') : 'Construis un radar 📡 dans ta base (machines) · ' + n + ' / 6';
     if (!X.posees.includes('reacteur')) return 'Explore la grotte de cristal 🕳️ (le cœur du réacteur)';
     return 'Répare ton vaisseau (' + n + ' / 6)';
   }
@@ -8834,6 +8839,7 @@ function mount(root, api) {
     if (dansGrotte()) { const X = E0(); return GRT && !piecesSol.length ? { x: GRT.sortie.x, y: GRT.sortie.y, ico: '☀️', nom: 'la sortie' } : null; }
     if (!crashV17() || !NAV || !NAV.cassee) return null; const X = E0();
     if (X.pieces.length) return { x: NAV.x, y: NAV.y, ico: '🔧', nom: 'l’épave' };
+    if (X.radarFini && !X.radar) { const R = posRadar(); if (R) return { x: R.x, y: R.y, ico: '📡', nom: 'ton radar' }; }   /* V27 */
     if (!piecesSol.length && X.radar && !X.posees.includes('reacteur')) { const L = lieuCrash('grotte'); if (L) return { x: L.x, y: L.y, ico: '🕳️', nom: 'la grotte' }; }
     return null;
   }
@@ -8881,6 +8887,7 @@ function mount(root, api) {
   const sansBip = s => s.replace(/^(Bip[ !,.]*)+(bip[ !,.]*)*/i, '').replace(/^\s+/, '');
   // les phrases du robot (ou de la radio) réécrites comme des pensées, à la 1re personne
   const PENSEES = {
+    'L’analyse du radar est terminée. Allons voir le radar : c’est là qu’on verra ce qu’il a trouvé !': 'L’analyse du radar est terminée ! Je vais voir mon radar : c’est là que je verrai ce qu’il a trouvé.',   /* V27 (ticket b73f416e) */
     'Tu n’as rien de cassé ? On s’est écrasés…': 'Aïe… Je n’ai rien de cassé ? Je me suis écrasé…',
     'Tu es vivant !': 'Ouf… Je suis vivant !',
     'Notre maison ! Pose d’abord un sol, puis des murs.': 'Ma base ! D’abord un sol, puis des murs.',
