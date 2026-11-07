@@ -596,7 +596,7 @@
 .crea-nd .ic.jaq.at-mini > img{box-shadow:0 2px 6px rgba(40,20,80,.18)}
 /* l'admin (7 nov.) : « {g} n'a pas à être à droite ET au milieu » — un atelier livré n'a plus le panneau de droite ni la bulle flottante ;
    la zone de travail prend la place ; la conversation complète s'ouvre au centre par le menu « 💬 » */
-/* l'admin (7 nov., plus tard) : « finalement, Pooky à droite, c'est mieux » — le panneau reste ; seule la grande discussion du menu « 💬 »
+/* l'admin (7 nov., plus tard) : « finalement, {g} à droite, c'est mieux » — le panneau reste ; seule la grande discussion du menu « 💬 »
    (au centre) le replie, pour ne pas montrer deux fois la même conversation */
 .crea.at-guide .crea-masc,.crea.at-guide .crea-flot{display:none!important}
 .crea.at-guide .crea-outil{right:var(--cg)}
