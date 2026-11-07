@@ -6152,3 +6152,15 @@ input.atl-rgin[type=text]{width:150px}
 .atl-rgplus{margin-top:8px}
 .atl-rgsec,.atl-rgintro{grid-template-columns:minmax(0,1fr)}
 .atl-rgmini th{white-space:nowrap}
+/* 7 nov. 2026 — « Mon jeu » : pastille de la version qui arrive (V26) + petit rond qui tourne + bulle au survol / appui long */
+.atl-esb[data-k="jeu"],.atl-est[data-k="jeu"]{position:relative}
+.atl-esvn{display:inline-flex;align-items:center;gap:5px;margin-left:auto;padding:2px 8px 2px 6px;border-radius:99px;background:#efe6ff;border:1.5px solid #b9a2f5;color:#5a3ea8;font:800 12px/1.2 var(--body);white-space:nowrap;cursor:help;-webkit-touch-callout:none;user-select:none}
+.atl-esb.on .atl-esvn{background:#fff;color:#5a3ea8}
+.atl-esspin{flex:0 0 auto;width:10px;height:10px;border-radius:50%;border:2px solid #b9a2f5;border-top-color:#7a4cff;animation:atlEsSpin 1s linear infinite;box-sizing:border-box}
+@keyframes atlEsSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.atl-esspin{animation:none;border-top-color:#b9a2f5;background:#7a4cff}}
+.atl-esvnb{position:fixed;z-index:60;width:max-content;max-width:240px;padding:8px 11px;border-radius:12px;background:#2a1f45;color:#fff;font:600 13px/1.4 var(--body);white-space:normal;text-align:left;box-shadow:0 8px 24px rgba(20,10,50,.35);opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s,transform .15s,visibility 0s .15s;pointer-events:none}
+.atl-esvnb.on{opacity:1;visibility:visible;transform:none;transition:opacity .15s,transform .15s}
+/* l'onglet du bas (téléphone) : la pastille dans le coin, la bulle au-dessus de la barre */
+.atl-est .atl-esvn{position:absolute;top:1px;right:1px;margin:0;padding:1px 5px 1px 4px;gap:3px;font-size:10.5px}
+.atl-est .atl-esspin{width:8px;height:8px;border-width:1.5px}
