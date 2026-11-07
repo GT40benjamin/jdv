@@ -715,3 +715,12 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 .crea-vcarte.src .i{width:46px;height:36px}
 .crea.nuit .crea-tuile{background:#2a215c;border-color:#4a3c94;color:#efe6ff}
 @media (max-width:699px){.crea-tuilesg{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+/* la réaction : badge au coin bas de LA bulle, petite bulle jamais coupée (décalée vers l'intérieur : --dx ; ouverte en dessous : .bas) */
+.crea-b.atl-breac{position:relative;margin-bottom:17px}
+.crea-b.atl-breac>.atl-reac{white-space:nowrap}
+.crea-b .atl-reacb{z-index:5}
+.crea-b .atl-reacb::after{margin-left:calc(-6px - var(--dx,0px))}
+.crea-b .atl-reacb.bas{bottom:auto;top:calc(100% + 8px);transform:translate(-50%,-4px)}
+.crea-b .atl-reac.on .atl-reacb.bas{transform:translate(-50%,0)}
+.crea-b .atl-reacb.bas::after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:#2a1f45}
+@media (hover:hover){.crea-b .atl-reac:hover .atl-reacb.bas{transform:translate(-50%,0)}}

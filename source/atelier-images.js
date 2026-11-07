@@ -1134,9 +1134,28 @@
     F.addEventListener('scroll', () => { if (!F.clientHeight) return; const d = F.scrollHeight - F.scrollTop - F.clientHeight; if (d > 80 && F.dataset.vu) AIM.pkLu = true; else if (d < 20) AIM.pkLu = false; F.dataset.vu = '1'; }, { passive: true });
     if (foc) S.querySelector('textarea').focus({ preventScroll: true });
   }
+  // l'admin (7 nov., vue admin de SAMBA : « regarde où {g} réagit, ce n'est pas bon ») : le badge 👍 reste accroché au coin bas de LA bulle
+  // du joueur (.crea-b.atl-breac en position relative) ; la petite bulle « … a réagi 👍 » s'ouvre au-dessus du badge, ENTIÈREMENT visible
+  // dans la discussion : elle se décale vers l'intérieur si elle touche un bord, et s'ouvre en dessous s'il n'y a pas la place au-dessus
+  function reacPlacer(r) {
+    const tip = r.querySelector('.atl-reacb'); if (!tip) return;
+    tip.classList.remove('bas'); tip.style.marginLeft = '0px'; tip.style.setProperty('--dx', '0px');
+    const box = r.closest('.crea-fil2'), C = box ? box.getBoundingClientRect() : { left: 0, right: innerWidth, top: 0, bottom: innerHeight };
+    let T = tip.getBoundingClientRect(), dx = 0; const m = 8;
+    if (T.left < C.left + m) dx = C.left + m - T.left; else if (T.right > C.right - m) dx = C.right - m - T.right;
+    if (dx) { tip.style.marginLeft = dx + 'px'; tip.style.setProperty('--dx', dx + 'px'); }
+    if (T.top < C.top + m) tip.classList.add('bas');
+  }
+  function reacPlacee(r) {
+    r.addEventListener('pointerenter', () => reacPlacer(r));
+    r.addEventListener('click', () => reacPlacer(r), true);   // avant le basculement « on » de l'Interface
+    r.addEventListener('focus', () => reacPlacer(r));
+  }
+  // toucher (ou cliquer) ailleurs ferme la petite bulle
+  document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('.atl-reac')) return; for (const o of document.querySelectorAll('#jdw-crea .atl-reac.on')) o.classList.remove('on'); }, true);
   function bulle(m) {
     if (!m.pk) { const b = E('div', 'crea-b moi', sansChemin(m.t) || null); if (m.image) { const i = E('img', 'crea-bimg'); i.alt = 'Ton image'; i.src = m.image; b.appendChild(i); }
-      if (m.reaction && typeof atlReacBadge === 'function') { try { b.appendChild(atlReacBadge(m.reaction)); b.classList.add('atl-breac'); } catch (e) {} }   // le badge de l'Interface (branche reactions)
+      if (m.reaction && typeof atlReacBadge === 'function') { try { const r = atlReacBadge(m.reaction); reacPlacee(r); b.appendChild(r); b.classList.add('atl-breac'); } catch (e) {} }   // le badge de l'Interface (branche reactions)
       return b; }
     const l = E('div', 'crea-lpk'), im = E('img'); im.alt = ''; im.src = m.img ? POSE(m.img) : AV();
     const b = E('div', 'crea-b');
