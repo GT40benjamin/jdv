@@ -6026,3 +6026,26 @@ body.atl-on #jdw-lib{content-visibility:hidden}
    une fenêtre de l'Atelier (« 💎 Mes crédits », « Il te manque des crédits », 🛡️ Admin…) ouverte depuis cet écran s'ouvrait derrière lui, invisible.
    Tant qu'une fenêtre de l'Atelier est ouverte, l'Atelier passe au-dessus de l'écran « Crée avec » (le voile de la fenêtre cache le reste). */
 body:has(#jdw-atelier:not([hidden]) > .atl-mod:not([hidden])) #jdw-atelier{z-index:23}
+/* 2.1.13 (l'admin : « Feuille de route et Versions, ça va ensemble ») : une seule page, la feuille de route puis les versions */
+.atl-espace .atl-pane > .atl-ph3.atl-esvh3{margin-top:26px}
+.atl-espace .atl-pane[data-k="route"] .atl-vh{margin:0 0 10px;padding:14px 18px}
+.atl-espace .atl-pane[data-k="route"] .atl-vh b{font:900 15px var(--body);color:#4a2370}
+.atl-espace .atl-pane[data-k="route"] .atl-vh p{font:600 15px/1.5 var(--body)}.atl-espace .atl-pane[data-k="route"] .atl-vh li{font:600 14px/1.45 var(--body)}
+.atl-esb[data-k="route"] .lab{line-height:1.2}
+.atl-est.deux .lab{white-space:normal;line-height:1.05;text-align:center;font-size:10px}
+/* 2.1.13 (testeur) : vue admin au téléphone (8 onglets) — aucun libellé coupé : la barre défile, chaque onglet garde son mot entier */
+@media (max-width:900px){
+  #jdw-atelier:has(.atl-wiz.atl-espace:not([hidden])) .atl-estabs:has(.atl-est:nth-child(8)){justify-content:flex-start;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
+  .atl-estabs:has(.atl-est:nth-child(8))::-webkit-scrollbar{display:none}
+  .atl-estabs:has(.atl-est:nth-child(8)) .atl-est{flex:0 0 auto;min-width:56px;padding:2px 7px}
+  .atl-estabs:has(.atl-est:nth-child(8)) .atl-est .lab{overflow:visible}
+  .atl-estabs:has(.atl-est:nth-child(8)) .atl-est.deux{min-width:64px;max-width:72px}
+}
+/* 2.1.13 (testeur) : téléphone étroit (360 px), 7 onglets : les mots entiers (« Éléments », « Boutique », « Réglages ») */
+@media (max-width:380px){.atl-estabs:not(:has(.atl-est:nth-child(8))) .atl-est{padding:2px 0}.atl-estabs:not(:has(.atl-est:nth-child(8))) .atl-est .lab{font-size:9.5px;letter-spacing:-.25px}}
+/* 2.1.13 (testeur) : « Ta première version arrive » lisible ; fenêtre admin : l'icône à gauche, le texte à côté */
+.atl-espace .atl-vvide p{margin:0;color:#46395e;font:700 15px/1.5 var(--body)}
+.atl-admact .btn{display:flex;align-items:center;gap:10px}
+.atl-admact .atl-admic{flex:none;width:24px;text-align:center;font-size:18px;line-height:1}
+.atl-admact .atl-admtx{flex:1;min-width:0}
