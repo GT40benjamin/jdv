@@ -633,7 +633,7 @@
     if (!c) { if (atelierOuvert(AIM.fiche)) renderDepot(O); else videImport(O, 'Importe ta première image', 'Une photo de Pégase, un dessin, un paysage, ton animal… Ensuite, dis-moi ce que tu veux changer. (Pas de photo où l’on voit le visage d’une vraie personne.)'); return; }
     const act = verDe(c, c.actuelle), att = c.versions.find(v => ['envoi', 'controle', 'en_cours'].includes(v.etat));
     const avant = act && (verDe(c, act.parent) || (act.n > 1 ? c.versions.find(v => v.n === 1 && v.etat === 'prete') : null));
-    const G = E('div', 'crea-oimg');
+    const G = E('div', 'crea-oimg' + (atelierOuvert(AIM.fiche) ? ' at' : ''));
     // la scène
     const S = E('div', 'crea-carte crea-scene'), L = E('div', 'crea-lh');
     const tb = B('crea-titreimg', '🖼️ ' + (c.titre || 'Mon image').toUpperCase(), () => renommerImage(c)); tb.title = 'Renommer cette image';
@@ -671,7 +671,7 @@
     ta.value = AIM.brouillon || ''; ta.addEventListener('input', () => { AIM.brouillon = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) { toast('Le micro ne marche pas ici : écris au clavier'); } }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
-    const go = B('crea-bt', null, () => { const t = ta.value.trim(); if (t.length < 3) { ta.focus(); toast('Dis-moi ce que tu veux changer ✏️'); return; } fabriquer('parole', t, () => { ta.value = ''; AIM.brouillon = ''; }); });
+    const go = B('crea-bt go', null, () => { const t = ta.value.trim(); if (t.length < 3) { ta.focus(); toast('Dis-moi ce que tu veux changer ✏️'); return; } fabriquer('parole', t, () => { ta.value = ''; AIM.brouillon = ''; }); });
     go.append(E('span', 'lbl', 'Retoucher '), '✨ ', E('span', 'crea-prix', (AIM.prix.image | 0) + ' ' + D)); go.setAttribute('aria-label', 'Retoucher mon image'); if (!act || att) go.disabled = true;
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TOUCH) { e.preventDefault(); go.click(); } });
     dem.append(ch, go); S.appendChild(dem); G.appendChild(S);
@@ -922,7 +922,8 @@
     // la petite bulle : quelques secondes quand {g} dit quelque chose de neuf (jamais sur l'écran « Nouveau projet » : elle cacherait l'offre)
     const cle = AIM.prop ? 'prop' : der ? der.at + der.t : '';
     if (cle !== AIM.bulleCle) { AIM.bulleCle = cle; AIM.bulleAt = Date.now(); clearTimeout(AIM.bulleT); AIM.bulleT = setTimeout(renderFlot, 6500); }
-    const t = AIM.vue === 'nouveau' || Date.now() - (AIM.bulleAt || 0) > 6000 ? '' : AIM.prop ? 'Je le fais sur ton image ? 👆' : der ? der.t.replace(/\s+/g, ' ').slice(0, 70) + (der.t.length > 70 ? '…' : '') : '';
+    const t = AIM.vue === 'nouveau' || (AIM.fiche && atelierOuvert(AIM.fiche) && AIM.vue === 'atelier') || Date.now() - (AIM.bulleAt || 0) > 6000 ? '' :   // le testeur (7 nov.) : jamais par-dessus « Mon atelier » (le commentaire de {g} y est déjà)
+      AIM.prop ? 'Je le fais sur ton image ? 👆' : der ? der.t.replace(/\s+/g, ' ').slice(0, 70) + (der.t.length > 70 ? '…' : '') : '';
     bb.textContent = t; bb.hidden = !t;
   }
 
