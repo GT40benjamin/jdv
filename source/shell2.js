@@ -17027,7 +17027,7 @@ function atlPubBlocMaj(b, f) {
   if (publie) bt('Retirer de la borne', 'btn-ghost atl-pubret', async () => {
     if (!await atlConfirmer('Retirer ton jeu de la borne ?', 'Les joueurs ne le verront plus sur leur borne. Il reste à toi, en essai, avec ses versions, ses scores et sa boutique : tu pourras le republier quand tu veux.', 'Oui, retirer')) return;
     if (adm) await AP('non'); else await rpc('at_publication_retirer', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); await fin('↩️ Ton jeu n’est plus sur la borne.'); });
-  if (occ) b.appendChild(atlEl('p', 'atl-attends', atlAttendsTxt(occ)));
+  if (occ) b.appendChild(atlAttendsEl(occ));
   if (publie && vp > 0) {   // les mises à jour automatiques
     const lb = atlEl('label', 'atl-autopub'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = auto; lb.append(cb, atlEl('span', '', 'Publier automatiquement mes mises à jour'));
     cb.addEventListener('change', async () => { const on = cb.checked; cb.disabled = true;
@@ -17072,7 +17072,7 @@ function atlPubV(pv, f) {
   if (v > vp) {
     pv.appendChild(atlEl('p', 'atl-pubvie', '🎮 Sur la borne : V' + (vp || 1) + ' · ici, tu essaies la V' + v + '.'));
     if (!atlAdminIci()) {
-      const b = atlEl('button', 'btn btn-play atl-pubvb', '📢 Publier la V' + v); b.type = 'button'; if (occ) { b.disabled = true; b.title = atlAttendsTxt(occ); pv.appendChild(atlEl('p', 'atl-attends', atlAttendsTxt(occ))); }
+      const b = atlEl('button', 'btn btn-play atl-pubvb', '📢 Publier la V' + v); b.type = 'button'; if (occ) { b.disabled = true; b.title = atlAttendsTxt(occ); pv.appendChild(atlAttendsEl(occ)); }
       b.addEventListener('click', async () => {
         if (!await atlConfirmer('📢 Publier la V' + v + ' ?', 'Tes joueurs auront la V' + v + ' sur leur borne à la place de la V' + (vp || 1) + '.')) return;
         b.disabled = true;
@@ -20696,6 +20696,8 @@ function atlTravaille(f) {
   return pr || atlDemEnCours().some(x => x.fiche === f.id && x.etat === 'en_cours') ? ((f.version | 0) || 1) + 1 : 0;
 }
 function atlAttendsTxt(n) { return '⏳ Attends que ' + gNM() + ' ait fini ta V' + n + ' : tu pourras publier quand il se reposera.'; }
+// 7 nov. 2026 (l'admin : « mettre plus en évidence ») : un bandeau plein et contrasté, ⏳ plus grand (lisible sur la carte claire comme sur fond sombre)
+function atlAttendsEl(n) { const p = atlEl('p', 'atl-attends'); p.setAttribute('role', 'status'); p.append(atlEl('span', 'atl-attic', '⏳'), atlEl('span', 'atl-attx', atlAttendsTxt(n).replace(/^⏳\s*/, ''))); return p; }
 function atlBoutonsJeu(bn, f, sansTester) {
   const et = f.etat, row = atlEl('div', 'atl-jbtns'), occ = atlTravaille(f);
   const t = atlEl('button', 'btn btn-play btn-sm', '▶ Tester mon jeu'); t.type = 'button';
@@ -20708,7 +20710,7 @@ function atlBoutonsJeu(bn, f, sansTester) {
   if (!sansTester) row.appendChild(t);
   if (/^(alpha|publie_salle|publie_monde)$/.test(String(et || ''))) row.appendChild(atlPubListe(f, occ));   // 2.0.95 : une liste « Publication : »
   bn.appendChild(row);
-  if (occ && row.querySelector('button[disabled]:not(.atl-mannul), select[disabled]')) bn.appendChild(atlEl('p', 'atl-attends', atlAttendsTxt(occ)));   // sous les boutons, jamais hors de l'écran
+  if (occ && row.querySelector('button[disabled]:not(.atl-mannul), select[disabled]')) bn.appendChild(atlAttendsEl(occ));   // sous les boutons, jamais hors de l'écran
 }
 // 2.0.95 (l'admin : « remplace les 2 gros boutons par UNE liste déroulante Publication : ») : la liste montre toujours l'état (Non publié,
 // Dans mes salles, Mondial demandé, Mondial) ; chaque choix fait exactement ce que faisait son bouton, avec la même confirmation
