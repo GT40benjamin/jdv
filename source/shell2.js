@@ -17413,7 +17413,7 @@ function atlRenderProjet(W, f) {
   if (jouable && !atlAdminIci()) { const hp = atlEl('div', 'atl-phpub'); atlBoutonsJeu(hp, f, true); const pv = atlEl('div', 'atl-pubv'); hp.appendChild(pv); atlPubV(pv, f); hd.appendChild(hp); }
   // 20 h 35 (Benjamin) : la fiche et les dessins sont dans la feuille de route (à droite) ; ici : Jouer + Discussion, ou la V1 en construction
   const T = jouable ? [['jeu', '🎮 Jouer'], ['demandes', '💬 Discussion avec ' + gN()], ['elements', '🧩 Éléments']] : [];   // 2.0.137 (l'admin : « on voit tout dans le chat ») : plus d'onglet « Mes demandes »   // 2.0.10 (Benjamin) : après la feuille de route, tout passe par les demandes
-  if (jouable && !T.some(x => x[0] === ATL.tab) && !['boutique', 'versions', 'stats', 'params'].includes(ATL.tab)) ATL.tab = 'jeu';   // 2.0.142 : les sections de l'espace du jeu
+  if (jouable && !T.some(x => x[0] === ATL.tab) && !['boutique', 'route', 'versions', 'stats', 'params', 'admin'].includes(ATL.tab)) ATL.tab = 'jeu';   // 2.1.13 (testeur) : la page lue reste ouverte quand une donnee change   // 2.0.142 : les sections de l'espace du jeu
   if (jouable) {
     const nav = atlEl('div', 'atl-ptabs'); nav.setAttribute('role', 'tablist');
     for (const [k, lab] of T) { const b = atlEl('button', 'atl-ptab', k === 'elements' && atlElNeufs(f) ? lab + ' ✨' + atlElNeufs(f) : lab); b.type = 'button'; b.dataset.k = k; b.setAttribute('role', 'tab'); b.addEventListener('click', () => atlProjTab(k)); nav.appendChild(b); }
