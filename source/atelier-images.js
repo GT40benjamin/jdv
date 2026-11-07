@@ -487,6 +487,8 @@
       AIM.msgs = ((r && r.messages) || []).filter(m => !m.remplacee).map(m => ({ t: String(m.texte || ''), pk: !!m.atelier, at: m.at }));
     } catch (e) {}
   }
+  const journal = (m, d) => { try { reportError('Atelier photo : ' + m, JSON.stringify(Object.assign({ fiche: AIM.fiche, vue: AIM.vue }, d || {})), { quiet: true }); } catch (e) {} };
+  function enVerif() { const c = curCrea(); return !!(c && c.versions.some(v => v.etat === 'controle' && v.outil !== 'import')); }
   function enAttente() { const c = curCrea(); return !!(c && c.versions.some(v => ['envoi', 'controle', 'en_cours'].includes(v.etat))); }
   function suivre() {
     clearInterval(AIM.poll); AIM.tick = 0;
@@ -624,7 +626,9 @@
     setTimeout(() => { const t = R.querySelector('.crea-masc textarea'); if (t && !TOUCH) t.focus({ preventScroll: true }); }, 60);
   }
   function renderOutil() {
-    const O = AIM.root.querySelector('.crea-outil'), sy = O.scrollTop; O.textContent = '';
+    const O = AIM.root.querySelector('.crea-outil'), sy = O.scrollTop, ae = document.activeElement, demFoc = !!(ae && ae.tagName === 'TEXTAREA' && ae.closest('.crea-outil .crea-dem')), sel = demFoc ? [ae.selectionStart, ae.selectionEnd] : null;
+    O.textContent = '';
+    if (demFoc) setTimeout(() => { const t = O.querySelector('.crea-dem textarea'); if (t) { t.focus({ preventScroll: true }); try { t.setSelectionRange(sel[0], sel[1]); } catch (e) {} } }, 0);
     const at = AIM.vue !== 'nouveau' && !!AIM.fiche && atelierOuvert(AIM.fiche), fd = at ? atelierDe(AIM.fiche).fond : '';
     AIM.root.classList.toggle('studio', fd === 'studio');
     AIM.root.style.backgroundImage = AIM.vue === 'nouveau' || fd ? '' : 'url("' + ROOT + 'accueil/pgv-cosy-1600.webp")';
@@ -703,8 +707,12 @@
     ta.value = AIM.brouillon || ''; ta.addEventListener('input', () => { AIM.brouillon = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) { toast('Le micro ne marche pas ici : écris au clavier'); } }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
-    const go = B('crea-bt go', null, () => { const t = ta.value.trim(); if (t.length < 3) { ta.focus(); toast('Dis-moi ce que tu veux changer ✏️'); return; } fabriquer('parole', t, () => { ta.value = ''; AIM.brouillon = ''; }); });
-    go.append(E('span', 'lbl', 'Retoucher '), '✨ ', E('span', 'crea-prix', (AIM.prix.image | 0) + ' ' + D)); go.setAttribute('aria-label', 'Retoucher mon image'); if (!act || att) go.disabled = true;
+    // le chef (7 nov., SAMBA 9 h 19 : « rien n'est arrivé ») : le bouton répond TOUJOURS — il envoie, ou il dit pourquoi pas (jamais grisé en silence)
+    const go = B('crea-bt go', null, () => { const t = (ta.value || AIM.brouillon || '').trim(); if (t.length < 3) { ta.focus(); toast('Dis-moi ce que tu veux changer ✏️'); return; }
+      if (!act) { toast('Ta photo arrive, encore un instant 📸'); journal('retoucher : photo pas prête'); return; }
+      if (enAttente()) { toast(enVerif() ? '⏳ Je vérifie ta retouche… attends qu’elle arrive' : '⏳ Ta photo est en cours : attends qu’elle arrive'); return; }
+      fabriquer('parole', t, () => { ta.value = ''; AIM.brouillon = ''; }); });
+    go.append(E('span', 'lbl', 'Retoucher '), '✨ ', E('span', 'crea-prix', (AIM.prix.image | 0) + ' ' + D)); go.setAttribute('aria-label', 'Retoucher mon image'); if (!act || att) { go.classList.add('attend'); go.setAttribute('aria-disabled', 'true'); }
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TOUCH) { e.preventDefault(); go.click(); } });
     dem.append(ch, go); S.appendChild(dem); G.appendChild(S);
     // les versions
@@ -835,7 +843,7 @@
         if (v.etat === 'prete' && v.id !== c.actuelle && adm()) { c.actuelle = v.id; AIM.pos = 0.5; render(); }   // vue admin : on regarde l'autre version, rien n'est écrit
         else if (v.etat === 'prete' && v.id !== c.actuelle) { try { await rpc('at_esp_choisir', { p_name: nom(), p_creation: c.id, p_version: v.id }, { quiet: true }); c.actuelle = v.id; AIM.pos = 0.5; render(); charger(); } catch (e) { toast('Oups, réessaie'); } }
         else if (rate) toast(v.etat === 'refusee' ? 'Celle-là, je n’ai pas pu la faire (crédits rendus)' : 'Celle-là a raté : tes crédits t’ont été rendus');
-        else if (cours) toast('⏳ Je la fabrique… elle arrive !');
+        else if (cours) toast(v.etat === 'controle' && v.outil !== 'import' ? '⏳ Je vérifie ta retouche… elle arrive !' : '⏳ Je la fabrique… elle arrive !');
       });
       if (grand) { b.style.width = '190px'; b.style.flexBasis = '190px'; }
       const i = E('span', 'i'); const src = v.path ? urlImg(v.path, 300) : (verDe(c, v.parent) ? urlImg(verDe(c, v.parent).path, 300) : '');
@@ -843,7 +851,7 @@
       b.appendChild(i); if (cours) b.appendChild(E('span', 'crea-anneau'));
       const lib = v.outil === 'import' ? 'Originale' : v.outil === 'recadrer' ? 'Recadrée' : v.consigne || 'Retouche';
       const t = E('span', 't', 'V' + v.n + ' · ' + lib);
-      t.appendChild(E('small', '', cours ? (v.etat === 'en_cours' ? 'je m’y mets… ' + v.prix + ' ' + D : 'je regarde…') : rate ? 'ratée · rendus' : v.prix ? v.prix + ' ' + D : v.outil === 'import' ? 'ta photo' : 'gratuit'));
+      t.appendChild(E('small', '', cours ? (v.etat === 'en_cours' ? 'je m’y mets… ' + v.prix + ' ' + D : v.etat === 'controle' && v.outil !== 'import' ? '⏳ je vérifie ta retouche…' : 'je regarde…') : rate ? 'ratée · rendus' : v.prix ? v.prix + ' ' + D : v.outil === 'import' ? 'ta photo' : 'gratuit'));
       b.appendChild(t); Bd.appendChild(b);
     }
     return Bd;
@@ -982,20 +990,23 @@
   }
 
   // ---------- actions ----------
-  async function fabriquer(outil, consigne, apres) {
-    const c = curCrea(); if (!c || AIM.busy || lectureSeule()) return;
+  async function fabriquer(outil, consigne, apres, confirme) {
+    if (lectureSeule()) return;
+    const c = curCrea(); if (!c) { toast('Choisis d’abord ta photo 📸'); journal('fabriquer : aucune photo choisie'); return; }
+    if (AIM.busy) { toast('J’envoie déjà ta demande… ⏳'); return; }
     const p = AIM.prix.image | 0;
     if (typeof AIM.solde === 'number' && AIM.solde < p) { manque(p); return; }
     const cle = 'jdw.crea.okprix.' + nom();
-    let ok = false; try { ok = !!store.get(cle, false) || (AIM.d && AIM.d.deja_paye); } catch (e) {}
+    let ok = !!confirme || !!AIM.okPrix; try { ok = ok || !!store.get(cle, false) || !!(AIM.d && AIM.d.deja_paye); } catch (e) {}
     if (!ok) {
       modal('✨ Créer une nouvelle image ?', 'Une nouvelle image = ' + p + ' ' + D + '.' + (typeof AIM.solde === 'number' ? ' Il te restera ' + (AIM.solde - p) + ' ' + D + '.' : '') + ' Ta version d’avant reste gardée, et si ça rate, tes crédits te sont rendus.',
-        [['Annuler', 'blanc', modFermer], ['✨ Oui, crée-la', '', () => { try { store.set(cle, true); } catch (e) {} modFermer(); fabriquer(outil, consigne, apres); }]]);
+        [['Annuler', 'blanc', modFermer], ['✨ Oui, crée-la', '', () => { AIM.okPrix = true; try { store.set(cle, true); } catch (e) {} modFermer(); fabriquer(outil, consigne, apres, true); }]]);
       return;
     }
     AIM.busy = true;
     try {
-      const r = await rpc('at_esp_fabriquer', { p_name: nom(), p_creation: c.id, p_outil: outil, p_consigne: consigne }, { quiet: true });
+      const r = await Promise.race([rpc('at_esp_fabriquer', { p_name: nom(), p_creation: c.id, p_outil: outil, p_consigne: consigne }, { quiet: true }),
+        new Promise((_, ko) => setTimeout(() => ko(new Error('pas de reponse')), 30000))]);   // jamais bloqué : 30 s sans réponse = un message
       if (typeof r.solde === 'number') { AIM.solde = r.solde; bougerCred(); }
       if (apres) apres();
       AIM.root.classList.remove('pk-plein'); if (AIM.vue === 'guide') AIM.vue = 'atelier';   // « Oui » dans la conversation : retour à Mon atelier pour voir la photo se faire
@@ -1003,7 +1014,9 @@
     } catch (e) {
       const m = pourquoi(e);
       if (/credits insuffisants/.test(m)) manque(p);
-      else dire({ pk: 1, t: /filtre/.test(m) ? 'Ça, je ne peux pas le faire 🙈 Essaie autre chose ! (Rien n’a été dépensé.)' : /deja en cours/.test(m) ? 'Je fabrique déjà une version de cette image : attends qu’elle arrive ⏳' : /aujourd hui/.test(m) ? 'Tu as créé beaucoup d’images aujourd’hui ! Reviens demain 🙂' : /trop de versions/.test(m) ? 'Cette image a déjà beaucoup de versions : importe-la de nouveau pour continuer.' : /consigne vide/.test(m) ? 'Dis-moi un peu plus ce que tu veux changer ✏️' : 'Oups, ça n’a pas marché (rien n’a été dépensé). Réessaie dans un moment 🙏' });
+      else { const t = /filtre/.test(m) ? 'Ça, je ne peux pas le faire 🙈 Essaie autre chose ! (Rien n’a été dépensé.)' : /deja en cours/.test(m) ? 'Je fabrique déjà une version de cette image : attends qu’elle arrive ⏳' : /aujourd hui/.test(m) ? 'Tu as créé beaucoup d’images aujourd’hui ! Reviens demain 🙂' : /trop de versions/.test(m) ? 'Cette image a déjà beaucoup de versions : importe-la de nouveau pour continuer.' : /consigne vide/.test(m) ? 'Dis-moi un peu plus ce que tu veux changer ✏️' : /pas de reponse/.test(m) ? 'Le réseau ne répond pas 📶 Ta demande est gardée : réessaie dans un moment (rien n’a été dépensé).' : 'Oups, ça n’a pas marché (rien n’a été dépensé). Réessaie dans un moment 🙏';
+        dire({ pk: 1, t }); toast(t);   // dit AUSSI à l'écran : la conversation n'est pas visible depuis Mon atelier
+        journal('fabriquer : ' + m.slice(0, 120), { outil, longueur: String(consigne || '').length }); }
       render();
     } finally { AIM.busy = false; }
   }

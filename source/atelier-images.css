@@ -617,3 +617,5 @@
 .crea-disc .crea-of{margin:10px 0;max-width:min(92%,760px)}
 .crea-disc .crea-of .atl-mc{max-width:100%}
 .crea-disc .crea-of.atl-chat{display:block;background:transparent;border:0;box-shadow:none;overflow:visible;border-radius:0;min-height:0}
+/* le bouton RETOUCHER en attente (photo en cours / en vérification) : grisé mais il répond toujours (il dit pourquoi) */
+.crea-bt.go.attend{opacity:.55;filter:saturate(.6)}
