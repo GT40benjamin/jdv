@@ -946,7 +946,8 @@
           else if (X && o.k !== '*' && typeof X.bouton === 'function') { const b = X.bouton(o.k, outilCtx(c, act, att)); if (b) gr.appendChild(b); } } catch (e) { journal('outil ' + o.k + ' : ' + pourquoi(e).slice(0, 80)); }
         continue; }
       const fn = OUTILS_FN[o.k], bientot = o.prix === 'bientot' || !fn;
-      outil(o.e, o.t, bientot ? 'bientôt' : o.prix === 'gratuit' ? 'gratuit' : px, o.bg, bientot ? null : fn, bientot || !libre);
+      const pxo = o.k === 'parler' && (AIM.prix.retouche_code | 0) > 0 ? 'dès ' + (AIM.prix.retouche_code | 0) + ' ' + D : px;   // {g} choisit : par le code (10) ou dessin nouveau (20)
+      outil(o.e, o.t, bientot ? 'bientôt' : o.prix === 'gratuit' ? 'gratuit' : pxo, o.bg, bientot ? null : fn, bientot || !libre);
     }
     // l'admin (7 nov., 2.1.19 : « en 100 % ça dépasse ») : les outils qui arrivent bientôt ne prennent plus une ligne chacun : une rangée d'icônes
     { const bt = [...gr.querySelectorAll('.crea-ot')].filter(b => b.querySelector('.crea-prix.bientot'));
@@ -993,7 +994,7 @@
   }
   function proposition(t) { const m = String(t).match(/je te propose\s*:?\s*([\s\S]+)/i); return sansChemin(m ? m[1] : t).replace(/[·•]?\s*\d+\s*💎/g, '').replace(/\s+/g, ' ').trim().slice(0, 380); }
   function carteRegard(c, act) {
-    const K = E('div', 'crea-regard'), r = regardDe(c), px = (AIM.prix.image | 0) + ' ' + D;
+    const K = E('div', 'crea-regard'), r = regardDe(c), of = r && r.rep ? (offreDe(r.rep.t) || { prix: AIM.prix.image | 0, outil: 'parole' }) : { prix: AIM.prix.image | 0, outil: 'parole' }, px = of.prix + ' ' + D;
     if (r && r.fait) return K;
     if (!r) {   // l'admin (7 nov.) : plus de bouton 👁️ — dès qu'une photo est déposée, {g} la regarde tout seul, une seule fois par photo
       if (!adm() && act && act.outil === 'import' && !AIM.regardes.has(c.id)) { AIM.regardes.add(c.id); setTimeout(() => regarder(c, act), 0); }
@@ -1008,7 +1009,7 @@
     else {
       col.append(E('b', '', '👁️ ' + PK() + ' a regardé ta photo'), E('p', '', sansChemin(r.rep.t)));
       const act2 = E('div', 'crea-regard-act');
-      const oui = B('crea-bt', '✨ Oui, fais-le · ' + px, () => { const t = proposition(r.rep.t); if (t.length < 3) { ouvrirGuide(); return; } fabriquer('parole', t); });
+      const oui = B('crea-bt', '✨ Oui, fais-le · ' + px, () => { const t = proposition(r.rep.t); if (t.length < 3) { ouvrirGuide(); return; } fabriquer(of.outil, t); });
       const non = B('crea-bt blanc', '💬 Je veux autre chose', () => ouvrirGuide());
       act2.append(oui, non); col.appendChild(act2);
     }
@@ -1243,7 +1244,11 @@
     try { if (adm()) await rpc('at_admin_agir', { p_name: nom(), p_fiche: AIM.fiche, p_action: 'discussion', p_args: { texte: t } }, { quiet: true }); else await rpc('at_esp_parler', { p_name: nom(), p_fiche: AIM.fiche, p_texte: t, p_micro: false }, { quiet: true }); }
     catch (e) { dire({ pk: 1, t: 'Oups, ton message n’est pas parti. Réessaie 🙏' }); render(); return; }
     const c = curCrea(), a = c && verDe(c, c.actuelle);
-    if (a && !adm() && !enAttente() && !/\?\s*$/.test(t) && t.length >= 4) { AIM.prop = t; render(); }
+    // l'équipe Atelier-tests (7 nov., ARGENT) : {g} annonçait « · 10 💎 », le joueur répondait « Oui, vas-y ! » et la page lui offrait SA retouche
+    // « Oui, crée-la · 20 💎 » (avec « Oui, vas-y ! » comme consigne) : après une proposition chiffrée de {g}, la page ne propose plus rien —
+    // {g} lance lui-même la retouche au prix annoncé sur le « oui » écrit (sa règle) ; même chose dès que la retouche par le code existe (v173)
+    const dpk = AIM.msgs.slice(0, -1).reverse().find(m => m.pk), chiffree = !!(dpk && offreDe(dpk.t)), parCode = (AIM.prix.retouche_code | 0) > 0;
+    if (a && !adm() && !enAttente() && !chiffree && !parCode && !/\?\s*$/.test(t) && t.length >= 4) { AIM.prop = t; render(); }
     chargerMsgs().then(render);
   }
   const filMasc = () => (AIM.vue === 'nouveau' ? AIM.loc : AIM.msgs.concat(AIM.loc).sort((a, b) => String(a.at || '').localeCompare(String(b.at || ''))));
@@ -1262,16 +1267,26 @@
   }
 
   // ---------- actions ----------
+  // la retouche « par le code » (SQL v173, équipe Outils) : {g} la fait lui-même, sans dessin nouveau, à AIM.prix.retouche_code (10) ;
+  // le générateur (« parole », « style ») reste à AIM.prix.image (20)
+  const prixOutil = o => (o === 'code' && (AIM.prix.retouche_code | 0) > 0 ? AIM.prix.retouche_code : AIM.prix.image) | 0;
+  // une proposition CHIFFRÉE de {g} (« … — je le fais moi-même, sans dessin nouveau · 10 💎 » / « … — c'est un dessin nouveau · 20 💎 ») :
+  // son prix et sa façon ; null si le message n'annonce pas de prix
+  function offreDe(t) {
+    const ms = [...String(t || '').matchAll(/(\d+)\s*💎/g)]; if (!ms.length) return null;
+    const n = +ms[ms.length - 1][1], rc = AIM.prix.retouche_code | 0, code = (rc > 0 && n === rc) || (rc > 0 && /moi-m[eê]me|sans dessin nouveau/i.test(t));
+    return { prix: code ? rc : n, outil: code ? 'code' : 'parole' };
+  }
   async function fabriquer(outil, consigne, apres, confirme) {
     if (lectureSeule()) return;
     const c = curCrea(); if (!c) { toast('Choisis d’abord ta photo 📸'); journal('fabriquer : aucune photo choisie'); return; }
     if (AIM.busy) { toast('J’envoie déjà ta demande… ⏳'); return; }
-    const p = AIM.prix.image | 0;
+    const p = prixOutil(outil);
     if (typeof AIM.solde === 'number' && AIM.solde < p) { manque(p); return; }
     const cle = 'jdw.crea.okprix.' + nom();
     let ok = !!confirme || !!AIM.okPrix; try { ok = ok || !!store.get(cle, false) || !!(AIM.d && AIM.d.deja_paye); } catch (e) {}
     if (!ok) {
-      modal('✨ Créer une nouvelle image ?', 'Une nouvelle image = ' + p + ' ' + D + '.' + (typeof AIM.solde === 'number' ? ' Il te restera ' + (AIM.solde - p) + ' ' + D + '.' : '') + ' Ta version d’avant reste gardée, et si ça rate, tes crédits te sont rendus.',
+      modal('✨ Créer une nouvelle image ?', (outil === 'code' ? 'Je la fais moi-même, sans dessin nouveau : ' : 'Une nouvelle image = ') + p + ' ' + D + '.' + (typeof AIM.solde === 'number' ? ' Il te restera ' + (AIM.solde - p) + ' ' + D + '.' : '') + ' Ta version d’avant reste gardée, et si ça rate, tes crédits te sont rendus.',
         [['Annuler', 'blanc', modFermer], ['✨ Oui, crée-la', '', () => { AIM.okPrix = true; try { store.set(cle, true); } catch (e) {} modFermer(); fabriquer(outil, consigne, apres, true); }]]);
       return;
     }
