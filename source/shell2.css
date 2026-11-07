@@ -6177,3 +6177,8 @@ body:has(#jdw-crea:not([hidden])) #jdw-atelier:has(> .atl-mod:not([hidden])) > :
 .atl-invj{white-space:normal}
 /* 7 nov. 2026 : la fenêtre « X t'invite à jouer… » (▶️ Rejoindre) n'est jamais cachée par un bandeau de nouveauté (cri de perte, plein écran…) */
 body:has(#jdw-liveinv:not([hidden])) .fs-tip{display:none!important}
+/* 7 nov. 2026 (2e testeur : au téléphone debout, « ○ V26 » cachait le haut de la manette 🎮 de l'onglet « Mon jeu ») : dans l'onglet du bas,
+   seulement le petit rond qui tourne, collé au coin haut-droit de l'icône SANS la couvrir ; « V26 » est dans la bulle (appui long) */
+.atl-est .atl-esvn{top:1px;right:auto;left:calc(50% + 6px);padding:0;gap:0;border:0;border-radius:50%;background:none;box-shadow:none;line-height:0}
+.atl-est .atl-esvn .atl-esspin{box-sizing:border-box;width:9px;height:9px;border-width:2px}
+.atl-est .atl-esvn b{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
