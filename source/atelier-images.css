@@ -621,15 +621,16 @@
 .crea-disc .crea-of.atl-chat{display:block;background:transparent;border:0;box-shadow:none;overflow:visible;border-radius:0;min-height:0}
 /* le bouton RETOUCHER en attente (photo en cours / en vérification) : grisé mais il répond toujours (il dit pourquoi) */
 .crea-bt.go.attend{opacity:.55;filter:saturate(.6)}
-/* lot A (l'admin, 7 nov.) : les OUTILS en colonne à droite de la photo (la place du panneau de {g}) ; plus de bande de versions */
-@media (min-width:900px){
+/* lot A (l'admin, 7 nov.) : les OUTILS en colonne à droite de la photo (la place du panneau de {g}) ; plus de bande de versions
+   (testeur 2 : en dessous de 1280 px, la zone centrale est trop étroite : les outils repassent SOUS la photo) */
+@media (min-width:1280px){
   .crea.at-centre .crea-oimg.at{grid-template-columns:minmax(0,1fr) 250px;grid-template-rows:minmax(0,1fr)}
 }
-@media (min-width:900px) and (max-width:1499px){
+@media (min-width:1280px) and (max-width:1499px){
   .crea.at-centre .crea-oimg.at{grid-template-columns:minmax(0,1fr) 206px}
   .crea.at-centre .crea-oimg.at .crea-ot b{font-size:13px}
 }
-@media (min-width:900px){
+@media (min-width:1280px){
   .crea.at-centre .crea-oimg.at > .crea-scene{grid-column:1;grid-row:1}
   .crea.at-centre .crea-oimg.at .crea-colo{grid-column:2;grid-row:1;display:flex;flex-direction:column;gap:var(--cg)}
   .crea.at-centre .crea-oimg.at .crea-grille{grid-template-columns:1fr;gap:6px}

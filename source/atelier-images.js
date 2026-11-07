@@ -831,7 +831,7 @@
           if (!rs.length) st.appendChild(E('span', 'i vide'));
           p.append(st, E('b', '', rs.length ? 'Retouches' : 'Retouche'));
           if (rs.length) p.appendChild(E('span', 'badge', rs.length + ' version' + (rs.length > 1 ? 's' : '')));
-          if (enCours) p.appendChild(E('span', 'badge cours', enVerif() ? '⏳ je vérifie…' : '⏳ en cours'));
+          if (enCours) p.appendChild(E('span', 'badge cours', enVerif() ? '⏳ je vérifie ta retouche…' : '⏳ en cours'));
           bar.appendChild(p); }
         S.appendChild(bar);
       } }
