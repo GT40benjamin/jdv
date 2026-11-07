@@ -16274,6 +16274,7 @@ function atlBubble(m, wel) {
   // 2.1.13 (l'admin : « comme sur WhatsApp ») : la réaction de la mascotte sur un message du joueur (at_messages.reaction, SQL v172), petit badge rond
   // accroché au coin bas de la bulle ; survol (souris) ou toucher (téléphone) : « <mascotte> a réagi ❤️ »
   if (!at && !wel && m.reaction) bub.appendChild(atlReacBadge(m.reaction)), bub.classList.add('atl-breac'), li.classList.add('atl-mreac');
+  if (Array.isArray(m.fichiers) && m.fichiers.length) bub.appendChild(atlPjCartes(m.fichiers));   // 7 nov. 2026 : 📎 pièces jointes
   col.appendChild(bub);
   // 2.0.36 (Benjamin : « il m'a répondu avec des questions, mais peut-on faire la forme question ? ») : les encarts, comme dans les tickets
   if (at && !wel && Array.isArray(m.questions) && m.questions.length && m.remplacee && !m.q_envoye) { col.appendChild(atlRemplacee(true)); li.classList.add('atl-mremp'); }
@@ -16827,8 +16828,9 @@ function atlDiscBloc(f) {
   {   // 2.0.109 : en mode admin, le fil EXACTEMENT comme le joueur (le wrapper admin envoie at_discuter en message de la mascotte)
     const adm = atlAdminIci(), aide = ATL_DISC_AIDE;
     const ta = atlEl('textarea', 'atl-dnin atl-discin'); ta.rows = 1;
-    ta.placeholder = 'Écris ' + gA() + '… (c’est gratuit)';   // 2.0.162 : l'aide tient dans le champ, en une ligne
+    ta.placeholder = atlPetit() ? 'Écris ' + gA() + '…' : 'Écris ' + gA() + '… (c’est gratuit)';   // 7 nov. 2026 : au téléphone, 📎 ⚡ 🎤 dans le champ : l'aide tient sur une ligne (« Gratuit » est dans l'en-tête)   // 2.0.162 : l'aide tient dans le champ, en une ligne
     const go = atlEl('button', 'atl-discgo atl-dsend', '➤'), msg = atlEl('small', 'atl-dnmsg', ''); go.type = 'button'; go.setAttribute('aria-label', 'Envoyer');
+    const PJ = atlPjZone(msg, () => { go.classList.toggle('on', !!ta.value.trim() || PJ.l.length > 0); });
     const grandit = () => { ta.style.height = 'auto'; const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20; ta.style.height = Math.min(ta.scrollHeight, lh * 5 + 20) + 'px'; go.classList.toggle('on', !!ta.value.trim()); };
     ta.addEventListener('input', grandit);
     // 2.0.100 (l'admin : « pouvoir encore lui parler même quand il réfléchit ») : la case et « Envoyer » ne sont JAMAIS bloqués ; chaque message
@@ -16836,15 +16838,20 @@ function atlDiscBloc(f) {
     const W0 = () => ATL.root.querySelector('.atl-wiz'), enBas = () => { const lg = b.querySelector('.atl-disclog'); if (lg) lg.scrollTop = lg.scrollHeight; };   // son propre message : toujours en bas du fil
     const envoyer = () => {
       atlMicFin();
-      const t = ta.value.trim(); if (!t) { ta.focus(); return; }
+      const pjs = PJ.l.slice(); let t = ta.value.trim(); if (!t && !pjs.length) { ta.focus(); return; }
+      if (!t) t = '📎 ' + pjs.map(x => x.file.name).join(', ');   // 7 nov. 2026 : des fichiers sans texte
       if (!(ATL.discPend || []).some(x => !x.envoye)) ATL.discErr = false;
       ta.value = ''; msg.textContent = ''; try { ta.style.height = ''; go.classList.remove('on'); } catch (e) {}
-      const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id, atelier: adm };
+      PJ.l = []; PJ.peint();
+      const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id, atelier: adm, fichiers: pjs.length ? pjs.map(x => ({ nom: x.file.name, taille: x.file.size, type: x.famille, envoi: true })) : null };
       ATL.discPend = (ATL.discPend || []).concat([pm]); atlDiscMaj(W0(), f, true); enBas();
       ATL.discFile = (ATL.discFile || Promise.resolve()).then(async () => {
         let ok = false;
-        try { await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true }); ok = true; }
-        catch (e) { ATL.discErr = true; msg.textContent = atlWhy(e); ta.value = ta.value.trim() ? t + '\n' + ta.value : t; }   // rien n'est perdu
+        try {
+          if (pjs.length) { const ids = []; for (const x of pjs) ids.push(await atlPjEnvoyer(f, x)); await rpc('at_discuter_fichiers', { p_name: profile.name, p_fiche: f.id, p_texte: t, p_micro: false, p_fichiers: ids }, { quiet: true }); }
+          else await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true });
+          ok = true; }
+        catch (e) { ATL.discErr = true; msg.textContent = atlPjPourquoi(e) || atlWhy(e); if (!/^📎 /.test(t) || !pjs.length) ta.value = ta.value.trim() ? t + '\n' + ta.value : t; if (pjs.length) { PJ.l = pjs.concat(PJ.l).slice(0, ATL_PJ_MAX); PJ.peint(); } }   // rien n'est perdu (texte ET fichiers)
         if (ok) pm.envoye = true; else ATL.discPend = (ATL.discPend || []).filter(x => x !== pm);
         if (!(ATL.discPend || []).some(x => !x.envoye)) {   // la file est vide : on relit tout (les messages arrivés, les offres remplacées)
           try { ATL.demAt = 0; await atlDemCharger(true); await atlLoad(true); } catch (e) {}
@@ -16856,6 +16863,7 @@ function atlDiscBloc(f) {
     go.addEventListener('click', envoyer);
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !atlPetit()) { e.preventDefault(); envoyer(); } });   // ordinateur : Entrée envoie, Maj+Entrée va à la ligne
     const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (f && f.id) tw.appendChild(atlAutoBouton(f)); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));   // 7 nov. 2026 : ⚡ mode auto, à côté du micro
+    if (f && f.id) { tw.prepend(PJ.bouton); corps.appendChild(PJ.plateau); PJ.depot(b); }   // 7 nov. 2026 : 📎 joindre des fichiers
     const rg = atlEl('p', 'atl-discrg'), np = atlEl('button', 'atl-discnp', '＋ Nouveau projet'); np.type = 'button'; np.addEventListener('click', atlNouveau);
     rg.append(document.createTextNode('Ici, on parle seulement de « ' + (f.titre || 'ton jeu') + ' ». Une idée pour un autre jeu ? '), np);
     row.append(tw, go); corps.append(row, msg); void rg; void aide;   // 2.0.162 : plus de pavé d'aide sous le champ
@@ -20284,7 +20292,8 @@ rpc = (rpc0 => async function (fn, a, o) {
   if (fn === 'at_lire') return rpc0('at_admin_lire', { p_name: a.p_name, p_fiche: m.id }, o);
   const agir = (action, args) => rpc0('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: action, p_args: args || {} }, o);
   if (fn === 'at_dire') return agir('dire', { texte: a.p_texte });
-  if (fn === 'at_discuter') return agir('discussion', { texte: a.p_texte });   // 2.0.108 : l'admin répond dans « Discuter du jeu » (le joueur voit la mascotte)
+  if (fn === 'at_discuter') return agir('discussion', { texte: a.p_texte });
+  if (fn === 'at_discuter_fichiers') { const r = await agir('discussion', { texte: a.p_texte }); if (r && r.id) await rpc0('at_fichiers_joindre', { p_name: profile.name, p_message: r.id, p_fichiers: a.p_fichiers }, o); return r; }   // 7 nov. 2026 : 📎   // 2.0.108 : l'admin répond dans « Discuter du jeu » (le joueur voit la mascotte)
   if (fn === 'at_fiche_etape') return a.p_cle === 'titre' ? agir('renommer', { titre: a.p_valeur }) : agir('fiche', { cle: a.p_cle, valeur: a.p_valeur });
   if (fn === 'at_fiche_joueur') return agir('fiche', { cle: a.p_cle, valeur: a.p_texte });
   if (fn === 'at_lancer') return agir('lancer');
@@ -21391,6 +21400,119 @@ function atlMicEtat() {
   if (ind) { ind.hidden = !m; ind.textContent = ''; if (m) { ind.append(document.createTextNode('🎙️ Je t’écoute…'), atlEl('span', 'atl-ecx', '✕ Arrêter')); ind.setAttribute('aria-label', 'Arrêter le micro'); } }
   if (ATL && ATL.root) { const rc = ATL.root.querySelector('.atl-rec'); if (rc) rc.hidden = !(m && m.field && m.field.classList.contains('atl-in')); }
   if (ATL) ATL.rec = m;   // (ancien repère : un micro est ouvert)
+}
+// ---- 7 nov. 2026 (Benjamin) : 📎 JOINDRE DES FICHIERS À POOKY dans la discussion d'un projet : PDF, Word, Excel/CSV, texte, Markdown, JSON,
+// images, audio, ZIP ; 20 Mo au plus, 5 par message ; le type est vérifié deux fois (extension ET début du fichier) avant l'envoi. Bucket PRIVÉ
+// « atelier-fichiers » (source/fichiers-joints.sql) : at_fichier_preparer → envoi du fichier (jeton du compte) → at_discuter_fichiers (le message
+// et ses fichiers d'un seul coup). Jamais d'URL publique : les cartes se téléchargent avec le jeton (le joueur du projet et les admins).
+const ATL_PJ_TYPES = { pdf: ['application/pdf', 'pdf'], docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'word'],
+  xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'tableur'], xls: ['application/vnd.ms-excel', 'tableur'], csv: ['text/csv', 'tableur'],
+  txt: ['text/plain', 'texte'], md: ['text/markdown', 'texte'], json: ['application/json', 'texte'], png: ['image/png', 'image'], jpg: ['image/jpeg', 'image'],
+  jpeg: ['image/jpeg', 'image'], webp: ['image/webp', 'image'], gif: ['image/gif', 'image'], mp3: ['audio/mpeg', 'audio'], wav: ['audio/wav', 'audio'], m4a: ['audio/mp4', 'audio'],
+  zip: ['application/zip', 'zip'] };
+const ATL_PJ_MAX = 5, ATL_PJ_MO = 20 * 1048576, ATL_PJ_IC = { pdf: '📕', word: '📝', tableur: '📊', texte: '📄', image: '🖼️', audio: '🎵', zip: '🗜️' };
+const atlPjExt = n => { const m = /\.([A-Za-z0-9]{1,5})$/.exec(String(n || '')); return m ? m[1].toLowerCase() : ''; };
+const atlPjTaille = o => { o = +o || 0; return o < 1024 ? o + ' o' : o < 1048576 ? Math.max(1, Math.round(o / 1024)) + ' Ko' : (o / 1048576).toFixed(1).replace('.', ',').replace(',0', '') + ' Mo'; };
+// le début du fichier doit correspondre à son extension (un .pdf qui n'est pas un PDF est refusé)
+async function atlPjSignature(file, ext) {
+  let b; try { b = new Uint8Array(await file.slice(0, 4096).arrayBuffer()); } catch (e) { return false; }
+  const at = (o, sig) => sig.length + o <= b.length && [...sig].every((c, i) => b[o + i] === (typeof c === 'number' ? c : c.charCodeAt(0)));
+  const pk = at(0, [0x50, 0x4b, 3, 4]);
+  switch (ext) {
+    case 'pdf': return at(0, '%PDF');
+    case 'docx': case 'xlsx': return pk;
+    case 'zip': return pk || at(0, [0x50, 0x4b, 5, 6]);
+    case 'xls': return at(0, [0xd0, 0xcf, 0x11, 0xe0]);
+    case 'png': return at(0, [0x89, 'P', 'N', 'G']);
+    case 'jpg': case 'jpeg': return at(0, [0xff, 0xd8, 0xff]);
+    case 'gif': return at(0, 'GIF8');
+    case 'webp': return at(0, 'RIFF') && at(8, 'WEBP');
+    case 'wav': return at(0, 'RIFF') && at(8, 'WAVE');
+    case 'mp3': return at(0, 'ID3') || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0);
+    case 'm4a': return at(4, 'ftyp');
+    case 'csv': case 'txt': case 'md': case 'json': {   // du vrai texte UTF-8, sans octet nul
+      if (!b.length || b.includes(0)) return false;
+      let t; try { t = new TextDecoder('utf-8', { fatal: true }).decode(b, { stream: true }); } catch (e) { return false; }
+      return ext !== 'json' || /^[\s﻿]*[\[{]/.test(t);
+    }
+  }
+  return false;
+}
+function atlPjPourquoi(e) { const m = String((e && e.message) || ''); return /type refuse/.test(m) ? 'Ce type de fichier n’est pas accepté.' : /trop lourd/.test(m) ? 'Fichier trop lourd : 20 Mo au plus.'
+  : /cinq au plus/.test(m) ? '5 fichiers au plus par message.' : /pas arrive|envoi \d+|fichier refuse/.test(m) ? 'Un fichier n’est pas bien arrivé : réessaie.' : /trop souvent|rate/.test(m) ? 'Beaucoup de fichiers d’un coup : attends un peu.' : ''; }
+async function atlPjEnvoyer(f, x) {
+  const r = await rpc('at_fichier_preparer', { p_name: profile.name, p_fiche: f.id, p_nom: x.file.name, p_taille: x.file.size, p_ext: x.ext }, { quiet: true });
+  if (!r || !/^f\/[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(String(r.path || ''))) throw new Error('fichier refuse');
+  const tok = await acctToken(profile); if (!tok) throw new Error('compte requis');
+  const up = await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/atelier-fichiers/' + r.path, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': r.mime || x.mime }, body: x.file }, 120000);
+  if (!up.ok) throw new Error('envoi ' + up.status);
+  return r.id;
+}
+// la zone d'un champ : le bouton 📎 (choix de fichier, plusieurs), les fichiers en attente (✕ pour en retirer un), le glisser-déposer (ordinateur)
+function atlPjZone(msg, maj) {
+  const Z = { l: [] };
+  const inp = atlEl('input'); inp.type = 'file'; inp.multiple = true; inp.hidden = true; inp.accept = Object.keys(ATL_PJ_TYPES).map(e => '.' + e).join(',');
+  const bt = atlEl('button', 'atl-pjb', '📎'); bt.type = 'button'; bt.title = 'Joindre des fichiers (PDF, Word, Excel, texte, images, sons, ZIP · 20 Mo, 5 au plus)'; bt.setAttribute('aria-label', 'Joindre des fichiers');
+  bt.addEventListener('click', () => inp.click()); bt.appendChild(inp);
+  const pl = atlEl('div', 'atl-pjtray'); pl.hidden = true;
+  Z.bouton = bt; Z.plateau = pl;
+  Z.peint = () => {
+    pl.textContent = ''; pl.hidden = !Z.l.length;
+    for (const x of Z.l) { const c = atlEl('span', 'atl-pjc'), no = atlEl('button', 'atl-pjx', '✕'); no.type = 'button'; no.setAttribute('aria-label', 'Retirer ' + x.file.name);
+      no.addEventListener('click', () => { Z.l = Z.l.filter(y => y !== x); msg.textContent = ''; Z.peint(); });
+      c.append(atlEl('span', 'atl-pjci', ATL_PJ_IC[x.famille] || '📎'), atlEl('b', '', x.file.name), atlEl('small', '', atlPjTaille(x.file.size)), no); pl.appendChild(c); }
+    maj();
+  };
+  Z.ajouter = async files => {
+    const err = [];
+    for (const file of [...(files || [])]) {
+      const ext = atlPjExt(file.name), t = ATL_PJ_TYPES[ext];
+      if (Z.l.length >= ATL_PJ_MAX) { err.push(ATL_PJ_MAX + ' fichiers au plus par message'); break; }
+      if (!t) { err.push('« ' + file.name + ' » : ce type de fichier n’est pas accepté'); continue; }
+      if (!file.size) { err.push('« ' + file.name + ' » est vide'); continue; }
+      if (file.size > ATL_PJ_MO) { err.push('« ' + file.name + ' » est trop lourd (20 Mo au plus)'); continue; }
+      if (!(await atlPjSignature(file, ext))) { err.push('« ' + file.name + ' » ne ressemble pas à un vrai fichier .' + ext); continue; }
+      if (Z.l.some(y => y.file.name === file.name && y.file.size === file.size)) continue;
+      Z.l.push({ file, ext, mime: t[0], famille: t[1] });
+    }
+    msg.textContent = err.length ? err.slice(0, 3).join(' · ') + '.' : ''; Z.peint();
+  };
+  inp.addEventListener('change', () => { const fs = [...(inp.files || [])]; inp.value = ''; Z.ajouter(fs); });
+  Z.depot = el => {
+    if (TOUCH || el._pjDepot) return; el._pjDepot = true;
+    const aDesFichiers = e => !!(e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files'));
+    let n = 0;
+    el.addEventListener('dragenter', e => { if (!aDesFichiers(e)) return; e.preventDefault(); n++; el.classList.add('atl-pjdrop'); });
+    el.addEventListener('dragover', e => { if (!aDesFichiers(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    el.addEventListener('dragleave', e => { if (!aDesFichiers(e)) return; if (--n <= 0) { n = 0; el.classList.remove('atl-pjdrop'); } });
+    el.addEventListener('drop', e => { if (!aDesFichiers(e)) return; e.preventDefault(); n = 0; el.classList.remove('atl-pjdrop'); Z.ajouter(e.dataTransfer.files); });
+  };
+  return Z;
+}
+// les cartes d'un message : icône, nom, taille ; toucher = télécharger (jeton du compte : le joueur du projet ou un admin, jamais d'URL publique)
+function atlPjCartes(L) {
+  const w = atlEl('div', 'atl-pjl');
+  for (const x of L.slice(0, ATL_PJ_MAX)) {
+    if (!x) continue;
+    const c = atlEl('button', 'atl-pjcard' + (x.envoi ? ' envoi' : '')); c.type = 'button';
+    const tx = atlEl('span', 'atl-pjct'); tx.append(atlEl('b', '', String(x.nom || 'fichier')), atlEl('small', '', x.envoi ? 'envoi…' : atlPjTaille(x.taille)));
+    c.append(atlEl('span', 'atl-pjci', ATL_PJ_IC[x.type] || '📎'), tx, atlEl('span', 'atl-pjdl', x.envoi ? '⏳' : '⬇'));
+    c.disabled = !!x.envoi; c.setAttribute('aria-label', 'Télécharger ' + (x.nom || 'le fichier'));
+    if (!x.envoi) c.addEventListener('click', async () => {
+      if (!/^f\/[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(String(x.path || ''))) return;
+      c.disabled = true;
+      try {
+        const tok = await acctToken(profile); if (!tok) throw new Error('compte');
+        const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/authenticated/atelier-fichiers/' + x.path, { headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok } }, 120000);
+        if (!r.ok) throw new Error('lecture ' + r.status);
+        const u = URL.createObjectURL(await r.blob()), a = document.createElement('a'); a.href = u; a.download = String(x.nom || 'fichier'); document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(u), 30000);
+      } catch (e) { atlToast('Je n’arrive pas à ouvrir ce fichier : réessaie dans un moment.'); }
+      finally { c.disabled = false; }
+    });
+    w.appendChild(c);
+  }
+  return w;
 }
 // ---- 7 nov. 2026 (Benjamin, « comme dans Meshy ») : ⚡ MODE AUTO, par projet. Le petit rond à côté du micro ouvre un menu : « 🤚 Je valide moi-même »
 // (par défaut) ou « ⚡ Mode auto ». En mode auto, une proposition chiffrée de la mascotte jusqu'à auto_max_credits (20 💎) est acceptée TOUTE SEULE
