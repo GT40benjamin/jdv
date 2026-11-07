@@ -366,7 +366,7 @@
   }
   // la case pour écrire (ou dicter) à {g} : dans son panneau, ou au centre pendant la création d'un projet
   function saisie(ph, avecImage) {
-    const S = E('form', 'crea-saisie'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 2000; ta.placeholder = ph || 'Écris à ' + PK() + '…'; ta.setAttribute('aria-label', 'Ton message à ' + PK());
+    const S = E('form', 'crea-saisie'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 10000; ta.placeholder = ph || 'Écris à ' + PK() + '…'; ta.setAttribute('aria-label', 'Ton message à ' + PK());
     ta.value = AIM.brouPk || ''; ta.addEventListener('input', () => { AIM.brouPk = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) {} }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
@@ -678,7 +678,7 @@
     // 👁️ {g} regarde la photo : son commentaire (ce qu'il voit, ce qu'il propose, le prix), « Oui, fais-le » ou « Je veux autre chose »
     if (act && !att) S.appendChild(carteRegard(c, act));
     // « Dis ce que tu veux changer »
-    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 2000; ta.placeholder = etroit() ? '✨ Que veux-tu faire ?' : '✨ ' + atelierDe(AIM.fiche).invite + '… « éclaircis-la, floute le fond »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
+    const dem = E('div', 'crea-dem'), ch = E('div', 'crea-champ'), ta = E('textarea'); ta.rows = 1; ta.maxLength = 10000; ta.placeholder = etroit() ? '✨ Que veux-tu faire ?' : '✨ ' + atelierDe(AIM.fiche).invite + '… « éclaircis-la, floute le fond »'; ta.setAttribute('aria-label', 'Ce que tu veux changer');
     ta.value = AIM.brouillon || ''; ta.addEventListener('input', () => { AIM.brouillon = ta.value; });
     const mic = B('crea-mic', '🎤', () => { try { atlMicBascule(ta, mic); } catch (e) { toast('Le micro ne marche pas ici : écris au clavier'); } }); mic.setAttribute('aria-label', 'Parler au micro');
     ch.append(ta, mic);
