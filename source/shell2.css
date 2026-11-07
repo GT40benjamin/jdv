@@ -6140,3 +6140,15 @@ input.atl-rgin[type=text]{width:150px}
 .atl-rgbar.vif{position:sticky;border-color:#f0a92a}
 .atl-rgmsg{margin-right:auto;color:#8a4b00;font:700 13px var(--body)}
 @media (max-width:900px){.atl-rgbar{bottom:calc(env(safe-area-inset-bottom,0px) + 84px);padding:8px 10px;gap:6px}.atl-rgbar .btn{flex:1 1 0}.atl-rgmsg{flex:1 1 100%;font-size:12px}}
+.atl-rgsec,.atl-rgsec>*,.atl-rgtw,.atl-rgtools{min-width:0;max-width:100%}.atl-rgsec{box-sizing:border-box}.atl-rgtw .atl-rgw{width:100%}
+.atl-rgnums{display:inline-flex;flex-wrap:wrap;gap:4px}.atl-rgnums .atl-rgin{width:64px}
+.atl-rgaide{margin:2px 0 6px;color:#5d5679;font:600 13px/1.4 var(--body)}
+.atl-rgjson{font-family:ui-monospace,Consolas,monospace!important;width:100%;box-sizing:border-box}
+.atl-rgid{color:#6b6390;font:700 12px ui-monospace,Consolas,monospace}
+.atl-rgref{columns:2 260px;margin:6px 0 0;padding-left:18px;font:600 13px/1.5 var(--body)}
+.atl-rgstat{margin:4px 0;color:#5d5679;font:600 12.5px/1.4 var(--body)}
+.atl-rgsous{display:block;margin:6px 0 2px;color:#6b6390;font-weight:800}
+.atl-rgty.leg{background:#fff3c8;color:#8a4b00}
+.atl-rgplus{margin-top:8px}
+.atl-rgsec,.atl-rgintro{grid-template-columns:minmax(0,1fr)}
+.atl-rgmini th{white-space:nowrap}

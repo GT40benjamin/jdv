@@ -16682,6 +16682,7 @@ function atlProjTab(k) {
   for (const p of W.querySelectorAll('.atl-pane')) p.hidden = p.dataset.k !== k;
   for (const b of W.querySelectorAll('.atl-esnav .atl-esb[data-k]')) b.classList.toggle('on', b.dataset.k === k);   // 2.0.142 : le menu de l'espace du jeu
   if (k === 'stats' && W.classList.contains('atl-espace')) try { atlEspStats(W, atlFiche()); } catch (e) {}
+  if (k === 'reglages') { const pr = W.querySelector('.atl-pane[data-k="reglages"]'); if (pr && pr._charger) pr._charger(); }   // 7 nov. 2026 : les réglages du jeu, chargés ici
   if (k === 'discussion') { const l = W.querySelector('.atl-pmsgs'); if (l) l.scrollTop = l.scrollHeight; }
 }
 function atlProjMsgs(W, f) {
@@ -17115,174 +17116,216 @@ const ATL_ESP = [['jeu', '🏠', 'Mon jeu'], ['demandes', '💬', 'Discussion'],
 const ATL_ESP_EL = [['🦸', 'Personnages'], ['🎁', 'Objets'], ['🏞️', 'Décor'], ['🔊', 'Sons'], ['🎵', 'Musiques']];
 const atlNb0 = n => atlNb(Math.round(+n || 0));
 const atlDuree = s => { s = Math.max(0, Math.round(+s || 0)); if (s < 60) return s + ' s'; if (s < 3600) return Math.floor(s / 60) + ' min' + (s % 60 ? ' ' + (s % 60) + ' s' : ''); const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); return h + ' h ' + String(m % 60).padStart(2, '0'); };
-// ---- 7 nov. 2026 (l'admin, contrat avec l'équipe Explorateur pour Astrofaune V25 ; CONTRACT.md Ajout 30) : les RÉGLAGES d'un jeu de l'Atelier.
-// Un module peut exposer JDW_GAMES.<id>.reglages = { v, defauts, schema: [sections], fiches(r) } ; onglet « 🎚️ Réglages du jeu » de la page du
-// projet, ADMINS seulement (at_admins : credits.tous_projets), seulement si le module (version f.version) l'expose. Section du schema :
-// { cle, titre, type: 'table', id, colonnes: [COL], recherche, filtre } (defauts[cle] = tableau d'objets : on modifie les cases, jamais de ligne
-// ajoutée ni retirée) ou { cle, titre, type: 'objet', champs: [COL] } ; COL = { cle, titre, type: 'nombre' | 'texte' | 'choix' | 'oui_non',
-// min, max, pas, options, lecture, aide }. Enregistré (at_reglages_poser, SQL reglages-jeux.sql) : { v, valeurs: { <cle>: … } } avec SEULEMENT
-// ce qui diffère des défauts (table : les lignes modifiées, { id, champs changés } ; objet : les clés changées) ; null = valeurs par défaut.
-// La borne passe ces réglages au jeu au montage (api.reglages) ; le jeu les fusionne avec ses défauts. Ni euros ni secret (refusés par le serveur).
-const atlRegNet = r => { try { return r && typeof r === 'object' && r.valeurs && typeof r.valeurs === 'object' ? JSON.parse(JSON.stringify(r)) : null; } catch (e) { return null; } };
+// ---- 7 nov. 2026 (l'admin ; format convenu avec l'équipe Explorateur pour Astrofaune V25 ; CONTRACT.md Ajout 30) : les RÉGLAGES d'un jeu de
+// l'Atelier. Le module déclare JDW_GAMES.<id>.reglages = { version, donnees: 'reglages-vNN.json' (fichier à côté du module, dans
+// assets/jeux/<id>/, chargé SEULEMENT quand un admin ouvre l'onglet) ou l'objet lui-même, cle: '<bloc>' }. Les données = { aide, schema?,
+// defauts, <tables> (ex. attaques : id → ligne), fiches? (id → fiche, en lecture seule, calculées avec les défauts), groupees? … }.
+// Onglet « 🎚️ Réglages du jeu » de la page du projet, ADMINS seulement (credits.tous_projets), si le module de la version f.version le déclare.
+// L'éditeur suit la FORME des défauts (nombre, texte, oui/non, liste de nombres, liste d'objets = tableau, objet = groupe, le reste en JSON
+// vérifié) ; le schema, s'il existe ([{ id, titre, aide, sorte: 'objet' | 'liste' | 'table', champs: [{ k, nom, type, min, max, pas, choix,
+// lecture, aide }], cles }]), ajoute titres, limites et choix. Enregistré (at_reglages_poser) : { <cle>: SEULEMENT les changements } — un objet
+// champ par champ, une liste ENTIÈRE (la règle de fusion du jeu) ; le serveur ajoute _maj { at, par } ; null = valeurs par défaut.
+// Au montage, api.reglages = cet objet (ou null) ; le jeu fusionne en profondeur et ignore les clés « _… ». Ni euros ni secret (refusés).
+const atlRegNet = r => { try { return r && typeof r === 'object' && !Array.isArray(r) ? JSON.parse(JSON.stringify(r)) : null; } catch (e) { return null; } };
 function atlReglagesDe(id) {   // pour api.reglages : la fiche ouverte dans l'Atelier (partie lancée d'ici), sinon at_jeux (la borne)
   try { if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const f = atlFiche(); if (f && f.jeu === id) return atlRegNet(f.reglages); } } catch (e) {}
   try { const x = ATL_JEUX.get(id); return x ? atlRegNet(x.reglages) : null; } catch (e) { return null; }
 }
-const atlRegOk = g => !!(g && g.reglages && typeof g.reglages === 'object' && g.reglages.defauts && typeof g.reglages.defauts === 'object' && Array.isArray(g.reglages.schema));
+const atlRegDecl = g => { const d = g && g.reglages; if (!d || typeof d !== 'object' || !/^[A-Za-z0-9_]{1,30}$/.test(String(d.cle || ''))) return null;
+  return (typeof d.donnees === 'string' && /^[A-Za-z0-9_.-]{1,80}\.json$/.test(d.donnees)) || (d.donnees && typeof d.donnees === 'object') ? d : null; };
+const atlRegOk = g => !!atlRegDecl(g);
 const atlRegAdmin = () => { const c = atlCred(); return !!(c && c.tous_projets); };
-function atlRegModule(f) {   // le module de la version du projet (f.version) s'il expose des réglages ; sinon null
+function atlRegModule(f) {   // le module de la version du projet (f.version) s'il déclare des réglages ; sinon null
   const k = f && f.jeu ? f.jeu + '@' + ((f.version | 0) || 1) : '', m = k && ATL_MODS_OK.get(k);
   if (atlRegOk(m)) return m; const g = f && (window.JDW_GAMES || {})[f.jeu]; return atlRegOk(g) && (!m || m === g) ? g : null;
 }
+const ATL_REG_DON = new Map();
+function atlRegDonnees(f, d) {
+  if (typeof d.donnees === 'object') return Promise.resolve(d.donnees);
+  const u = (window.JDW_ROOT || '') + 'assets/jeux/' + f.jeu + '/' + d.donnees;
+  if (!ATL_REG_DON.has(u)) ATL_REG_DON.set(u, fetch(u, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error('fichier des réglages ' + r.status); return r.json(); }).catch(e => { ATL_REG_DON.delete(u); throw e; }));
+  return ATL_REG_DON.get(u);
+}
+const atlRegObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
 const atlRegCopie = x => JSON.parse(JSON.stringify(x === undefined ? null : x));
-// défauts + enregistré → valeurs complètes (table : ligne par ligne selon id ; objet : clé par clé)
-function atlRegFusion(R, saved) {
-  const out = atlRegCopie(R.defauts), val = saved && saved.valeurs && typeof saved.valeurs === 'object' ? saved.valeurs : {};
-  for (const s of R.schema) { if (!s || !(s.cle in val)) continue; const d = out[s.cle], v = val[s.cle];
-    if (s.type === 'table' && Array.isArray(d) && Array.isArray(v)) { const id = s.id || 'id'; for (const row of v) { const t = row && d.find(x => x && x[id] === row[id]); if (t) Object.assign(t, row); } }
-    else if (s.type === 'objet' && d && typeof d === 'object' && v && typeof v === 'object') Object.assign(d, v); }
-  return out;
+function atlRegFusion(base, ch) {   // la fusion du jeu : objet champ par champ, liste ou valeur remplacée
+  if (!atlRegObj(base) || !atlRegObj(ch)) return ch === undefined ? atlRegCopie(base) : atlRegCopie(ch);
+  const o = atlRegCopie(base); for (const k of Object.keys(ch)) if (!k.startsWith('_')) o[k] = k in o ? atlRegFusion(o[k], ch[k]) : atlRegCopie(ch[k]); return o;
 }
-// valeurs complètes → seulement ce qui diffère des défauts
-function atlRegDiff(R, cur) {
-  const valeurs = {};
-  for (const s of R.schema) { const d = R.defauts[s.cle], c = cur[s.cle]; if (d === undefined) continue;
-    if (s.type === 'table' && Array.isArray(d)) { const id = s.id || 'id', l = [];
-      for (const row of c || []) { const d0 = d.find(x => x && x[id] === row[id]); if (!d0) continue; const ch = { [id]: row[id] }; let n = 0;
-        for (const col of s.colonnes || []) if (!col.lecture && JSON.stringify(row[col.cle]) !== JSON.stringify(d0[col.cle])) { ch[col.cle] = row[col.cle]; n++; }
-        if (n) l.push(ch); }
-      if (l.length) valeurs[s.cle] = l; }
-    else if (s.type === 'objet' && d && typeof d === 'object') { const ch = {}; let n = 0;
-      for (const col of s.champs || []) if (!col.lecture && JSON.stringify((c || {})[col.cle]) !== JSON.stringify(d[col.cle])) { ch[col.cle] = (c || {})[col.cle]; n++; }
-      if (n) valeurs[s.cle] = ch; } }
-  return valeurs;
+function atlRegDiff(base, cur) {   // seulement les changements (undefined = rien)
+  if (atlRegObj(base) && atlRegObj(cur)) { const o = {}; let n = 0; for (const k of Object.keys(cur)) { const d = k in base ? atlRegDiff(base[k], cur[k]) : atlRegCopie(cur[k]); if (d !== undefined) { o[k] = d; n++; } } return n ? o : undefined; }
+  return JSON.stringify(base) === JSON.stringify(cur) ? undefined : atlRegCopie(cur);
 }
-function atlRegChamp(col, val, defVal, onSet) {   // une case modifiable (ou en lecture)
-  const fmt = v => (v === undefined || v === null ? '' : String(v));
-  if (col.lecture) { const s = atlEl('span', 'atl-rgro', col.type === 'oui_non' ? (val ? '✔️' : '—') : fmt(val)); return s; }
+const atlRegNomCle = k => String(k).replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
+// une case : nombre, texte, choix, oui/non, liste de nombres (« nombres ») ; tout le reste = JSON vérifié
+function atlRegChamp(meta, val, defVal, onSet) {
+  meta = meta || {}; const lab = String(meta.nom || meta.titre || atlRegNomCle(meta.k || ''));
+  const t = meta.type || (typeof val === 'number' ? 'nombre' : typeof val === 'boolean' ? 'oui_non' : typeof val === 'string' ? (Array.isArray(meta.choix) ? 'choix' : 'texte') : Array.isArray(val) && val.every(x => typeof x === 'number') ? 'nombres' : 'json');
+  const marque = (e, v) => e.classList.toggle('mod', JSON.stringify(v) !== JSON.stringify(defVal));
+  if (meta.lecture) return atlEl('span', 'atl-rgro', typeof val === 'object' ? JSON.stringify(val) : val === true ? '✔️' : val === false ? '—' : String(val == null ? '' : val));
+  const borne = n => Number.isFinite(n) && (meta.min == null || n >= meta.min) && (meta.max == null || n <= meta.max);
+  const num = (v0, set) => { const e = atlEl('input', 'atl-rgin'); e.type = 'number'; e.inputMode = 'decimal'; e.value = v0 == null ? '' : String(v0); if (meta.min != null) e.min = meta.min; if (meta.max != null) e.max = meta.max; e.step = meta.pas != null ? meta.pas : 'any';
+    e.addEventListener('input', () => { const s = String(e.value).replace(',', '.').trim(), n = Number(s), ok = s !== '' && borne(n); e.classList.toggle('ko', !ok); set(ok ? n : undefined, !ok); }); return e; };
   let e;
-  if (col.type === 'choix') { e = atlEl('select', 'atl-rgin'); for (const o of col.options || []) { const v = o && typeof o === 'object' ? o.v : o, t = o && typeof o === 'object' ? (o.t || String(o.v)) : String(o); const op = atlEl('option', '', t); op.value = JSON.stringify(v); e.appendChild(op); } e.value = JSON.stringify(val); }
-  else if (col.type === 'oui_non') { e = atlEl('input', 'atl-rgin atl-rgcb'); e.type = 'checkbox'; e.checked = !!val; }
-  else { e = atlEl('input', 'atl-rgin'); e.type = col.type === 'nombre' ? 'number' : 'text'; e.value = fmt(val); if (col.type === 'nombre') { e.inputMode = 'decimal'; if (col.min != null) e.min = col.min; if (col.max != null) e.max = col.max; e.step = col.pas != null ? col.pas : 'any'; } else e.maxLength = 200; }
-  e.setAttribute('aria-label', col.titre || col.cle); if (col.aide) e.title = col.aide;
-  const marque = v => { e.classList.toggle('mod', JSON.stringify(v) !== JSON.stringify(defVal)); };
-  const lire = () => {
-    if (col.type === 'choix') { try { return { ok: true, v: JSON.parse(e.value) }; } catch (x) { return { ok: true, v: e.value }; } }
-    if (col.type === 'oui_non') return { ok: true, v: e.checked };
-    if (col.type === 'nombre') { const t = String(e.value).replace(',', '.').trim(), n = Number(t); const ok = t !== '' && Number.isFinite(n) && (col.min == null || n >= col.min) && (col.max == null || n <= col.max); return { ok, v: ok ? n : val }; }
-    return { ok: true, v: String(e.value).slice(0, 200) }; };
-  e.addEventListener(col.type === 'texte' || col.type === 'nombre' ? 'input' : 'change', () => { const r = lire(); e.classList.toggle('ko', !r.ok); if (r.ok) { marque(r.v); onSet(r.v); } else onSet(undefined, true); });
-  marque(val); return e;
+  if (t === 'nombres' && Array.isArray(val)) {
+    e = atlEl('span', 'atl-rgnums'); const cur = val.slice();
+    val.forEach((x, i) => { const c = num(x, (n, bad) => { if (bad) { onSet(undefined, true, i); return; } cur[i] = n; for (const z of e.children) z.classList.toggle('mod', JSON.stringify(cur) !== JSON.stringify(defVal)); onSet(cur.slice(), false, i); }); c.setAttribute('aria-label', lab + ' ' + (i + 1)); e.appendChild(c); });
+    for (const z of e.children) z.classList.toggle('mod', JSON.stringify(val) !== JSON.stringify(defVal)); return e;
+  }
+  if (t === 'nombre') { e = num(val, (n, bad) => { if (bad) onSet(undefined, true); else { marque(e, n); onSet(n); } }); marque(e, val); }
+  else if (t === 'choix') { e = atlEl('select', 'atl-rgin'); const L = Array.isArray(meta.choix) ? meta.choix : []; if (!L.some(o => JSON.stringify(o && typeof o === 'object' ? o.v : o) === JSON.stringify(val))) L.unshift(val);
+    for (const o of L) { const v = o && typeof o === 'object' ? o.v : o, op = atlEl('option', '', o && typeof o === 'object' ? String(o.t || o.v) : String(o)); op.value = JSON.stringify(v); e.appendChild(op); }
+    e.value = JSON.stringify(val); e.addEventListener('change', () => { let v; try { v = JSON.parse(e.value); } catch (x) { v = e.value; } marque(e, v); onSet(v); }); marque(e, val); }
+  else if (t === 'oui_non') { e = atlEl('input', 'atl-rgin atl-rgcb'); e.type = 'checkbox'; e.checked = !!val; e.addEventListener('change', () => { marque(e, e.checked); onSet(e.checked); }); marque(e, val); }
+  else if (t === 'texte') { e = atlEl('input', 'atl-rgin'); e.type = 'text'; e.maxLength = 300; e.value = val == null ? '' : String(val); e.addEventListener('input', () => { marque(e, e.value); onSet(e.value); }); marque(e, val); }
+  else { e = atlEl('input', 'atl-rgin atl-rgjson'); e.type = 'text'; e.value = JSON.stringify(val); e.spellcheck = false;
+    e.addEventListener('input', () => { let v, ok = true; try { v = JSON.parse(e.value); } catch (x) { ok = false; } e.classList.toggle('ko', !ok); if (ok) { marque(e, v); onSet(v); } else onSet(undefined, true); }); marque(e, val); }
+  e.setAttribute('aria-label', lab); if (meta.aide) e.title = String(meta.aide); return e;
 }
 function atlReglagesPane(p, f) {
-  p.textContent = '';
-  p.appendChild(atlEl('h3', 'atl-ph3', '🎚️ Réglages du jeu'));
-  const g = atlRegModule(f);
-  if (!g) { p.appendChild(atlEl('p', 'atl-chv', 'Ce jeu n’a pas (encore) de réglages.')); return; }
-  const R = g.reglages, saved = atlRegNet(f.reglages);
-  const S = { cur: atlRegFusion(R, saved), ko: new Set(), dirty: false };
+  p.textContent = ''; p.appendChild(atlEl('h3', 'atl-ph3', '🎚️ Réglages du jeu'));
+  const g = atlRegModule(f), d = atlRegDecl(g);
+  if (!d) { p.appendChild(atlEl('p', 'atl-chv', 'Ce jeu n’a pas (encore) de réglages.')); return; }
+  const att = atlEl('p', 'atl-chv', 'Chargement des réglages…'); p.appendChild(att);
+  let fait = false;   // le fichier (parfois plusieurs Mo) ne se charge qu'à l'ouverture de l'onglet
+  p._charger = () => { if (fait) return; fait = true; atlRegDonnees(f, d).then(J => { if (!p.isConnected) return; att.remove(); atlReglagesEdit(p, f, g, d, J); })
+    .catch(e => { fait = false; att.textContent = '⚠️ Les réglages de ce jeu n’ont pas pu être chargés (' + e.message + ').'; }); };
+  if (ATL.tab === 'reglages') setTimeout(() => p._charger(), 0);
+}
+function atlReglagesEdit(p, f, g, d, J) {
+  if (!J || typeof J !== 'object' || !atlRegObj(J.defauts)) { p.appendChild(atlEl('p', 'atl-chv', '⚠️ Fichier de réglages sans « defauts ».')); return; }
+  const cle = d.cle, schema = Array.isArray(J.schema) ? J.schema.filter(s => s && s.id) : [], sm = new Map(schema.map(s => [String(s.id), s]));
+  // le modèle : les défauts + les tables (schema sorte 'table' + cles, ou toute clé du fichier qui est un objet d'objets, ex. attaques)
+  const M0 = atlRegCopie(J.defauts), RES = new Set(['version', 'jeu', 'aide', 'schema', 'defauts', 'fiches', 'groupees']);
+  for (const s of schema) if (s.sorte === 'table') { const k = String(s.cles || s.id); if (atlRegObj(J[k]) && !(k in M0)) M0[k] = atlRegCopie(J[k]); }
+  for (const k of Object.keys(J)) if (!RES.has(k) && !(k in M0) && atlRegObj(J[k]) && Object.values(J[k]).every(atlRegObj)) M0[k] = atlRegCopie(J[k]);
+  const S = { cur: atlRegFusion(M0, (atlRegNet(f.reglages) || {})[cle] || {}), ko: new Set(), envoi: false };
+  // en-tête : réservé admin, qui a modifié, ♻️ défauts
   const intro = atlEl('div', 'atl-escard atl-rgintro');
   intro.append(atlEl('p', '', '🛡️ Réservé admin : ces valeurs changent « ' + (f.titre || g.title || 'ce jeu') + ' » pour TOUS les joueurs, dès leur prochaine partie.'));
+  if (J.aide) intro.appendChild(atlEl('p', 'atl-rgaide', String(J.aide)));
   const etat = atlEl('p', 'atl-rgetat'), ligne = atlEl('div', 'atl-rgligne'); ligne.appendChild(etat); intro.appendChild(ligne); p.appendChild(intro);
-  const majEtat = () => { const r = atlRegNet(f.reglages), d0 = r && r.at ? new Date(r.at) : null;
-    etat.textContent = r ? '✏️ Réglages modifiés' + (r.par ? ' par ' + dispName(r.par) : '') + (d0 && !isNaN(d0) ? ' le ' + d0.toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '') + ' · ' + Object.keys(r.valeurs).length + ' partie' + (Object.keys(r.valeurs).length > 1 ? 's' : '') + ' changée' + (Object.keys(r.valeurs).length > 1 ? 's' : '') : '✅ Valeurs par défaut du jeu'; };
+  const raz = atlEl('button', 'btn btn-ghost btn-sm atl-rgraz', '♻️ Valeurs par défaut'); raz.type = 'button'; raz.title = 'Revenir aux valeurs par défaut du jeu, pour tous les joueurs'; ligne.appendChild(raz);
+  const majEtat = () => { const r = atlRegNet(f.reglages), m = r && r._maj || {}, d0 = m.at ? new Date(m.at) : null, n = r && atlRegObj(r[cle]) ? Object.keys(r[cle]).length : 0;
+    etat.textContent = r && n ? '✏️ Réglages modifiés' + (m.par ? ' par ' + dispName(m.par) : '') + (d0 && !isNaN(d0) ? ' le ' + d0.toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '') + ' · ' + n + ' partie' + (n > 1 ? 's' : '') + ' changée' + (n > 1 ? 's' : '') : '✅ Valeurs par défaut du jeu'; };
   majEtat();
-  // 📇 les fiches (recalculées à chaque modification)
-  let rfFiches = null;
-  if (typeof R.fiches === 'function') {
-    const D = atlEl('details', 'atl-escard atl-rgsec atl-rgfiches'); D.open = true; D.appendChild(atlEl('summary', '', '📇 Fiches'));
-    const outils = atlEl('div', 'atl-rgtools'), q = atlEl('input', 'atl-rgq'), sel = atlEl('select', 'atl-rgf'); q.type = 'search'; q.placeholder = '🔎 Chercher…'; q.setAttribute('aria-label', 'Chercher une fiche');
-    sel.setAttribute('aria-label', 'Filtrer par type'); outils.append(q, sel); D.appendChild(outils);
-    const liste = atlEl('div', 'atl-rgcards'), nb = atlEl('small', 'atl-rgnb'); D.append(nb, liste); p.appendChild(D);
-    let F = [], types = '';
-    const peindre = () => {
-      const t = q.value.trim().toLowerCase(), ty = sel.value; liste.textContent = ''; let n = 0;
-      for (const x of F) {
-        if (ty && String(x.type || '') !== ty) continue;
-        if (t && !(String(x.titre || '') + ' ' + String(x.type || '') + ' ' + JSON.stringify(x.lignes || [])).toLowerCase().includes(t)) continue;
-        if (++n > 120) continue;   // jamais des milliers d'un coup
-        const c = atlEl('article', 'atl-rgcard'), h = atlEl('header');
-        if (typeof x.image === 'string' && /^(data:image\/(png|webp|jpeg);|https:\/\/|assets\/)/.test(x.image)) { const im = atlEl('img'); im.src = x.image; im.alt = ''; im.loading = 'lazy'; h.appendChild(im); }
-        const ht = atlEl('div'); ht.append(atlEl('b', '', String(x.titre || x.id || ''))); if (x.type) ht.appendChild(atlEl('span', 'atl-rgty', String(x.type))); if (x.sous) ht.appendChild(atlEl('small', '', String(x.sous))); h.appendChild(ht); c.appendChild(h);
-        const cols = Array.isArray(x.colonnes) ? x.colonnes : [], L = Array.isArray(x.lignes) ? x.lignes : [];
-        if (cols.length && L.length) { const tb = atlEl('table', 'atl-rgmini'), hr = atlEl('tr'); for (const k of cols) hr.appendChild(atlEl('th', '', String(k.titre || k.cle))); tb.appendChild(hr);
-          for (const l of L.slice(0, 60)) { const tr = atlEl('tr'); for (const k of cols) tr.appendChild(atlEl('td', '', l[k.cle] == null ? '' : String(l[k.cle]))); tb.appendChild(tr); }
-          const w = atlEl('div', 'atl-swrap'); w.appendChild(tb); c.appendChild(w); }
-        liste.appendChild(c);
-      }
-      nb.textContent = n + ' fiche' + (n > 1 ? 's' : '') + (n > 120 ? ' (les 120 premières : affine la recherche)' : '');
-    };
-    rfFiches = () => {
-      try { const t0 = performance.now(); const r0 = R.fiches(atlRegCopie(S.cur)); F = Array.isArray(r0) ? r0.filter(x => x && typeof x === 'object') : []; S.lent = performance.now() - t0 > 120; }
-      catch (e) { F = []; nb.textContent = 'Les fiches n’ont pas pu être calculées.'; reportError('Réglages : fiches() ' + e.message, e.stack, { quiet: true }); }
-      const ty = [...new Set(F.map(x => String(x.type || '')).filter(Boolean))].sort();
-      if (ty.join('|') !== types) { types = ty.join('|'); const v = sel.value; sel.textContent = ''; const o0 = atlEl('option', '', 'Tous les types'); o0.value = ''; sel.appendChild(o0); for (const t of ty) { const o = atlEl('option', '', t); o.value = t; sel.appendChild(o); } sel.value = ty.includes(v) ? v : ''; sel.hidden = !ty.length; }
-      peindre(); };
-    q.addEventListener('input', peindre); sel.addEventListener('change', peindre);
-  }
-  let rfT = 0; const rafraichir = () => { if (!rfFiches) return; clearTimeout(rfT); rfT = setTimeout(rfFiches, S.lent ? 600 : 150); };
-  // ✏️ les sections du schema
+  // 📇 les fiches (lecture seule, calculées avec les défauts)
+  if (atlRegObj(J.fiches) && Object.keys(J.fiches).length) p.appendChild(atlRegFiches(J.fiches));
+  // ✏️ les sections, dans l'ordre du schema, puis le reste des défauts ; les valeurs simples ensemble
   const barre = atlEl('div', 'atl-rgbar'), msg = atlEl('small', 'atl-rgmsg');
-  const ok = atlEl('button', 'btn btn-play btn-sm atl-rgsave', '💾 Enregistrer'), annul = atlEl('button', 'btn btn-ghost btn-sm atl-rgannul', '↩️ Annuler'), raz = atlEl('button', 'btn btn-ghost btn-sm atl-rgraz', '♻️ Valeurs par défaut');
-  annul.title = 'Annuler mes changements (pas encore enregistrés)'; raz.title = 'Revenir aux valeurs par défaut du jeu, pour tous les joueurs'; ligne.appendChild(raz);
-  ok.type = annul.type = raz.type = 'button';
-  const majBar = () => { const diff = atlRegDiff(R, S.cur), avant = (atlRegNet(f.reglages) || {}).valeurs || {};
-    S.dirty = JSON.stringify(diff) !== JSON.stringify(avant);
+  const ok = atlEl('button', 'btn btn-play btn-sm atl-rgsave', '💾 Enregistrer'), annul = atlEl('button', 'btn btn-ghost btn-sm atl-rgannul', '↩️ Annuler'); ok.type = annul.type = 'button'; annul.title = 'Annuler mes changements (pas encore enregistrés)';
+  const avant = () => ((atlRegNet(f.reglages) || {})[cle]) || undefined;
+  const majBar = () => { const diff = atlRegDiff(M0, S.cur); S.dirty = JSON.stringify(diff === undefined ? null : diff) !== JSON.stringify(avant() === undefined ? null : avant());
     ok.disabled = !S.dirty || S.ko.size > 0 || S.envoi; annul.disabled = !S.dirty || S.envoi; raz.disabled = !atlRegNet(f.reglages) || S.envoi; raz.hidden = !atlRegNet(f.reglages);
-    msg.textContent = S.ko.size ? '⚠️ ' + S.ko.size + ' case' + (S.ko.size > 1 ? 's' : '') + ' hors limites (en rouge)' : S.dirty ? 'Des changements ne sont pas encore enregistrés.' : '';
-    barre.classList.toggle('vif', S.dirty); };
+    msg.textContent = S.ko.size ? '⚠️ ' + S.ko.size + ' case' + (S.ko.size > 1 ? 's' : '') + ' à corriger (en rouge)' : S.dirty ? 'Des changements ne sont pas encore enregistrés.' : ''; barre.classList.toggle('vif', S.dirty); };
   const sections = atlEl('div', 'atl-rgsecs'); p.appendChild(sections);
+  const mk = (path, meta, val, defVal) => atlRegChamp(meta, val, defVal, (v, bad, i) => { const k = path.join('|') + (i != null ? '#' + i : ''); if (bad) S.ko.add(k); else { S.ko.delete(k); let o = S.cur; for (const x of path.slice(0, -1)) o = o[x]; o[path[path.length - 1]] = v; } majBar(); });
+  const champsDe = s => new Map((s && Array.isArray(s.champs) ? s.champs : []).filter(c => c && c.k != null).map(c => [String(c.k), c]));
   const construire = () => {
     sections.textContent = ''; S.ko.clear();
-    R.schema.forEach((s, si) => {
-      if (!s || !s.cle || !(s.cle in S.cur)) return;
-      const D = atlEl('details', 'atl-escard atl-rgsec'); if (si < 2) D.open = true; D.appendChild(atlEl('summary', '', String(s.titre || s.cle)));
-      const dflt = R.defauts[s.cle];
-      if (s.type === 'table' && Array.isArray(S.cur[s.cle])) {
-        const id = s.id || 'id', cols = (s.colonnes || []).filter(c => c && c.cle), rows = S.cur[s.cle];
-        const outils = atlEl('div', 'atl-rgtools'); let q = null, sel = null;
-        if (s.recherche) { q = atlEl('input', 'atl-rgq'); q.type = 'search'; q.placeholder = '🔎 Chercher…'; q.setAttribute('aria-label', 'Chercher dans ' + (s.titre || s.cle)); outils.appendChild(q); }
-        if (s.filtre) { sel = atlEl('select', 'atl-rgf'); sel.setAttribute('aria-label', 'Filtrer'); const o0 = atlEl('option', '', 'Tous'); o0.value = ''; sel.appendChild(o0);
-          for (const v of [...new Set(rows.map(r => String(r[s.filtre] == null ? '' : r[s.filtre])).filter(Boolean))].sort()) { const o = atlEl('option', '', v); o.value = v; sel.appendChild(o); } outils.appendChild(sel); }
-        if (q || sel) D.appendChild(outils);
-        const tb = atlEl('table', 'atl-stab atl-rgtab'), hr = atlEl('tr'); for (const c of cols) { const th = atlEl('th', '', String(c.titre || c.cle)); if (c.aide) th.title = c.aide; hr.appendChild(th); } tb.appendChild(hr);
-        const trs = rows.map((row, ri) => { const tr = atlEl('tr'), d0 = (Array.isArray(dflt) ? dflt.find(x => x && x[id] === row[id]) : null) || {};
-          for (const c of cols) { const td = atlEl('td'); td.dataset.l = String(c.titre || c.cle);
-            td.appendChild(atlRegChamp(c, row[c.cle], d0[c.cle], (v, bad) => { const k = s.cle + '|' + ri + '|' + c.cle; if (bad) S.ko.add(k); else { S.ko.delete(k); row[c.cle] = v; rafraichir(); } majBar(); }));
-            tr.appendChild(td); }
-          tr._txt = cols.map(c => String(row[c.cle] == null ? '' : row[c.cle])).join(' ').toLowerCase(); tr._f = s.filtre ? String(row[s.filtre] == null ? '' : row[s.filtre]) : ''; tb.appendChild(tr); return tr; });
-        const filtrer = () => { const t = q ? q.value.trim().toLowerCase() : '', fv = sel ? sel.value : ''; for (const tr of trs) tr.hidden = (t && !tr._txt.includes(t)) || (fv && tr._f !== fv); };
-        if (q) q.addEventListener('input', filtrer); if (sel) sel.addEventListener('change', filtrer);
-        const w = atlEl('div', 'atl-swrap atl-rgw'); w.appendChild(tb); D.appendChild(w);
-      } else if (s.type === 'objet' && S.cur[s.cle] && typeof S.cur[s.cle] === 'object') {
-        const o = S.cur[s.cle], gr = atlEl('div', 'atl-rggrid');
-        for (const c of (s.champs || []).filter(c => c && c.cle)) { const l = atlEl('label', 'atl-rgch'); l.appendChild(atlEl('span', '', String(c.titre || c.cle)));
-          l.appendChild(atlRegChamp(c, o[c.cle], (dflt || {})[c.cle], (v, bad) => { const k = s.cle + '|' + c.cle; if (bad) S.ko.add(k); else { S.ko.delete(k); o[c.cle] = v; rafraichir(); } majBar(); }));
-          if (c.aide) l.appendChild(atlEl('small', '', String(c.aide))); gr.appendChild(l); }
+    const ordre = [...schema.map(s => String(s.sorte === 'table' ? (s.cles || s.id) : s.id)).filter(k => k in S.cur), ...Object.keys(S.cur).filter(k => !schema.some(s => String(s.sorte === 'table' ? (s.cles || s.id) : s.id) === k))];
+    const simples = ordre.filter(k => !atlRegObj(S.cur[k]) && !Array.isArray(S.cur[k]));
+    let si = 0;
+    const section = (k, titre, aide) => { const D = atlEl('details', 'atl-escard atl-rgsec'); D.dataset.k = k; if (si++ < 2) D.open = true; D.appendChild(atlEl('summary', '', titre)); if (aide) D.appendChild(atlEl('p', 'atl-rgaide', String(aide))); sections.appendChild(D); return D; };
+    if (simples.length) { const D = section('_simples', '⚙️ Valeurs générales'), gr = atlEl('div', 'atl-rggrid');
+      for (const k of simples) { const s = sm.get(k) || {}, m = Object.assign({ k, nom: s.titre || atlRegNomCle(k), aide: s.aide }, (s.champs || [])[0] || {}, { k }); const l = atlEl('label', 'atl-rgch'); l.appendChild(atlEl('span', '', String(m.nom || atlRegNomCle(k)))); l.appendChild(mk([k], m, S.cur[k], M0[k])); if (m.aide) l.appendChild(atlEl('small', '', String(m.aide))); gr.appendChild(l); }
+      D.appendChild(gr); }
+    for (const k of ordre) { if (simples.includes(k)) continue;
+      const s = sm.get(k) || schema.find(x => String(x.cles) === k) || {}, v = S.cur[k], dv = M0[k], ch = champsDe(s), titre = s.titre || atlRegNomCle(k);
+      if (Array.isArray(v) && v.length && v.every(atlRegObj)) {   // liste d'objets : un tableau (par position)
+        const D = section(k, titre, s.aide), cols = [...new Set(v.flatMap(o => Object.keys(o)))];
+        D.appendChild(atlRegTable(cols, ch, v.map((row, i) => ({ id: String(i), row, def: (dv || [])[i] || {}, path: [k, i] })), mk, null));
+      } else if (atlRegObj(v) && Object.values(v).length && Object.values(v).every(atlRegObj)) {   // table : id → ligne (ex. attaques)
+        const D = section(k, titre + ' · ' + Object.keys(v).length, s.aide), cols = [...new Set(Object.values(v).flatMap(o => Object.keys(o)))];
+        D.appendChild(atlRegTable(cols, ch, Object.keys(v).map(id => ({ id, row: v[id], def: (dv || {})[id] || {}, path: [k, id] })), mk, true));
+      } else if (atlRegObj(v)) {   // objet : un groupe de cases
+        const D = section(k, titre, s.aide), gr = atlEl('div', 'atl-rggrid');
+        for (const c of Object.keys(v)) { const m = Object.assign({ k: c }, ch.get(c) || {}), l = atlEl('label', 'atl-rgch'); l.appendChild(atlEl('span', '', String(m.nom || atlRegNomCle(c)))); l.appendChild(mk([k, c], m, v[c], (dv || {})[c])); if (m.aide) l.appendChild(atlEl('small', '', String(m.aide))); gr.appendChild(l); }
         D.appendChild(gr);
-      } else return;
-      sections.appendChild(D);
-    });
+      } else { const D = section(k, titre, s.aide); D.appendChild(mk([k], Object.assign({ k }, ch.get(k) || {}), v, dv)); }
+    }
+    // les listes de référence en lecture seule (ex. groupees : 'brasier+tempete' → 'Tornade-de-Feu')
+    for (const k of Object.keys(J)) if (!RES.has(k) || k === 'groupees') { const v = J[k]; if (!atlRegObj(v) || k in M0 || !Object.values(v).every(x => typeof x === 'string')) continue;
+      const D = section('_' + k, '📜 ' + atlRegNomCle(k) + ' · ' + Object.keys(v).length + ' (lecture seule)'), ul = atlEl('ul', 'atl-rgref');
+      for (const [a, b] of Object.entries(v)) ul.appendChild(atlEl('li', '', a + ' → ' + b)); D.appendChild(ul); D.open = false; }
     majBar();
   };
-  construire(); if (rfFiches) rfFiches();
+  construire();
   ok.addEventListener('click', async () => {
-    const valeurs = atlRegDiff(R, S.cur), corps = Object.keys(valeurs).length ? { v: R.v || 1, valeurs } : null;
+    const diff = atlRegDiff(M0, S.cur), corps = diff === undefined ? null : { [cle]: diff };
     if (corps && JSON.stringify(corps).length > 190000) { msg.textContent = '⚠️ Trop de changements d’un coup (200 Ko au plus).'; return; }
     S.envoi = true; majBar(); ok.classList.add('wait');
     try { const r = await rpc('at_reglages_poser', { p_name: profile.name, p_fiche: f.id, p_reglages: corps }, { quiet: true }); f.reglages = r && r.reglages !== undefined ? r.reglages : corps; atlToast(corps ? '✅ Réglages enregistrés (prochaine partie)' : '♻️ Valeurs par défaut remises'); }
     catch (e) { msg.textContent = '⚠️ ' + atlWhy(e); }
     finally { S.envoi = false; ok.classList.remove('wait'); majEtat(); majBar(); }
   });
-  annul.addEventListener('click', () => { S.cur = atlRegFusion(R, atlRegNet(f.reglages)); construire(); if (rfFiches) rfFiches(); });
+  annul.addEventListener('click', () => { S.cur = atlRegFusion(M0, avant() || {}); construire(); });
   raz.addEventListener('click', async () => {
     if (!await atlConfirmer('♻️ Revenir aux valeurs par défaut ?', 'Tous les réglages changés de « ' + (f.titre || 'ce jeu') + ' » reviennent aux valeurs prévues par le jeu, pour tous les joueurs.', 'Oui, revenir aux défauts')) return;
     S.envoi = true; majBar();
-    try { await rpc('at_reglages_poser', { p_name: profile.name, p_fiche: f.id, p_reglages: null }, { quiet: true }); f.reglages = null; S.cur = atlRegFusion(R, null); construire(); if (rfFiches) rfFiches(); atlToast('♻️ Valeurs par défaut remises.'); }
+    try { await rpc('at_reglages_poser', { p_name: profile.name, p_fiche: f.id, p_reglages: null }, { quiet: true }); f.reglages = null; S.cur = atlRegCopie(M0); construire(); atlToast('♻️ Valeurs par défaut remises'); }
     catch (e) { msg.textContent = '⚠️ ' + atlWhy(e); }
     finally { S.envoi = false; majEtat(); majBar(); }
   });
   barre.append(msg, annul, ok); p.appendChild(barre);
+}
+// un tableau modifiable (lignes = { id, row, def, path }) ; idTable = table id → ligne : recherche, filtres, 80 lignes puis « Afficher plus »
+function atlRegTable(cols, ch, L, mk, idTable) {
+  const w = atlEl('div', 'atl-rgtw'), outils = atlEl('div', 'atl-rgtools'), q = atlEl('input', 'atl-rgq'); q.type = 'search'; q.placeholder = '🔎 Chercher…'; q.setAttribute('aria-label', 'Chercher');
+  const filtres = cols.filter(c => { const vs = new Set(L.map(x => x.row[c]).filter(v => typeof v === 'string' && v)); return (ch.get(c) && Array.isArray(ch.get(c).choix)) || (vs.size >= 2 && vs.size <= 30 && L.every(x => typeof x.row[c] === 'string' || x.row[c] == null)); }).slice(0, 4);
+  const sels = filtres.map(c => { const s = atlEl('select', 'atl-rgf'), o0 = atlEl('option', '', (ch.get(c) && ch.get(c).nom) || atlRegNomCle(c)); o0.value = ''; s.appendChild(o0);
+    for (const v of [...new Set(L.map(x => x.row[c]).filter(v => v != null && v !== ''))].map(String).sort()) { const o = atlEl('option', '', v); o.value = v; s.appendChild(o); } s.setAttribute('aria-label', 'Filtrer : ' + ((ch.get(c) && ch.get(c).nom) || c)); s._c = c; return s; });
+  if (L.length > 12) { outils.appendChild(q); for (const s of sels) outils.appendChild(s); w.appendChild(outils); }
+  const nb = atlEl('small', 'atl-rgnb'), wrap = atlEl('div', 'atl-swrap atl-rgw'), plus = atlEl('button', 'btn btn-ghost btn-sm atl-rgplus', 'Afficher plus'); plus.type = 'button';
+  w.append(nb, wrap, plus);
+  let lim = 80;
+  const peindre = () => {
+    const t = q.value.trim().toLowerCase(), F = L.filter(x => (!t || (x.id + ' ' + Object.values(x.row).map(v => typeof v === 'object' ? JSON.stringify(v) : String(v)).join(' ')).toLowerCase().includes(t)) && sels.every(s => !s.value || String(x.row[s._c]) === s.value));
+    const tb = atlEl('table', 'atl-stab atl-rgtab'), hr = atlEl('tr'); if (idTable) hr.appendChild(atlEl('th', '', 'Id'));
+    for (const c of cols) { const th = atlEl('th', '', String((ch.get(c) && ch.get(c).nom) || atlRegNomCle(c))); if (ch.get(c) && ch.get(c).aide) th.title = ch.get(c).aide; hr.appendChild(th); } tb.appendChild(hr);
+    for (const x of F.slice(0, lim)) { const tr = atlEl('tr'); if (idTable) tr.appendChild(atlEl('td', 'atl-rgid', x.id));
+      for (const c of cols) { const td = atlEl('td'); td.dataset.l = String((ch.get(c) && ch.get(c).nom) || c); if (c in x.row) td.appendChild(mk(x.path.concat([c]), Object.assign({ k: c }, ch.get(c) || {}), x.row[c], x.def[c])); tr.appendChild(td); }
+      tb.appendChild(tr); }
+    wrap.textContent = ''; wrap.appendChild(tb);
+    nb.textContent = F.length + ' ligne' + (F.length > 1 ? 's' : '') + (F.length > lim ? ' · ' + lim + ' affichées' : ''); plus.hidden = F.length <= lim;
+  };
+  q.addEventListener('input', () => { lim = 80; peindre(); }); for (const s of sels) s.addEventListener('change', () => { lim = 80; peindre(); }); plus.addEventListener('click', () => { lim += 120; peindre(); });
+  peindre(); return w;
+}
+// 📇 les fiches (id → fiche) : cartes en lecture seule, recherche + filtre par type, 40 par 40
+function atlRegFiches(FI) {
+  const D = atlEl('details', 'atl-escard atl-rgsec atl-rgfiches'); D.open = true; D.appendChild(atlEl('summary', '', '📇 Fiches · ' + Object.keys(FI).length));
+  D.appendChild(atlEl('p', 'atl-rgaide', 'Calculées avec les valeurs par défaut : le jeu les recalcule avec tes réglages.'));
+  const L = Object.entries(FI).filter(([, x]) => atlRegObj(x)).map(([id, x]) => ({ id, x, types: (Array.isArray(x.types) ? x.types : x.type ? [x.type] : []).map(String) }));
+  const outils = atlEl('div', 'atl-rgtools'), q = atlEl('input', 'atl-rgq'), sel = atlEl('select', 'atl-rgf'); q.type = 'search'; q.placeholder = '🔎 Chercher une fiche…'; q.setAttribute('aria-label', 'Chercher une fiche');
+  const o0 = atlEl('option', '', 'Tous les types'); o0.value = ''; sel.appendChild(o0); for (const t of [...new Set(L.flatMap(x => x.types))].sort()) { const o = atlEl('option', '', t); o.value = t; sel.appendChild(o); } sel.setAttribute('aria-label', 'Filtrer par type'); sel.hidden = sel.options.length < 3;
+  outils.append(q, sel); D.appendChild(outils);
+  const nb = atlEl('small', 'atl-rgnb'), liste = atlEl('div', 'atl-rgcards'), plus = atlEl('button', 'btn btn-ghost btn-sm atl-rgplus', 'Afficher plus'); plus.type = 'button'; D.append(nb, liste, plus);
+  let lim = 40;
+  const carte = ({ id, x, types }) => {
+    const c = atlEl('article', 'atl-rgcard'), h = atlEl('header'), ht = atlEl('div');
+    if (typeof x.image === 'string' && /^(data:image\/(png|webp|jpeg);|https:\/\/|assets\/)/.test(x.image)) { const im = atlEl('img'); im.src = x.image; im.alt = ''; im.loading = 'lazy'; h.appendChild(im); }
+    ht.appendChild(atlEl('b', '', (x.num != null ? '#' + x.num + ' ' : '') + String(x.nom || x.titre || id)));
+    for (const t of types) ht.appendChild(atlEl('span', 'atl-rgty', t)); if (x.legendaire) ht.appendChild(atlEl('span', 'atl-rgty leg', '⭐ légendaire'));
+    const sc = Object.entries(x).filter(([k, v]) => !['num', 'nom', 'titre', 'types', 'type', 'image', 'legendaire'].includes(k) && (typeof v === 'number' || typeof v === 'string' || (Array.isArray(v) && v.every(z => typeof z !== 'object'))));
+    if (sc.length) ht.appendChild(atlEl('small', '', sc.map(([k, v]) => atlRegNomCle(k) + ' : ' + (Array.isArray(v) ? v.join(' · ') : v)).join(' — ')));
+    h.appendChild(ht); c.appendChild(h);
+    for (const [k, v] of Object.entries(x)) {
+      if (atlRegObj(v) && Object.values(v).every(z => typeof z !== 'object')) c.appendChild(atlEl('p', 'atl-rgstat', atlRegNomCle(k) + ' : ' + Object.entries(v).map(([a, b]) => a + ' ' + b).join(' · ')));
+      else if (Array.isArray(v) && v.length && v.every(atlRegObj)) { const cols = [...new Set(v.flatMap(o => Object.keys(o)))].filter(cc => !(cc === 'attaque' && cols0(v)));
+        const tb = atlEl('table', 'atl-rgmini'), hr = atlEl('tr'); for (const cc of cols) hr.appendChild(atlEl('th', '', atlRegNomCle(cc))); tb.appendChild(hr);
+        for (const l of v.slice(0, 60)) { const tr = atlEl('tr'); for (const cc of cols) tr.appendChild(atlEl('td', '', l[cc] == null ? '' : String(l[cc]))); tb.appendChild(tr); }
+        const w = atlEl('div', 'atl-swrap'); w.appendChild(atlEl('small', 'atl-rgsous', atlRegNomCle(k))); w.appendChild(tb); c.appendChild(w); }
+    }
+    return c;
+  };
+  const cols0 = v => v.every(o => 'nom' in o);   // « attaque » (id) caché quand il y a le nom
+  const peindre = () => { const t = q.value.trim().toLowerCase(), ty = sel.value;
+    const F = L.filter(e => (!ty || e.types.includes(ty)) && (!t || (e.id + ' ' + JSON.stringify(e.x)).toLowerCase().includes(t)));
+    liste.textContent = ''; for (const e of F.slice(0, lim)) liste.appendChild(carte(e));
+    nb.textContent = F.length + ' fiche' + (F.length > 1 ? 's' : '') + (F.length > lim ? ' · ' + lim + ' affichées' : ''); plus.hidden = F.length <= lim; };
+  q.addEventListener('input', () => { lim = 40; peindre(); }); sel.addEventListener('change', () => { lim = 40; peindre(); }); plus.addEventListener('click', () => { lim += 60; peindre(); });
+  peindre(); return D;
 }
 function atlEspace(W, box, f, g, pane) {
   // 2.0.152 (maquette validée par le chef, remarques de l'admin) : fond lumineux du jeu, cartes claires translucides ; mascotte en haut à
