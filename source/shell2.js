@@ -17173,7 +17173,8 @@ function atlEspace(W, box, f, g, pane) {
     jq.style.cursor = 'pointer'; jq.addEventListener('click', () => atlJouerVrai(f));
     { const ap = atlEspApercus(f, g); if (ap) tx.appendChild(ap); }
     H.append(jq, tx, gw); jp.prepend(H);
-    H.appendChild(atlPubBloc(f, g));   // 2.1.2 (l'admin : « il manque les options de publication ») { const vs = box.querySelector('.atl-vsortie'); if (vs) H.insertAdjacentElement('afterend', vs); }
+    H.appendChild(atlPubBloc(f, g));
+    { const oc = atlOrientChoix(f, g); oc.classList.add('atl-esor'); H.appendChild(oc); }   // 2.1.12 (l'admin : « je n'ai plus les cases portrait / paysage ») : le sens du jeu aussi sur « Mon jeu », pas seulement dans Paramètres   // 2.1.2 (l'admin : « il manque les options de publication ») { const vs = box.querySelector('.atl-vsortie'); if (vs) H.insertAdjacentElement('afterend', vs); }
     const c = atlEl('div', 'atl-escards atl-esres'); c.dataset.esp = 'resume'; H.after(c); atlEspResume(c, f, null); } }
   W._charge = Promise.all([atlEspFond(W, f), atlEspStats(W, f)]).catch(() => {});   // 2.0.160 : le moment de la V1 attend que tout soit chargé
   // Boutique grisée tant qu'il n'y a aucun article (la sonde de la boutique est lue avec les statistiques)
@@ -17516,20 +17517,21 @@ function atlArret() {
 // 2.0.20 : « 📱 Portrait seulement » / « 🖥️ Paysage seulement » / « 🔄 Les deux » — enregistré sur la fiche (at_orientation, gratuit,
 // auteur ou admin) ; la borne l'applique au lancement (« Tourne ton téléphone ») et l'équipe le lit pour ses essais
 function atlOrientChoix(f, g) {
-  const w = atlEl('div', 'atl-orch'), cur = () => { const o = String(f.orientation || ''); return /^(portrait|paysage|les2)$/.test(o) ? o : (g && /^(portrait|paysage)$/.test(String(g.orientation || '')) ? g.orientation : 'les2'); };
+  const w = atlEl('div', 'atl-orch atl-orsens'), cur = () => { const o = String(f.orientation || ''); return /^(portrait|paysage|les2)$/.test(o) ? o : (g && /^(portrait|paysage)$/.test(String(g.orientation || '')) ? g.orientation : 'les2'); };
   w.appendChild(atlEl('b', 'atl-orq', 'Comment se joue ton jeu ?'));
   const row = atlEl('div', 'atl-orb'), msg = atlEl('small', 'atl-ormsg');
   const L = [['portrait', '📱', 'Portrait seulement'], ['paysage', '🖥️', 'Paysage seulement'], ['les2', '🔄', 'Les deux']];
   const DIT = { portrait: 'Sur téléphone, il se joue debout : couché, je demande de le tourner.', paysage: 'Sur téléphone, il se joue couché : debout, je demande de le tourner.', les2: 'Il se joue dans les deux sens.' };
   const maj = () => { const o = cur(); for (const b of row.children) { const on = b.dataset.o === o; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); } msg.textContent = DIT[o]; };
+  w._maj = maj; w._fid = f.id; const tous = () => { for (const x of document.querySelectorAll('.atl-orsens')) if (x !== w && x._fid === f.id && x._maj) x._maj(); };   // 2.1.12 : « Mon jeu » et Paramètres montrent le même choix
   for (const [o, ic, lab] of L) {
     const b = atlEl('button', 'btn btn-ghost atl-dab'); b.type = 'button'; b.dataset.o = o; b.append(atlEl('span', 'atl-dabi', ic), atlEl('span', 'atl-dabt', lab));
     b.addEventListener('click', async () => {
       if (cur() === o) return;
-      const avant = f.orientation; f.orientation = o; maj();
+      const avant = f.orientation; f.orientation = o; maj(); tous();
       for (const x of row.children) x.disabled = true;
       try { await rpc('at_orientation', { p_name: profile.name, p_fiche: f.id, p_orientation: o }, { quiet: true }); if (f.jeu) ATL_ORIENT.set(f.jeu, o); atlToast(ic + ' C’est noté : ' + lab.toLowerCase() + '.'); }
-      catch (e) { f.orientation = avant; maj(); atlToast(atlWhy(e)); }
+      catch (e) { f.orientation = avant; maj(); tous(); atlToast(atlWhy(e)); }
       finally { for (const x of row.children) x.disabled = false; }
     });
     row.appendChild(b);
@@ -19856,25 +19858,58 @@ async function atlAnnoncer(m) {
 function atlAdminBandeau() {
   const R = ATL.root; if (!R) return;
   let b = R.querySelector('.atl-adminb'); const m = ATL.adminVoir, av = ATL.data && ATL.data.admin_voir;
-  if (!m || !ATL.cur || ATL.cur !== m.id) { if (b) b.remove(); return; }
+  if (!m || !ATL.cur || ATL.cur !== m.id) { if (b) b.remove(); { const k = R.querySelector('.atl-adminbt'); if (k) k.remove(); } atlAdminFenFermer(); return; }
   const zEsp = R.querySelector('.atl-wiz.atl-espace') && R.querySelector('.atl-wiz.atl-espace')._admZone;   // 2.0.163 : dans l'onglet 🛡️ Admin de l'espace
+  // 2.1.12 (l'admin : le grand bandeau rouge en haut, « dégueulasse ») : plus de bandeau sur la page ; UN bouton « 🛡️ Admin » discret dans la barre du haut
+  // ouvre la fenêtre admin du projet (chiffres + actions). L'onglet 🛡️ Admin de l'espace d'un jeu garde son contenu (dans l'onglet).
+  atlAdminBouton(R, av);
+  if (b && !zEsp) { b.remove(); b = null; }
   if (b && zEsp && b.parentNode !== zEsp) { zEsp.appendChild(b); b.dataset.sig = ''; }
-  if (!b) { b = atlEl('div', 'atl-adminb'); if (zEsp) zEsp.appendChild(b); else { const bar = R.querySelector('.atl-bar'); if (bar) bar.prepend(b); else R.prepend(b); } }   // dans la barre du haut (la page est une grille sur PC)
+  if (!b && zEsp) { b = atlEl('div', 'atl-adminb'); zEsp.appendChild(b); }
   { const cp = R.querySelector('.atl-cred'), cr = atlCred(); if (cp && cr) cp.textContent = atlCredTxt(cr.solde); }   // le solde du joueur, à chaque rendu
   const rp = atlRentDe(m.id);   // 2.0.119 : la rentabilité du projet (admin), chargée à part
   if (!ATL_RENT.d || Date.now() - ATL_RENT.at > 30000) atlRent().then(d => { if (d && ATL.adminVoir === m) atlAdminBandeau(); });
   const sig = (av ? av.joueur + av.solde : '') + (ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet.length : 0) + '|' + ((atlFiche() || {}).assets_archive || []).length + (rp ? '|' + rp.credits + ':' + rp.cout_cents + ':' + ATL_RENT.at : '');
-  if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
-  const pt = atlPetit() && !b.closest('.atl-esadm');   // 2.0.108 : téléphone = un bandeau court ; 2.0.163 : dans l'onglet Admin, tout en grand
-  b.classList.toggle('pt', pt);
-  b.appendChild(atlEl('b', '', (pt ? '🛡️ Admin · ' : '🛡️ Mode admin : projet de ') + (av ? dispName(av.joueur) + ' · ' + (av.solde | 0) + ' 💎' : '…')));
-  const bt = (t, fn, c) => { const x = atlEl('button', 'btn btn-ghost btn-sm', pt && c ? c : t); x.type = 'button'; x.title = t.replace(/^\S+\s/, ''); x.addEventListener('click', fn); b.appendChild(x); };
-  bt('📋 Demandes du projet', atlAdminDemandes, '📋 Demandes');
-  bt('📣 Annoncer un changement au joueur', () => atlAnnoncer(m), '📣 Annoncer');   // 2.0.14 (Benjamin) : remplace « ⬆ Version suivante »
-  bt('🎁 Donner des crédits', async () => { const v = Math.round(+prompt('Combien de crédits offrir au joueur ?', '50')); if (!(v > 0)) return; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'credits', p_args: { montant: v } }, { quiet: true }); atlToast('🎁 ' + v + ' crédits offerts'); atlLoad(true); } catch (e) { atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } }, '🎁 Crédits');
-  { const fa = atlFiche(), na = fa && Array.isArray(fa.assets_archive) ? fa.assets_archive.length : 0; if (na) bt('🗄️ Éléments retirés (' + na.toLocaleString('fr-FR') + ')', () => atlArchiveVoir(fa), '🗄️ ' + na.toLocaleString('fr-FR')); }   // 2.0.124 : hors de la page (admin = même écran que le joueur)
-  bt('✕ Quitter', () => { ATL.adminVoir = null; atlListe(); }, '✕');
+  { const F = R.querySelector('.atl-mod.atl-admmod:not([hidden])'), c = F && F.querySelector('.atl-admc'); if (c && c.dataset.sig !== sig) { c.dataset.sig = sig; atlAdminFenRemplir(c, m, av, rp); } }   // la fenêtre ouverte suit les chiffres
+  if (!b || b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
+  b.appendChild(atlEl('b', '', '🛡️ Mode admin : projet de ' + (av ? dispName(av.joueur) + ' · ' + (av.solde | 0) + ' 💎' : '…')));
+  for (const [t, fn] of atlAdminActions(m)) { const x = atlEl('button', 'btn btn-ghost btn-sm', t); x.type = 'button'; x.title = t.replace(/^\S+\s/, ''); x.addEventListener('click', fn); b.appendChild(x); }
   if (rp && av) { const rb = atlEl('div', 'atl-rentb'); for (const t of atlRentLong(rp, (ATL_RENT.d.joueurs || {})[av.joueur], av.joueur)) rb.appendChild(atlEl('small', '', t)); b.appendChild(rb); }   // 2.0.119
+}
+// 2.1.12 : les actions admin d'un projet de joueur (fenêtre « 🛡️ Admin » et onglet Admin de l'espace)
+function atlAdminActions(m) {
+  const L = [['📋 Demandes du projet', atlAdminDemandes], ['📣 Annoncer un changement au joueur', () => atlAnnoncer(m)],   // 2.0.14 (Benjamin) : remplace « ⬆ Version suivante »
+    ['🎁 Donner des crédits', async () => { const v = Math.round(+prompt('Combien de crédits offrir au joueur ?', '50')); if (!(v > 0)) return; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'credits', p_args: { montant: v } }, { quiet: true }); atlToast('🎁 ' + v + ' crédits offerts'); atlLoad(true); } catch (e) { atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } }]];
+  { const fa = atlFiche(), na = fa && Array.isArray(fa.assets_archive) ? fa.assets_archive.length : 0; if (na) L.push(['🗄️ Éléments retirés (' + na.toLocaleString('fr-FR') + ')', () => atlArchiveVoir(fa)]); }   // 2.0.124 : hors de la page (admin = même écran que le joueur)
+  L.push(['✕ Quitter', () => { ATL.adminVoir = null; atlListe(); }]);
+  return L;
+}
+function atlAdminBouton(R, av) {
+  const bar = R.querySelector('.atl-bar'); if (!bar) return;
+  let k = bar.querySelector('.atl-adminbt');
+  if (!k) { k = atlEl('button', 'btn btn-ghost btn-sm atl-adminbt', '🛡️ Admin'); k.type = 'button'; k.addEventListener('click', atlAdminFen); const ap = bar.querySelector('.atl-demb'); if (ap) bar.insertBefore(k, ap); else bar.appendChild(k); }
+  const t = 'Mode admin : projet de ' + (av ? dispName(av.joueur) : '…'); if (k.title !== t) { k.title = t; k.setAttribute('aria-label', '🛡️ ' + t); }
+}
+function atlAdminFen() {
+  const R = ATL.root, M = R && R.querySelector('.atl-mod'), m = ATL.adminVoir; if (!M || !m) return;
+  M.textContent = ''; M.classList.add('atl-admmod'); M.setAttribute('aria-label', 'Admin du projet');
+  const c = atlEl('div', 'atl-mcard atl-admc'); M.appendChild(c); M.hidden = false;
+  atlAdminFenRemplir(c, m, ATL.data && ATL.data.admin_voir, atlRentDe(m.id));
+  if (!ATL_RENT.d || Date.now() - ATL_RENT.at > 30000) atlRent().then(() => { if (ATL.adminVoir === m) atlAdminBandeau(); }).catch(() => {});
+  if (!TOUCH) setTimeout(() => { const x = c.querySelector('.atl-admact button'); if (x && !M.hidden) x.focus({ preventScroll: true }); }, 60);
+}
+function atlAdminFenFermer() { const M = ATL.root && ATL.root.querySelector('.atl-mod.atl-admmod'); if (!M) return; M.classList.remove('atl-admmod'); M.setAttribute('aria-label', 'Créer mes éléments'); if (!M.hidden) { M.hidden = true; M.textContent = ''; } }
+function atlAdminFenRemplir(c, m, av, rp) {
+  const foc = document.activeElement && c.contains(document.activeElement) ? document.activeElement.textContent : '';
+  c.textContent = '';
+  c.append(atlEl('h2', '', '🛡️ Admin'), atlEl('p', 'atl-admqui', av ? 'Projet de ' + dispName(av.joueur) + ' · son solde : ' + (av.solde | 0).toLocaleString('fr-FR') + ' 💎' : 'Je lis le projet…'));
+  if (rp && av) { const rb = atlEl('div', 'atl-rentb atl-admchif'); for (const t of atlRentLong(rp, ((ATL_RENT.d || {}).joueurs || {})[av.joueur], av.joueur)) rb.appendChild(atlEl('small', '', t)); c.appendChild(rb); }
+  else c.appendChild(atlEl('p', 'atl-admvide', 'Les chiffres du projet arrivent…'));
+  const a = atlEl('div', 'atl-admact');
+  for (const [t, fn] of atlAdminActions(m)) { const x = atlEl('button', 'btn btn-ghost', t); x.type = 'button'; x.addEventListener('click', () => { atlAdminFenFermer(); fn(); }); a.appendChild(x); }
+  const fe = atlEl('button', 'btn btn-play atl-admfer', 'Fermer'); fe.type = 'button'; fe.addEventListener('click', atlAdminFenFermer);
+  c.append(a, fe);
+  if (foc) { const x = [...c.querySelectorAll('button')].find(y => y.textContent === foc); if (x) x.focus({ preventScroll: true }); }
 }
 // 2.0.11 (Benjamin) : l'admin modifie les offres SUR LES CARTES (« ✏️ Modifier » : libellé, crédits, détails, conseillé ; « ✕ » ; « ➕ Option »),
 // puis « Renvoyer au joueur » (at_admin_proposer). 2.0.12 (Benjamin : « si je veux faire une remise ») : pas de blocage ; le prix calculé
