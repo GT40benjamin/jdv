@@ -780,3 +780,8 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 .crea-ctx button:hover,.crea-ctx button:focus-visible{background:#f1ebf9;outline:none}
 @media (prefers-color-scheme:dark){.crea-ctx{background:#2a215c;border-color:#4a3c94}.crea-ctx button{color:#efe6ff}.crea-ctx button:hover,.crea-ctx button:focus-visible{background:#3a2f73}}
 @media (max-width:699px){.crea-ctx button{padding:13px 14px;font-size:16px}}
+/* les éléments d'une photo, DANS sa tuile (règle suprême, 7 nov.) */
+.crea-vtel{display:flex;align-items:center;gap:4px;margin:2px 3px 0;padding:3px 5px;border-radius:8px;background:#f4effb;font-size:11px;font-weight:800;color:var(--cdoux);overflow:hidden}
+.crea-vtel .l{white-space:nowrap}
+.crea-vtel img{width:22px;height:16px;border-radius:4px;object-fit:cover;flex:0 0 auto}
+.crea.nuit .crea-vtel{background:#352a73}

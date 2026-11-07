@@ -923,9 +923,14 @@
         t.append(i, E('b', '', lab)); if (sous) t.appendChild(E('small', '', sous)); if (titre) t.title = titre; return t; };
       for (const x of ps) { const v = x.id === c.id ? (act || vueDe(x)) : (vueDe(x) || derniere(x)), n = (x.versions || []).filter(y => y.etat === 'prete' && y.path).length;
         const enc = (x.versions || []).find(y => y.outil !== 'import' && ['envoi', 'controle', 'en_cours'].includes(y.etat));
-        r.appendChild(tuile(x.id === c.id ? 'photo on' : 'photo', v && v.path, x.titre || 'Mon image', v ? numAff(x, v) + (n > 1 ? ' · ' + n + ' versions' : '') : '', x.id === c.id ? null : () => { AIM.cur = x.id; AIM.mode = 'image'; AIM.cmp = null; AIM.pos = 0.5; render(); },
-          x.id === c.id ? '« ' + (x.titre || 'Mon image') + ' » est ouverte : ses versions sont dans la liste posée sur l’image' : 'Ouvrir « ' + (x.titre || 'Mon image') + ' »', enc ? '⏳ V' + enc.n : '')); }
-      for (const x of src) { const v = derniere(x); if (v) r.appendChild(tuile('src', v.path, '📎 ' + (x.titre || 'Image ajoutée'), 'pour « ' + (c.titre || 'cette image') + ' »', null, 'Image ajoutée pour modifier « ' + (c.titre || 'cette image') + ' »')); }
+        const t = tuile(x.id === c.id ? 'photo on' : 'photo', v && v.path, x.titre || 'Mon image', v ? numAff(x, v) + (n > 1 ? ' · ' + n + ' versions' : '') : '', x.id === c.id ? null : () => { AIM.cur = x.id; AIM.mode = 'image'; AIM.cmp = null; AIM.pos = 0.5; render(); },
+          x.id === c.id ? '« ' + (x.titre || 'Mon image') + ' » est ouverte : ses versions sont dans la liste posée sur l’image' : 'Ouvrir « ' + (x.titre || 'Mon image') + ' »', enc ? '⏳ V' + enc.n : '');
+        // l'admin (« règle suprême », 7 nov.) : les ÉLÉMENTS d'une photo (Image 5 pour la Carte Ylix) sont rangés DANS sa tuile, pas à côté
+        const els = sourcesDe(x).map(y => ({ y, v: derniere(y) })).filter(e => e.v);
+        if (els.length) { const bd = E('span', 'crea-vtel'); bd.appendChild(E('span', 'l', '📎 ' + (els.length > 1 ? els.length + ' éléments' : 'élément')));
+          for (const e of els.slice(0, 3)) { const m = E('img'); m.alt = ''; m.loading = 'lazy'; m.src = urlImg(e.v.path, 96); m.title = e.y.titre || 'Élément'; bd.appendChild(m); }
+          bd.title = 'Éléments de « ' + (x.titre || 'Mon image') + ' » : ' + els.map(e => e.y.titre || 'Élément').join(', '); t.appendChild(bd); }
+        r.appendChild(t); }
       S.appendChild(Fm);
       const centrer = () => { const on = Fm.querySelector('.crea-vt.on'); if (on && Fm.isConnected && Fm.scrollWidth > Fm.clientWidth) Fm.scrollLeft = Math.max(0, on.offsetLeft - Fm.offsetLeft - (Fm.clientWidth - on.offsetWidth) / 2); };
       requestAnimationFrame(centrer); }
