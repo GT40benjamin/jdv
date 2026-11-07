@@ -306,6 +306,15 @@
     if (AIM.root) { AIM.root.hidden = true; modFermer(); }
   }
   function fermerVersProjets() { if (AIM.cadre) { try { atlListe(); } catch (e) {} return; } if (AIM.vue !== 'nouveau' && AIM.open) { nouveau(); return; } fermer(); try { atlClose(); } catch (e) {} }   // le « Mes projets » de chacun = l'écran sous les nuages
+  // testeur 2 (7 nov.) : Échap ferme la fenêtre ouverte de l'atelier (🛡️ Admin, renommer, recadrer…), puis le tiroir ou la discussion plein écran,
+  // comme dans un jeu ; il ne quitte jamais l'atelier d'un coup (les fenêtres de l'Interface passées devant gèrent leur Échap elles-mêmes)
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || e.repeat || !AIM.open || !AIM.root || AIM.root.hidden) return;
+    if (ATL.root && ATL.root.classList.contains('crea-devant')) return;
+    const R = AIM.root, M = R.querySelector('.crea-mod');
+    if (M && !M.hidden) modFermer(); else if (R.classList.contains('tiroir')) R.classList.remove('tiroir'); else if (R.classList.contains('pk-plein')) R.classList.remove('pk-plein'); else return;
+    e.preventDefault(); e.stopPropagation();
+  }, true);
   function retour() {   // Android ← et B de la manette
     const R = AIM.root; if (!R) return false;
     if (!R.querySelector('.crea-mod').hidden) { modFermer(); return true; }
