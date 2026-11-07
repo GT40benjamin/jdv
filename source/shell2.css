@@ -6100,3 +6100,55 @@ body:has(#jdw-atelier:not([hidden]) > .atl-mod:not([hidden])) #jdw-atelier{z-ind
 .atl-disclog .atl-pushx:hover{color:#2b2150}
 .atl-disclog .atl-pushc.fait{background:#e3f7ea;border-color:#7fd39b}
 .atl-disclog .atl-pushc.fait b{color:#1f6b3b}
+/* 7 nov. 2026 — 🎚️ Réglages du jeu (admins) : fiches, tableaux modifiables, barre « Enregistrer » collante */
+.atl-pane[data-k="reglages"]{color:#2b2150}
+.atl-rgintro p{margin:0 0 4px;font:700 14px/1.45 var(--body)}
+.atl-rgetat{color:#5d5679;font-weight:600!important}
+.atl-rgsec{margin:12px 0 0;padding:10px 14px}
+.atl-rgsec>summary{cursor:pointer;font:800 16px/1.3 var(--body);padding:4px 0;list-style-position:inside}
+.atl-rgtools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.atl-rgq,.atl-rgf{font:600 14px var(--body);padding:8px 10px;border-radius:10px;border:1.5px solid #cfc6ea;background:#fff;color:#2b2150;min-width:0}
+.atl-rgq{flex:1 1 220px}
+.atl-rgnb{display:block;color:#5d5679;margin:2px 0 8px}
+.atl-rgcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.atl-rgcard{background:#fff;border:1px solid #e3dcf5;border-radius:14px;padding:10px;min-width:0}
+.atl-rgcard header{display:flex;gap:10px;align-items:center;margin-bottom:6px}
+.atl-rgcard header img{width:48px;height:48px;object-fit:contain;border-radius:10px;background:#f4f0ff;flex:0 0 auto}
+.atl-rgcard header b{display:block;font:800 15px var(--body)}
+.atl-rgcard header small{display:block;color:#5d5679}
+.atl-rgty{display:inline-block;margin-top:2px;padding:1px 8px;border-radius:99px;background:#efe6ff;color:#5a3ea8;font:700 12px var(--body)}
+.atl-rgmini{width:100%;border-collapse:collapse;font:600 12.5px/1.35 var(--body)}
+.atl-rgmini th{text-align:left;color:#6b6390;font-weight:700;padding:3px 6px;border-bottom:1px solid #e3dcf5}
+.atl-rgmini td{padding:3px 6px;border-bottom:1px solid #f1edfb}
+.atl-rgw{overflow-x:auto;max-width:100%}
+.atl-rgtab{width:100%;border-collapse:collapse;color:#2b2150;font:600 13.5px var(--body)}
+.atl-rgtab th{position:sticky;top:0;background:#f6f2ff;color:#5d5679;text-align:left;padding:6px 8px;font-weight:800;white-space:nowrap}
+.atl-rgtab td{padding:4px 8px;border-bottom:1px solid #eee8fb;white-space:nowrap}
+.atl-rgin{font:700 14px var(--body);color:#2b2150;background:#fff;border:1.5px solid #d8d0f0;border-radius:8px;padding:5px 8px;min-width:0}
+input.atl-rgin[type=number]{width:86px}
+input.atl-rgin[type=text]{width:150px}
+.atl-rgin.mod{background:#fff3c8;border-color:#f0a92a}
+.atl-rgin.ko{background:#fdecea;border-color:#d93025}
+.atl-rgcb{width:20px;height:20px;accent-color:#7a4cff}
+.atl-rgro{color:#2b2150;font-weight:800}
+.atl-rggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:8px}
+.atl-rgch{display:grid;gap:4px;font:700 13px var(--body);color:#5d5679}
+.atl-rgch small{font-weight:600;color:#7b7498}
+.atl-rgch .atl-rgin{width:100%;box-sizing:border-box}
+.atl-rgligne{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}.atl-rgligne .atl-rgetat{margin:0;flex:1 1 auto}
+.atl-rgbar{position:static;bottom:8px;z-index:3;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin:14px 0 4px;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.96);border:2px solid #e3dcf5;box-shadow:0 6px 20px rgba(60,30,120,.15)}
+.atl-rgbar.vif{position:sticky;border-color:#f0a92a}
+.atl-rgmsg{margin-right:auto;color:#8a4b00;font:700 13px var(--body)}
+@media (max-width:900px){.atl-rgbar{bottom:calc(env(safe-area-inset-bottom,0px) + 84px);padding:8px 10px;gap:6px}.atl-rgbar .btn{flex:1 1 0}.atl-rgmsg{flex:1 1 100%;font-size:12px}}
+.atl-rgsec,.atl-rgsec>*,.atl-rgtw,.atl-rgtools{min-width:0;max-width:100%}.atl-rgsec{box-sizing:border-box}.atl-rgtw .atl-rgw{width:100%}
+.atl-rgnums{display:inline-flex;flex-wrap:wrap;gap:4px}.atl-rgnums .atl-rgin{width:64px}
+.atl-rgaide{margin:2px 0 6px;color:#5d5679;font:600 13px/1.4 var(--body)}
+.atl-rgjson{font-family:ui-monospace,Consolas,monospace!important;width:100%;box-sizing:border-box}
+.atl-rgid{color:#6b6390;font:700 12px ui-monospace,Consolas,monospace}
+.atl-rgref{columns:2 260px;margin:6px 0 0;padding-left:18px;font:600 13px/1.5 var(--body)}
+.atl-rgstat{margin:4px 0;color:#5d5679;font:600 12.5px/1.4 var(--body)}
+.atl-rgsous{display:block;margin:6px 0 2px;color:#6b6390;font-weight:800}
+.atl-rgty.leg{background:#fff3c8;color:#8a4b00}
+.atl-rgplus{margin-top:8px}
+.atl-rgsec,.atl-rgintro{grid-template-columns:minmax(0,1fr)}
+.atl-rgmini th{white-space:nowrap}

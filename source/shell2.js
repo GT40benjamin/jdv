@@ -11260,6 +11260,7 @@ function mountGame(g) {
     isMuted: () => muted,
     heads: () => headsShown(),
     player: playerObj(),
+    reglages: ATL_NES.has(g.id) ? atlReglagesDe(g.id) : null,   // 7 nov. 2026 (CONTRACT.md Ajout 30) : les réglages de l'admin (at_fiches.reglages) ou null
     createur: CREA === g.id,   // 2.1.4 (CONTRACT.md Ajout 29) : lancé en MODE CRÉATEUR par l'auteur (ou un admin) — rien n'est enregistré
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
     profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
@@ -16681,6 +16682,7 @@ function atlProjTab(k) {
   for (const p of W.querySelectorAll('.atl-pane')) p.hidden = p.dataset.k !== k;
   for (const b of W.querySelectorAll('.atl-esnav .atl-esb[data-k]')) b.classList.toggle('on', b.dataset.k === k);   // 2.0.142 : le menu de l'espace du jeu
   if (k === 'stats' && W.classList.contains('atl-espace')) try { atlEspStats(W, atlFiche()); } catch (e) {}
+  if (k === 'reglages') { const pr = W.querySelector('.atl-pane[data-k="reglages"]'); if (pr && pr._charger) pr._charger(); }   // 7 nov. 2026 : les réglages du jeu, chargés ici
   if (k === 'discussion') { const l = W.querySelector('.atl-pmsgs'); if (l) l.scrollTop = l.scrollHeight; }
 }
 function atlProjMsgs(W, f) {
@@ -16972,7 +16974,19 @@ function atlEssaye(f, v) {
   e[f.id] = v; const k = Object.keys(e); if (k.length > 80) delete e[k[0]]; store.set('jdw.atl.essaye', e);
 }
 // 2.0.134 : « le 5 nov. à 14 h 12 »
-function atlQuand(iso) { const d = new Date(iso); if (isNaN(d)) return ''; return 'le ' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' à ' + d.getHours() + ' h ' + String(d.getMinutes()).padStart(2, '0'); }
+// 7 nov. 2026 (Benjamin : « mets l'heure aux versions ») : la date d'une version à l'heure de PARIS (at_versions.at), « 7 novembre à 19 h 20 »,
+// « aujourd'hui à 19 h 20 » le jour même (jour de Paris), l'année seulement si ce n'est pas celle d'aujourd'hui ; court = « 7 nov. »
+function atlDateVer(iso, court) {
+  const d = new Date(iso); if (!iso || isNaN(d)) return '';
+  const P = (x, o) => { try { return new Intl.DateTimeFormat('fr-FR', Object.assign({ timeZone: 'Europe/Paris' }, o)).formatToParts(x); } catch (e) { return new Intl.DateTimeFormat('fr-FR', o).formatToParts(x); } };
+  const pt = (x, o, t) => (P(x, o).find(q => q.type === t) || {}).value || '';
+  const jour = x => pt(x, { year: 'numeric' }, 'year') + '-' + pt(x, { month: '2-digit' }, 'month') + '-' + pt(x, { day: '2-digit' }, 'day');
+  const hp = P(d, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }), heure = (+((hp.find(q => q.type === 'hour') || {}).value || 0)) + ' h ' + ((hp.find(q => q.type === 'minute') || {}).value || '00');
+  const now = new Date(); if (jour(d) === jour(now)) return 'aujourd’hui à ' + heure;
+  const an = pt(d, { year: 'numeric' }, 'year') !== pt(now, { year: 'numeric' }, 'year');
+  return P(d, Object.assign({ day: 'numeric', month: court ? 'short' : 'long' }, an ? { year: 'numeric' } : {})).map(q => q.value).join('') + ' à ' + heure;
+}
+function atlQuand(iso) { const t = atlDateVer(iso, true); return t && !/^aujourd/.test(t) ? 'le ' + t : t; }   // « sortie le 6 nov. à 19 h 00 » / « sortie aujourd'hui à 19 h 20 »
 // le bandeau a été VU : on quitte la page du projet (autre projet, liste, fermeture de l'Atelier) → il ne revient plus, sur aucun appareil
 function atlVSortieVue(garder) { const x = ATL && ATL.vSortieVue; if (!x || x.id === garder) return; ATL.vSortieVue = null; try { if ((atlEssaye({ id: x.id }) | 0) < x.v) atlEssaye({ id: x.id }, x.v); } catch (e) {} }
 function atlVSortie(W, f) {
@@ -17114,6 +17128,220 @@ const ATL_ESP = [['jeu', '🏠', 'Mon jeu'], ['demandes', '💬', 'Discussion'],
 const ATL_ESP_EL = [['🦸', 'Personnages'], ['🎁', 'Objets'], ['🏞️', 'Décor'], ['🔊', 'Sons'], ['🎵', 'Musiques']];
 const atlNb0 = n => atlNb(Math.round(+n || 0));
 const atlDuree = s => { s = Math.max(0, Math.round(+s || 0)); if (s < 60) return s + ' s'; if (s < 3600) return Math.floor(s / 60) + ' min' + (s % 60 ? ' ' + (s % 60) + ' s' : ''); const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); return h + ' h ' + String(m % 60).padStart(2, '0'); };
+// ---- 7 nov. 2026 (l'admin ; format convenu avec l'équipe Explorateur pour Astrofaune V25 ; CONTRACT.md Ajout 30) : les RÉGLAGES d'un jeu de
+// l'Atelier. Le module déclare JDW_GAMES.<id>.reglages = { version, donnees: 'reglages-vNN.json' (fichier à côté du module, dans
+// assets/jeux/<id>/, chargé SEULEMENT quand un admin ouvre l'onglet) ou l'objet lui-même, cle: '<bloc>' }. Les données = { aide, schema?,
+// defauts, <tables> (ex. attaques : id → ligne), fiches? (id → fiche, en lecture seule, calculées avec les défauts), groupees? … }.
+// Onglet « 🎚️ Réglages du jeu » de la page du projet, ADMINS seulement (credits.tous_projets), si le module de la version f.version le déclare.
+// L'éditeur suit la FORME des défauts (nombre, texte, oui/non, liste de nombres, liste d'objets = tableau, objet = groupe, le reste en JSON
+// vérifié) ; le schema, s'il existe ([{ id, titre, aide, sorte: 'objet' | 'liste' | 'table', champs: [{ k, nom, type, min, max, pas, choix,
+// lecture, aide }], cles }]), ajoute titres, limites et choix. Enregistré (at_reglages_poser) : { <cle>: SEULEMENT les changements } — un objet
+// champ par champ, une liste ENTIÈRE (la règle de fusion du jeu) ; le serveur ajoute _maj { at, par } ; null = valeurs par défaut.
+// Au montage, api.reglages = cet objet (ou null) ; le jeu fusionne en profondeur et ignore les clés « _… ». Ni euros ni secret (refusés).
+const atlRegNet = r => { try { return r && typeof r === 'object' && !Array.isArray(r) ? JSON.parse(JSON.stringify(r)) : null; } catch (e) { return null; } };
+function atlReglagesDe(id) {   // pour api.reglages : la fiche ouverte dans l'Atelier (partie lancée d'ici), sinon at_jeux (la borne)
+  try { if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const f = atlFiche(); if (f && f.jeu === id) return atlRegNet(f.reglages); } } catch (e) {}
+  try { const x = ATL_JEUX.get(id); return x ? atlRegNet(x.reglages) : null; } catch (e) { return null; }
+}
+const atlRegDecl = g => { const d = g && g.reglages; if (!d || typeof d !== 'object' || !/^[A-Za-z0-9_]{1,30}$/.test(String(d.cle || ''))) return null;
+  return (typeof d.donnees === 'string' && /^[A-Za-z0-9_.-]{1,80}\.json$/.test(d.donnees)) || (d.donnees && typeof d.donnees === 'object') ? d : null; };
+const atlRegOk = g => !!atlRegDecl(g);
+const atlRegAdmin = () => { const c = atlCred(); return !!(c && c.tous_projets); };
+function atlRegModule(f) {   // le module de la version du projet (f.version) s'il déclare des réglages ; sinon null
+  const k = f && f.jeu ? f.jeu + '@' + ((f.version | 0) || 1) : '', m = k && ATL_MODS_OK.get(k);
+  if (atlRegOk(m)) return m; const g = f && (window.JDW_GAMES || {})[f.jeu]; return atlRegOk(g) && (!m || m === g) ? g : null;
+}
+const ATL_REG_DON = new Map();
+function atlRegDonnees(f, d) {
+  if (typeof d.donnees === 'object') return Promise.resolve(d.donnees);
+  const u = (window.JDW_ROOT || '') + 'assets/jeux/' + f.jeu + '/' + d.donnees;
+  if (!ATL_REG_DON.has(u)) ATL_REG_DON.set(u, fetch(u, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error('fichier des réglages ' + r.status); return r.json(); }).catch(e => { ATL_REG_DON.delete(u); throw e; }));
+  return ATL_REG_DON.get(u);
+}
+const atlRegObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
+const atlRegCopie = x => JSON.parse(JSON.stringify(x === undefined ? null : x));
+function atlRegFusion(base, ch) {   // la fusion du jeu : objet champ par champ, liste ou valeur remplacée
+  if (!atlRegObj(base) || !atlRegObj(ch)) return ch === undefined ? atlRegCopie(base) : atlRegCopie(ch);
+  const o = atlRegCopie(base); for (const k of Object.keys(ch)) if (!k.startsWith('_')) o[k] = k in o ? atlRegFusion(o[k], ch[k]) : atlRegCopie(ch[k]); return o;
+}
+function atlRegDiff(base, cur) {   // seulement les changements (undefined = rien)
+  if (atlRegObj(base) && atlRegObj(cur)) { const o = {}; let n = 0; for (const k of Object.keys(cur)) { const d = k in base ? atlRegDiff(base[k], cur[k]) : atlRegCopie(cur[k]); if (d !== undefined) { o[k] = d; n++; } } return n ? o : undefined; }
+  return JSON.stringify(base) === JSON.stringify(cur) ? undefined : atlRegCopie(cur);
+}
+const atlRegCols = (ch, rows) => { const all = [...new Set(rows.flatMap(o => Object.keys(o)))]; return ch.size ? [...ch.keys()].filter(c => all.includes(c)) : all; };   // le schema choisit les colonnes (et leur ordre)
+const atlRegNomCle = k => String(k).replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
+// une case : nombre, texte, choix, oui/non, liste de nombres (« nombres ») ; tout le reste = JSON vérifié
+function atlRegChamp(meta, val, defVal, onSet) {
+  meta = meta || {}; const lab = String(meta.nom || meta.titre || atlRegNomCle(meta.k || ''));
+  const t = meta.type || (typeof val === 'number' ? 'nombre' : typeof val === 'boolean' ? 'oui_non' : typeof val === 'string' ? (Array.isArray(meta.choix) ? 'choix' : 'texte') : Array.isArray(val) && val.every(x => typeof x === 'number') ? 'nombres' : 'json');
+  const marque = (e, v) => e.classList.toggle('mod', JSON.stringify(v) !== JSON.stringify(defVal));
+  const libChoix = v => { const o = Array.isArray(meta.choix) && meta.choix.find(x => x && typeof x === 'object' && JSON.stringify(x.v) === JSON.stringify(v)); return o ? String(o.t || o.v) : null; };
+  if (meta.lecture) return atlEl('span', 'atl-rgro', libChoix(val) || (typeof val === 'object' && val !== null ? JSON.stringify(val) : val === true ? '✔️' : val === false ? '—' : String(val == null ? '' : val)));
+  const borne = n => Number.isFinite(n) && (meta.min == null || n >= meta.min) && (meta.max == null || n <= meta.max);
+  const num = (v0, set) => { const e = atlEl('input', 'atl-rgin'); e.type = 'number'; e.inputMode = 'decimal'; e.value = v0 == null ? '' : String(v0); if (meta.min != null) e.min = meta.min; if (meta.max != null) e.max = meta.max; e.step = meta.pas != null ? meta.pas : 'any';
+    e.addEventListener('input', () => { const s = String(e.value).replace(',', '.').trim(), n = Number(s), ok = s !== '' && borne(n); e.classList.toggle('ko', !ok); set(ok ? n : undefined, !ok); }); return e; };
+  let e;
+  if (t === 'nombres' && Array.isArray(val)) {
+    e = atlEl('span', 'atl-rgnums'); const cur = val.slice();
+    val.forEach((x, i) => { const c = num(x, (n, bad) => { if (bad) { onSet(undefined, true, i); return; } cur[i] = n; for (const z of e.children) z.classList.toggle('mod', JSON.stringify(cur) !== JSON.stringify(defVal)); onSet(cur.slice(), false, i); }); c.setAttribute('aria-label', lab + ' ' + (i + 1)); e.appendChild(c); });
+    for (const z of e.children) z.classList.toggle('mod', JSON.stringify(val) !== JSON.stringify(defVal)); return e;
+  }
+  if (t === 'nombre') { e = num(val, (n, bad) => { if (bad) onSet(undefined, true); else { marque(e, n); onSet(n); } }); marque(e, val); }
+  else if (t === 'choix') { e = atlEl('select', 'atl-rgin'); const L = Array.isArray(meta.choix) ? meta.choix : []; if (!L.some(o => JSON.stringify(o && typeof o === 'object' ? o.v : o) === JSON.stringify(val))) L.unshift(val);
+    for (const o of L) { const v = o && typeof o === 'object' ? o.v : o, op = atlEl('option', '', o && typeof o === 'object' ? String(o.t || o.v) : String(o)); op.value = JSON.stringify(v); e.appendChild(op); }
+    e.value = JSON.stringify(val); e.addEventListener('change', () => { let v; try { v = JSON.parse(e.value); } catch (x) { v = e.value; } marque(e, v); onSet(v); }); marque(e, val); }
+  else if (t === 'oui_non') { e = atlEl('input', 'atl-rgin atl-rgcb'); e.type = 'checkbox'; e.checked = !!val; e.addEventListener('change', () => { marque(e, e.checked); onSet(e.checked); }); marque(e, val); }
+  else if (t === 'texte') { e = atlEl('input', 'atl-rgin'); e.type = 'text'; e.maxLength = 300; e.value = val == null ? '' : String(val); e.addEventListener('input', () => { marque(e, e.value); onSet(e.value); }); marque(e, val); }
+  else { e = atlEl('input', 'atl-rgin atl-rgjson'); e.type = 'text'; e.value = JSON.stringify(val); e.spellcheck = false;
+    e.addEventListener('input', () => { let v, ok = true; try { v = JSON.parse(e.value); } catch (x) { ok = false; } e.classList.toggle('ko', !ok); if (ok) { marque(e, v); onSet(v); } else onSet(undefined, true); }); marque(e, val); }
+  e.setAttribute('aria-label', lab); if (meta.aide) e.title = String(meta.aide); return e;
+}
+function atlReglagesPane(p, f) {
+  p.textContent = ''; p.appendChild(atlEl('h3', 'atl-ph3', '🎚️ Réglages du jeu'));
+  const g = atlRegModule(f), d = atlRegDecl(g);
+  if (!d) { p.appendChild(atlEl('p', 'atl-chv', 'Ce jeu n’a pas (encore) de réglages.')); return; }
+  const att = atlEl('p', 'atl-chv', 'Chargement des réglages…'); p.appendChild(att);
+  let fait = false;   // le fichier (parfois plusieurs Mo) ne se charge qu'à l'ouverture de l'onglet
+  p._charger = () => { if (fait) return; fait = true; atlRegDonnees(f, d).then(J => { if (!p.isConnected) return; att.remove(); atlReglagesEdit(p, f, g, d, J); })
+    .catch(e => { fait = false; att.textContent = '⚠️ Les réglages de ce jeu n’ont pas pu être chargés (' + e.message + ').'; }); };
+  if (ATL.tab === 'reglages') setTimeout(() => p._charger(), 0);
+}
+function atlReglagesEdit(p, f, g, d, J) {
+  if (!J || typeof J !== 'object' || !atlRegObj(J.defauts)) { p.appendChild(atlEl('p', 'atl-chv', '⚠️ Fichier de réglages sans « defauts ».')); return; }
+  const cle = d.cle, schema = Array.isArray(J.schema) ? J.schema.filter(s => s && s.id) : [], sm = new Map(schema.map(s => [String(s.id), s]));
+  // le modèle : les défauts + les tables (schema sorte 'table' + cles, ou toute clé du fichier qui est un objet d'objets, ex. attaques)
+  const M0 = atlRegCopie(J.defauts), RES = new Set(['version', 'jeu', 'aide', 'schema', 'defauts', 'fiches', 'groupees']);
+  for (const s of schema) if (s.sorte === 'table') { const k = String(s.cles || s.id); if (atlRegObj(J[k]) && !(k in M0)) M0[k] = atlRegCopie(J[k]); }
+  for (const k of Object.keys(J)) if (!RES.has(k) && !(k in M0) && atlRegObj(J[k]) && Object.values(J[k]).every(atlRegObj)) M0[k] = atlRegCopie(J[k]);
+  const S = { cur: atlRegFusion(M0, (atlRegNet(f.reglages) || {})[cle] || {}), ko: new Set(), envoi: false };
+  // en-tête : réservé admin, qui a modifié, ♻️ défauts
+  const intro = atlEl('div', 'atl-escard atl-rgintro');
+  intro.append(atlEl('p', '', '🛡️ Réservé admin : ces valeurs changent « ' + (f.titre || g.title || 'ce jeu') + ' » pour TOUS les joueurs, dès leur prochaine partie.'));
+  if (J.aide) intro.appendChild(atlEl('p', 'atl-rgaide', String(J.aide)));
+  const etat = atlEl('p', 'atl-rgetat'), ligne = atlEl('div', 'atl-rgligne'); ligne.appendChild(etat); intro.appendChild(ligne); p.appendChild(intro);
+  const raz = atlEl('button', 'btn btn-ghost btn-sm atl-rgraz', '♻️ Valeurs par défaut'); raz.type = 'button'; raz.title = 'Revenir aux valeurs par défaut du jeu, pour tous les joueurs'; ligne.appendChild(raz);
+  const majEtat = () => { const r = atlRegNet(f.reglages), m = r && r._maj || {}, d0 = m.at ? new Date(m.at) : null, n = r && atlRegObj(r[cle]) ? Object.keys(r[cle]).length : 0;
+    etat.textContent = r && n ? '✏️ Réglages modifiés' + (m.par ? ' par ' + dispName(m.par) : '') + (d0 && !isNaN(d0) ? ' le ' + d0.toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '') + ' · ' + n + ' partie' + (n > 1 ? 's' : '') + ' changée' + (n > 1 ? 's' : '') : '✅ Valeurs par défaut du jeu'; };
+  majEtat();
+  // 📇 les fiches (lecture seule, calculées avec les défauts)
+  if (atlRegObj(J.fiches) && Object.keys(J.fiches).length) p.appendChild(atlRegFiches(J.fiches));
+  // ✏️ les sections, dans l'ordre du schema, puis le reste des défauts ; les valeurs simples ensemble
+  const barre = atlEl('div', 'atl-rgbar'), msg = atlEl('small', 'atl-rgmsg');
+  const ok = atlEl('button', 'btn btn-play btn-sm atl-rgsave', '💾 Enregistrer'), annul = atlEl('button', 'btn btn-ghost btn-sm atl-rgannul', '↩️ Annuler'); ok.type = annul.type = 'button'; annul.title = 'Annuler mes changements (pas encore enregistrés)';
+  const avant = () => ((atlRegNet(f.reglages) || {})[cle]) || undefined;
+  const majBar = () => { const diff = atlRegDiff(M0, S.cur); S.dirty = JSON.stringify(diff === undefined ? null : diff) !== JSON.stringify(avant() === undefined ? null : avant());
+    ok.disabled = !S.dirty || S.ko.size > 0 || S.envoi; annul.disabled = !S.dirty || S.envoi; raz.disabled = !atlRegNet(f.reglages) || S.envoi; raz.hidden = !atlRegNet(f.reglages);
+    msg.textContent = S.ko.size ? '⚠️ ' + S.ko.size + ' case' + (S.ko.size > 1 ? 's' : '') + ' à corriger (en rouge)' : S.dirty ? 'Des changements ne sont pas encore enregistrés.' : ''; barre.classList.toggle('vif', S.dirty); };
+  const sections = atlEl('div', 'atl-rgsecs'); p.appendChild(sections);
+  const mk = (path, meta, val, defVal) => atlRegChamp(meta, val, defVal, (v, bad, i) => { const k = path.join('|') + (i != null ? '#' + i : ''); if (bad) S.ko.add(k); else { S.ko.delete(k); let o = S.cur; for (const x of path.slice(0, -1)) o = o[x]; o[path[path.length - 1]] = v; } majBar(); });
+  const champsDe = s => new Map((s && Array.isArray(s.champs) ? s.champs : []).filter(c => c && c.k != null).map(c => [String(c.k), c]));
+  const construire = () => {
+    sections.textContent = ''; S.ko.clear();
+    const ordre = [...schema.map(s => String(s.sorte === 'table' ? (s.cles || s.id) : s.id)).filter(k => k in S.cur), ...Object.keys(S.cur).filter(k => !schema.some(s => String(s.sorte === 'table' ? (s.cles || s.id) : s.id) === k))];
+    const simples = ordre.filter(k => !atlRegObj(S.cur[k]) && !Array.isArray(S.cur[k]));
+    let si = 0;
+    const section = (k, titre, aide) => { const D = atlEl('details', 'atl-escard atl-rgsec'); D.dataset.k = k; if (si++ < 2) D.open = true; D.appendChild(atlEl('summary', '', titre)); if (aide) D.appendChild(atlEl('p', 'atl-rgaide', String(aide))); sections.appendChild(D); return D; };
+    if (simples.length) { const D = section('_simples', '⚙️ Valeurs générales'), gr = atlEl('div', 'atl-rggrid');
+      for (const k of simples) { const s = sm.get(k) || {}, m = Object.assign({ k, nom: s.titre || atlRegNomCle(k), aide: s.aide }, (s.champs || [])[0] || {}, { k }); const l = atlEl('label', 'atl-rgch'); l.appendChild(atlEl('span', '', String(m.nom || atlRegNomCle(k)))); l.appendChild(mk([k], m, S.cur[k], M0[k])); if (m.aide) l.appendChild(atlEl('small', '', String(m.aide))); gr.appendChild(l); }
+      D.appendChild(gr); }
+    for (const k of ordre) { if (simples.includes(k)) continue;
+      const s = sm.get(k) || schema.find(x => String(x.cles) === k) || {}, v = S.cur[k], dv = M0[k], ch = champsDe(s), titre = s.titre || atlRegNomCle(k);
+      if (Array.isArray(v) && v.length && v.every(atlRegObj)) {   // liste d'objets : un tableau (par position)
+        const D = section(k, titre, s.aide), cols = atlRegCols(ch, v);
+        D.appendChild(atlRegTable(cols, ch, v.map((row, i) => ({ id: String(i), row, def: (dv || [])[i] || {}, path: [k, i] })), mk, null));
+      } else if (atlRegObj(v) && Object.values(v).length && Object.values(v).every(atlRegObj)) {   // table : id → ligne (ex. attaques)
+        const D = section(k, titre + ' · ' + Object.keys(v).length, s.aide), cols = atlRegCols(ch, Object.values(v));
+        D.appendChild(atlRegTable(cols, ch, Object.keys(v).map(id => ({ id, row: v[id], def: (dv || {})[id] || {}, path: [k, id] })), mk, true));
+      } else if (atlRegObj(v)) {   // objet : un groupe de cases
+        const D = section(k, titre, s.aide), gr = atlEl('div', 'atl-rggrid');
+        for (const c of (ch.size ? [...ch.keys()].filter(c => c in v) : Object.keys(v))) { const m = Object.assign({ k: c }, ch.get(c) || {}), l = atlEl('label', 'atl-rgch'); l.appendChild(atlEl('span', '', String(m.nom || atlRegNomCle(c)))); l.appendChild(mk([k, c], m, v[c], (dv || {})[c])); if (m.aide) l.appendChild(atlEl('small', '', String(m.aide))); gr.appendChild(l); }
+        D.appendChild(gr);
+      } else { const D = section(k, titre, s.aide); D.appendChild(mk([k], Object.assign({ k }, ch.get(k) || {}), v, dv)); }
+    }
+    // les listes de référence en lecture seule (ex. groupees : 'brasier+tempete' → 'Tornade-de-Feu')
+    for (const k of Object.keys(J)) if (!RES.has(k) || k === 'groupees') { const v = J[k]; if (!atlRegObj(v) || k in M0 || !Object.values(v).every(x => typeof x === 'string')) continue;
+      const D = section('_' + k, '📜 ' + atlRegNomCle(k) + ' · ' + Object.keys(v).length + ' (lecture seule)'), ul = atlEl('ul', 'atl-rgref');
+      for (const [a, b] of Object.entries(v)) ul.appendChild(atlEl('li', '', a + ' → ' + b)); D.appendChild(ul); D.open = false; }
+    majBar();
+  };
+  construire();
+  ok.addEventListener('click', async () => {
+    const diff = atlRegDiff(M0, S.cur), corps = diff === undefined ? null : { [cle]: diff };
+    if (corps && JSON.stringify(corps).length > 190000) { msg.textContent = '⚠️ Trop de changements d’un coup (200 Ko au plus).'; return; }
+    S.envoi = true; majBar(); ok.classList.add('wait');
+    try { const r = await rpc('at_reglages_poser', { p_name: profile.name, p_fiche: f.id, p_reglages: corps }, { quiet: true }); f.reglages = r && r.reglages !== undefined ? r.reglages : corps; atlToast(corps ? '✅ Réglages enregistrés (prochaine partie)' : '♻️ Valeurs par défaut remises'); }
+    catch (e) { msg.textContent = '⚠️ ' + atlWhy(e); }
+    finally { S.envoi = false; ok.classList.remove('wait'); majEtat(); majBar(); }
+  });
+  annul.addEventListener('click', () => { S.cur = atlRegFusion(M0, avant() || {}); construire(); });
+  raz.addEventListener('click', async () => {
+    if (!await atlConfirmer('♻️ Revenir aux valeurs par défaut ?', 'Tous les réglages changés de « ' + (f.titre || 'ce jeu') + ' » reviennent aux valeurs prévues par le jeu, pour tous les joueurs.', 'Oui, revenir aux défauts')) return;
+    S.envoi = true; majBar();
+    try { await rpc('at_reglages_poser', { p_name: profile.name, p_fiche: f.id, p_reglages: null }, { quiet: true }); f.reglages = null; S.cur = atlRegCopie(M0); construire(); atlToast('♻️ Valeurs par défaut remises'); }
+    catch (e) { msg.textContent = '⚠️ ' + atlWhy(e); }
+    finally { S.envoi = false; majEtat(); majBar(); }
+  });
+  barre.append(msg, annul, ok); p.appendChild(barre);
+}
+// un tableau modifiable (lignes = { id, row, def, path }) ; idTable = table id → ligne : recherche, filtres, 80 lignes puis « Afficher plus »
+function atlRegTable(cols, ch, L, mk, idTable) {
+  const w = atlEl('div', 'atl-rgtw'), outils = atlEl('div', 'atl-rgtools'), q = atlEl('input', 'atl-rgq'); q.type = 'search'; q.placeholder = '🔎 Chercher…'; q.setAttribute('aria-label', 'Chercher');
+  const filtres = cols.filter(c => { const vs = new Set(L.map(x => x.row[c]).filter(v => typeof v === 'string' && v)); return (ch.get(c) && Array.isArray(ch.get(c).choix)) || (vs.size >= 2 && vs.size <= 30 && L.every(x => typeof x.row[c] === 'string' || x.row[c] == null)); }).slice(0, 4);
+  const sels = filtres.map(c => { const s = atlEl('select', 'atl-rgf'), o0 = atlEl('option', '', (ch.get(c) && ch.get(c).nom) || atlRegNomCle(c)); o0.value = ''; s.appendChild(o0);
+    const lib = v => { const m = ch.get(c), o = m && Array.isArray(m.choix) && m.choix.find(x => x && typeof x === 'object' && String(x.v) === v); return o ? String(o.t || o.v) : v; };
+    for (const v of [...new Set(L.map(x => x.row[c]).filter(v => v != null && v !== ''))].map(String).sort()) { const o = atlEl('option', '', lib(v)); o.value = v; s.appendChild(o); } s.setAttribute('aria-label', 'Filtrer : ' + ((ch.get(c) && ch.get(c).nom) || c)); s._c = c; return s; });
+  if (L.length > 12) { outils.appendChild(q); for (const s of sels) outils.appendChild(s); w.appendChild(outils); }
+  const nb = atlEl('small', 'atl-rgnb'), wrap = atlEl('div', 'atl-swrap atl-rgw'), plus = atlEl('button', 'btn btn-ghost btn-sm atl-rgplus', 'Afficher plus'); plus.type = 'button';
+  w.append(nb, wrap, plus);
+  let lim = 80;
+  const peindre = () => {
+    const t = q.value.trim().toLowerCase(), F = L.filter(x => (!t || (x.id + ' ' + Object.values(x.row).map(v => typeof v === 'object' ? JSON.stringify(v) : String(v)).join(' ')).toLowerCase().includes(t)) && sels.every(s => !s.value || String(x.row[s._c]) === s.value));
+    const tb = atlEl('table', 'atl-stab atl-rgtab'), hr = atlEl('tr'); if (idTable) hr.appendChild(atlEl('th', '', 'Id'));
+    for (const c of cols) { const th = atlEl('th', '', String((ch.get(c) && ch.get(c).nom) || atlRegNomCle(c))); if (ch.get(c) && ch.get(c).aide) th.title = ch.get(c).aide; hr.appendChild(th); } tb.appendChild(hr);
+    for (const x of F.slice(0, lim)) { const tr = atlEl('tr'); if (idTable) tr.appendChild(atlEl('td', 'atl-rgid', x.id));
+      for (const c of cols) { const td = atlEl('td'); td.dataset.l = String((ch.get(c) && ch.get(c).nom) || c); if (c in x.row) td.appendChild(mk(x.path.concat([c]), Object.assign({ k: c }, ch.get(c) || {}), x.row[c], x.def[c])); tr.appendChild(td); }
+      tb.appendChild(tr); }
+    wrap.textContent = ''; wrap.appendChild(tb);
+    nb.textContent = F.length + ' ligne' + (F.length > 1 ? 's' : '') + (F.length > lim ? ' · ' + lim + ' affichées' : ''); plus.hidden = F.length <= lim;
+  };
+  q.addEventListener('input', () => { lim = 80; peindre(); }); for (const s of sels) s.addEventListener('change', () => { lim = 80; peindre(); }); plus.addEventListener('click', () => { lim += 120; peindre(); });
+  peindre(); return w;
+}
+// 📇 les fiches (id → fiche) : cartes en lecture seule, recherche + filtre par type, 40 par 40
+function atlRegFiches(FI) {
+  const D = atlEl('details', 'atl-escard atl-rgsec atl-rgfiches'); D.open = true; D.appendChild(atlEl('summary', '', '📇 Fiches · ' + Object.keys(FI).length));
+  D.appendChild(atlEl('p', 'atl-rgaide', 'Calculées avec les valeurs par défaut : le jeu les recalcule avec tes réglages.'));
+  const L = Object.entries(FI).filter(([, x]) => atlRegObj(x)).map(([id, x]) => ({ id, x, types: (Array.isArray(x.types) ? x.types : x.type ? [x.type] : []).map(String) }));
+  const outils = atlEl('div', 'atl-rgtools'), q = atlEl('input', 'atl-rgq'), sel = atlEl('select', 'atl-rgf'); q.type = 'search'; q.placeholder = '🔎 Chercher une fiche…'; q.setAttribute('aria-label', 'Chercher une fiche');
+  const o0 = atlEl('option', '', 'Tous les types'); o0.value = ''; sel.appendChild(o0); for (const t of [...new Set(L.flatMap(x => x.types))].sort()) { const o = atlEl('option', '', t); o.value = t; sel.appendChild(o); } sel.setAttribute('aria-label', 'Filtrer par type'); sel.hidden = sel.options.length < 3;
+  outils.append(q, sel); D.appendChild(outils);
+  const nb = atlEl('small', 'atl-rgnb'), liste = atlEl('div', 'atl-rgcards'), plus = atlEl('button', 'btn btn-ghost btn-sm atl-rgplus', 'Afficher plus'); plus.type = 'button'; D.append(nb, liste, plus);
+  let lim = 40;
+  const carte = ({ id, x, types }) => {
+    const c = atlEl('article', 'atl-rgcard'), h = atlEl('header'), ht = atlEl('div');
+    if (typeof x.image === 'string' && /^(data:image\/(png|webp|jpeg);|https:\/\/|assets\/)/.test(x.image)) { const im = atlEl('img'); im.src = x.image; im.alt = ''; im.loading = 'lazy'; h.appendChild(im); }
+    ht.appendChild(atlEl('b', '', (x.num != null ? '#' + x.num + ' ' : '') + String(x.nom || x.titre || id)));
+    for (const t of types) ht.appendChild(atlEl('span', 'atl-rgty', t)); if (x.legendaire) ht.appendChild(atlEl('span', 'atl-rgty leg', '⭐ légendaire'));
+    const sc = Object.entries(x).filter(([k, v]) => !['num', 'nom', 'titre', 'types', 'type', 'image', 'legendaire'].includes(k) && (typeof v === 'number' || typeof v === 'string' || (Array.isArray(v) && v.every(z => typeof z !== 'object'))));
+    if (sc.length) ht.appendChild(atlEl('small', '', sc.map(([k, v]) => atlRegNomCle(k) + ' : ' + (Array.isArray(v) ? v.join(' · ') : v)).join(' — ')));
+    h.appendChild(ht); c.appendChild(h);
+    for (const [k, v] of Object.entries(x)) {
+      if (atlRegObj(v) && Object.values(v).every(z => typeof z !== 'object')) c.appendChild(atlEl('p', 'atl-rgstat', atlRegNomCle(k) + ' : ' + Object.entries(v).map(([a, b]) => a + ' ' + b).join(' · ')));
+      else if (Array.isArray(v) && v.length && v.every(atlRegObj)) { const cols = [...new Set(v.flatMap(o => Object.keys(o)))].filter(cc => !(cc === 'attaque' && cols0(v)));
+        const tb = atlEl('table', 'atl-rgmini'), hr = atlEl('tr'); for (const cc of cols) hr.appendChild(atlEl('th', '', atlRegNomCle(cc))); tb.appendChild(hr);
+        for (const l of v.slice(0, 60)) { const tr = atlEl('tr'); for (const cc of cols) tr.appendChild(atlEl('td', '', l[cc] == null ? '' : String(l[cc]))); tb.appendChild(tr); }
+        const w = atlEl('div', 'atl-swrap'); w.appendChild(atlEl('small', 'atl-rgsous', atlRegNomCle(k))); w.appendChild(tb); c.appendChild(w); }
+    }
+    return c;
+  };
+  const cols0 = v => v.every(o => 'nom' in o);   // « attaque » (id) caché quand il y a le nom
+  const peindre = () => { const t = q.value.trim().toLowerCase(), ty = sel.value;
+    const F = L.filter(e => (!ty || e.types.includes(ty)) && (!t || (e.id + ' ' + JSON.stringify(e.x)).toLowerCase().includes(t)));
+    liste.textContent = ''; for (const e of F.slice(0, lim)) liste.appendChild(carte(e));
+    nb.textContent = F.length + ' fiche' + (F.length > 1 ? 's' : '') + (F.length > lim ? ' · ' + lim + ' affichées' : ''); plus.hidden = F.length <= lim; };
+  q.addEventListener('input', () => { lim = 40; peindre(); }); sel.addEventListener('change', () => { lim = 40; peindre(); }); plus.addEventListener('click', () => { lim += 60; peindre(); });
+  peindre(); return D;
+}
 function atlEspace(W, box, f, g, pane) {
   // 2.0.152 (maquette validée par le chef, remarques de l'admin) : fond lumineux du jeu, cartes claires translucides ; mascotte en haut à
   // gauche = la conversation (pas de bouton « Discuter ») ; pas de barre d'étapes ; feuille de route lisible en entier (section du menu) ;
@@ -17130,6 +17358,9 @@ function atlEspace(W, box, f, g, pane) {
   const aide = () => { const b = atlEl('button', 'atl-esaide', '?'); b.type = 'button'; b.title = 'Comment ça marche ?'; b.setAttribute('aria-label', 'Comment ça marche ?'); b.addEventListener('click', atlEspAide); return b; };
   const nArt = () => { try { return (BOUT && BOUT.r && Array.isArray(BOUT.r.articles) && BOUT.r.articles.length) || (W._nArt | 0); } catch (e) { return W._nArt | 0; } };
   const SECT = [['jeu', '🎮', 'Mon jeu'], ['demandes', '💬', gNM()], ['route', '🗺️', 'Feuille de route & versions'], ['elements', '🧩', 'Éléments'], ['boutique', '🛍️', 'Boutique'], ['stats', '📊', 'Stats'], ['params', '⚙️', 'Paramètres']];   // 2.1.13 : 🗺️ + 🗂️ = un seul menu (même libellé dans les ateliers)
+  if (atlRegAdmin() && atlRegModule(f)) SECT.push(['reglages', '🎚️', 'Réglages du jeu']);   // 7 nov. 2026 : admins seulement, module avec réglages
+  else if (atlRegAdmin() && f.jeu && atlNe(f.jeu)) { const k = f.jeu + '@' + ((f.version | 0) || 1), E = ATL.regEssai || (ATL.regEssai = {});   // le module de cette version pas encore chargé
+    if (!ATL_MODS_OK.has(k) && !E[k]) { E[k] = 1; atlModule(f.jeu, (f.version | 0) || 1).then(m => { const f2 = atlFiche(); if (atlRegOk(m) && f2 && f2.id === f.id) { ATL.pSig = ''; try { atlRender(); } catch (e) {} } }).catch(() => {}); } }
   const ADM = atlAdminIci() && !!ATL.adminVoir;   // 2.0.163 (l'admin) : tout ce qui est admin dans un onglet rouge, seulement sur le jeu d'un autre
   if (ADM) SECT.push(['admin', '🛡️', 'Admin']);
   const bouton = (k, ic, lab, cls) => { const b = atlEl('button', cls); b.type = 'button'; b.dataset.k = k; const i = atlEl('span', 'ic', ic); b.append(i, atlEl('span', 'lab', lab));
@@ -17137,14 +17368,14 @@ function atlEspace(W, box, f, g, pane) {
   // PC : colonne de gauche
   const N = atlEl('nav', 'atl-esnav'); N.setAttribute('aria-label', 'Menu de ton jeu');
   const pk1 = pk(); N.appendChild(pk1);
-  for (const [k, ic, lab] of SECT) N.appendChild(bouton(k, ic, lab, 'atl-esb' + (k === 'admin' ? ' rouge' : '')));
+  for (const [k, ic, lab] of SECT) N.appendChild(bouton(k, ic, lab, 'atl-esb' + (k === 'admin' || k === 'reglages' ? ' rouge' : '')));
   const ret = atlEl('button', 'atl-esb atl-esret', '← Mes projets'); ret.type = 'button'; ret.addEventListener('click', () => { atlEspFermer(); try { atlListe(); } catch (e) {} });
   N.append(atlEl('div', 'atl-essp'), ret, aide()); W.prepend(N);
   // téléphone : la mascotte + « ? » en haut, la barre d'onglets en bas
   const top = atlEl('div', 'atl-estop'), pk2 = pk('mini'); top.append(pk2, aide()); W.prepend(top);
   { for (const o of R0.querySelectorAll('.atl-esflot, .atl-estabs')) o.remove();
     const T = atlEl('nav', 'atl-estabs'); T.setAttribute('aria-label', 'Menu de ton jeu');
-    for (const [k, ic, lab] of SECT) T.appendChild(bouton(k, ic, k === 'route' ? 'Feuille & versions' : k === 'params' ? 'Réglages' : lab, 'atl-est' + (k === 'admin' ? ' rouge' : '') + (k === 'route' ? ' deux' : '')));   // 2.1.13 : les versions aussi au téléphone
+    for (const [k, ic, lab] of SECT) T.appendChild(bouton(k, ic, k === 'route' ? 'Feuille & versions' : k === 'params' ? 'Réglages' : k === 'reglages' ? 'Réglages du jeu' : lab, 'atl-est' + (k === 'admin' || k === 'reglages' ? ' rouge' : '') + (k === 'route' || k === 'reglages' ? ' deux' : '')));   // 2.1.13 : les versions aussi au téléphone
     R0.appendChild(T); }
   W._pk = [pk1, pk2];
   // 🗺️ la feuille de route, en entier
@@ -17164,7 +17395,7 @@ function atlEspace(W, box, f, g, pane) {
     const vs = (Array.isArray(f.versions) ? f.versions.slice() : []).filter(v => v && (v.v | 0)).sort((a, b) => (b.v | 0) - (a.v | 0));
     if (!vs.length) { const c = atlEl('div', 'atl-vh atl-escard atl-vvide'); c.appendChild(atlEl('p', '', 'Ta première version arrive : elle s’affichera ici.')); p.appendChild(c); }   // 2.1.13 (testeur) : lisible, dans une carte claire
     for (const v of vs) { const d0 = new Date(v.at), r = atlEl('div', 'atl-vh atl-escard');
-      r.append(atlEl('b', '', 'V' + v.v + ((v.v | 0) === (f.version_publiee | 0) ? ' · 🌍 en ligne' : '') + (isNaN(d0) ? '' : ' · ' + d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }))), atlEl('p', '', v.note || ''));
+      r.append(atlEl('b', '', 'V' + v.v + ((v.v | 0) === (f.version_publiee | 0) ? ' · 🌍 en ligne' : '') + (isNaN(d0) ? '' : ' · ' + atlDateVer(v.at))), atlEl('p', '', v.note || ''));
       if (Array.isArray(v.demandes) && v.demandes.length) { const ul = atlEl('ul'); for (const t of v.demandes.slice(0, 8)) ul.appendChild(atlEl('li', '', String(t))); r.appendChild(ul); }
       p.appendChild(r); } }
   // 🛍️, 📊, ⚙️ : les sections
@@ -17182,9 +17413,10 @@ function atlEspace(W, box, f, g, pane) {
     const majX = () => { zx.textContent = ''; const R1 = ATL.root, cp = R1 && R1.querySelector('.atl-bar .atl-cred'), db = R1 && R1.querySelector('.atl-bar .atl-demb');
       if (cp && cp.textContent.trim()) { const tx = cp.textContent.replace(/💎/g, '').trim(), m = tx.match(/^(.*?)\s+([\d\s ]+)\s*·\s*toi\s+([\d\s ]+)$/); zx.appendChild(atlEl('p', 'atl-esadmc', m ? '💎 ' + m[1].trim() + ' : ' + m[2].trim() + ' · toi : ' + m[3].trim() : '💎 ' + tx)); }   // 2.0.164 (chef) : une seule ligne de solde
       if (db && !db.hidden) { const bt = atlEl('button', 'btn btn-ghost', '📋 ' + db.textContent.replace(/^\S*\s*/, '').trim()); bt.type = 'button'; bt.addEventListener('click', () => db.click()); zx.appendChild(bt); }
-      const n = db ? +((db.textContent.match(/\((\d+)\)/) || [])[1] || 0) : 0; for (const t of document.querySelectorAll('#jdw-atelier .atl-esb.rouge, #jdw-atelier .atl-est.rouge')) t.classList.toggle('atl-pdot', n > 0); };
+      const n = db ? +((db.textContent.match(/\((\d+)\)/) || [])[1] || 0) : 0; for (const t of document.querySelectorAll('#jdw-atelier .atl-esb.rouge[data-k="admin"], #jdw-atelier .atl-est.rouge[data-k="admin"]')) t.classList.toggle('atl-pdot', n > 0); };
     W._admMaj = majX; setTimeout(majX, 0); setTimeout(majX, 1500);
     p.appendChild(E); W._admZone = zb; setTimeout(() => { try { atlAdminBandeau(); } catch (e) {} }, 0); }
+  if (SECT.some(x => x[0] === 'reglages')) try { atlReglagesPane(pane('reglages'), f); } catch (e) { reportError('Réglages du jeu : ' + e.message, e.stack, { quiet: true }); }
   // 🎮 « Mon jeu » : la grande carte du jeu (jaquette, titre, état, ▶ JOUER) + 3 cartes (stats, boutique, conversation)
   { const jp = W.querySelector('.atl-pane[data-k="jeu"]'); if (jp) {
     const H = atlEl('section', 'atl-eshero'), jq = atlEl('div', 'atl-esjaq atl-estuile'), tx = atlEl('div', 'atl-eshtx'), ch = atlEl('div', 'atl-eschips');
@@ -17438,7 +17670,7 @@ function atlRenderProjet(W, f) {
   if (jouable && !atlAdminIci()) { const hp = atlEl('div', 'atl-phpub'); atlBoutonsJeu(hp, f, true); const pv = atlEl('div', 'atl-pubv'); hp.appendChild(pv); atlPubV(pv, f); hd.appendChild(hp); }
   // 20 h 35 (Benjamin) : la fiche et les dessins sont dans la feuille de route (à droite) ; ici : Jouer + Discussion, ou la V1 en construction
   const T = jouable ? [['jeu', '🎮 Jouer'], ['demandes', '💬 Discussion avec ' + gN()], ['elements', '🧩 Éléments']] : [];   // 2.0.137 (l'admin : « on voit tout dans le chat ») : plus d'onglet « Mes demandes »   // 2.0.10 (Benjamin) : après la feuille de route, tout passe par les demandes
-  if (jouable && !T.some(x => x[0] === ATL.tab) && !['boutique', 'route', 'versions', 'stats', 'params', 'admin'].includes(ATL.tab)) ATL.tab = 'jeu';   // 2.1.13 (testeur) : la page lue reste ouverte quand une donnee change   // 2.0.142 : les sections de l'espace du jeu
+  if (jouable && !T.some(x => x[0] === ATL.tab) && !['boutique', 'route', 'versions', 'stats', 'params', 'admin', 'reglages'].includes(ATL.tab)) ATL.tab = 'jeu';   // 2.1.13 (testeur) : la page lue reste ouverte quand une donnee change   // 2.0.142 : les sections de l'espace du jeu
   if (jouable) {
     const nav = atlEl('div', 'atl-ptabs'); nav.setAttribute('role', 'tablist');
     for (const [k, lab] of T) { const b = atlEl('button', 'atl-ptab', k === 'elements' && atlElNeufs(f) ? lab + ' ✨' + atlElNeufs(f) : lab); b.type = 'button'; b.dataset.k = k; b.setAttribute('role', 'tab'); b.addEventListener('click', () => atlProjTab(k)); nav.appendChild(b); }
@@ -18177,7 +18409,7 @@ function atlRenderRoute(liste) {
     const sv = sec('📜 Les versions de ton jeu');
     for (const v of f.versions) {
       const d0 = new Date(v.at), r = atlEl('div', 'atl-vh');
-      r.append(atlEl('b', '', 'V' + v.v + (isNaN(d0) ? '' : ' · ' + d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))), atlEl('p', '', v.note || ''));
+      r.append(atlEl('b', '', 'V' + v.v + (isNaN(d0) ? '' : ' · ' + atlDateVer(v.at, true))), atlEl('p', '', v.note || ''));
       if (Array.isArray(v.demandes) && v.demandes.length) { const ul = atlEl('ul'); for (const t of v.demandes.slice(0, 6)) ul.appendChild(atlEl('li', '', String(t))); r.appendChild(ul); }
       sv.appendChild(r);
     }

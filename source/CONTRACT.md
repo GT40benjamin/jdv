@@ -619,3 +619,23 @@ CE QUE LE JEU FAIT : il décide ce que le mode débloque — au MINIMUM des vies
 ouverts) ; il peut aussi montrer un petit menu de test (aller au boss, donner les objets…). Il ne garde lui-même rien de ce qui est gagné
 dans ce mode (pièces, objets, avancement dans son propre localStorage) : utiliser `api.save` (déjà séparé) ou ne rien écrire si `api.createur`.
 Un jeu qui ignore le drapeau marche exactement comme avant (rien d'enregistré quand même).
+
+## Ajout 30 : les RÉGLAGES d'un jeu de l'Atelier (api.reglages, 7 nov. 2026 ; admins seulement ; format convenu avec l'équipe Explorateur, 1er jeu : Astrofaune V25)
+Un module peut déclarer des valeurs que l'ADMIN modifie sans nouvelle version (onglet « 🎚️ Réglages du jeu » de la page du projet, admins
+seulement ; SQL `reglages-jeux.sql` : `at_fiches.reglages`, `at_reglages_poser`) :
+```js
+reglages: { version: 25, donnees: 'reglages-v25.json', cle: 'astrofaune' }   // donnees : fichier à côté du module (assets/jeux/<id>/) ou l'objet lui-même
+```
+Le fichier (chargé SEULEMENT quand un admin ouvre l'onglet) : `{ aide?, schema?, defauts, <tables>?, fiches?, <listes>? }`
+- `defauts` : les valeurs du jeu. L'onglet suit leur FORME : nombre, texte, oui/non, liste de nombres (petites cases), liste d'objets
+  (tableau, une ligne par position), objet (groupe de cases ; un objet d'objets = tableau), le reste en JSON vérifié ; les valeurs simples
+  du premier niveau sont rangées ensemble (« Valeurs générales ») ;
+- `<tables>` (ex. `attaques`) : un objet id → ligne, modifiable dans un tableau avec recherche, filtres (champs à peu de valeurs) et
+  pages de 80 lignes ;
+- `schema` (facultatif) : `[{ id, titre, aide, sorte: 'objet' | 'liste' | 'table', cles?, champs: [{ k, nom, type: 'nombre' | 'texte' |
+  'choix' | 'nombres', min, max, pas, choix: [...] ou [{ v, t }], lecture, aide }] }]` : titres, ordre, limites et choix ;
+- `fiches` (facultatif) : id → fiche, en LECTURE SEULE, calculées avec les défauts (cartes, recherche, filtre par `types`) ;
+- un objet de textes (ex. `groupees`) : affiché en lecture seule.
+AU MONTAGE : `api.reglages` = ce que l'admin a enregistré, `{ <cle>: SEULEMENT les changements, _maj: { at, par } }`, ou `null`. Règle de
+fusion (le jeu fusionne en profondeur avec ses défauts) : un objet champ par champ, une LISTE remplacée en entier. Le jeu ignore les clés
+« _… ». Ni euros ni secret (refusé par le serveur), 200 Ko au plus. Un jeu sans `reglages` (ou qui ignore `api.reglages`) marche comme avant.
