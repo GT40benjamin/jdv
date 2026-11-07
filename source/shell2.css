@@ -6152,3 +6152,9 @@ input.atl-rgin[type=text]{width:150px}
 .atl-rgplus{margin-top:8px}
 .atl-rgsec,.atl-rgintro{grid-template-columns:minmax(0,1fr)}
 .atl-rgmini th{white-space:nowrap}
+/* 7 nov. 2026 (l'admin : « regarde quand je vais voir mes crédits !!! Vire-moi cette page une bonne fois pour toutes ») : depuis l'écran
+   « Crée avec » (#jdw-crea, z 21), une fenêtre de l'Atelier (« 💎 Mes crédits », « Il te manque des crédits »…) fait passer #jdw-atelier au-dessus
+   (règle 2.1.13 plus haut) — et avec lui son ancien accueil « Mes projets / Tous les projets », qui remplaçait l'écran derrière la fenêtre.
+   Désormais SEULE la fenêtre passe au-dessus : le reste de l'Atelier reste invisible, derrière on garde exactement l'écran où l'on était. */
+body:has(#jdw-crea:not([hidden])) #jdw-atelier:has(> .atl-mod:not([hidden])){background:none!important;box-shadow:none!important;border:0!important}
+body:has(#jdw-crea:not([hidden])) #jdw-atelier:has(> .atl-mod:not([hidden])) > :not(.atl-mod){visibility:hidden!important}
