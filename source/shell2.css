@@ -6036,8 +6036,10 @@ body.atl-on #jdw-lib{content-visibility:hidden}
   .atl-estabs:has(.atl-est:nth-child(8))::-webkit-scrollbar{display:none}
   .atl-estabs:has(.atl-est:nth-child(8)) .atl-est{flex:0 0 auto;min-width:56px;padding:2px 7px}
   .atl-estabs:has(.atl-est:nth-child(8)) .atl-est .lab{overflow:visible}
-  .atl-estabs:has(.atl-est:nth-child(8)) .atl-est.deux{min-width:64px}
+  .atl-estabs:has(.atl-est:nth-child(8)) .atl-est.deux{min-width:64px;max-width:72px}
 }
+/* 2.1.13 (testeur) : téléphone étroit (360 px), 7 onglets : les mots entiers (« Éléments », « Boutique », « Réglages ») */
+@media (max-width:380px){.atl-estabs:not(:has(.atl-est:nth-child(8))) .atl-est{padding:2px 0}.atl-estabs:not(:has(.atl-est:nth-child(8))) .atl-est .lab{font-size:9.5px;letter-spacing:-.25px}}
 /* 2.1.13 (testeur) : « Ta première version arrive » lisible ; fenêtre admin : l'icône à gauche, le texte à côté */
 .atl-espace .atl-vvide p{margin:0;color:#46395e;font:700 15px/1.5 var(--body)}
 .atl-admact .btn{display:flex;align-items:center;gap:10px}
