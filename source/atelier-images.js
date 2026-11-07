@@ -473,7 +473,7 @@
 
   // ---------- un projet Images ----------
   async function ouvrir(id, vue) {
-    AIM.fiche = id; AIM.vue = vue || 'atelier'; AIM.prop = null; AIM.loc = []; AIM.msgs = []; AIM.vuAt = Date.now(); AIM.d = null; AIM.errLire = ''; AIM.ouvAt = Date.now();
+    AIM.fiche = id; AIM.vue = vue || 'atelier'; AIM.prop = null; AIM.loc = []; AIM.msgs = []; AIM.vuAt = Date.now(); AIM.d = null; AIM.errLire = ''; AIM.ouvAt = Date.now(); AIM.pkLu = false;
     if (AIM.ouverts[id] === undefined) AIM.ouverts[id] = true;
     if (ATL.cur) { AIM.calme = true; try { atlListe(); } catch (e) {} AIM.calme = false; }   // l'Interface revient à sa liste dessous (un atelier ouvert depuis son montage)
     montrer(); render();
@@ -488,7 +488,7 @@
       if (typeof d.solde === 'number') { if (AIM.solde != null && d.solde !== AIM.solde && !adm()) bougerCred(); AIM.solde = d.solde; }
       if (d.prix) AIM.prix = d.prix;
       const cs = d.creations || [];
-      if (!cs.some(c => c.id === AIM.cur)) AIM.cur = cs.length ? cs[0].id : null;
+      if (!cs.some(c => c.id === AIM.cur)) AIM.cur = imageRecente(cs);   // l'admin (2.1.17, SAMBA) : on ouvrait « Image 5 » (la dernière importée) au lieu de la carte travaillée
       for (const c of cs) { const n = c.versions.filter(v => v.etat === 'prete').length;
         if (AIM.nPretes[c.id] != null && n > AIM.nPretes[c.id]) { delete AIM.voir[c.id]; delete AIM.resSel[c.id];
           const nv = c.versions.filter(v => v.etat === 'prete' && v.outil !== 'import').sort((a, b) => b.n - a.n)[0];
@@ -609,6 +609,12 @@
   function scintille() {
     if (adm()) return;
     try { if (typeof muted !== 'undefined' && muted) return; Audio.ensure(); [[1568, 0], [2093, 110], [2637, 230], [3136, 360]].forEach(([f, d]) => setTimeout(() => { try { Audio.tone(f, 0.32, 'sine', 0.035); } catch (e) {} }, d)); } catch (e) {}
+  }
+  // l'image travaillée le plus récemment : la plus récente de ses versions prêtes / en cours / en vérification ; sinon la dernière importée
+  function imageRecente(cs) {
+    let best = null, t0 = -1;
+    for (const c of cs || []) for (const v of c.versions || []) if (['prete', 'en_cours', 'controle', 'envoi'].includes(v.etat)) { const t = Date.parse(v.at || '') || 0; if (t > t0) { t0 = t; best = c.id; } }
+    return best || ((cs && cs[0]) ? cs[0].id : null);
   }
   const curCrea = () => (AIM.d && (AIM.d.creations || []).find(c => c.id === AIM.cur)) || null;
   const verDe = (c, id) => c && c.versions.find(v => v.id === id);
@@ -816,8 +822,13 @@
     const G = E('div', 'crea-oimg' + (atelierOuvert(AIM.fiche) ? ' at' : ''));
     // la scène
     const S = E('div', 'crea-carte crea-scene'), L = E('div', 'crea-lh');
-    const tb = B('crea-titreimg', '🖼️ ' + (c.titre || 'Mon image').toUpperCase(), () => renommerImage(c)); tb.title = 'Renommer cette image';
-    L.appendChild(tb); if (!adm()) { const rn = B('crea-renom', '✏️', () => renommerImage(c)); rn.title = 'Renommer (gratuit)'; rn.setAttribute('aria-label', 'Renommer cette image'); L.appendChild(rn); }
+    const toutes = (AIM.d && AIM.d.creations) || [];
+    if (toutes.length > 1) {   // l'admin (2.1.17) : un petit sélecteur d'images dans la grande vue
+      const w = E('label', 'crea-isel'), sl = E('select'); w.appendChild(E('span', '', '🖼️'));
+      for (const x of toutes) { const o = E('option'); o.value = x.id; o.textContent = x.titre || 'Mon image'; if (x.id === c.id) o.selected = true; sl.appendChild(o); }
+      sl.setAttribute('aria-label', 'Choisir l’image'); sl.addEventListener('change', () => { AIM.cur = sl.value; AIM.cmp = null; AIM.pos = 0.5; render(); });
+      w.appendChild(sl); L.appendChild(w);
+    } else { const tb = B('crea-titreimg', '🖼️ ' + (c.titre || 'Mon image').toUpperCase(), () => renommerImage(c)); tb.title = 'Renommer cette image'; L.appendChild(tb); } if (!adm()) { const rn = B('crea-renom', '✏️', () => renommerImage(c)); rn.title = 'Renommer (gratuit)'; rn.setAttribute('aria-label', 'Renommer cette image'); L.appendChild(rn); }
     if (att && att.etat === 'en_cours') { const p = E('span', 'crea-prix', '⏳ V' + att.n + ' en cours…'); L.appendChild(p); }
     const seg = E('div', 'crea-seg');
     for (const [k, t] of [['image', 'Image'], ['comparer', 'Comparer'], ['cote', 'Côte à côte']]) {
@@ -1096,7 +1107,7 @@
     if (et.foc) S.querySelector('textarea').focus({ preventScroll: true });
   }
   function renderMasc() {
-    const P = AIM.root.querySelector('.crea-masc'), vieux = P.querySelector('.crea-fil2'), bas = vieux ? vieux.scrollHeight - vieux.scrollTop - vieux.clientHeight < 40 : true;
+    const P = AIM.root.querySelector('.crea-masc'), bas = !AIM.pkLu, vieux = P.querySelector('.crea-fil2'), hautLu = vieux ? vieux.scrollTop : 0;   // l'admin (2.1.17) : la position d'avant ne décide plus (un rendu caché ou vide la laissait en haut)
     const foc = !!(document.activeElement && document.activeElement.tagName === 'TEXTAREA' && AIM.root.contains(document.activeElement) && document.activeElement.closest('.crea-saisie'));
     P.textContent = '';
     AIM.root.classList.toggle('nv', AIM.vue === 'nouveau');   // pendant la création : la discussion est AU CENTRE, pas de panneau à droite
@@ -1112,7 +1123,10 @@
     if (AIM.prop) F.appendChild(propCarte());
     P.appendChild(F);
     const S = saisie(); P.appendChild(S);
-    if (bas) F.scrollTop = F.scrollHeight;
+    // tout en bas, maintenant et une fois les bulles posées (images, polices), sauf si on est remonté lire ; redescendre tout en bas = on suit à nouveau
+    if (!bas) F.scrollTop = hautLu;   // on était remonté lire : on reste où on lisait
+    if (bas) { const enBas = () => { if (!AIM.pkLu && F.isConnected) F.scrollTop = F.scrollHeight; }; enBas(); requestAnimationFrame(enBas); setTimeout(enBas, 250); setTimeout(enBas, 900); }
+    F.addEventListener('scroll', () => { if (!F.clientHeight) return; const d = F.scrollHeight - F.scrollTop - F.clientHeight; if (d > 80 && F.dataset.vu) AIM.pkLu = true; else if (d < 20) AIM.pkLu = false; F.dataset.vu = '1'; }, { passive: true });
     if (foc) S.querySelector('textarea').focus({ preventScroll: true });
   }
   function bulle(m) {

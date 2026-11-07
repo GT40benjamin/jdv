@@ -695,3 +695,7 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 @keyframes creaEtinc{0%{opacity:0;transform:scale(.4) translateY(6px)}30%{opacity:1;transform:scale(1.15) translateY(0)}100%{opacity:0;transform:scale(.8) translateY(-18px)}}
 @media (prefers-reduced-motion:reduce){.crea-etinc{display:none}}
 .crea-mat-b .n.neuf{background:#fff3cf;color:#6b4800}
+/* plusieurs images : le sélecteur dans la grande vue (l'admin, 2.1.17) */
+.crea-isel{display:flex;align-items:center;gap:6px;min-width:0;max-width:min(60%,360px)}
+.crea-isel select{min-width:0;max-width:100%;border:1.5px solid #e2d8ef;border-radius:999px;padding:5px 26px 5px 10px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%233b1d6e'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--cv);font:400 15px var(--display);-webkit-appearance:none;appearance:none;cursor:pointer;text-overflow:ellipsis;text-transform:uppercase}
+.crea.nuit .crea-isel select{background-color:#2a215c;border-color:#4a3c94;color:#efe6ff}
