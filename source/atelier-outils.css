@@ -1,0 +1,114 @@
+/* ===== « Crée avec {g} » : les OUTILS de l'atelier photo (atelier-outils.js, équipe Outils, 7 nov. 2026) ===== */
+html.ao-ouvert,html.ao-ouvert body{overflow:hidden}
+.ao-ed{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;background:#140f1e;color:#1f1a2b;font-family:var(--body);
+  --cv:#3b1d6e;--cv2:#6a3fc2;--cdoux:#6b6280;-webkit-tap-highlight-color:transparent;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px)}
+.ao-barre{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff6fb;border-bottom:1px solid #eadff0}
+.ao-titre{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ao-titre b{font-family:var(--display);color:var(--cv);font-size:18px;line-height:1.15}
+.ao-titre small{color:var(--cdoux);font-size:13.5px;line-height:1.3}
+.ao-x{flex:0 0 44px;width:44px;height:44px;border-radius:12px;border:1.5px solid #e2d8ea;background:#fff;color:var(--cv);font-size:18px;font-weight:800;display:grid;place-items:center;padding:0}
+.ao-corps{flex:1;min-height:0;display:flex}
+.ao-scene{position:relative;flex:1;min-width:0;min-height:0;overflow:hidden;background:#1d1629}
+.ao-cv{position:absolute;inset:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none;outline:none}
+.ao-cv:focus-visible{box-shadow:inset 0 0 0 3px #ffd65a}
+.ao-pan{flex:0 0 360px;width:360px;overflow-y:auto;overscroll-behavior:contain;background:#fbf8ff;border-left:1px solid #e7ddf3;padding:12px 14px 18px;display:flex;flex-direction:column;gap:12px}
+.ao-pied{flex:0 0 auto;display:flex;justify-content:flex-end;gap:10px;padding:10px 14px calc(env(safe-area-inset-bottom,0px) + 10px);background:#fff;border-top:1px solid #eadff0}
+.ao-pied .crea-bt{min-height:46px;font-size:15px}
+.ao-ok{min-width:180px}
+/* zoom (en bas à droite de la photo) */
+.ao-zoom{position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:2px;padding:4px;border-radius:14px;background:rgba(20,12,34,.78);box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:2}
+.ao-zoom button{width:40px;height:40px;border:0;border-radius:10px;background:none;color:#fff;font-size:17px;font-weight:800;padding:0;display:grid;place-items:center}
+.ao-zoom button:hover{background:rgba(255,255,255,.12)}
+.ao-zoom button.on{background:#ffd65a;color:#2a1846}
+.ao-zoom .pc{min-width:58px;text-align:center;color:#fff;font-weight:700;font-size:13.5px;font-variant-numeric:tabular-nums}
+.ao-attente{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(20,14,32,.72);color:#fff;font-weight:700;font-size:15px}
+.ao-attente .crea-anneau{width:44px;height:44px;border-color:rgba(255,255,255,.25);border-top-color:#ffd65a}
+/* le panneau */
+.ao-sec{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:#fff;border:1.5px solid #eee6f7}
+.ao-h{font-family:var(--display);color:var(--cv);font-size:13.5px;letter-spacing:.4px}
+.ao-aide{margin:0;color:var(--cdoux);font-size:13.5px;line-height:1.4}
+.ao-chips,.ao-ou{display:flex;flex-wrap:wrap;gap:6px}
+.ao-chip{padding:6px 11px;border-radius:999px;border:1.5px solid #ddd0f0;background:#fff;color:var(--cv);font-weight:700;font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ao-chip.on{background:var(--cv2);border-color:var(--cv2);color:#fff}
+.crea-bt.ao-petit{padding:8px 11px;font-size:13.5px;border-radius:12px;min-height:38px}
+.crea-bt.ao-petit.on{background:#ffd65a;border-color:#e3b93a;color:#2a1846;box-shadow:0 3px 0 #c79a1d}
+.crea-bt.ao-rouge{color:#c0283a}
+.ao-large{width:100%;justify-content:flex-start}
+.ao-ta{width:100%;box-sizing:border-box;border:1.5px solid #e2d8ea;border-radius:12px;padding:9px 11px;font:inherit;font-size:16px;line-height:1.35;resize:vertical;min-height:46px;background:#fff;color:#1f1a2b;outline:none}
+.ao-ta:focus{border-color:var(--cv2);box-shadow:0 0 0 3px #e4d7ff}
+.ao-polices{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ao-pol{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 4px 6px;border-radius:12px;border:1.5px solid #ece4f6;background:#fff;color:#1f1a2b}
+.ao-pol .a{font-size:21px;line-height:1.2;white-space:nowrap}
+.ao-pol small{font-size:12px;color:var(--cdoux);font-weight:600}
+.ao-pol.on{border-color:var(--cv2);box-shadow:0 0 0 3px #e4d7ff}
+.ao-rg{display:grid;grid-template-columns:72px 1fr 46px;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:var(--cdoux)}
+.ao-rg input{width:100%;accent-color:#6a3fc2;height:28px}
+.ao-rg output{text-align:right;font-variant-numeric:tabular-nums;color:var(--cv)}
+.ao-tog{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ao-tb{min-width:42px;height:40px;padding:0 12px;border-radius:12px;border:1.5px solid #e2d8ea;background:#fff;color:var(--cv);font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.ao-tb.on{background:var(--cv2);border-color:var(--cv2);color:#fff}
+.ao-seg{display:inline-flex;border-radius:12px;border:1.5px solid #e2d8ea;overflow:hidden;background:#fff}
+.ao-seg button{border:0;background:none;padding:0 12px;min-width:42px;height:38px;color:var(--cv);font-weight:700;font-size:14.5px}
+.ao-seg button+button{border-left:1.5px solid #ece4f6}
+.ao-seg button.on{background:var(--cv2);color:#fff}
+.ao-arcs{display:flex}.ao-arcs button{flex:1;font-size:13.5px}
+.ao-pal{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.ao-pal .l{flex:0 0 100%;font-size:13px;font-weight:700;color:var(--cdoux)}
+.ao-sw{width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px #d9cde8;padding:0;display:inline-grid;place-items:center;font-size:13px;color:#8a83a0;background:#fff}
+.ao-sw.on{box-shadow:0 0 0 3px var(--cv2)}
+.ao-sw.vide{font-weight:800}
+.ao-pick{width:36px;height:32px;border:1.5px solid #e2d8ea;border-radius:10px;padding:2px;background:#fff}
+.ao-verdict{background:#fff8e7;border-color:#f3dfa8}
+.ao-verdict.bien{background:#eaf8ef;border-color:#bfe6cc}
+.ao-verdict b{font-size:15px;color:#2a1846}
+.ao-verdict p{margin:0;font-size:13.5px;line-height:1.4;color:#4e4660}
+.ao-epi{display:grid;grid-template-columns:34px 1fr 36px;gap:7px;align-items:start;padding:6px;border-radius:12px}
+.ao-epi.on{background:#fff0f4}
+.ao-epn{width:34px;height:34px;border-radius:50%;border:2.5px solid #fff;background:#e8264f;color:#fff;font-weight:800;font-size:15px;padding:0;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.ao-epi .ao-epn{display:grid;place-items:center}
+.ao-epdel{width:36px;height:36px;border-radius:10px;border:1.5px solid #f0d5dc;background:#fff;padding:0;font-size:15px}
+.ao-envois .crea-bt{width:100%;white-space:normal;flex-wrap:wrap;line-height:1.2;font-size:14px;padding:10px 12px}
+/* boutons de la colonne « Outils » : grisé avec un mot clair (le bouton reste touchable pour lire le mot) */
+.crea-ot.ao-gris{opacity:.55;filter:saturate(.3)}
+/* une question (prix annoncé avant, fermer sans garder) */
+.ao-conf{position:absolute;inset:0;z-index:5;display:grid;place-items:center;padding:16px;background:rgba(20,10,40,.55)}
+.ao-confc{width:min(420px,100%);background:#fff;border-radius:20px;padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.ao-confc h3{margin:0 0 8px;font-family:var(--display);color:var(--cv);font-size:19px}
+.ao-confc p{margin:0 0 16px;color:#4e4660;font-size:14.5px;line-height:1.45}
+.ao-confb{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+/* tablette / PC moyen */
+@media (max-width:1100px){.ao-pan{flex-basis:320px;width:320px}}
+/* téléphone debout : la photo en haut, le panneau dessous */
+@media (max-width:899px) and (orientation:portrait){
+  .ao-corps{flex-direction:column}
+  .ao-scene{flex:0 0 auto;height:min(52vh,calc(100vw * 1.05))}
+  .ao-pan{flex:1;width:auto;border-left:0;border-top:1px solid #e7ddf3;padding:10px 12px 14px}
+  .ao-titre small{font-size:12.5px}
+  .ao-pied .crea-bt{flex:1}
+  .ao-ok{min-width:0}
+  .ao-zoom{right:6px;bottom:6px;padding:2px;gap:0;border-radius:12px}
+  .ao-zoom button{width:34px;height:34px;font-size:15px}
+  .ao-zoom .pc{min-width:44px;font-size:12px}
+}
+/* téléphone couché : barre fine, panneau étroit à droite */
+@media (max-height:500px) and (orientation:landscape){
+  .ao-barre{padding:5px 12px}.ao-titre small{display:none}.ao-x{width:36px;height:36px;flex-basis:36px}
+  .ao-pan{flex-basis:290px;width:290px;padding:8px 10px;gap:8px}
+  .ao-sec{padding:9px}
+  .ao-pied{padding:6px 12px calc(env(safe-area-inset-bottom,0px) + 6px)}.ao-pied .crea-bt{min-height:38px}
+  .ao-zoom button{width:34px;height:34px}
+}
+/* pendant un outil, la bulle du guide monte au-dessus des boutons du pied (elle cachait « Valider ») */
+html.ao-ouvert .cheer{bottom:calc(env(safe-area-inset-bottom,0px) + 78px)!important}
+/* une version au fond retiré (PNG transparent du seau atelier) se montre sur un damier dans la grande vue */
+#jdw-crea .crea-cadre img[src*="/atelier/e/"][src$=".png"]{background:#fff repeating-conic-gradient(#d9d4e4 0 25%,#fff 0 50%) 0 0/24px 24px}
+html.ao-ouvert .cheer img{animation-name:aoCheerHead}
+@keyframes aoCheerHead{0%{opacity:0;transform:translateY(30%)}14%{opacity:1;transform:translateY(-6%) rotate(6deg)}22%{transform:none}86%{opacity:1;transform:none}100%{opacity:0;transform:none}}
+/* les messages dans la fenêtre d'un outil (sans limite de longueur) */
+.ao-msg{position:absolute;left:50%;top:12px;transform:translate(-50%,-12px);max-width:min(560px,calc(100% - 24px));padding:10px 16px;border-radius:14px;background:rgba(255,255,255,.97);color:#2a1846;font-weight:700;font-size:14.5px;line-height:1.35;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:4}
+.ao-msg.va{opacity:1;transform:translate(-50%,0)}
+body > .ao-conf{position:fixed;z-index:2147482500;--cv:#3b1d6e;--cv2:#6a3fc2;--cdoux:#6b6280;font-family:var(--body);color:#1f1a2b}
+.ao-actuelle{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--cdoux)}
+.ao-actuelle b{font-variant-numeric:tabular-nums;color:var(--cv)}
+.ao-zoom.vert{flex-direction:column;padding:3px 2px}
+.ao-zoom.vert .pc{min-width:0;font-size:11px;padding:2px 0}
