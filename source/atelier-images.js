@@ -475,7 +475,7 @@
 
   // ---------- un projet Images ----------
   async function ouvrir(id, vue) {
-    AIM.fiche = id; AIM.vue = vue || 'atelier'; AIM.prop = null; AIM.loc = []; AIM.msgs = []; AIM.vuAt = Date.now(); AIM.d = null; AIM.errLire = ''; AIM.ouvAt = Date.now(); AIM.pkLu = false; AIM.mode = 'image';
+    AIM.fiche = id; AIM.vue = vue || 'atelier'; AIM.prop = null; AIM.loc = []; AIM.msgs = []; AIM.vuAt = Date.now(); AIM.d = null; AIM.errLire = ''; AIM.ouvAt = Date.now(); AIM.fils = {}; AIM.mode = 'image';
     if (AIM.ouverts[id] === undefined) AIM.ouverts[id] = true;
     if (ATL.cur) { AIM.calme = true; try { atlListe(); } catch (e) {} AIM.calme = false; }   // l'Interface revient à sa liste dessous (un atelier ouvert depuis son montage)
     montrer(); render();
@@ -1139,6 +1139,18 @@
   }
 
   // ---------- {g}, À PART ----------
+  // l'admin (7 nov., 2.1.19 : « la conversation de {g} remonte seule tout en haut ») : une conversation (panneau de droite, discussion en grand)
+  // RESTE où on l'a mise. À l'ouverture et à chaque nouveau message : tout en bas, sauf si on lit plus haut ; un rendu (relevé, réaction,
+  // nouvelle version, autre photo, autre vue) ne la bouge jamais ; la position se garde aussi quand le panneau est caché puis remontré
+  // (téléphone, panneau replié) : elle est notée à chaque défilement et reposée dès que la conversation a une taille
+  function tenirFil(F, k) {
+    const st = (AIM.fils || (AIM.fils = {}))[k] || (AIM.fils[k] = { lu: false, haut: 0 });
+    const placer = () => { if (!F.isConnected || !F.clientHeight) return; F.scrollTop = st.lu ? Math.min(st.haut, F.scrollHeight) : F.scrollHeight; };
+    placer(); requestAnimationFrame(placer); setTimeout(placer, 250); setTimeout(placer, 900);   // une fois les bulles posées (images, polices)
+    F.addEventListener('scroll', () => { if (!F.clientHeight) return; const d = F.scrollHeight - F.scrollTop - F.clientHeight;
+      if (d > 80) { st.lu = true; st.haut = F.scrollTop; } else if (d < 20) st.lu = false; }, { passive: true });
+    try { new ResizeObserver(placer).observe(F); } catch (e) {}
+  }
   function renderGuideCentre(O, et) {
     const p = E('div', 'crea-carte crea-page crea-disc'), h = E('div', 'crea-disc-h'), im = E('img'), tx = E('div');
     im.alt = ''; im.src = AV(); tx.append(E('b', '', PK()), E('small', '', adm() ? '🛡️ La conversation de ' + joueurAdm() + ' · tu réponds comme ' + PK() : '● en ligne · je t’écoute'));
@@ -1156,11 +1168,11 @@
     if (AIM.prop) F.appendChild(propCarte());
     p.appendChild(F);
     const S = saisie('Écris à ' + PK() + '… (c’est gratuit)'); p.appendChild(S); O.appendChild(p);
-    if (et.bas !== false) F.scrollTop = F.scrollHeight;
+    tenirFil(F, 'disc');
     if (et.foc) S.querySelector('textarea').focus({ preventScroll: true });
   }
   function renderMasc() {
-    const P = AIM.root.querySelector('.crea-masc'), bas = !AIM.pkLu, vieux = P.querySelector('.crea-fil2'), hautLu = vieux ? vieux.scrollTop : 0;   // l'admin (2.1.17) : la position d'avant ne décide plus (un rendu caché ou vide la laissait en haut)
+    const P = AIM.root.querySelector('.crea-masc');
     const foc = !!(document.activeElement && document.activeElement.tagName === 'TEXTAREA' && AIM.root.contains(document.activeElement) && document.activeElement.closest('.crea-saisie'));
     P.textContent = '';
     AIM.root.classList.toggle('nv', AIM.vue === 'nouveau');   // pendant la création : la discussion est AU CENTRE, pas de panneau à droite
@@ -1177,9 +1189,7 @@
     P.appendChild(F);
     const S = saisie(); P.appendChild(S);
     // tout en bas, maintenant et une fois les bulles posées (images, polices), sauf si on est remonté lire ; redescendre tout en bas = on suit à nouveau
-    if (!bas) F.scrollTop = hautLu;   // on était remonté lire : on reste où on lisait
-    if (bas) { const enBas = () => { if (!AIM.pkLu && F.isConnected) F.scrollTop = F.scrollHeight; }; enBas(); requestAnimationFrame(enBas); setTimeout(enBas, 250); setTimeout(enBas, 900); }
-    F.addEventListener('scroll', () => { if (!F.clientHeight) return; const d = F.scrollHeight - F.scrollTop - F.clientHeight; if (d > 80 && F.dataset.vu) AIM.pkLu = true; else if (d < 20) AIM.pkLu = false; F.dataset.vu = '1'; }, { passive: true });
+    tenirFil(F, 'masc');
     if (foc) S.querySelector('textarea').focus({ preventScroll: true });
   }
   // l'admin (7 nov., vue admin de SAMBA : « regarde où {g} réagit, ce n'est pas bon ») : le badge 👍 reste accroché au coin bas de LA bulle
