@@ -20947,7 +20947,7 @@ function atlSTab(heads, lignes, cls) {
   }
   const w = atlEl('div', 'atl-swrap'); w.appendChild(t); return w;
 }
-const atlSplit = (a, o) => { a = Math.round(+a || 0); o = Math.round(+o || 0); return (a ? a.toLocaleString('fr-FR') + ' achetés' : '0 acheté') + ' · ' + o.toLocaleString('fr-FR') + ' offert' + (o > 1 ? 's' : ''); };   // 7 nov. 2026 : crédits dépensés achetés / offerts
+const atlSplit = (a, o, eu) => { a = Math.round(+a || 0); o = Math.round(+o || 0); return (a ? a.toLocaleString('fr-FR') + ' achetés' + (eu ? ' (' + eu + ')' : '') : '0 acheté') + ' · ' + o.toLocaleString('fr-FR') + ' offert' + (o > 1 ? 's' : ''); };   // 7 nov. 2026 : crédits dépensés achetés / offerts
 async function atlSuivi() {
   { const c = atlCred(); if (!c || !c.patron || !c.admin) return; }   // 2.1.13 : at_admins.suivi aussi   // 2.0.1 : le Suivi pour PATOU et BENJAMIN seuls
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z) return;
@@ -20999,7 +20999,7 @@ async function atlSuivi() {
   if (vraisEuros) {
     const ach = rs.credits_achetes | 0, offe = rs.credits_offerts | 0, rr = rs.resultat_cents | 0;
     carte('💶 Argent reçu ce mois', cts(rs.recu_cents), '', (rs.recu_abos_cents | 0) ? 'achats ' + cts(rs.recu_achats_cents) + ' · abonnements ' + cts(rs.recu_abos_cents) : 'achats de crédits payés (Stripe)');
-    carte('💎 Crédits dépensés ce mois', (ach + offe).toLocaleString('fr-FR') + ' 💎', '', atlSplit(ach, offe) + (ach ? ' (' + cts(rs.valeur_cents) + ')' : ''));
+    carte('💎 Crédits dépensés ce mois', (ach + offe).toLocaleString('fr-FR') + ' 💎', '', atlSplit(ach, offe, cts(rs.valeur_cents)));
     carte('🧾 Coût réel ce mois', cts(rs.cout_cents), '', (rs.hors_projets_cents | 0) ? 'dont ' + cts(rs.hors_projets_cents) + ' hors projets (supprimés, essais)' : 'toutes les générations du mois');
     carte('📈 Résultat du mois', (rr > 0 ? '+' : '') + cts(rr), rr < 0 ? 'atl-sneg' : 'atl-spos', 'argent reçu − coût réel');
   } else carte('⚠️ Serveur pas encore à jour', '—', '', 'Les vrais euros arrivent avec la mise à jour du serveur (suivi-vrais-euros).');
