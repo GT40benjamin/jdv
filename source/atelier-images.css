@@ -689,3 +689,9 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 .crea-cadre.zoome:active{cursor:grabbing}
 /* testeur 2 (7 nov.) : en Côte à côte, chaque liste est dans SA moitié d'image : elle en prend la largeur (avant : 36 px au téléphone couché) */
 .crea-cadre.cote .crea-vsel{max-width:calc(100% - 20px)}
+/* « c'est prêt » : quelques étincelles, une seule fois (SAMBA, 7 nov.) */
+.crea-etinc{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.crea-etinc span{position:absolute;font-size:22px;opacity:0;animation:creaEtinc 1.2s ease-out forwards}
+@keyframes creaEtinc{0%{opacity:0;transform:scale(.4) translateY(6px)}30%{opacity:1;transform:scale(1.15) translateY(0)}100%{opacity:0;transform:scale(.8) translateY(-18px)}}
+@media (prefers-reduced-motion:reduce){.crea-etinc{display:none}}
+.crea-mat-b .n.neuf{background:#fff3cf;color:#6b4800}

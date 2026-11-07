@@ -70,8 +70,9 @@
         { k: 'parler', e: '🗣️', t: 'Retoucher en parlant', prix: 'image', bg: '#efe6ff' },
         { k: 'style', e: '🖌️', t: 'Changer le style', prix: 'image', bg: '#e2f4ff' },
         { k: 'recadrer', e: '✂️', t: 'Recadrer', prix: 'gratuit', bg: '#e5f7ea' },
-        // ext : bouton et outil fabriqués par l'équipe « outils » (source/atelier-outils.js → window.jdwOutilsPhoto.bouton(k, ctx)) ; absent = rien
-        { k: 'texte', ext: true }, { k: 'epingle', ext: true }, { k: 'fond', ext: true }, { k: 'elements', ext: true },
+        // '*' : TOUS les outils de l'équipe « outils » (source/atelier-outils.js), dans l'ordre de SON registre et selon le type d'atelier
+        // (window.jdwOutilsPhoto.boutons(type, ctx)) ; absent = rien
+        { k: '*', ext: true },
         { k: 'enlever', e: '🧽', t: 'Enlever un objet', prix: 'bientot', bg: '#ffe9e1' },
         { k: 'ajouter', e: '🌟', t: 'Ajouter un objet', prix: 'bientot', bg: '#fff4cf' },
         { k: 'agrandir', e: '🔍', t: 'Agrandir', prix: 'bientot', bg: '#ffe6f3' }
@@ -480,7 +481,11 @@
       if (d.prix) AIM.prix = d.prix;
       const cs = d.creations || [];
       if (!cs.some(c => c.id === AIM.cur)) AIM.cur = cs.length ? cs[0].id : null;
-      for (const c of cs) { const n = c.versions.filter(v => v.etat === 'prete').length; if (AIM.nPretes[c.id] != null && n > AIM.nPretes[c.id]) { delete AIM.voir[c.id]; delete AIM.resSel[c.id]; } AIM.nPretes[c.id] = n; }
+      for (const c of cs) { const n = c.versions.filter(v => v.etat === 'prete').length;
+        if (AIM.nPretes[c.id] != null && n > AIM.nPretes[c.id]) { delete AIM.voir[c.id]; delete AIM.resSel[c.id];
+          const nv = c.versions.filter(v => v.etat === 'prete' && v.outil !== 'import').sort((a, b) => b.n - a.n)[0];
+          if (nv && !adm()) { AIM.etinc = { v: nv.id, at: Date.now() }; if (AIM.vue !== 'atelier') AIM.neufAtelier = true; scintille(); } }
+        AIM.nPretes[c.id] = n; }
       if (AIM.types[d.id]) { AIM.types[d.id].titre = d.titre; AIM.types[d.id].images = cs.length; const L = resultats(); if (L.length) AIM.types[d.id].retouche = L[0].v.path; }   // la miniature suit la dernière retouche
       if (avant && JSON.stringify(avant.creations) !== JSON.stringify(cs)) { AIM.pos = 0.5; }
       return true;
@@ -497,7 +502,7 @@
       AIM.fi = (r && r.fiche) || AIM.fi || null;
       if (adm()) AIM.demsAdm = (r && Array.isArray(r.demandes_projet)) ? r.demandes_projet : AIM.demsAdm || [];
       else if (atelierOuvert(AIM.fiche)) { try { await atlDemCharger(); } catch (e) {} }   // ses offres « Choisir » (cartes de l'Interface) dans la conversation
-      AIM.msgs = ((r && r.messages) || []).filter(m => !m.remplacee).map(m => ({ t: String(m.texte || ''), pk: !!m.atelier, at: m.at }));
+      AIM.msgs = ((r && r.messages) || []).filter(m => !m.remplacee).map(m => ({ t: String(m.texte || ''), pk: !!m.atelier, at: m.at, reaction: m.reaction || null }));
     } catch (e) {}
   }
   const journal = (m, d) => { try { reportError('Atelier photo : ' + m, JSON.stringify(Object.assign({ fiche: AIM.fiche, vue: AIM.vue }, d || {})), { quiet: true }); } catch (e) {} };
@@ -512,11 +517,15 @@
       if (!att && AIM.tick % 4) return;   // au calme : toutes les 12 s ; une image en cours : toutes les 3 s
       const avant = JSON.stringify(AIM.d && AIM.d.creations), nm = AIM.msgs.length;
       await Promise.all([charger(), chargerMsgs()]);
-      if (JSON.stringify(AIM.d && AIM.d.creations) !== avant || AIM.msgs.length !== nm) render();
+      const sigR = AIM.msgs.map(m => m.reaction || '').join('');
+      if (JSON.stringify(AIM.d && AIM.d.creations) !== avant || AIM.msgs.length !== nm || sigR !== AIM.sigReac) { AIM.sigReac = sigR; render(); }   // une réaction qui arrive redessine
     }, 3000);
   }
   // la liste déroulante des versions posée sur l'image : une ligne par version (numéro, résumé court de la demande, prix) ; ratées / en cours grisées
-  const resume = v => { const t = v.outil === 'import' ? 'Originale' : v.outil === 'recadrer' ? 'Recadrée' : v.outil === 'texte' ? 'Texte' : v.outil === 'fond' ? 'Sans fond' : v.outil === 'elements' ? 'Éléments déplacés' : String(v.consigne || 'Retouche').replace(/\s+/g, ' ').trim();
+  // le libellé d'une version faite par un outil de l'équipe « outils » (son registre d'abord, sinon les nôtres)
+  const libelleOutil = k => { try { const X = window.jdwOutilsPhoto; const t = X && typeof X.libelle === 'function' && X.libelle(k); if (t) return t; } catch (e) {}
+    return ({ texte: 'Texte', fond: 'Fond retiré', elements: 'Élément déplacé', gomme: 'Gommé', dessin: 'Dessin', image: 'Image ajoutée' })[k] || 'Retouche'; };
+  const resume = v => { const t = v.outil === 'import' ? 'Originale' : v.outil === 'recadrer' ? 'Recadrée' : (!['parole', 'style'].includes(v.outil) && !String(v.consigne || '').trim()) ? libelleOutil(v.outil) : String(v.consigne || 'Retouche').replace(/\s+/g, ' ').trim();
     if (t.length <= 34) return t; const m = t.slice(0, 34); return m.slice(0, Math.max(18, m.lastIndexOf(' '))) + '…'; };
   // l'admin (7 nov.) : ZOOMER dans la grande vue — ➖ / % / ➕ / ⟲ en bas à droite, molette autour du curseur (1× à 6×), glisser une fois zoomé,
   // pincer et double-toucher (×2 / retour) au téléphone ; rien n'anime en boucle
@@ -588,6 +597,11 @@
     if (!v) return ''; if (v.outil === 'import') return 'Originale';
     const r = c.versions.filter(x => x.outil !== 'import').sort((a, b) => a.n - b.n); return 'V' + (r.findIndex(x => x.id === v.id) + 1);
   }
+  // SAMBA (7 nov.) : « un petit son de scintillement quand c'est prêt » — 4 notes douces qui montent (~0,7 s), le bouton son de la borne décide
+  function scintille() {
+    if (adm()) return;
+    try { if (typeof muted !== 'undefined' && muted) return; Audio.ensure(); [[1568, 0], [2093, 110], [2637, 230], [3136, 360]].forEach(([f, d]) => setTimeout(() => { try { Audio.tone(f, 0.32, 'sine', 0.035); } catch (e) {} }, d)); } catch (e) {}
+  }
   const curCrea = () => (AIM.d && (AIM.d.creations || []).find(c => c.id === AIM.cur)) || null;
   const verDe = (c, id) => c && c.versions.find(v => v.id === id);
   function bougerCred() { const c = AIM.root && AIM.root.querySelector('.crea-cred'); if (c) { c.classList.remove('bouge'); void c.offsetWidth; c.classList.add('bouge'); } }
@@ -607,7 +621,10 @@
     let so = AIM.solde; if (typeof so !== 'number') { try { const cr = atlCred(); if (cr && typeof cr.solde === 'number') so = cr.solde; } catch (e) {} }   // sans SQL v160 : le solde de l'Atelier (testeurs, 6 nov.)
     q('.crea-cred').textContent = typeof so === 'number' ? D + ' ' + (adm() ? joueurAdm() + ' ' : '') + so + (etroit() || adm() ? '' : ' crédits') : '';
     R.classList.toggle('at-centre', sansPanneau());
-    R.classList.toggle('at-guide', sansPanneau() && AIM.vue === 'guide');   // la grande discussion au centre replie le panneau de droite
+    R.classList.toggle('at-guide', sansPanneau() && AIM.vue === 'guide');
+    // testeur 2 (915 px, téléphone couché) : sous 1280 px le panneau de {g} se replie tout seul dans un atelier livré (la photo n'avait que ~200 px) ;
+    // un toucher sur sa languette le rouvre, et ce choix est gardé
+    if (sansPanneau() && innerWidth < 1280 && innerWidth >= 700 && !AIM.pkOuvert) R.classList.add('pk-replie');   // la grande discussion au centre replie le panneau de droite
     { let k = R.querySelector('.crea-admbt'); if (adm()) { if (!k) { k = B('crea-rond crea-admbt', '🛡️ Admin', () => fenetreAdmin()); const cr = q('.crea-cred'); cr.parentNode.insertBefore(k, cr); }
       k.title = 'Mode admin : projet de ' + joueurAdm(); } else if (k) k.remove(); }
     if (AIM.vue === 'guide') { const f = R.querySelector('.crea-disc .crea-fil2'), a = document.activeElement;
@@ -696,6 +713,7 @@
       const b = B('crea-nd crea-mat-b' + (AIM.vue === k ? ' on' : ''), null, () => { AIM.root.classList.remove('tiroir'); if (k === 'guide') { ouvrirGuide(); return; } AIM.vue = k; render(); });
       b.dataset.k = k; b.append(E('i', '', ic), E('span', 'nm', lab || PK()));
       if (k === 'resultats') { const n = resultats().length; if (n) b.appendChild(E('span', 'n', String(n))); }
+      if (k === 'atelier' && AIM.neufAtelier) { if (AIM.vue === 'atelier') AIM.neufAtelier = false; else b.appendChild(E('span', 'n neuf', '✨')); }
       if (k === 'guide' && AIM.vue !== 'guide') { const n = AIM.msgs.filter(m => m.pk && m.at && +new Date(m.at) > AIM.vuAt).length; if (n) b.appendChild(E('span', 'n', String(Math.min(9, n)))); }   // ses nouveaux messages
       A.appendChild(b);
     }
@@ -818,6 +836,7 @@
       for (const [v, k, t] of [[avant, 'avant', 'Avant'], [act, 'apres', 'Après']]) { const d = E('div'); d.appendChild(img(v.path)); const e = listeVersions(c, v, k, t); e.style.left = '10px'; d.appendChild(e); Cd.appendChild(d); }
     } else { const im = img(act.path); Cd.appendChild(im); const e = listeVersions(c, act, 'image', ''); e.style.left = '10px'; Cd.appendChild(e); zoomable(Cd, im, act); }
     S.appendChild(Cd); depotSur(Cd);
+    if (AIM.etinc && act && AIM.etinc.v === act.id && Date.now() - AIM.etinc.at < 1700) { const k = E('div', 'crea-etinc'); k.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 9; i++) { const e = E('span', '', '✨'); e.style.left = (8 + (i * 37) % 84) + '%'; e.style.top = (14 + (i * 53) % 70) + '%'; e.style.animationDelay = (i * 70) + 'ms'; k.appendChild(e); } Cd.appendChild(k); }
     // l'admin (7 nov.) : sous la photo, l'ORIGINALE (un clic la remet dans la grande vue : la prochaine retouche partira d'elle) et la PILE des
     // retouches (la dernière dessus, « N versions ») ; la pile se regarde seulement : on change de version par la liste posée sur l'image
     { const orig = c.versions.find(v => v.outil === 'import' && v.etat === 'prete' && v.path), rs = c.versions.filter(v => v.outil !== 'import' && v.etat === 'prete' && v.path).sort((a, b) => b.n - a.n);
@@ -858,7 +877,10 @@
     const libre = !!act && !att, px = (AIM.prix.image | 0) + ' ' + D;
     const OUTILS_FN = { parler: () => { ta.focus(); try { atlMicBascule(ta, mic); } catch (e) {} }, style: () => styles(c), recadrer: () => recadrer(c, act) };
     for (const o of atelierDe(AIM.fiche).outils || []) {
-      if (o.ext) { const X = window.jdwOutilsPhoto; if (X && typeof X.bouton === 'function') { try { const b = X.bouton(o.k, outilCtx(c, act, att)); if (b) gr.appendChild(b); } catch (e) { journal('outil ' + o.k + ' : ' + pourquoi(e).slice(0, 80)); } } continue; }
+      if (o.ext) { const X = window.jdwOutilsPhoto;
+        try { if (X && o.k === '*' && typeof X.boutons === 'function') { for (const b of X.boutons(typeDe(AIM.fiche), outilCtx(c, act, att)) || []) if (b) gr.appendChild(b); }
+          else if (X && o.k !== '*' && typeof X.bouton === 'function') { const b = X.bouton(o.k, outilCtx(c, act, att)); if (b) gr.appendChild(b); } } catch (e) { journal('outil ' + o.k + ' : ' + pourquoi(e).slice(0, 80)); }
+        continue; }
       const fn = OUTILS_FN[o.k], bientot = o.prix === 'bientot' || !fn;
       outil(o.e, o.t, bientot ? 'bientôt' : o.prix === 'gratuit' ? 'gratuit' : px, o.bg, bientot ? null : fn, bientot || !libre);
     }
@@ -1070,7 +1092,7 @@
     P.textContent = '';
     AIM.root.classList.toggle('nv', AIM.vue === 'nouveau');   // pendant la création : la discussion est AU CENTRE, pas de panneau à droite
     if (AIM.vue === 'nouveau') { if (foc) setTimeout(() => { const t = AIM.root.querySelector('.crea-nv textarea'); if (t) t.focus({ preventScroll: true }); }, 0); return; }
-    const t = B('crea-pkt', null, () => { if (AIM.root.classList.contains('pk-replie')) { AIM.root.classList.remove('pk-replie'); try { store.set('jdw.crea.pkreplie', false); } catch (e) {} curseur(); } });
+    const t = B('crea-pkt', null, () => { if (AIM.root.classList.contains('pk-replie')) { AIM.pkOuvert = true; AIM.root.classList.remove('pk-replie'); try { store.set('jdw.crea.pkreplie', false); } catch (e) {} curseur(); } });
     const im = E('img'); im.alt = ''; im.src = AV();
     const tx = E('div'); tx.append(E('b', '', PK()), E('small', '', '● en ligne · je t’écoute'));
     const rep = B('crea-pkrep', etroit() ? '✕' : '⟩', e => { e.stopPropagation(); if (etroit()) AIM.root.classList.remove('pk-plein'); else { AIM.root.classList.add('pk-replie'); try { store.set('jdw.crea.pkreplie', true); } catch (x) {} } });
@@ -1085,7 +1107,9 @@
     if (foc) S.querySelector('textarea').focus({ preventScroll: true });
   }
   function bulle(m) {
-    if (!m.pk) { const b = E('div', 'crea-b moi', sansChemin(m.t) || null); if (m.image) { const i = E('img', 'crea-bimg'); i.alt = 'Ton image'; i.src = m.image; b.appendChild(i); } return b; }
+    if (!m.pk) { const b = E('div', 'crea-b moi', sansChemin(m.t) || null); if (m.image) { const i = E('img', 'crea-bimg'); i.alt = 'Ton image'; i.src = m.image; b.appendChild(i); }
+      if (m.reaction && typeof atlReacBadge === 'function') { try { b.appendChild(atlReacBadge(m.reaction)); b.classList.add('atl-breac'); } catch (e) {} }   // le badge de l'Interface (branche reactions)
+      return b; }
     const l = E('div', 'crea-lpk'), im = E('img'); im.alt = ''; im.src = m.img ? POSE(m.img) : AV();
     const b = E('div', 'crea-b');
     const tag = /^(✅|⏳)/.test(m.t);
