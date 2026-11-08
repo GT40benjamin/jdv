@@ -7299,7 +7299,7 @@ function mount(root, api) {
     // pages
     if (pages > 1) { const by = y0 + rows * cs + 4 * U; bouton(px + 10 * U, by, 44 * U, 30 * U, '', () => { pageC = Math.max(0, pageC - 1); }, false, '◀'); bouton(px + gw - 54 * U, by, 44 * U, 30 * U, '', () => { pageC = Math.min(pages - 1, pageC + 1); }, false, '▶');
       ctx.save(); ctx.font = '700 ' + Math.round(12 * U) + 'px ' + FB; ctx.fillStyle = '#cfe0ff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Page ' + (pageC + 1) + ' / ' + pages, px + gw / 2, by + 15 * U); ctx.restore(); }
-    if (selC) { const fx = portrait ? px + 10 * U : px + gw + 6 * U, fy = portrait ? y0 + h0 * 0.36 : y0, fw = portrait ? pw - 20 * U : pw - gw - 16 * U, fh = portrait ? h0 * 0.64 : h0; ficheBete(selC, fx, fy, fw, fh, t); if (portrait) tapBtns.push({ x: fx, y: fy, w: fw, h: fh, f: () => { selC = null; } }); { const id0 = selC; bouton(fx + fw / 2 - 105 * U, fy + fh - 46 * U, 210 * U, 38 * U, 'Fiche & attaques', () => ouvrirFiche(null, id0), true, '📋'); } }   /* V25 */
+    if (selC) { const fx = portrait ? px + 10 * U : px + gw + 6 * U, fy = portrait ? y0 + h0 * 0.36 : y0, fw = portrait ? pw - 20 * U : pw - gw - 16 * U, fh = portrait ? h0 * 0.64 : h0; ficheBete(selC, fx, fy, fw, fh, t); if (portrait) tapBtns.push({ x: fx, y: fy, w: fw, h: fh, f: () => { selC = null; } }); { const id0 = selC; bouton(fx + fw / 2 - 105 * U, fy + fh - 46 * U, 210 * U, 38 * U, 'Fiche & attaques', () => ouvrirFiche(null, id0), true, '📋'); boutonGuide(id0, fx, fy, fw, fh); } }   /* V25 ; V27 : 💬 parler au guide */
   }
   function ficheBete(id, x, y, w, h, t) {
     const a = AF[id], A = AFX(), pris = A.dex[id] === 2;
@@ -11290,6 +11290,24 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     if (Math.hypot(M.L.x - J.x, M.L.y - J.y) < 1200) apres.push(() => etiquetteMonde('🕳️ Grotte de cristal', x, y - 200 * Z, y + 30 * Z, '#e0c8ff', 13));
   }
   function decorMontagne(x, y) { const M = montagneGrotte(); if (!M) return false; if (dansMontagne(x, y, 60)) return true; return Math.abs(x - M.L.x) < 250 && y > M.L.y - 20 && y < M.L.y + 240; }   // le chemin de l'entrée reste dégagé
+
+  // V27 (demande de l'admin, 8 nov. : « il faut que l'on puisse parler à [au guide] sur chaque ligne du Cosmodex ») : sur la fiche de CHAQUE bête,
+  // un bouton « 💬 Parler à … » ouvre l'arrêt sur image de la borne, la bête déjà nommée et l'œil déjà posé sur son dessin.
+  // Le nom du guide vient de la borne (api.arret.nom) : il n'est jamais écrit dans le jeu. Sans api.arret (borne qui ne l'a pas, joueur qui n'est
+  // ni le créateur ni l'admin) : pas de bouton, rien ne change.
+  function arretDispo() { return !!(api && api.arret && typeof api.arret.ouvrir === 'function'); }
+  let guideOuvert = false;
+  function boutonGuide(id, fx, fy, fw, fh) {
+    if (!arretDispo() || !AF[id]) return;
+    const nom = String(api.arret.nom || '').trim().slice(0, 16), h = 30 * U, w = Math.min(fw - 16 * U, (nom ? 150 : 120) * U);
+    bouton(fx + fw - w - 8 * U, fy + 8 * U, w, h, nom ? 'Parler à ' + nom : 'Signaler', () => parlerGuide(id, fx + fw / 2, fy + fh * 0.3), false, '💬');
+  }
+  async function parlerGuide(id, bx, by) {
+    if (guideOuvert || !arretDispo()) return; guideOuvert = true;
+    const a = AF[id], texte = '📖 Cosmodex · N° ' + String(a.num).padStart(3, '0') + ' ' + a.nom + (a.nst > 1 ? ' (stade ' + (a.st + 1) + ' sur ' + a.nst + ')' : '') + ' : ';
+    try { await api.arret.ouvrir({ texte, x: Math.round(clamp(bx / W * 100, 0, 100)), y: Math.round(clamp(by / H * 100, 0, 100)) }); } catch (e) { }
+    guideOuvert = false;
+  }
 
 
   // =================================================================== LA BOUCLE
