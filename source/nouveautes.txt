@@ -6,6 +6,16 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🌿 Pégase 0.9.9.48 : plus fluide, oiseaux réparés, vraies conversations (borne 2.1.39)
+[pegase] 🌿 Le jeu est plus fluide : moins de calculs inutiles à chaque image et de nombreux petits à-coups en moins.
+[pegase] 🐦 Les petits oiseaux qui sautillent ne reculent plus d'un coup après chaque saut.
+[pegase] 💬 Les clients de l'hôtel te parlent vraiment : ils te demandent un service, et tu réponds « Avec plaisir » ou « Une autre fois ».
+[pegase] 📮 La fenêtre de la boîte aux lettres est refaite, et elle te dit comment poser tes objets dans ta maison.
+[pegase] 🖐️ Les doigts de ton avatar sont plus naturels, et les bras de Désiré aussi.
+[pegase] 🛤️ Le chemin du Clos passe tout droit, au bord des parcelles.
+[pegase] 🏠 Plus de tuiles qui traversent le plafond dans les boutiques, la mairie et le musée.
+[pegase] 🎥 La caméra se comporte mieux au coteau ouest et devant l'échoppe de Rosalie.
+[pegase] 📱 « Photos au maire » : le bouton d'envoi reste visible en bas de l'écran.
 [abracadabra] ## 🪨 Un décor bien solide (borne 2.1.37)
 [abracadabra] 🪨 Plus moyen de traverser les montagnes, les rochers, le foin ou les maisons !
 [borne] ## 🎮 Joue à deux à ton jeu en essai, mode auto et pièces jointes (borne 2.1.26)

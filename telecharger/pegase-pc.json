@@ -1,108 +1,33 @@
 {
-  "version": "0.9.9.47",
-  "build": 98,
-  "size": 1671505236,
-  "sha256": "151dc9713a9b6335323c22bc5ed297671413c7c80c85b636af093dfefc0fb90a",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v98/Pegase-PC-2026-11-04-0.9.9.47.zip",
-  "manifest": "8869397fef62c49f16f278c008e517daab0586c563eda7bb05aee9aaeae047f7",
+  "version": "0.9.9.48",
+  "build": 99,
+  "size": 1672739498,
+  "sha256": "fa84136ac8857a58360cac5ec19e9be70e95ee752af2bb9cb019c8a4e9bebf1a",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v99/Pegase-PC-2026-11-08-0.9.9.48.zip",
+  "manifest": "3c7d29d13a5c59eddefe0904c9661647984fbfd1255a36003ba2c8f82bffae43",
   "patchs": [
     {
+      "de": "0.9.9.47",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v99/Pegase-PC-patch-0.9.9.47.zip",
+      "taille": 10173300,
+      "sha256": "8ff2617e6a1e54b44a6d70d868676b96ab5cef28eaa893f212d25ea2ccb860fe"
+    },
+    {
       "de": "0.9.9.46",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v98/Pegase-PC-patch-0.9.9.46.zip",
-      "taille": 3112132,
-      "sha256": "986bd91f8c0650c04e8685bddab5ef8a562bc76a597e9d6774c846be974e25ad"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v99/Pegase-PC-patch-0.9.9.46.zip",
+      "taille": 9636666,
+      "sha256": "7142899d3d87f78f5c50c6afe53ebd25ebea885ff1f76a92029e58757aa018d2"
     },
     {
       "de": "0.9.9.45",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v98/Pegase-PC-patch-0.9.9.45.zip",
-      "taille": 4966110,
-      "sha256": "c917bf9a2b92011edf0826b4053a1d0accd9a0ba1936fe8c600391f8f4065924"
-    },
-    {
-      "de": "0.9.9.44",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v98/Pegase-PC-patch-0.9.9.44.zip",
-      "taille": 6254018,
-      "sha256": "4338eaff71570bae9be68b36bb4cfa5177ef852b7fb76bc922f1b3d984951f08"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v99/Pegase-PC-patch-0.9.9.45.zip",
+      "taille": 10665279,
+      "sha256": "fe77a18e6dfac6ebfd9333411a84818d15bf182b3bad673dd9b17e97da419811"
     }
   ],
   "notes": [
-    "Nouvelle case « Afficher les FPS » dans Réglages : un petit compteur en haut à droite.",
-    "La caméra ne rentre plus dans ta tête au coin du magasin de Rosalie.",
-    "Le chemin du Clos est maintenant à plat.",
-    "Sous l'arche de la rivière, la caméra se décale : tu restes entière à l'écran, plus cachée derrière la roche."
-  ],
-  "historique": [
-    {
-      "version": "0.9.9.47",
-      "notes": [
-        "Nouvelle case « Afficher les FPS » dans Réglages : un petit compteur en haut à droite.",
-        "La caméra ne rentre plus dans ta tête au coin du magasin de Rosalie.",
-        "Le chemin du Clos est maintenant à plat.",
-        "Sous l'arche de la rivière, la caméra se décale : tu restes entière à l'écran, plus cachée derrière la roche."
-      ]
-    },
-    {
-      "version": "0.9.9.46",
-      "notes": [
-        "Les habitants qui passent près de toi font leurs pas sur le sol où ils marchent : herbe, sable, gravier, pierre, bois.",
-        "Les chats miaulent doucement quand tu approches et ronronnent si tu restes tout près d'eux.",
-        "La grande sauterelle verte et la cigale chantent depuis leur buisson.",
-        "S'asseoir sur un banc et se relever fait un doux froissement de vêtements.",
-        "Un petit clic feutré sur les boutons des écrans qui étaient muets : sac, barre d'objets, bar, téléphone…",
-        "Désiré montre ses deux mains, de face comme de trois quarts : plus de main cachée derrière le tablier.",
-        "Au bar, sur PC, le visage de Désiré est enfin éclairé : on voit ses yeux et son sourire.",
-        "Sur téléphone, les personnages dans l'hôtel, les boutiques et les maisons ont une lumière chaude : on voit enfin leurs visages.",
-        "Plus d'herbe qui pousse au fond de la mer ; les algues, elles, restent."
-      ]
-    },
-    {
-      "version": "0.9.9.45",
-      "notes": [
-        "Dehors, tes pas sonnent enfin selon le sol : herbe, terre, sable, gravier, pavés, pontons et ponts en bois.",
-        "À vélo, on entend les pneus rouler, plus fort quand tu vas vite, et le cliquet de la roue libre quand tu ne pédales pas.",
-        "Le parapluie claque en s'ouvrant et se froisse en se fermant ; la boîte aux lettres grince et ses lettres bruissent.",
-        "Les animaux muets ont leur vrai cri : le loup hurle la nuit, le cerf brame à l'aube, moutons et chèvres bêlent, la vipère siffle, la grenouille appelle et la biche donne l'alerte en fuyant.",
-        "La musique de l'écran de chargement et du téléchargement joue même quand la musique d'ambiance est coupée dans les réglages.",
-        "Les mains de Désiré ne rentrent plus dans son ventre ni dans son tablier.",
-        "Les habitants tiennent leur parapluie la main bien fermée autour du manche.",
-        "La nuit sous la pluie, plus de grosses barres blanches devant la caméra : les gouttes toutes proches restent fines.",
-        "La caméra ne saute plus en passant sous le store de Rosalie ni en frôlant son présentoir de biais.",
-        "Sur une paroi trop raide, tu glisses doucement jusqu'en bas au lieu de rester perchée, et jamais dans l'eau profonde sous l'arche.",
-        "Le bout de la rivière du haut descend en pente douce jusqu'aux galets : plus de mur d'eau.",
-        "Les bancs de poissons des criques ne nagent plus dans le sable."
-      ]
-    },
-    {
-      "version": "0.9.9.44",
-      "notes": [
-        "La caméra se baisse enfin librement dans les prairies et sur les pentes, et elle ne flotte plus de haut en bas pendant la marche. Elle se relève seulement près des vraies hautes herbes.",
-        "Désiré, derrière son comptoir, a des gestes calmes : il ne glisse plus de côté et sa révérence ne lui plonge plus la tête dans le comptoir.",
-        "Papi Auguste ne se cache plus dans l'escalier de la mairie quand tu arrives.",
-        "Une inscription des géants porte son vrai nom dans le Grand livre (« Inscription des géants n° 1 »), et un message te confirme la photo juste après l'avoir prise.",
-        "Les petits oiseaux des bosquets et du jardin sautillent vraiment au lieu de glisser sur le sol.",
-        "La biche et le cerf ne restent plus collés l'un dans l'autre quand ils se reposent.",
-        "Plus de taches mouchetées sur les bras et les mains du personnage.",
-        "À la petite cascade de la longue rivière, l'eau est au bon niveau : la pêche y marche comme ailleurs.",
-        "Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.",
-        "Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.",
-        "Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr."
-      ]
-    },
-    {
-      "version": "0.9.9.43",
-      "notes": [
-        "Quand une grande bête sauvage détale devant toi, les bêtes de sa harde partent aussi, un peu après : elles l'ont vue s'enfuir.",
-        "Les loups ne hurlent plus en plein jour : seulement au crépuscule et la nuit.",
-        "Les vaches meuglent surtout le matin et le soir, presque plus la nuit. Le cheval hennit quand il détale, et le sanglier grogne en fuyant.",
-        "Les grandes bêtes ne rentrent plus dans les rochers, les clôtures et les objets : elles gardent leurs distances et font le détour.",
-        "Les grands troncs creux couchés sont enfin solides : plus d'héroïne coincée dans l'écorce, et on peut traverser le tronc d'un bout à l'autre.",
-        "Les 23 bouteilles à message sont plus grandes et brillent de loin. Elles sont couchées au pied d'un vrai repère : tronc, barrière, ponton, lanterne…",
-        "Le Grand livre a une section « Au bord de la mer » : 9 poissons de mer à pêcher (maquereau, cabillaud, mahi-mahi, poisson-clown…). Prends la photo souvenir pour remplir la case.",
-        "La mission « Trouver les 3 inscriptions des géants » montre son compteur : 0 / 3, puis 1 / 3 quand Papi Auguste confirme ta photo.",
-        "Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.",
-        "De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.",
-        "Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps."
-      ]
-    }
+    "Un jeu plus fluide",
+    "Des oiseaux réparés et de vraies conversations à l'hôtel",
+    "Une boîte aux lettres refaite"
   ]
 }
