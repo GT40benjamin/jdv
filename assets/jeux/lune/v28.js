@@ -2796,6 +2796,7 @@ function mount(root, api) {
   const ssx = x => W / 2 + (x - camX) * ZS(), ssy = y => H / 2 + (y - camY) * ZS();
   function majEspace(dt) {
     annonceRegion20();   // V28 : le nom de la région en y arrivant
+    majFauneEspace(dt);   // V28 (commande 4f4e1349) : les Astrofaunes de l'espace
     if (EVA) { majEVA(dt); majEnnemis(dt); majParts(dt); majMsgs(dt); return; }
     if (VS.mortT > 0) { majEnnemis(dt); majParts(dt); return; }
     const X = E0(), inp = entree(), m = Math.hypot(inp.x, inp.y);
@@ -2933,6 +2934,7 @@ function mount(root, api) {
     for (const p of parts) { const a = 1 - p.t / p.d; ctx.globalAlpha = Math.max(0, a); ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(ssx(p.x), ssy(p.y), p.r * ZS() * 1.5, 0, TAU); ctx.fill(); } ctx.globalAlpha = 1;
     // le laser du vaisseau
     if (ship.laser) { const a = ship.laser; ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(120,255,240,0.4)'; ctx.lineWidth = 10 * ZS(); ctx.beginPath(); ctx.moveTo(ssx(ship.x), ssy(ship.y)); ctx.lineTo(ssx(a.x), ssy(a.y)); ctx.stroke(); ctx.strokeStyle = '#eaffff'; ctx.lineWidth = 3 * ZS() * (0.8 + 0.4 * Math.sin(t * 60)); ctx.stroke(); ctx.restore(); }
+    dessinerFauneEspace(t);   /* V28 : les Astrofaunes de l'espace */
     for (const e of EN) dessinerEnnemi(e, t); dessinerTirsEspace();
     drawAutresEspace(t);
     if (vaisseauCache && !(transi && transi.sorte === 'saut')) vaisseauCache = false;
@@ -7320,7 +7322,7 @@ function mount(root, api) {
     ctx.font = Math.round(17 * U) + 'px ' + FT; ctx.fillStyle = '#fff4d0'; ctx.fillText('N° ' + String(a.num).padStart(3, '0') + ' · ' + a.nom, x + w / 2, yy, w - 16 * U); yy += 24 * U;
     ctx.font = '700 ' + Math.round(12.5 * U) + 'px ' + FB; ctx.fillStyle = '#ffe9a8'; ctx.fillText(a.t.map(k => TYPES[k].ico + ' ' + TYPES[k].nom).join('   ') + (a.legende ? '   ★ Légendaire' : a.rar >= 4 ? '   ◆ Rare' : ''), x + w / 2, yy, w - 16 * U); yy += 20 * U;
     ctx.font = '600 ' + Math.round(11.5 * U) + 'px ' + FB; ctx.fillStyle = '#cfe0ff';
-    const lignes = [pris ? '🔮 Capturée' : '👁️ Vue, pas encore capturée', '🪐 Vit : ' + (a.b.length ? a.b.slice(0, 3).map(NOM_BIOME).join(', ') : 'endroits secrets'), texteEvo(a)];
+    const lignes = [pris ? '🔮 Capturée' : '👁️ Vue, pas encore capturée', '🪐 Vit : ' + (lieuEspece(a) || (a.b.length ? a.b.slice(0, 3).map(NOM_BIOME).join(', ') : 'endroits secrets')), texteEvo(a)];
     for (const l of lignes) for (const s of couper2(l, w - 20 * U).slice(0, 2)) { ctx.fillText(s, x + w / 2, yy, w - 16 * U); yy += 16 * U; }
     if (pris) { const s = stats(id, 50); ctx.fillStyle = '#9fb0d8'; ctx.fillText('Niv. 50 : ' + s.pv + ' PV · 💪' + s.att + ' 🔮' + s.pou + ' 🛡️' + s.def + ' 🌀' + s.res + ' 💨' + s.vit, x + w / 2, yy + 4 * U, w - 16 * U); }
     ctx.restore();
@@ -11706,6 +11708,92 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     } });
   }
 
+  // =================================================================== V28 (commande 4f4e1349 de PATOU, 90 💎) : LES ASTROFAUNES DE L'ESPACE
+  // « Rarement, en vol, tu croises des Astrofaunes de l'espace, plus lents, adaptés au vide · des espèces différentes dans chaque région, qu'on ne
+  // trouve que là · tu sors du vaisseau et tu leur tires dessus : le combat commence · parfois, un Astrofaune agressif te poursuit… mais c'est rare. »
+  // 20 espèces, une par région (dessins : paquet v16/a-espace.bin, p-esp<n>-0) ; le type de chacune est celui de sa région.
+  const ESP20 = [[1, 'Pissenlune', 'mage', 90], [2, 'Méduvent', 'mage', 115], [3, 'Tortambre', 'tank', 130], [4, 'Baleinastre', 'tank', 150], [5, 'Échoraie', 'rapide', 130],
+    [6, 'Satellipou', 'equilibre', 100], [7, 'Renacomète', 'rapide', 110], [8, 'Lunaluce', 'mage', 100], [9, 'Pyralmar', 'costaud', 120], [10, 'Voltaraie', 'rapide', 130],
+    [11, 'Nuagedon', 'geant', 160], [12, 'Solarmadille', 'costaud', 120], [13, 'Lanternabysse', 'mage', 130], [14, 'Givrerpent', 'equilibre', 150], [15, 'Aurorchidée', 'mage', 120],
+    [16, 'Fulgorage', 'rapide', 150], [17, 'Solaréduse', 'mage', 140], [18, 'Chromélule', 'rapide', 130], [19, 'Éthercerf', 'equilibre', 150], [20, 'Néantolos', 'geant', 170]];
+  for (const [n, nom, g, tl] of ESP20) {
+    const id = 'esp' + n, t = TYPES_REG20[n - 1]; if (AF[id]) continue;
+    ajouterAF({ id, nom, t: [t], g, st: 0, nst: 1, fam: 'espace', vers: null, evo: null, rar: 4, b: [], tl, espace: true, reg20: n });
+    AF[id].appr = apprentissage(AF[id].t);
+    ESPECES[id] = { nom, taille: tl, role: 'chasseur', vie: 40, degats: 8, butin: ['cuivre', 'fer'], af: true, gros: tl > 170 ? 1 : 0 };
+    PANTINS[id] = { auto: true, amp: 0, bipede: false, sansPattes: true, ailes: false, vole: true }; PANT_DE[id] = id;
+  }
+  FAM_DESSINEES.add('espace');
+  const ESPECE_REG = n => 'esp' + n;
+  // ---------------------------------------------------------------- dans l'espace : une rencontre RARE en arrivant dans un système d'une région
+  let FAUNE_E = null;   // { sys, esp, n, niv, x, y, vx, vy, agressif, vu, t }
+  const CHANCE_FAUNE = 0.15;   // « rarement » : environ 1 système sur 7 ; un agressif sur 7 de ceux-là (dès la région 3)
+  function majFauneEspace(dt) {
+    if (!SYS || !ship || state !== 'espace') return;
+    if (!FAUNE_E || FAUNE_E.sys !== SYS.i) { FAUNE_E = { sys: SYS.i, rien: true }; const n = region20(SYS.S);
+      if (n >= 1 && n <= 20 && (Math.random() < CHANCE_FAUNE || window.__fauneForcee)) { const a = Math.random() * TAU, d = 900 + Math.random() * 600;
+        FAUNE_E = { sys: SYS.i, esp: ESPECE_REG(n), n, niv: Math.max(3, nivRegion20(n) - 3 + Math.floor(Math.random() * 4)), x: ship.x + Math.cos(a) * d, y: ship.y + Math.sin(a) * d, vx: 0, vy: 0, agressif: n >= 3 && (Math.random() < 0.15 || window.__fauneForcee === 'agressif'), vu: false, t: 0, cap: Math.random() * TAU };
+        chargerFamille('espace'); } }
+    const F = FAUNE_E; if (F.rien) return; F.t += dt;
+    const dx = ship.x - F.x, dy = ship.y - F.y, d = Math.hypot(dx, dy);
+    if (F.agressif && d < 1150) { const v = 95; F.vx += (dx / d * v - F.vx) * Math.min(1, dt * 1.5); F.vy += (dy / d * v - F.vy) * Math.min(1, dt * 1.5); }
+    else { if (Math.random() < dt * 0.25) F.cap += (Math.random() - 0.5) * 2; const v = 28; F.vx += (Math.cos(F.cap) * v - F.vx) * Math.min(1, dt * 0.8); F.vy += (Math.sin(F.cap) * v - F.vy) * Math.min(1, dt * 0.8); }
+    F.x += F.vx * dt; F.y += F.vy * dt;
+    if (!F.vu && d < 950) { F.vu = true; voir(F.esp); direVite(F.agressif ? '😱 ' + AF[F.esp].nom + ' fonce sur toi !' : '🌠 Un Astrofaune de l’espace : ' + AF[F.esp].nom + ' ! Tire dessus pour sortir l’affronter', 4.5); son(F.agressif ? 'rugit' : 'ok', 0.6); }
+    // un tir du vaisseau le touche : on sort l'affronter ; un agressif qui nous rattrape : il nous attaque
+    const R = 40 + AF[F.esp].tl * 0.35;
+    for (let i = VS.tirs.length - 1; i >= 0; i--) { const q = VS.tirs[i]; if (!q.moi) continue; if (Math.hypot(q.x - F.x, q.y - F.y) < R) { VS.tirs.splice(i, 1); entrerEva(F); return; } }
+    if (F.agressif && d < R + 60) entrerEva(F);
+  }
+  function dessinerFauneEspace(t) {
+    const F = FAUNE_E; if (!F || F.rien || !SYS || F.sys !== SYS.i) return; const im = IMG['p-' + F.esp + '-0']; if (!im) { chargerFamille('espace'); return; }
+    const x = ssx(F.x), y = ssy(F.y) + Math.sin(t * 1.3 + F.n) * 6 * ZS() * 2, k = ZS() * 2, h = AF[F.esp].tl * 1.05 * k, w = im.width * h / im.height; if (x < -w || x > W + w || y < -h || y > H + h) return;
+    const c = TYPES[AF[F.esp].t[0]].c, R = Math.max(w, h) * 0.7; ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, c + '50'); g.addColorStop(0.6, c + '18'); g.addColorStop(1, c + '00'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill(); ctx.restore();   /* une lueur RONDE (pas de carré) */
+    ctx.save(); ctx.translate(x, y); if (F.vx < 0) ctx.scale(-1, 1); ctx.rotate(Math.sin(t * 0.9 + F.n) * 0.06); ctx.drawImage(im, -w / 2, -h / 2, w, h); ctx.restore();
+    if (Math.hypot(ship.x - F.x, ship.y - F.y) < 1300) { const txt = (F.agressif ? '😱 ' : '🌠 ') + AF[F.esp].nom + ' · niv. ' + F.niv; ctx.save(); ctx.font = '800 ' + Math.round(12 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; const tw = ctx.measureText(txt).width + 16 * U, ty = y + h * 0.55 + 12 * U;
+      ctx.fillStyle = 'rgba(8,10,28,0.82)'; ctx.beginPath(); ctx.roundRect(x - tw / 2, ty - 11 * U, tw, 22 * U, 11 * U); ctx.fill(); ctx.strokeStyle = F.agressif ? 'rgba(255,140,120,0.8)' : 'rgba(170,220,255,0.7)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.fillStyle = F.agressif ? '#ffb0a8' : '#d8f0ff'; ctx.fillText(txt, x, ty + 0.5); ctx.restore(); }
+  }
+  // la visée automatique (manette, B) vise aussi l'Astrofaune de l'espace s'il est le plus près
+  const cibleEspaceV16 = cibleEspace;
+  cibleEspace = () => { const e = cibleEspaceV16(), F = FAUNE_E; if (!F || F.rien || !SYS || F.sys !== SYS.i || !ship) return e; const dF = Math.hypot(F.x - ship.x, F.y - ship.y); if (dF > 1300) return e; if (!e || dF < Math.hypot(e.x - ship.x, e.y - ship.y)) return { x: F.x, y: F.y, id: 'faune' }; return e; };
+  // ---------------------------------------------------------------- la sortie dans le vide : le combat (comme une arène, avec le décor de l'espace)
+  function entrerEva(F) {
+    if (CB || state !== 'espace' || !F || F.rien) return; const esp = F.esp, nom = AF[esp].nom, niv = F.niv;
+    msgs = []; FAUNE_E = { sys: F.sys, rien: true };   // il ne revient pas dans ce système (pris, vaincu ou parti)
+    AR = { A: { type: AF[esp].t[0], nom: 'le vide', n: 0, champion: '' }, eva: true, F, t: 0, ancienJ: J, ancienRobot: robot, ancienEtat: 'espace', camX, camY, zf, salle: 0, sbires: [true, true], lasers: 0, aie: 0, fini: true, bulle: null };
+    AR.ancienCR = CR; CR = []; J = nouveauJ(420, SALLE_H / 2); J.th = Math.PI / 2; robot = { x: 350, y: SALLE_H / 2 + 50, ph: 0, joie: 0, dir: 1 };
+    zf = portrait ? H * 0.74 / SALLE_H / Z0 : 1; Z = Z0 * zf; camX = 700; camY = SALLE_H / 2 - 30; state = 'arene'; stT = 0;
+    const c = beteArene(7700, esp, 0, 0); c.bete = { e: esp, n: niv, att: attaquesAuNiveau(esp, niv) };
+    lancerCombat(null, { arene: true, eva: true, cachees: [c], niv: [niv], mx: 760, my: SALLE_H / 2 });
+    if (CB) { for (const G of CB.ennemis) G.sauvage = true; CB.msg = F.agressif ? '😱 ' + nom + ' t’attaque dans le vide !' : '🌠 Tu sors du vaisseau… ' + nom + ' flotte devant toi !'; }
+  }
+  const quitterCombatV16 = quitterCombat;
+  quitterCombat = () => { const eva = CB && CB.opt && CB.opt.eva, issue = CB && CB.issue; quitterCombatV16();
+    if (eva && AR) { sortirArene(); if (issue === 'victoire') dire('🚀 Tu remontes dans ton vaisseau', 3); } };
+  // le décor du combat dans le vide : les étoiles, une nébuleuse de la couleur de la région, la coque de la navette sous tes pieds (bottes magnétiques)
+  const drawSolAreneV16 = drawSolArene;
+  drawSolArene = t => { if (!AR || !AR.eva) return drawSolAreneV16(t); drawVide(t); };
+  function drawVide(t) {
+    const F = AR.F || {}, c = TYPES[AR.A.type] ? TYPES[AR.A.type].c : '#8ab4ff';
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#02030c'); g.addColorStop(1, '#0a0820'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (const [fx, fy, fr, al] of [[0.72, 0.28, 0.55, 0.22], [0.25, 0.7, 0.4, 0.12], [0.9, 0.8, 0.35, 0.1]]) { const q = ctx.createRadialGradient(W * fx, H * fy, 0, W * fx, H * fy, Math.max(W, H) * fr); q.addColorStop(0, c + Math.round(al * 255).toString(16).padStart(2, '0')); q.addColorStop(1, c + '00'); ctx.fillStyle = q; ctx.fillRect(0, 0, W, H); }
+    const r = MONDE.rng(4242 + (F.n || 0)); for (let i = 0; i < 160; i++) { const x = r() * W, y = r() * H, s = r() < 0.08 ? 2.2 : 1.1, a = 0.35 + 0.65 * Math.abs(Math.sin(t * (0.5 + r()) + i)); ctx.fillStyle = 'rgba(255,255,255,' + a + ')'; ctx.fillRect(x, y, s, s); }
+    ctx.restore();
+    // une grosse planète au loin, dans un coin
+    { const px = W * 0.88, py = H * 0.16, pr = Math.min(W, H) * 0.12, q = ctx.createRadialGradient(px - pr * 0.4, py - pr * 0.4, pr * 0.1, px, py, pr); q.addColorStop(0, '#f0e6ff'); q.addColorStop(0.45, c); q.addColorStop(1, '#120a24'); ctx.fillStyle = q; ctx.beginPath(); ctx.arc(px, py, pr, 0, TAU); ctx.fill(); }
+    // la coque de la navette : une large plaque de métal courbe sous ton équipe, avec le sas ouvert et le câble de sécurité
+    const x0 = sx(200), x1 = sx(640), yc = sy(J.y + 70), hh = 70 * Z;   /* sous les pieds du héros et du robot */
+    const m = ctx.createLinearGradient(0, yc - hh, 0, yc + hh * 1.6); m.addColorStop(0, '#e8ecf6'); m.addColorStop(0.45, '#9aa2b8'); m.addColorStop(1, '#2e3246');
+    ctx.fillStyle = m; ctx.strokeStyle = '#141428'; ctx.lineWidth = 3 * Z; ctx.beginPath(); ctx.moveTo(x0 - 120 * Z, yc + hh * 1.6); ctx.quadraticCurveTo(x0, yc - hh, (x0 + x1) / 2, yc - hh * 0.9); ctx.quadraticCurveTo(x1 + 40 * Z, yc - hh * 0.6, x1 + 160 * Z, yc + hh * 1.6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#c8303a'; ctx.fillRect(x0 + 40 * Z, yc - hh * 0.35, (x1 - x0) * 0.75, 10 * Z);
+    for (let i = 0; i < 9; i++) { ctx.fillStyle = '#5a6078'; ctx.beginPath(); ctx.arc(x0 + 30 * Z + i * (x1 - x0) / 9, yc + hh * 0.2, 3.5 * Z, 0, TAU); ctx.fill(); }
+    const hx = sx(320), hy = yc - hh * 0.85; ctx.fillStyle = '#1a1e30'; ctx.beginPath(); ctx.ellipse(hx, hy, 46 * Z, 18 * Z, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = '#ffd23a'; ctx.lineWidth = 3 * Z; ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,220,120,0.8)'; ctx.lineWidth = 2.5 * Z; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.quadraticCurveTo(hx + 60 * Z, hy - 60 * Z, sx(J.x) - 6 * Z, sy(J.y) - 60 * Z); ctx.stroke();
+  }
+  // le Cosmodex : où vit une espèce de l'espace
+  function lieuEspece(a) { return a && a.espace ? 'dans l’espace, région ' + a.reg20 + ' · ' + REG20[a.reg20 - 1].nom + ' 🌠' : null; }
+
 
   // =================================================================== LA BOUCLE
   function update(dt) {
@@ -11794,7 +11882,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     pause() { if (['jeu', 'espace', 'combat', 'arene'].includes(state)) setPaused(true); },   // la borne (Start) : pause partout où le jeu avance tout seul
     resume() { setPaused(false); },
     _test: {
-      v28: () => ({ ARENE_REG, region20, regionOuverte, verrouRegion, sautBloque, prochaineRegionSansBadge, REG20, objectif, chapitre, CHAPITRES, GAL, entrerArene, gagnerBadge: () => gagnerBadge(), AR: () => AR }),
+      v28: () => ({ FAUNE_E: () => FAUNE_E, tirs: () => VS.tirs, entrerEva, ARENE_REG, region20, regionOuverte, verrouRegion, sautBloque, prochaineRegionSansBadge, REG20, objectif, chapitre, CHAPITRES, GAL, entrerArene, gagnerBadge: () => gagnerBadge(), AR: () => AR }),
       state: () => state, J: () => J, PL: () => PL, look: () => look, cine: () => cine,
       crash: () => ({ dep: GAL.depart.i, v17: crashV17(), bid: PL && PL.bid, heure: heure(), phase: phaseJour(heure()), lum: PL && PL.lum, nav: NAV && { x: NAV.x, y: NAV.y, cassee: NAV.cassee, epave: NAV.epave, brume: !!NAV.brume }, epave: epave && { x: epave.x, y: epave.y, repare: !!epave.repare }, pieces: E0().pieces.slice(), posees: E0().posees.slice(), sol: piecesSol.map(q => ({ id: q.id, x: Math.round(q.x), y: Math.round(q.y) })), lieux: lieuxCrash(), radar: E0().radar, radarT: E0().radarT, faune: CR.map(c => ({ e: c.esp, s: c.crash, n: c.nivFixe, nuit: !!c.chasseNuit, x: Math.round(c.x), y: Math.round(c.y) })), cache: CRASH.cache, abri: CRASH.abri, action: actionBtn && actionBtn.txt, etape: crashV17() ? etapeCrash() : null }),
       setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, btnsT: () => tapBtns.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h, t: b.t || '' })), blesserT: d => blesserJoueur(d), vieT: () => COMBAT.vie, setVieT(v) { COMBAT.vie = v; }, soignerMoiT: () => soignerMoi(), creaT: () => ({ on: CREATEUR, ouvert: !!CREA }), afListeT: () => Object.keys(AF).filter(id => !AF[id].ancienne && PANT_DE[id]).map(id => ({ id, tl: AF[id].tl, st: AF[id].st, ailes: !!(PANTINS[PANT_DE[id]] || {}).ailes, auto: !!(PANTINS[PANT_DE[id]] || {}).auto })), filonsT: rad => filonsAutour(J.x, J.y, rad).map(o => ({ x: Math.round(o.x), y: Math.round(o.y), m: o.f.m.id })), entrerGrotte, sortirGrotte, GRT: () => GRT, lieuxCrashT: () => lieuxCrash().map(q => ({ id: q.id, x: q.x, y: q.y })), entrerGrotteT: () => entrerGrotte(), dansGrotte, ouvrirEquipe, fermerEquipe, EQW: () => EQW && { sel: EQW.sel, zones: EQW.zones.map(z => ({ x: z.x, y: z.y, w: z.w, h: z.h, ou: z.ou, i: z.i, place: z.place, bete: z.bete })) }, massifsT: () => massifsHerbe().map(m => ({ x: m.x, y: m.y, r: m.r })), dansHerbeT: () => dansHerbe(), ouCacheT: () => ouCache(tG), sonsT: () => Object.keys(SONS), nappesT: () => nappes(tG).map(n => ({ x: n.x, y: n.y, r: n.r })), dansBrumeT: () => dansBrume(tG), echelleUI: () => ({ W, H, U, dpr, portrait }), sacOuvrir(v) { sacOuvert = v; }, sacSelT: () => sacSel, jeterSac, ongletT: () => ongletC, cosmoT: () => cosmoOuvert, autoMineT: () => autoMine && { arrive: !!autoMine.arrive }, sacFlashT: () => sacFlash, curseur: () => curseurActuel, sac: () => nb(E0().sac), remplirSac(n) { E0().sac.fer = (E0().sac.fer || 0) + n; }, bulleTest: () => bulle && { s: bulle.s, pensee: !!bulle.pensee, t: +bulle.t.toFixed(1) }, fileP: () => PENS_FILE.length, ecran: (x, y) => [sx(x), sy(y)], dpr: () => dpr, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, filonsT: (x, y, r) => filonsAutour(x, y, r).map(o => ({ x: o.x, y: o.y, m: o.f.m.id, q: o.f.qte })), messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
