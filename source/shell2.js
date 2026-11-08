@@ -18835,6 +18835,7 @@ function atlFrise(liste) {
 const ATL_CATS = [['personnage', '🦸', 'Personnages', 'personnages'], ['objet', '🎁', 'Objets', 'objets'], ['decor', '🏞️', 'Décor', 'decor'], ['interface', '🖥️', 'Interface', ''], ['son', '🔊', 'Sons et bruitages', ''], ['musique', '🎵', 'Musiques', '']];
 const atlAssetUrl = a => atlIaUrl(a.image) || atlSonUrl(a.son) || '';
 function atlAssetCat(a, fi) {
+  if (typeof a.onglet === 'string' && a.onglet.trim()) return '';   // 8 nov. : dans son sous-onglet (atlOngletsDe)
   const c = String(a.cat || '').toLowerCase();
   if (/^perso/.test(c)) return 'personnage'; if (/^obj/.test(c)) return 'objet'; if (/^(d[ée]cor|fond)/.test(c)) return 'decor';
   if (/^(interf|ui|logo|titre)/.test(c)) return 'interface'; if (/^musi/.test(c)) return 'musique'; if (/^(son|bruit)/.test(c)) return 'son';
@@ -18910,6 +18911,83 @@ function atlArchiveBloc(f) {
   d.append(sm, atlEl('p', 'atl-aide', 'Retirés du projet par l’équipe : le joueur ne les voit plus et le jeu ne les montre pas. Rien n’est supprimé.'), q, ul, plus);
   return d;
 }
+// ---- 8 nov. 2026 (l'admin, équipe Explorateur) : des SOUS-ONGLETS LIBRES dans les Éléments, pour tous les jeux : un élément qui a un champ `onglet`
+// (« 🏟️ Arènes & badges », « 🖼️ Posters »…) va dans le sous-onglet de ce nom, trié par `onglet_ordre`, et sort des onglets habituels. Une grille de
+// cartes en portrait (2 par ligne au téléphone), le titre (la partie du nom avant « — »), `vignette` si elle existe (la grande image n'est chargée qu'à
+// l'ouverture) ; un toucher = la visionneuse, avec les lignes `infos` en dessous ; `telechargeable` : le menu des résolutions, la 4K en 🔒 💎.
+function atlOngletsDe(f) {
+  const m = new Map();
+  for (const a of (Array.isArray(f && f.assets) ? f.assets : [])) {
+    if (!a || typeof a !== 'object' || typeof a.onglet !== 'string' || !a.onglet.trim() || a.actif === false || !atlIaUrl(a.image)) continue;
+    const k = a.onglet.trim(); if (!m.has(k)) m.set(k, []); m.get(k).push(a);
+  }
+  for (const l of m.values()) l.sort((x, y) => (+x.onglet_ordre || 1e6) - (+y.onglet_ordre || 1e6));
+  return m;
+}
+const atlOngTitre = a => String(atlVal(a.nom) || 'Sans nom').split(' — ')[0].trim();
+const atlOngInfos = a => (Array.isArray(a.infos) ? a.infos : []).filter(l => Array.isArray(l) && l.length >= 2).map(l => [String(l[0]), String(l[1])]);
+function atlOngOuvrir(a, f) {
+  const titre = atlOngTitre(a), nom = (f.titre ? f.titre + ' - ' : '') + titre;
+  atlVisio(atlIaUrl(a.image), { titre, nom, infos: atlOngInfos(a), choixVersions: a.telechargeable ? atlPosterMenu(a, f, nom) : null });
+}
+function atlOngletRendre(lib, l, f) {
+  const sec = atlEl('section', 'atl-libc atl-ong'), gr = atlEl('div', 'atl-onggr'), vide = atlEl('p', 'atl-libvide', 'Rien ne correspond à ta recherche.'); vide.hidden = true;
+  const cartes = l.map(a => {
+    const b = atlEl('button', 'atl-ongc'), im = atlEl('img'), t = atlOngTitre(a); b.type = 'button'; b.setAttribute('aria-label', 'Voir en grand : ' + t);
+    im.alt = ''; im.loading = 'lazy'; im.src = atlIaUrl(a.vignette) || atlIaUrl(a.image); im.onerror = () => b.classList.add('miss');
+    b.append(im, atlEl('span', 'atl-ongt', t)); if (a.telechargeable) b.appendChild(atlEl('span', 'atl-ongdl', '⬇️'));
+    b.addEventListener('click', () => atlOngOuvrir(a, f)); gr.appendChild(b);
+    return { b, tx: atlNorm(atlVal(a.nom) + ' ' + atlOngInfos(a).map(x => x.join(' ')).join(' ')) };
+  });
+  if (l.length >= 8) {   // la recherche cherche aussi dans les lignes « infos »
+    const q = atlEl('input', 'atl-archq atl-ongq'); q.type = 'search'; q.placeholder = '🔎 Chercher…'; q.setAttribute('aria-label', 'Chercher dans cet onglet');
+    q.addEventListener('input', () => { const m = atlNorm(q.value); let n = 0; for (const c of cartes) { const ok = !m || c.tx.includes(m); c.b.hidden = !ok; if (ok) n++; } vide.hidden = n > 0; });
+    sec.appendChild(q);
+  }
+  sec.append(gr, vide); lib.appendChild(sec);
+}
+// le menu « ⬇️ Télécharger » d'un poster : Petite (1080), HD (2160), 4K 🔒 (une seule fois par poster : at_poster_4k). Les versions déposées (image_1080, image_2160)
+// sinon l'image réduite dans le navigateur. Le prix est montré avant, avec un « oui » ; jamais d'achat de crédits automatique.
+async function atlEnregistrerReduit(u, largeur, nom) {
+  if (natApi() > 0 && /^https:/.test(u)) { location.href = u; return 0; }
+  const r = await fetch(u, { mode: 'cors', cache: 'force-cache' }); if (!r.ok) throw new Error('lecture ' + r.status);
+  const bm = await createImageBitmap(await r.blob()), k = Math.min(1, largeur / bm.width), c = document.createElement('canvas'); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k);
+  const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(bm, 0, 0, c.width, c.height); try { bm.close(); } catch (e) {}
+  const b = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.92)); if (!b) throw new Error('image'); atlBlobSauver(b, atlNomFichier(nom, 'x.jpg', 'image/jpeg')); return b.size;
+}
+function atlPosterMenu(a, f, nom) {
+  return ({ bar, dl, enregistre, dlEtat, V }) => {
+    const old = V.querySelector('.atl-vismenu'); if (old) { old.remove(); return; }
+    const M = atlEl('div', 'atl-vismenu'); M.setAttribute('role', 'menu'); M.setAttribute('aria-label', 'Choisir la résolution');
+    const fermer = () => { M.remove(); document.removeEventListener('pointerdown', dehors, true); }, dehors = e => { if (!M.contains(e.target) && !dl.contains(e.target)) fermer(); };
+    const large = parseInt(String(a.taille || '').replace(/\s/g, ''), 10) || 0, img = atlIaUrl(a.image);
+    const reduit = async (url, w, n) => { dl.disabled = true; dlEtat('⏳ …'); try { await atlEnregistrerReduit(url, w, n); dlEtat('✅ Enregistrée', 2500); } catch (e) { dlEtat('⚠️ Réessaie', 3000); } finally { dl.disabled = false; } };
+    const ligne = (t, sous, droite, fn, cls) => { const b = atlEl('button', 'atl-visv' + (cls ? ' ' + cls : '')), tx = atlEl('span', 'atl-visvt'); b.type = 'button'; b.setAttribute('role', 'menuitem'); tx.append(atlEl('b', '', t), atlEl('small', '', sous)); b.append(tx, atlEl('span', 'atl-visvp', droite)); b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); fn(b); }); M.appendChild(b); return b; };
+    const taille = (w, p) => ligne(w === 1080 ? 'Petite' : 'HD', w + ' px', 'Gratuit', () => { fermer(); const dep = atlIaUrl(p); if (dep) enregistre(dep, nom + ' ' + w); else reduit(img, w, nom + ' ' + w); });
+    taille(1080, a.image_1080); if (large >= 2160 || a.image_2160) taille(2160, a.image_2160);
+    if (large && large < 2160 && !a.image_2160) ligne('Grande', large + ' px', 'Gratuit', () => { fermer(); enregistre(img, nom); });
+    if (a.a_4k) {
+      const l4 = ligne('4K', String(a.taille_4k || '3840 px'), '…', () => {}, 'k4'), droite = l4.querySelector('.atl-visvp');
+      let et = null; const prendre = async (achat) => rpc('at_poster_4k', { p_name: profile.name, p_fiche: f.id, p_poster: a.image, p_acheter: !!achat }, { quiet: true });
+      const zone = atlEl('div', 'atl-visoui'); zone.hidden = true; M.appendChild(zone);
+      const dl4 = p => { fermer(); enregistre(atlIaUrl(p), nom + ' 4K'); };
+      l4.disabled = true;
+      prendre(false).then(r => { et = r; if (!M.isConnected) return; l4.disabled = false; droite.textContent = r.achete ? '🔓 Débloquée' : '🔒 ' + r.prix + ' 💎'; l4.classList.toggle('verrou', !r.achete); }).catch(() => { droite.textContent = 'Indisponible'; });
+      l4.addEventListener('click', e => {
+        e.preventDefault(); e.stopPropagation(); if (!et) return; if (et.achete && et.image) { dl4(et.image); return; }
+        zone.hidden = false; zone.textContent = ''; const manque = (+et.prix | 0) - (+et.solde | 0);
+        if (manque > 0) { zone.appendChild(atlEl('p', '', '🔒 La 4K coûte ' + et.prix + ' 💎. Il te manque ' + manque + ' 💎.')); return; }
+        zone.appendChild(atlEl('p', '', 'Débloquer la 4K de ce poster pour ' + et.prix + ' 💎 ? Une seule fois : ensuite, elle reste à toi. (Tu as ' + (+et.solde | 0) + ' 💎.)'));
+        const ou = atlEl('button', 'btn btn-play btn-sm', 'Oui, ' + et.prix + ' 💎'), non = atlEl('button', 'btn btn-ghost btn-sm', 'Non'), er = atlEl('small', 'atl-viserr', ''); ou.type = non.type = 'button';
+        non.addEventListener('click', ev => { ev.stopPropagation(); zone.hidden = true; });
+        ou.addEventListener('click', async ev => { ev.stopPropagation(); ou.disabled = non.disabled = true; try { const r = await prendre(true); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); dl4(r.image); try { atlLoad(true); } catch (x) {} } catch (x) { ou.disabled = non.disabled = false; er.textContent = /credits insuffisants/.test(String(x && x.message)) ? 'Il te manque des crédits.' : 'Pas possible pour l’instant : réessaie dans un moment.'; } });
+        const row = atlEl('div', 'atl-visouib'); row.append(ou, non); zone.append(row, er);
+      });
+    }
+    V.appendChild(M); const r = dl.getBoundingClientRect(); M.style.top = (r.bottom + 6) + 'px'; M.style.right = Math.max(8, innerWidth - r.right) + 'px';
+    setTimeout(() => { if (M.isConnected) document.addEventListener('pointerdown', dehors, true); }, 0);
+  };
+}
 function atlBiblio(host, f, fi, lecture) {
   lecture = true;   // 2.0.123 / 2.0.124 (admin = même écran) (l'admin : « le bouton créer mes éléments, ça les embrouille ») : le joueur regarde ; un nouvel élément, il le demande à la mascotte
   const et = String(f.etat || ''), libre = !lecture && ['brouillon', 'en_discussion', 'complete'].includes(et), items = atlBiblioItems(f, fi);
@@ -18918,17 +18996,21 @@ function atlBiblio(host, f, fi, lecture) {
     items[cat] = items[cat].filter(it => it.asset || !pleins.some(z => atlMemeChose(z.parent || z.nom, it.nom)));
   }
   const lib = atlEl('div', 'atl-lib' + (lecture ? ' lecture' : ''));
-  let cat = store.get('jdw.atl.libcat', 'personnage'); if (!ATL_CATS.some(c => c[0] === cat) && cat !== 'collection') cat = 'personnage';
+  let cat = store.get('jdw.atl.libcat', 'personnage'); const ongs = atlOngletsDe(f), ongCle = k => 'o:' + k, ongCat = String(cat).startsWith('o:') && ongs.has(String(cat).slice(2)); if (!ATL_CATS.some(c => c[0] === cat) && cat !== 'collection' && !ongCat) cat = 'personnage';
   const coll = atlCollection(f);   // 2.0.129 : « 📖 Cosmodex » (ou « Collection ») = les familles à stades, une ligne par lignée
   const pleines = ATL_CATS.filter(([c]) => items[c].length);   // 2.0.125 (chef) : pas d'onglet vide
   if (coll.lignees.length) pleines.push(['collection']);
+  for (const k of ongs.keys()) pleines.push([ongCle(k)]);
   if (cat === 'collection' && !coll.lignees.length) cat = 'personnage';
-  if (pleines.length && cat !== 'collection' && !items[cat].length) cat = pleines[0][0];
+  if (pleines.length && cat !== 'collection' && !ongCat && !items[cat].length) cat = pleines[0][0];
+  const ongSel = String(cat).startsWith('o:') && ongs.has(String(cat).slice(2)) ? ongs.get(String(cat).slice(2)) : null;
   const nav = atlEl('div', 'atl-libnav'); nav.setAttribute('role', 'tablist'); nav.hidden = !pleines.length;
   for (const [k, ic, lab] of ATL_CATS) { if (!items[k].length) continue; const nn = items[k].filter(x => x.neuf).length, b = atlEl('button', 'atl-libt' + (k === cat ? ' on' : '') + (nn ? ' neuf' : ''), ic + ' ' + lab + ' · ' + items[k].length + (nn ? ' · ✨' + nn : '')); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(k === cat)); b.addEventListener('click', () => { store.set('jdw.atl.libcat', k); atlLibVider(host); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
   if (coll.lignees.length) { const b = atlEl('button', 'atl-libt atl-libcoll' + (cat === 'collection' ? ' on' : ''), '📖 ' + coll.nom + ' · ' + coll.n.toLocaleString('fr-FR')); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(cat === 'collection')); b.addEventListener('click', () => { store.set('jdw.atl.libcat', 'collection'); atlLibVider(host); host.textContent = ''; atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
+  for (const [k, l] of ongs) { const c = ongCle(k), b = atlEl('button', 'atl-libt atl-libong' + (c === cat ? ' on' : ''), k + ' · ' + l.length); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(c === cat)); b.addEventListener('click', () => { store.set('jdw.atl.libcat', c); atlLibVider(host); host.textContent = ''; atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }   // 8 nov. : les sous-onglets libres
   lib.appendChild(nav);
   setTimeout(() => { try { const on = nav.querySelector('.atl-libt.on'); if (on && nav.scrollWidth > nav.clientWidth + 4) nav.scrollLeft = Math.max(0, on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2); } catch (e) {} }, 0);   // 2.0.131 : l'onglet choisi toujours en vue (téléphone : la rangée défile)
+  if (ongSel) { atlOngletRendre(lib, ongSel, f); host.appendChild(lib); return; }
   if (cat === 'collection') { lib.appendChild(nav); atlCollRendre(lib, coll); host.appendChild(lib); return; }   // 2.0.129
   const [, ic, lab, k] = ATL_CATS.find(c => c[0] === cat), l = items[cat], visuel = !['son', 'musique'].includes(cat);
   let vue = store.get('jdw.atl.libvue', 'planche'); if (vue !== 'cartes') vue = 'planche';
@@ -21183,10 +21265,19 @@ function atlVisio(u, o) {
   const sc = atlEl('div', 'atl-visc'), im = atlEl('img', 'atl-visimg'); im.alt = o.titre || 'Image en grand'; im.draggable = false; im.decoding = 'async';
   const aide = atlEl('small', 'atl-visaide', TOUCH ? 'Deux doigts pour zoomer · double-toucher : 100 %' : 'Molette pour zoomer · glisser pour te déplacer · double-clic : 100 %');
   sc.appendChild(im); V.append(bar, sc, aide);
+  const infos = Array.isArray(o.infos) ? o.infos.filter(l => Array.isArray(l) && l.length >= 2) : [];   // 8 nov. : les lignes d'information SOUS l'image (l'image reste entière au-dessus) ; repliables
+  let infP = null;
+  if (infos.length) {
+    infP = atlEl('div', 'atl-visinf'); const hb = atlEl('button', 'atl-visinfh', 'ℹ️ Infos'), dl0 = atlEl('dl', 'atl-visinfl'); hb.type = 'button'; hb.setAttribute('aria-expanded', 'true');
+    for (const [k, v] of infos) dl0.append(atlEl('dt', '', String(k)), atlEl('dd', '', String(v)));
+    infP.append(hb, dl0); V.appendChild(infP); if (innerHeight <= 500) infP.classList.add('ferme');
+    hb.addEventListener('click', e => { e.stopPropagation(); hb.setAttribute('aria-expanded', String(infP.classList.toggle('ferme') ? false : true)); setTimeout(() => { place(); ajuste(); }, 0); });
+  }
   const S = { s: 1, x: 0, y: 0, fit: 1, w: 0, h: 0, raf: 0, anim: 0 };
   const pcMaj = () => { pc.textContent = S.w ? Math.round(S.s * 100) + ' %' : ''; };
   const peindre = () => { S.raf = 0; im.style.transform = 'translate3d(' + S.x + 'px,' + S.y + 'px,0) scale(' + S.s + ')'; clearTimeout(S.pcT); S.pcT = setTimeout(pcMaj, 120); const z = S.s > S.fit * 1.01; if (z !== S.z) { S.z = z; V.classList.toggle('zoome', z); } };   // fluide : seul le transform change à chaque image ; le « % » et la classe ne provoquent pas de recalcul pendant le geste
   const plan = () => { if (!S.raf) S.raf = requestAnimationFrame(peindre); };
+  const place = () => { if (infP) sc.style.bottom = infP.offsetHeight + 'px'; aide.hidden = !!infP; };
   const mesure = () => { S.W = sc.clientWidth; S.H = sc.clientHeight; }, taille = () => [S.W, S.H];
   const borne = () => { const [W, H] = taille(), w = S.w * S.s, h = S.h * S.s; S.x = w <= W ? (W - w) / 2 : Math.min(0, Math.max(W - w, S.x)); S.y = h <= H ? (H - h) / 2 : Math.min(0, Math.max(H - h, S.y)); };
   const maxS = () => Math.max(4, S.fit * 6);
@@ -21249,11 +21340,11 @@ function atlVisio(u, o) {
     else if (e.key === '0') { e.preventDefault(); e.stopImmediatePropagation(); anime(S.fit, W / 2, H / 2); }
     else if (!/^(Tab|Enter| )$/.test(e.key)) e.stopImmediatePropagation();   // rien d'autre n'atteint le jeu ni l'Atelier en dessous
   };
-  const rs = () => ajuste();
+  const rs = () => { place(); ajuste(); };
   window.addEventListener('keydown', cle, true); window.addEventListener('resize', rs);
   const avant = document.activeElement;
   ATL_VIS = { el: V, fin: () => { clearTimeout(tapT); clearTimeout(S.pcT); cancelAnimationFrame(S.raf); cancelAnimationFrame(S.anim); window.removeEventListener('keydown', cle, true); window.removeEventListener('resize', rs); V.remove(); try { if (avant && avant.isConnected) avant.focus({ preventScroll: true }); } catch (e) {} } };
-  document.body.appendChild(V);
+  document.body.appendChild(V); place();
   try { history.pushState({ atlVis: 1 }, ''); } catch (e) {}
   im.src = u;
   try { V.focus({ preventScroll: true }); } catch (e) {}
