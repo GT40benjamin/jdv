@@ -460,9 +460,16 @@ async function gcCarte1() {
   GC.nomCarte = gcNom();
   try {
     const c = await rpc('gc_records_carte', { p_name: gcPasCompte() ? '' : gcNom() }, { quiet: true, quiet404: true });
-    GC.carte = c && c.actif ? c : null; GC.carteVue = true;
+    if (!c || typeof c !== 'object') throw new Error('carte vide');
+    GC.carte = c.actif ? c : null; GC.carteVue = true; GC.carteRate = 0;
     gcBouton(); gcSigles(); gcJauge(); gcMonCode(); return c;
-  } catch (e) { return null; }
+  } catch (e) { gcCarteRelance(); return null; }   // un appel raté n'efface ni le bouton ni les 💎 déjà là
+}
+// le serveur n'a pas répondu : on réessaie tout seul, de plus en plus lentement (3 s, 6 s, 12 s… une fois par minute au plus)
+function gcCarteRelance() {
+  if (GC.carteT) return;
+  GC.carteRate = (GC.carteRate || 0) + 1;
+  GC.carteT = setTimeout(() => { GC.carteT = 0; gcCarte(); }, Math.min(60000, 3000 * 2 ** (GC.carteRate - 1)));
 }
 function gcBulleFerme() { if (GC.bulle) { GC.bulle.remove(); GC.bulle = null; } }
 function gcBulle(a, x) {
