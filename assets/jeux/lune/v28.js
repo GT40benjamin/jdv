@@ -2334,7 +2334,7 @@ function mount(root, api) {
       // entrée dans l'atmosphère : tout rougeoie
       if (T > 11.4) { ctx.fillStyle = 'rgba(255,120,40,' + lisse(11.4, 13, T) * 0.85 + ')'; ctx.fillRect(0, 0, W, H); }
       if (T > 6.6 && T < 9.5 && Math.floor(t * 4) % 2) { ctx.fillStyle = 'rgba(255,0,0,0.13)'; ctx.fillRect(0, 0, W, H); }
-      sousTitre(T < 5.4 ? 'Aux confins de la galaxie, ta navette file vers le signal…' : T < 9 ? '⚠️ ALERTE : dérive d’énergie inconnue !' : 'La navette ne répond plus… elle tombe vers une planète inconnue !', T < 5.4 ? lisse(0.4, 1.4, T) * (1 - lisse(5, 5.4, T)) : T < 9 ? lisse(5.6, 6, T) * (1 - lisse(8.6, 9, T)) : lisse(9.2, 9.6, T) * (1 - lisse(12.4, 12.9, T)));
+      sousTitre(T < 5.4 ? 'Aux confins de la galaxie, ta navette file vers le centre…' : T < 9 ? '⚠️ ALERTE : un Astrofaune géant a heurté la navette !' : 'La navette ne répond plus… elle tombe vers une planète inconnue !', T < 5.4 ? lisse(0.4, 1.4, T) * (1 - lisse(5, 5.4, T)) : T < 9 ? lisse(5.6, 6, T) * (1 - lisse(8.6, 9, T)) : lisse(9.2, 9.6, T) * (1 - lisse(12.4, 12.9, T)));
     } else {
       // ---- au sol, vu de dessus : l'épave arrive, s'écrase, l'explorateur se relève
       const kC = lisse(13, 14.8, T);
@@ -2386,7 +2386,7 @@ function mount(root, api) {
   MIN.bidon = { id: 'bidon', nom: 'Bidon de carburant', le: 'le carburant', r: 1, c: '#ffb040', v: 20 };   // V13 : 5 unités de carburant, fait à la raffinerie
   const PIECES = [{ id: 'reservoir', nom: 'le réservoir' }, { id: 'reacteur', nom: 'le réacteur' }, { id: 'antenne', nom: 'l’antenne' }];
   const AMEL = {   // améliorations du vaisseau et de l'équipement (niveau 1 au départ)
-    moteur: { nom: 'Moteur', ico: '🚀', max: 5, prix: [0, 600, 2500, 9000, 30000], aide: n => 'Portée de saut ' + PORTEE[n] + ' · ouvre ' + MONDE.REGIONS[Math.min(4, n - 1)].nom.replace(/^Les? /, '').replace(/^La /, '') },
+    moteur: { nom: 'Moteur', ico: '🚀', max: 5, prix: [0, 600, 2500, 9000, 30000], aide: n => 'Portée de saut ' + PORTEE[n] + ' · va jusqu’à la région ' + [5, 9, 13, 17, 20][Math.min(4, n - 1)] + ' ' },
     soute: { nom: 'Soute', ico: '📦', max: 6, prix: [0, 400, 900, 2000, 4500, 10000], aide: n => CAP_SOUTE[n] + ' places' },
     sac: { nom: 'Sac à dos', ico: '🎒', max: 5, prix: [0, 300, 800, 1800, 4000], aide: n => CAP_SAC[n] + ' places' },
     laser: { nom: 'Laser minier', ico: '⛏️', max: 5, prix: [0, 500, 1400, 3500, 8000], aide: n => 'Mine ' + Math.round(VIT_LASER[n] * 100) + ' % plus vite · ' + ['', 'communs', 'jusqu’aux rares', 'jusqu’aux épiques', 'jusqu’aux légendaires', 'tout, même les mythiques'][n] },
@@ -2943,10 +2943,10 @@ function mount(root, api) {
     const X = E0();
     // V22 : au style des planètes — la carte du système en haut à gauche, puis les pastilles (pièces, soute, carburant), puis 😀 + barres du vaisseau
     ctx.save(); ctx.font = '700 ' + Math.round(15 * U) + 'px ' + FB; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-    const reg = MONDE.REGIONS[SYS.S.reg], l1 = 'Système ' + SYS.S.nom, l2 = 'Étoile ' + SYS.S.et.nom + ' · ' + reg.nom;
+    const reg = MONDE.REGIONS[SYS.S.reg], l1 = 'Système ' + SYS.S.nom, l2 = (/^étoile /.test(SYS.S.et.nom) ? 'É' + SYS.S.et.nom.slice(1) : 'Étoile ' + SYS.S.et.nom) + ' · ' + texteRegion20(SYS.S).replace(/^🌌 /, '');   /* V28 : la région (1 à 20) */
     const w = Math.min(W * (portrait ? 0.62 : 0.4), Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width * 0.86) + 26 * U);
     ctx.fillStyle = 'rgba(16,22,48,0.88)'; ctx.beginPath(); ctx.roundRect(10 * U, 10 * U, w, 46 * U, 12 * U); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = '#ffe9a8'; ctx.fillText(l1, 22 * U, 25 * U, w - 24 * U); ctx.font = '600 ' + Math.round(12.5 * U) + 'px ' + FB; ctx.fillStyle = reg.coul; ctx.fillText(l2, 22 * U, 43 * U, w - 24 * U);
+    ctx.fillStyle = '#ffe9a8'; ctx.fillText(l1, 22 * U, 25 * U, w - 24 * U); ctx.font = '600 ' + Math.round(12.5 * U) + 'px ' + FB; ctx.fillStyle = couleurRegion20(SYS.S); ctx.fillText(l2, 22 * U, 43 * U, w - 24 * U);
     ctx.restore();
     { const y = 62 * U, cap = capSoute(), n = nb(X.soute), cmax = CAP_CARBU[X.amel.reservoir]; let x = 10 * U;
       x += pastille(x, y, '🪙 ' + X.astros.toLocaleString('fr-FR'), '#ffd23a') + 8 * U;
@@ -6151,7 +6151,7 @@ function mount(root, api) {
       if (k < 0.25) { ctx.fillStyle = 'rgba(255,255,255,' + (1 - k / 0.25) + ')'; ctx.fillRect(0, 0, W, H); }   // le flash de l'arrivée
       // le nom du système qui apparaît
       const a = lisse(0.2, 0.45, k) * (1 - lisse(0.85, 1, k));
-      if (a > 0) { const S = GAL.sys[T.vers]; ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.font = Math.round((portrait ? 22 : 30) * U) + 'px ' + FT; ctx.lineWidth = 6; ctx.strokeStyle = '#140a2a'; ctx.fillStyle = '#ffe9a8'; ctx.strokeText(S.nom, W / 2, H * 0.3); ctx.fillText(S.nom, W / 2, H * 0.3); ctx.font = '700 ' + Math.round(13 * U) + 'px ' + FB; ctx.fillStyle = '#bcd0ff'; const l2 = MONDE.REGIONS[S.reg].nom + ' · étoile ' + S.et.nom; ctx.strokeText(l2, W / 2, H * 0.3 + 26 * U); ctx.fillText(l2, W / 2, H * 0.3 + 26 * U); ctx.restore(); }
+      if (a > 0) { const S = GAL.sys[T.vers]; ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.font = Math.round((portrait ? 22 : 30) * U) + 'px ' + FT; ctx.lineWidth = 6; ctx.strokeStyle = '#140a2a'; ctx.fillStyle = '#ffe9a8'; ctx.strokeText(S.nom, W / 2, H * 0.3); ctx.fillText(S.nom, W / 2, H * 0.3); ctx.font = '700 ' + Math.round(13 * U) + 'px ' + FB; ctx.fillStyle = '#bcd0ff'; const l2 = texteRegion20(S).replace(/^🌌 /, '') + ' · étoile ' + S.et.nom;   /* V28 : la région (1 à 20) */ ctx.strokeText(l2, W / 2, H * 0.3 + 26 * U); ctx.fillText(l2, W / 2, H * 0.3 + 26 * U); ctx.restore(); }
     }
     ctx.save(); ctx.globalAlpha = 0.65; ctx.font = '600 ' + Math.round(11 * U) + 'px ' + FB; ctx.fillStyle = '#dfe6ff'; ctx.textAlign = 'right'; ctx.fillText(auDoigt ? 'Touche l’écran pour passer' : 'Clique pour passer', W - 14 * U, H - 14 * U); ctx.restore();
   }
@@ -8001,7 +8001,7 @@ function mount(root, api) {
       ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = '700 ' + Math.round(12.5 * U) + 'px ' + FB; ctx.fillStyle = '#fff';
       const nom = q.a ? q.a.nom + ' · ' + TYPES[q.a.type].ico + ' champion ' + q.a.champion : q.l.nom + (q.l.leg && B.dex[q.l.leg] ? ' · ★ ' + AF[q.l.leg].nom : '');
       ctx.fillText(nom + (fait ? ' ✓' : ''), x + 40 * U, y + lh / 2 - 9 * U, w - 170 * U); ctx.font = '600 ' + Math.round(10.5 * U) + 'px ' + FB; ctx.fillStyle = '#9fb0d8';
-      ctx.fillText('Système ' + S.nom + ' · ' + MONDE.REGIONS[S.reg].nom + ' · niv. ' + (q.a ? q.a.niv : q.l.niv), x + 40 * U, y + lh / 2 + 7 * U, w - 170 * U); ctx.restore();
+      ctx.fillText('Système ' + S.nom + ' · ' + (q.a && q.a.reg20 ? texteRegion20(S) : MONDE.REGIONS[S.reg].nom) + ' · niv. ' + (q.a ? q.a.niv : q.l.niv), x + 40 * U, y + lh / 2 + 7 * U, w - 170 * U); ctx.restore();
       bouton(x + w - 118 * U, y + 3 * U, 112 * U, lh - 10 * U, 'Y aller', () => { if (q.a && q.a.sol) { areneVisee = q.a.id; if (PL && PL.sys === q.a.sys && PL.k === q.a.k && ARSOL) { areneVisee = null; poserDest({ sorte: 'arene', pk: PL.key, x: ARSOL.x, y: ARSOL.y + 60, nom: 'l’arène ' + q.a.nom }); cosmoOuvert = false; dire('🎯 Cap sur l’arène ' + q.a.nom, 4); return; } poserDest({ sorte: 'planete', nom: MONDE.planete(q.a.sys, q.a.k).nom, sys: q.a.sys, k: q.a.k }); cosmoOuvert = false; dire('🎯 Cap sur la planète de l’arène ' + q.a.nom + ' : ouvre la carte 🗺️', 4); return; } poserDest({ sorte: 'systeme', nom: S.nom, sys: S.i }); cosmoOuvert = false; dire('🎯 Cap sur le système ' + S.nom + ' : ouvre la carte 🗺️', 4); }, false, '🎯');
     });
     if (pages > 1) { const by = y0 + 24 * U + par * lh; bouton(px + 14 * U, by, 44 * U, 30 * U, '', () => { pageAv = Math.max(0, pageAv - 1); }, false, '◀'); bouton(px + pw - 58 * U, by, 44 * U, 30 * U, '', () => { pageAv = Math.min(pages - 1, pageAv + 1); }, false, '▶');
@@ -8320,7 +8320,9 @@ function mount(root, api) {
     ctx.restore();
     padAide([['a', 'Valider'], ['b', 'Retour'], ['dpad', 'Choisir']].concat(state === 'carte' ? [['lt', 'Zoom −'], ['rt', 'Zoom +']] : []).concat(padHudOk() ? [['select', 'Fermer le menu']] : []));
   }
-  // =================================================================== V17 : LE PROLOGUE (nouvelle partie) — Astréa, le Concours des Rêves, le signal, le choix du compagnon, le grand départ, la dérive… puis le crash
+  // =================================================================== V17 : LE PROLOGUE (nouvelle partie) — Astréa, le Concours des Rêves, la mission, le choix du compagnon, le grand départ, la dérive… puis le crash
+  // V28 (commande de PATOU, 8 nov.) : plus de signal : l'Agence t'envoie explorer le CENTRE de la galaxie à la recherche des Astrofaunes légendaires,
+  // et sur la route, un Astrofaune (Nébuléa, le grand papillon de l'image) bouscule ta navette. Mêmes images : leurs textes disent ce qu'elles montrent.
   // Une grande image par scène (paquet v16/a-prologue.bin), le texte arrive mot par mot, toucher / A = la suite. Après le choix, le compagnon CHOISI est dessiné sur les images.
   // Les anciennes parties (SAVE.cine déjà vu) ne repassent pas par ici : elles gardent tout.
   const PROLOGUE = [
@@ -8328,12 +8330,12 @@ function mount(root, api) {
     { k: 'reve', txt: ['Depuis tout petit, tu as un rêve : partir dans les étoiles, à la rencontre des Astrofaunes des autres planètes.'] },
     { k: 'concours', txt: ['Un jour, l’Agence spatiale annonce le Concours des Rêves, ouvert à tous les jeunes d’Astréa.'] },
     { k: 'victoire', txt: ['Épreuve après épreuve… tu gagnes !', 'Ta place chez les jeunes explorateurs de l’Agence est à toi.'] },
-    { k: 'alarme', txt: ['Quelques jours plus tard, une alarme retentit à l’Agence.', 'Un signal arrive d’une planète inconnue… avec une énergie qui ressemble à celle de Nébuléa, l’Astrofaune légendaire !'] },
-    { k: 'choix', txt: ['Le directeur de l’Agence te confie la mission : « Veux-tu devenir notre premier jeune explorateur des étoiles ? »', '« Tu ne partiras pas seul. Choisis ton compagnon d’aventure. »'], apres: 'choix' },
+    { k: 'alarme', txt: ['Quelques jours plus tard, l’Agence t’appelle devant son grand écran : toute la galaxie, avec sa grande spirale.', 'Tout au centre vivent les Astrofaunes légendaires… mais personne n’est encore jamais allé jusque-là !'] },
+    { k: 'choix', txt: ['Le directeur te confie la mission : « Pars explorer le Bras d’Astréa, région après région, jusqu’au centre de la galaxie, et trouve les Astrofaunes légendaires ! »', '« Tu ne partiras pas seul. Choisis ton compagnon d’aventure. »'], apres: 'choix' },
     { k: 'depart', txt: ['Toute la ville est venue pour ton grand départ.', '10… 9… 8…'], comp: { x: 0.612, y: 0.775, h: 0.14 } },
     { k: 'decollage', txt: ['3… 2… 1… DÉCOLLAGE !'] },
-    { k: 'espace', txt: ['Pour la première fois, tu vois Astréa depuis l’espace.', 'Cap sur le signal !'], comp: { x: 0.56, y: 0.95, h: 0.34 } },
-    { k: 'derive', txt: ['Soudain, une énergie inconnue secoue la navette…', 'Nébuléa, l’Astrofaune légendaire, passe tout près ! Plus rien ne répond…'] }
+    { k: 'espace', txt: ['Pour la première fois, tu vois Astréa depuis l’espace.', 'Cap sur le centre de la galaxie !'], comp: { x: 0.56, y: 0.95, h: 0.34 } },
+    { k: 'derive', txt: ['Soudain, un tourbillon d’énergie… et un immense Astrofaune papillon surgit devant toi !', 'Il bouscule ta navette de plein fouet : c’était Nébuléa, l’Astrofaune légendaire ! Plus rien ne répond…'] }
   ];
   const CHOIX_PRO = ['braise1', 'clapot1', 'mousse1', 'robot'];
   let PRO = null;
@@ -10090,8 +10092,8 @@ function mount(root, api) {
   function msgAntenne() {
     messageAgence([
       '📡 LIAISON RÉTABLIE ! Bravo, explorateur : on t’entend parfaitement maintenant !',
-      'Grande nouvelle : le signal que nous avions capté avant ton départ, l’énergie de NÉBULÉA, l’Astrofaune légendaire… il vient du CŒUR DE LA GALAXIE !',
-      ((E0().amel.moteur || 1) >= 5 ? 'Ton moteur Mk5 peut t’y emmener : file vers le Cœur ! Nous te guiderons.' : (E0().amel.moteur || 1) >= 3 ? 'Ton moteur Mk' + E0().amel.moteur + ' est déjà un bon début : il te faudra jusqu’au Mk5 pour atteindre le Cœur. Nous te guiderons.' : 'Pour aller si loin, il te faudra des moteurs plus puissants : Mk3, Mk4, puis Mk5. Nous te guiderons à chaque étape.') + ' Et si une analyse au sol trouve un jour une archive des Anciens… c’est un trésor ultra rare !'
+      'Grande nouvelle : la route des Astrofaunes légendaires suit le BRAS D’ASTRÉA, région après région, jusqu’au Seuil Interdit, tout près du trou noir de l’hyper-centre.',
+      'Chaque région a son arène, avec ses sbires et son champion. Gagne leurs 20 badges : chaque badge t’ouvre la région suivante ! ' + ((E0().amel.moteur || 1) >= 5 ? 'Ton moteur Mk5 peut t’emmener partout sur le bras.' : 'Pour aller loin, il te faudra aussi des moteurs plus puissants, jusqu’au Mk5.') + ' Nous te guiderons. Et si une analyse au sol trouve un jour une archive des Anciens… c’est un trésor ultra rare !'
     ], () => { const n = chapitre(); if (n) dire('📜 ' + n.but, 4.5); });
   }
   // ---------------------------------------------------------------- la grotte de l'écho (sur la planète hostile de la mission)
@@ -10197,7 +10199,7 @@ function mount(root, api) {
     if ((chapId() === 'saut2' || chapId() === 'antenne') && state === 'espace' && !transi && SYS && SYS.i === M.sys && !X.agence1 && !recit) { X.agence1 = 1; sauver(); setTimeout(() => { if (!dead) msgArrivee(); }, 1200); }
     // les étapes suivantes : un mot de l'Agence à chaque nouveau moteur, puis au Cœur
     if (X.antenne && !recit && (state === 'espace' || state === 'station' || state === 'jeu')) {
-      const mk = X.amel.moteur || 1; if (mk > (X.agenceMk || 2)) { X.agenceMk = mk; sauver(); dire(mk >= 5 ? '📡 L’Agence : « Le moteur Mk5 ! Tu peux atteindre le CŒUR de la galaxie. Le signal de Nébuléa n’a jamais été aussi fort… Prudence, une Ombre le garde ! »' : '📡 L’Agence : « Bravo pour le moteur Mk' + mk + ' ! Le signal de Nébuléa est de plus en plus fort… continue vers le Cœur ! »', 7); }
+      const mk = X.amel.moteur || 1; if (mk > (X.agenceMk || 2)) { X.agenceMk = mk; sauver(); dire(mk >= 5 ? '📡 L’Agence : « Le moteur Mk5 ! Rien ne t’arrête plus sur le Bras d’Astréa… jusqu’au Seuil Interdit ! »' : '📡 L’Agence : « Bravo pour le moteur Mk' + mk + ' ! Tu peux aller plus loin sur le Bras d’Astréa : les arènes t’attendent ! »', 7);   /* V28 */ }
     }
     if (state !== 'jeu' || !PL || !J) { AGV.pk = state === 'espace' ? null : AGV.pk; return; }
     if (AGV.pk !== PL.key) { AGV.pk = PL.key; AGV.an = -1; setTimeout(() => { if (!dead && state === 'jeu') arriveeIci(); }, 2200); }
@@ -11527,6 +11529,69 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     if (n && n < 20 && !avant && CB) CB.gain.push('🔓 La région ' + (n + 1) + ' · ' + REG20[n].nom + ' est ouverte !');
     if (n === 20 && CB) CB.gain.push('🕳️ Les 20 badges ! Le trou noir de l’hyper-centre t’attend… plus tard');
   };
+
+  // ---------------------------------------------------------------- V28 morceau 3 : LES 20 BADGES ILLUSTRÉS (paquet v16/a-badges.bin : p-badge<n>-0, n = la région)
+  // du plus simple au plus incroyable : bronze (1-4), argent (5-8), or (9-12), platine (13-16), cristal (17-19), légendaire (20, le Seuil Interdit)
+  const MATIERE20 = n => n <= 4 ? 'bronze' : n <= 8 ? 'argent' : n <= 12 ? 'or' : n <= 16 ? 'platine' : n <= 19 ? 'cristal' : 'légendaire';
+  function imgBadge(n) { if (!n) return null; const im = IMG['p-badge' + n + '-0']; if (!im) chargerFamille('badges'); return im || null; }
+  // le badge illustré remplace le badge dessiné en code PARTOUT (vaisseau-arène, salle du champion, cérémonie, bâtiment au sol, listes) ; tant qu'il charge, l'ancien
+  const dessinerBadgeV16 = dessinerBadge;
+  dessinerBadge = (x, y, r, A, t, petit) => {
+    const n = A && A.reg20, im = imgBadge(n); if (!im) return dessinerBadgeV16(x, y, r, A, t, petit);
+    const s = 2.3 * r / Math.max(im.width, im.height), w = im.width * s, h = im.height * s;
+    ctx.save(); ctx.translate(x, y); if (!petit) ctx.rotate(Math.sin(t * 1.2) * 0.08);
+    if (!petit || n >= 13) {   // une aura qui respire derrière les grands badges (et toujours derrière les badges de platine, de cristal et le légendaire)
+      const c = n === 20 ? '200,140,255' : n >= 17 ? '190,240,255' : n >= 13 ? '220,230,255' : '255,220,140', g = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, r * 1.5);
+      g.addColorStop(0, 'rgba(' + c + ',' + (0.35 + 0.15 * Math.sin(t * 2.4)) + ')'); g.addColorStop(1, 'rgba(' + c + ',0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 1.5, 0, TAU); ctx.fill();
+    }
+    ctx.drawImage(im, -w / 2, -h / 2, w, h);
+    if (!petit) {   // un reflet qui traverse le badge de temps en temps
+      const k = ((t * 0.35) % 1.6) - 0.3; if (k > 0 && k < 1) { ctx.globalCompositeOperation = 'lighter'; const gx = -w / 2 + w * k, g = ctx.createLinearGradient(gx - w * 0.15, 0, gx + w * 0.15, 0);
+        g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(-w / 2, -h / 2, w, h); }
+    }
+    ctx.restore();
+  };
+  // le badge d'une région (gagné ou non) : en couleur, ou en ombre sombre
+  function badgeRegionImg(n, x, y, r, t, gagne, petit) {
+    const A = ARENE_REG[n]; if (!A) return;
+    if (gagne) { dessinerBadge(x, y, r, A, t, petit); return; }
+    const im = imgBadge(n); ctx.save(); ctx.globalAlpha = 0.6; ctx.filter = 'brightness(0.32) saturate(0)';
+    if (im) { const s = 2.3 * r / Math.max(im.width, im.height); ctx.drawImage(im, x - im.width * s / 2, y - im.height * s / 2, im.width * s, im.height * s); } else dessinerBadgeV16(x, y, r, A, 0, true);
+    ctx.restore();
+  }
+  // ---------------------------------------------------------------- la COLLECTION, en haut de la page « Aventure » du Cosmodex ; toucher un badge l'ouvre en grand
+  let selBadge20 = 0;
+  const pageAventureV16 = pageAventure;
+  pageAventure = (px, y0, pw, h0, t) => {
+    const cols = portrait ? 10 : 20, rangs = 20 / cols, cell = Math.min((pw - 28 * U) / cols, 46 * U), hb = 24 * U + rangs * (cell + 6 * U);
+    ctx.save(); ctx.font = '800 ' + Math.round(13 * U) + 'px ' + FB; ctx.fillStyle = '#ffe9a8'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('🏅 Ma collection de badges · ' + badgesGagnes() + ' / 20 (touche un badge)', px + 14 * U, y0, pw - 28 * U); ctx.restore();
+    const x0 = px + (pw - cols * cell) / 2;
+    for (let n = 1; n <= 20; n++) {
+      const cx = x0 + ((n - 1) % cols) * cell + cell / 2, cy = y0 + 20 * U + Math.floor((n - 1) / cols) * (cell + 6 * U) + cell / 2, g = badgeRegion(n);
+      if (selBadge20 === n) { ctx.save(); ctx.fillStyle = 'rgba(255,233,168,0.18)'; ctx.beginPath(); ctx.arc(cx, cy, cell * 0.5, 0, TAU); ctx.fill(); ctx.restore(); }
+      badgeRegionImg(n, cx, cy, cell * 0.38, t, g, true);
+      if (!g) { ctx.save(); ctx.font = '800 ' + Math.round(10 * U) + 'px ' + FB; ctx.fillStyle = '#cfd6f0'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(n), cx, cy); ctx.restore(); }
+      tapBtns.push({ x: cx - cell / 2, y: cy - cell / 2, w: cell, h: cell, f: () => { selBadge20 = selBadge20 === n ? 0 : n; } });
+    }
+    pageAventureV16(px, y0 + hb, pw, h0 - hb, t);
+    if (selBadge20) ficheBadge20(selBadge20, px, y0, pw, h0, t);
+  };
+  // le badge en grand : sa région, son arène, son champion, sa matière
+  function ficheBadge20(n, px, y0, pw, h0, t) {
+    const A = ARENE_REG[n], R = REG20[n - 1], g = badgeRegion(n), w = Math.min(pw - 40 * U, 420 * U), h = Math.min(h0, 330 * U), x = px + (pw - w) / 2, y = y0 + (h0 - h) / 2;
+    ctx.save(); ctx.fillStyle = 'rgba(10,8,28,0.97)'; ctx.strokeStyle = g ? '#ffd23a' : R.c; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.roundRect(x, y, w, h, 16 * U); ctx.fill(); ctx.stroke(); ctx.restore();
+    badgeRegionImg(n, x + w / 2, y + h * 0.36, Math.min(w, h) * 0.24, t, g, false);
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; let yy = y + h * 0.64;
+    ctx.font = Math.round(17 * U) + 'px ' + FT; ctx.fillStyle = g ? '#ffd23a' : '#dfe6ff'; ctx.fillText((g ? '🏅 ' : '') + 'Badge ' + R.nom, x + w / 2, yy, w - 20 * U); yy += 24 * U;
+    ctx.font = '700 ' + Math.round(12 * U) + 'px ' + FB; ctx.fillStyle = R.c; ctx.fillText('Région ' + n + ' · badge ' + (MATIERE20(n) === 'légendaire' ? 'légendaire' : 'de ' + MATIERE20(n)), x + w / 2, yy, w - 20 * U); yy += 18 * U;
+    ctx.fillStyle = '#cfe0ff'; ctx.fillText(A ? '🏟️ Arène ' + A.nom + ' · champion ' + A.champion + ' · niv. ' + A.niv : '', x + w / 2, yy, w - 20 * U); yy += 18 * U;
+    ctx.fillStyle = g ? '#7affd0' : '#ffb0a8'; ctx.fillText(g ? '✓ Gagné : la région ' + (n < 20 ? (n + 1) + ' est ouverte' : 'de l’hyper-centre t’attend…') : regionOuverte(n) ? 'Bats les sbires puis le champion pour le gagner' : '🔒 Il faut d’abord le badge de la région ' + (n - 1), x + w / 2, yy, w - 20 * U);
+    ctx.restore();
+    tapBtns.push({ x: px, y: y0, w: pw, h: h0, f: () => { selBadge20 = 0; } });
+  }
+  // la liste des arènes de la page « Aventure » : dans l'ordre des régions (Astréa d'abord), et la région écrite sous chaque arène
+  ARENES.sort((a, b) => (a.reg20 || 99) - (b.reg20 || 99));
 
 
   // =================================================================== LA BOUCLE
