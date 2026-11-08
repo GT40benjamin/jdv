@@ -915,3 +915,6 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 .crea-saisie{flex-wrap:wrap}
 .crea-saisie .crea-autow{flex:1 0 100%;order:-1;min-width:0;padding:0 2px}
 .crea-saisie .crea-autow:empty{display:none}
+/* le panneau de conversation est étroit même sur PC (≈ 330-420 px) : l'interrupteur, « jusqu'à [X 💎 ▾] » puis l'explication en dessous, jamais coupés */
+.crea-autow .atl-autosw{flex-wrap:wrap;row-gap:6px}
+.crea-autow .atl-autosw-s{flex-basis:100%;-webkit-line-clamp:3}
