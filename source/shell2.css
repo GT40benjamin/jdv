@@ -6271,3 +6271,7 @@ body:has(#jdw-liveinv:not([hidden])) .fs-tip{display:none!important}
 .atl-chat .atl-fdem .atl-brep{border-color:rgba(20,60,30,.25);background:rgba(255,255,255,.75);color:#1d4d2a}
 /* 8 nov. 2026 : sur une photo étroite (téléphone), la légende de l'œil prend toute la largeur, sous l'œil (au-dessus s'il est en bas) */
 .atl-arleg.large{right:6px;max-width:none;margin:34px 0 0;transform:none}.atl-arleg.large.haut{margin-top:-34px;transform:translateY(-100%)}
+/* 8 nov. : « ⬇️ Télécharger » dans la visionneuse */
+.atl-visbar .atl-visdl{flex:none;min-height:40px;color:#fff;border-color:rgba(255,255,255,.35);white-space:nowrap}
+.atl-visbar .atl-visdl:disabled{opacity:.7;cursor:progress}
+@media (max-width:560px){.atl-vist{display:none}.atl-vispc{flex:1;min-width:0}.atl-visbar{gap:6px}}

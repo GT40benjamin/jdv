@@ -21164,19 +21164,30 @@ function atlVisioFermer(parHistoire) {
   if (!parHistoire && history.state && history.state.atlVis) { ATL_VIS_RETOUR = true; try { history.back(); } catch (e) { ATL_VIS_RETOUR = false; } }
   return true;
 }
+// 8 nov. (l'admin : « un bouton Télécharger qui enregistre l'image en PLEINE taille, au PC et au téléphone ») : le fichier d'origine, lu en blob
+// (un <a download> vers une autre origine est ignoré par le navigateur) ; o.versions = plusieurs résolutions (Posters) : [{ t, sous, url | obtenir(), reduire, prix, verrou }]
+const atlNomFichier = (t, u, type) => { const ext = /png/.test(type || '') ? 'png' : /webp/.test(type || '') ? 'webp' : /jpe?g/.test(type || '') ? 'jpg' : ((/\.(png|jpe?g|webp)(?:[?#]|$)/i.exec(String(u)) || [])[1] || 'jpg').toLowerCase().replace('jpeg', 'jpg');
+  const b = String(t || 'image').replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F\u200D]/gu, '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'image'; return b + '.' + ext; };
+function atlBlobSauver(blob, nom) { const a = document.createElement('a'), u = URL.createObjectURL(blob); a.href = u; a.download = nom; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 30000); }
+async function atlEnregistrer(u, nom) {
+  if (natApi() > 0 && /^https:/.test(u)) { location.href = u; return 0; }   // l'appli Android (WebView) n'enregistre pas les blobs : l'image s'ouvre dans le navigateur du téléphone, qui sait l'enregistrer
+  const r = await fetch(u, { mode: 'cors', cache: 'force-cache' }); if (!r.ok) throw new Error('lecture ' + r.status);
+  const b = await r.blob(); atlBlobSauver(b, atlNomFichier(nom, u, b.type)); return b.size;
+}
 function atlVisio(u, o) {
   if (!u) return null; o = o || {};
   atlVisioFermer(true);
   const V = atlEl('div', 'atl-visio'); V.setAttribute('role', 'dialog'); V.setAttribute('aria-modal', 'true'); V.setAttribute('aria-label', o.titre || 'Image en grand'); V.tabIndex = -1;
-  const bar = atlEl('div', 'atl-visbar'), bk = atlEl('button', 'btn btn-ghost btn-sm atl-visret', '← Retour'), tt = atlEl('span', 'atl-vist', o.titre || ''), pc = atlEl('span', 'atl-vispc', ''), x = atlEl('button', 'icon-btn atl-visx', '✕');
-  bk.type = x.type = 'button'; x.setAttribute('aria-label', 'Fermer'); bar.append(bk, tt, pc, x);
+  const bar = atlEl('div', 'atl-visbar'), bk = atlEl('button', 'btn btn-ghost btn-sm atl-visret', '← Retour'), tt = atlEl('span', 'atl-vist', o.titre || ''), pc = atlEl('span', 'atl-vispc', ''), x = atlEl('button', 'icon-btn atl-visx', '✕'), dl = atlEl('button', 'btn btn-ghost btn-sm atl-visdl', '⬇️ Télécharger');
+  bk.type = x.type = dl.type = 'button'; x.setAttribute('aria-label', 'Fermer'); dl.setAttribute('aria-label', 'Télécharger l’image en pleine taille'); bar.append(bk, tt, pc); if (o.telecharger !== false) bar.appendChild(dl); bar.appendChild(x);
   const sc = atlEl('div', 'atl-visc'), im = atlEl('img', 'atl-visimg'); im.alt = o.titre || 'Image en grand'; im.draggable = false; im.decoding = 'async';
   const aide = atlEl('small', 'atl-visaide', TOUCH ? 'Deux doigts pour zoomer · double-toucher : 100 %' : 'Molette pour zoomer · glisser pour te déplacer · double-clic : 100 %');
   sc.appendChild(im); V.append(bar, sc, aide);
   const S = { s: 1, x: 0, y: 0, fit: 1, w: 0, h: 0, raf: 0, anim: 0 };
-  const peindre = () => { S.raf = 0; im.style.transform = 'translate3d(' + S.x + 'px,' + S.y + 'px,0) scale(' + S.s + ')'; pc.textContent = S.w ? Math.round(S.s * 100) + ' %' : ''; V.classList.toggle('zoome', S.s > S.fit * 1.01); };
+  const pcMaj = () => { pc.textContent = S.w ? Math.round(S.s * 100) + ' %' : ''; };
+  const peindre = () => { S.raf = 0; im.style.transform = 'translate3d(' + S.x + 'px,' + S.y + 'px,0) scale(' + S.s + ')'; clearTimeout(S.pcT); S.pcT = setTimeout(pcMaj, 120); const z = S.s > S.fit * 1.01; if (z !== S.z) { S.z = z; V.classList.toggle('zoome', z); } };   // fluide : seul le transform change à chaque image ; le « % » et la classe ne provoquent pas de recalcul pendant le geste
   const plan = () => { if (!S.raf) S.raf = requestAnimationFrame(peindre); };
-  const taille = () => [sc.clientWidth, sc.clientHeight];
+  const mesure = () => { S.W = sc.clientWidth; S.H = sc.clientHeight; }, taille = () => [S.W, S.H];
   const borne = () => { const [W, H] = taille(), w = S.w * S.s, h = S.h * S.s; S.x = w <= W ? (W - w) / 2 : Math.min(0, Math.max(W - w, S.x)); S.y = h <= H ? (H - h) / 2 : Math.min(0, Math.max(H - h, S.y)); };
   const maxS = () => Math.max(4, S.fit * 6);
   const zoomA = (ns, cx, cy) => { ns = Math.min(maxS(), Math.max(S.fit, ns)); const k = ns / S.s; S.x = cx - (cx - S.x) * k; S.y = cy - (cy - S.y) * k; S.s = ns; borne(); plan(); };
@@ -21186,7 +21197,7 @@ function atlVisio(u, o) {
     const t0 = performance.now(), pas = t => { const q = Math.min(1, (t - t0) / 180), e = 1 - Math.pow(1 - q, 3); S.s = s0 + (s1 - s0) * e; S.x = x0 + (x1 - x0) * e; S.y = y0 + (y1 - y0) * e; peindre(); if (q < 1) S.anim = requestAnimationFrame(pas); };
     S.anim = requestAnimationFrame(pas);
   };
-  const ajuste = () => { if (!S.w) return; const [W, H] = taille(); if (!W || !H) return; const ent = !S.s || S.s <= S.fit * 1.001; S.fit = Math.min(W / S.w, H / S.h, 2); if (ent) S.s = S.fit; else S.s = Math.max(S.s, S.fit); borne(); plan(); };   // une petite image : jusqu'à 2× pour remplir
+  const ajuste = () => { mesure(); if (!S.w) return; const [W, H] = taille(); if (!W || !H) return; const ent = !S.s || S.s <= S.fit * 1.001; S.fit = Math.min(W / S.w, H / S.h, 2); if (ent) S.s = S.fit; else S.s = Math.max(S.s, S.fit); borne(); plan(); };   // une petite image : jusqu'à 2× pour remplir
   const bascule = (cx, cy) => { if (S.s > S.fit * 1.05) anime(S.fit, cx, cy); else anime(S.fit >= 0.95 ? S.fit * 2 : 1, cx, cy); };   // « entière » ⇄ 100 % (une petite image, déjà en grand : ×2)
   im.addEventListener('load', () => { S.w = im.naturalWidth || 1; S.h = im.naturalHeight || 1; im.style.width = S.w + 'px'; im.style.height = S.h + 'px'; S.s = 0; ajuste(); peindre(); V.classList.add('pret'); });
   im.addEventListener('error', () => { sc.textContent = ''; sc.appendChild(atlEl('p', 'atl-vismiss', '🖼️ Cette image n’arrive pas. Réessaie dans un moment.')); });
@@ -21226,6 +21237,9 @@ function atlVisio(u, o) {
   sc.addEventListener('click', e => e.stopPropagation()); bar.addEventListener('click', e => e.stopPropagation());
   const ferme = e => { if (e) { e.preventDefault(); e.stopPropagation(); } atlVisioFermer(); };
   bk.addEventListener('click', ferme); x.addEventListener('click', ferme);
+  const dlTexte = dl.textContent, dlEtat = (t, ms) => { dl.textContent = t; clearTimeout(dl._t); if (ms) dl._t = setTimeout(() => { dl.textContent = dlTexte; }, ms); };
+  const enregistre = async (url, nom) => { dl.disabled = true; dlEtat('⏳ …'); try { await atlEnregistrer(url, nom); dlEtat('✅ Enregistrée', 2500); } catch (e) { dlEtat('⚠️ Réessaie', 3000); } finally { dl.disabled = false; } };
+  dl.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (typeof o.choixVersions === 'function') { o.choixVersions({ bar, dl, enregistre, dlEtat, V }); return; } let t0 = ''; try { t0 = (atlFiche() || {}).titre || ''; } catch (x) {} enregistre(u, o.nom || o.titre || t0 || 'image'); });
   const cle = e => {
     if (!atlVisioOuverte()) return;
     if (e.key === 'Escape') { ferme(e); e.stopImmediatePropagation(); return; }
@@ -21238,7 +21252,7 @@ function atlVisio(u, o) {
   const rs = () => ajuste();
   window.addEventListener('keydown', cle, true); window.addEventListener('resize', rs);
   const avant = document.activeElement;
-  ATL_VIS = { el: V, fin: () => { clearTimeout(tapT); cancelAnimationFrame(S.raf); cancelAnimationFrame(S.anim); window.removeEventListener('keydown', cle, true); window.removeEventListener('resize', rs); V.remove(); try { if (avant && avant.isConnected) avant.focus({ preventScroll: true }); } catch (e) {} } };
+  ATL_VIS = { el: V, fin: () => { clearTimeout(tapT); clearTimeout(S.pcT); cancelAnimationFrame(S.raf); cancelAnimationFrame(S.anim); window.removeEventListener('keydown', cle, true); window.removeEventListener('resize', rs); V.remove(); try { if (avant && avant.isConnected) avant.focus({ preventScroll: true }); } catch (e) {} } };
   document.body.appendChild(V);
   try { history.pushState({ atlVis: 1 }, ''); } catch (e) {}
   im.src = u;
