@@ -18983,6 +18983,12 @@ function atlPosterMenu(a, f, nom) {
     const reduit = async (url, w, n) => { dl.disabled = true; dlEtat('⏳ …'); try { await atlEnregistrerReduit(url, w, n); dlEtat('✅ Enregistrée', 2500); } catch (e) { dlEtat('⚠️ Réessaie', 3000); } finally { dl.disabled = false; } };
     const ligne = (t, sous, droite, fn, cls) => { const b = atlEl('button', 'atl-visv' + (cls ? ' ' + cls : '')), tx = atlEl('span', 'atl-visvt'); b.type = 'button'; b.setAttribute('role', 'menuitem'); tx.append(atlEl('b', '', t), atlEl('small', '', sous)); b.append(tx, atlEl('span', 'atl-visvp', droite)); b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); fn(b); }); M.appendChild(b); return b; };
     const taille = (w, p) => ligne(w === 1080 ? 'Petite' : 'HD', w + ' px', 'Gratuit', () => { fermer(); const dep = atlIaUrl(p); if (dep) enregistre(dep, nom + ' ' + w); else reduit(img, w, nom + ' ' + w); });
+    // 8 nov. (décision de l'admin, données d'Explorateur) : `gratuit` / `payant` : seule la version gratuite se télécharge ; 4K et impression sont payantes, et leur livraison (fichiers privés) n'existe pas encore : « Bientôt », sans rien vendre
+    if (typeof a.gratuit === 'string' && Array.isArray(a.payant)) {
+      ligne('Gratuite', String(a.taille || a.gratuit + ' px'), 'Gratuit', () => { fermer(); enregistre(img, nom); });
+      const NOMS = { '4k': ['4K', a.taille_4k], impression: ['À imprimer', a.taille_impression] };
+      for (const k of a.payant) { const x = NOMS[k]; if (!x) continue; const b = ligne(x[0], String(x[1] || ''), '🔒 Bientôt', () => {}, 'verrou'); b.disabled = true; }
+    } else {
     taille(1080, a.image_1080); if (large >= 2160 || a.image_2160) taille(2160, a.image_2160);
     if (large && large < 2160 && !a.image_2160) ligne('Grande', large + ' px', 'Gratuit', () => { fermer(); enregistre(img, nom); });
     if (a.a_4k) {
@@ -19002,6 +19008,7 @@ function atlPosterMenu(a, f, nom) {
         ou.addEventListener('click', async ev => { ev.stopPropagation(); ou.disabled = non.disabled = true; try { const r = await prendre(true); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); dl4(r.image); try { atlLoad(true); } catch (x) {} } catch (x) { ou.disabled = non.disabled = false; er.textContent = /credits insuffisants/.test(String(x && x.message)) ? 'Il te manque des crédits.' : 'Pas possible pour l’instant : réessaie dans un moment.'; } });
         const row = atlEl('div', 'atl-visouib'); row.append(ou, non); zone.append(row, er);
       });
+    }
     }
     V.appendChild(M); const r = dl.getBoundingClientRect(); M.style.top = (r.bottom + 6) + 'px'; M.style.right = Math.max(8, innerWidth - r.right) + 'px';
     setTimeout(() => { if (M.isConnected) document.addEventListener('pointerdown', dehors, true); }, 0);
