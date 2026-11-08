@@ -1225,7 +1225,7 @@
     const im = E('img'); im.alt = ''; im.src = AV();
     const tx = E('div'); tx.append(E('b', '', PK()), E('small', '', '● en ligne · je t’écoute'));
     const rep = B('crea-pkrep', etroit() ? '✕' : '⟩', e => { e.stopPropagation(); if (etroit()) feuille('mini'); else { AIM.root.classList.add('pk-replie'); try { store.set('jdw.crea.pkreplie', true); } catch (x) {} } });
-    rep.setAttribute('aria-label', etroit() ? 'Réduire la conversation' : 'Replier ' + PK()); if (etroit()) rep.textContent = '⌄';
+    rep.setAttribute('aria-label', etroit() ? 'Réduire la conversation' : 'Replier ' + PK()); if (etroit()) { rep.textContent = ''; rep.classList.add('chevron'); }
     // téléphone : la miniature de la photo et de la version regardée ; un toucher réduit le panneau et montre la photo en grand
     { const c = curCrea(), v = c && vueDe(c); if (v && v.path) { const mn = B('crea-pkmini', null, e => { e.stopPropagation(); feuille('mini'); }); const mi = E('img'); mi.alt = ''; mi.src = urlImg(v.path, 160); mn.append(mi, E('small', '', numAff(c, v))); mn.title = 'Revoir la photo en grand'; mn.setAttribute('aria-label', 'Revoir « ' + (c.titre || 'ma photo') + ' » en grand'); t.appendChild(mn); } }
     t.append(im, tx, rep);
