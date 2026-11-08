@@ -11272,6 +11272,7 @@ function mountGame(g) {
     player: playerObj(),
     reglages: ATL_NES.has(g.id) ? atlReglagesDe(g.id) : null,   // 7 nov. 2026 (CONTRACT.md Ajout 30) : les réglages de l'admin (at_fiches.reglages) ou null
     createur: CREA === g.id,   // 2.1.4 (CONTRACT.md Ajout 29) : lancé en MODE CRÉATEUR par l'auteur (ou un admin) — rien n'est enregistré
+    arret: typeof ATL !== 'undefined' && ATL && ATL.jeu ? atlArretApi(() => !!current && current.seq === seq) : undefined,   // 8 nov. (CONTRACT.md Ajout 31) : le jeu ouvre l'arrêt sur image lui-même
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
     profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
     pegase: g.id === 'pegase' ? pegaseApi() : undefined,                                     // Pégase (hub) : copains, garde-robe sur le serveur
@@ -11308,6 +11309,7 @@ function mountGame(g) {
     }
   };
   current = { game: g, root, seq, over: false, inst: null, lvBase: lvBest(profile.name, g.id), pad: api.pad, createur: api.createur === true };
+  if (navigator.webdriver) window.JDW_ESSAI_API = () => api;   // bancs seulement (Ajout 31)
   menuFermer(); sonJeuActiver(g.id); ZS.fns.clear(); ZS.last = ''; zoneSureMaj();
   current.t0 = Date.now(); atlStatEnvoyer(g.id, 'lancement');   // 2.0.142 : statistiques réelles des jeux de l'Atelier (SQL v148)   // 2.0.139 : son de CE jeu, zone sûre posée sur son cadre (--zone-*)
   if (g.live) setTimeout(livSalonVivant, 1500);   // 2.0.126 : le salon de ce jeu est ouvert dans ma salle (les invitations restent valables)
@@ -17988,7 +17990,7 @@ function atlCreateurChamp(f) {
   row.append(inp, ok); w.append(row, msg); return w;
 }
 // la fenêtre d'arrêt sur image : capture, VISEUR, texte ou micro, envoi (at_demande, cout_demande) ; reprendre
-function atlArretUI(host, shot, ficheId, reprendre, plein) {
+function atlArretUI(host, shot, ficheId, reprendre, plein, oa) {   // oa (8 nov., CONTRACT.md Ajout 31) : { texte, x, y, fini(envoye) } — un jeu ouvre l'arrêt lui-même
   const cr = atlCred(), cout = cr && cr.ticket != null ? cr.ticket | 0 : 0, vis = { x: null, y: null };   // 2.0.20 : envoyer est gratuit
   const O = atlEl('div', 'atl-arret' + (plein ? ' atl-arret2' : '')); O.setAttribute('role', 'dialog'); O.setAttribute('aria-label', 'Arrêt sur image');
   const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', 'Arrêt sur image ! Montre-moi avec mon œil 👁️ où regarder, puis dis-moi ce que tu veux : je lis ta légende.')); hd.append(atlGuideAv('atl-wav'), ht);
@@ -18006,7 +18008,8 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
     const x = (e.clientX - r.left) / r.width * 100, y = (e.clientY - r.top) / r.height * 100; if (x < 0 || x > 100 || y < 0 || y > 100) return;
     mk.hidden = false; mk.classList.toggle('fixe', !!fixe);   // positions en pixels dans la zone : l'œil est exactement sous le pointeur
     const px = e.clientX - z.left, py = e.clientY - z.top; mk.style.left = px + 'px'; mk.style.top = py + 'px';
-    leg.style.left = px + 'px'; leg.style.top = py + 'px'; leg.classList.toggle('gauche', px > z.width * 0.6); leg.classList.toggle('haut', py > z.height * 0.75);
+    leg.style.left = px + 'px'; leg.style.top = py + 'px'; leg.classList.toggle('gauche', px > z.width * 0.5); leg.classList.toggle('haut', py > z.height * 0.75);
+    { const et = z.width < 460; leg.classList.toggle('large', et); if (et) { leg.style.left = '6px'; leg.classList.remove('gauche'); } }   // 8 nov. : photo étroite (téléphone) : la légende sur toute la largeur, sous l'œil (au-dessus s'il est en bas)
     if (fixe) { vis.x = x; vis.y = y; majLeg(); }
   };
   const majLeg = () => { const t = ta.value.trim(); leg.hidden = vis.x == null; leg.textContent = t ? (t.length > 70 ? t.slice(0, 68) + '…' : t) : 'Regarde ici ! Écris ce qu’il faut changer 👇'; };
@@ -18023,7 +18026,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
   const row = atlEl('div', 'atl-arbtns'), rp = atlEl('button', 'btn btn-ghost', '▶ Reprendre'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (cout ? (cout ? ' · ' + cout + ' 💎' : '') : ''));
   rp.type = 'button'; go.type = 'button';
   const adm = atlAdminIci(); if (adm) { go.textContent = '🛡️ Envoyer ma remarque'; tw.appendChild(atlEl('small', 'atl-noremb', '🛡️ Remarque de l’admin : gratuite, le joueur ne paie rien, l’équipe la reçoit tout de suite.')); }   // 2.0.131 (SQL v140)
-  const fin = () => { if (ATL_MIC && ATL_MIC.field === ta) atlMicFin(); O.remove(); reprendre(); };
+  const fin = () => { if (ATL_MIC && ATL_MIC.field === ta) atlMicFin(); O.remove(); reprendre(); if (oa && typeof oa.fini === 'function') { const f0 = oa.fini; oa.fini = null; try { f0(!!O._envoye); } catch (e) {} } };
   rp.addEventListener('click', fin); O._fin = fin;
   O.addEventListener('keydown', e => { if (e.key === 'Escape' && !e.repeat) { e.preventDefault(); e.stopPropagation(); fin(); } });   // 2.0.170 (chef) : Échap = reprendre la partie
   go.addEventListener('click', async () => {
@@ -18052,7 +18055,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
         const tok = await acctToken(profile);
         await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/atelier/' + r.image, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'image/jpeg' }, body: blob }, 60000);
       }
-      go.textContent = adm ? '✅ Remarque envoyée' : '✅ Envoyé'; if (adm && r && r.id) O.dataset.remarque = r.id; await anim; await new Promise(ok => setTimeout(ok, 450)); fin(); atlLoad(true);
+      go.textContent = adm ? '✅ Remarque envoyée' : '✅ Envoyé'; O._envoye = true; if (adm && r && r.id) O.dataset.remarque = r.id; await anim; await new Promise(ok => setTimeout(ok, 450)); fin(); atlLoad(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
   // 2.1.10 (l'admin, 7 nov.) : « 🎫 Mes demandes » — ses demandes de CE jeu en TICKETS (pas la discussion), sans quitter l'arrêt sur image
@@ -18063,6 +18066,11 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
   O._tkMaj(); if (!atlAdminIci()) atlDemCharger(false).then(() => { try { if (O.isConnected) O._tkMaj(); } catch (e) {} });
   row.append(tk, rp, go); O.append(hd, zone, tw, er, row); if (cout) O.appendChild(atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); host.appendChild(O);
   ta.focus({ preventScroll: true });   // 2.0.170 (l'admin) : le curseur dans le champ, aussi au téléphone
+  if (oa) {   // 8 nov. (Ajout 31) : le texte du jeu au début du champ (modifiable), l'œil déjà posé là où le jeu le dit (en % de son écran)
+    if (oa.texte) { ta.value = String(oa.texte).slice(0, 15000).replace(/\s+$/, '') + ' '; try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {} }
+    const ox = +oa.x, oy = +oa.y;
+    if (Number.isFinite(ox) && Number.isFinite(oy) && ox >= 0 && ox <= 100 && oy >= 0 && oy <= 100) requestAnimationFrame(() => { if (!O.isConnected) return; const r = (shot || zone).getBoundingClientRect(); place({ clientX: r.left + ox / 100 * r.width, clientY: r.top + oy / 100 * r.height }, true); pose = true; });
+  }
   return O;
 }
 // ---- 2.1.10 (l'admin, 7 nov. : « un bouton Mes demandes qui montre ses demandes sous forme de TICKETS, différent de la conversation ») :
@@ -18295,18 +18303,30 @@ try {
   };
 } catch (e) {}
 let ATL_ARRET_ATT = false;
-function atlArretJeu() {
-  if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2') || ATL_ARRET_ATT) return;
-  ATL_ARRET_ATT = true; requestAnimationFrame(() => { ATL_ARRET_ATT = false; atlArretJeu0(); });
+// 8 nov. 2026 (CONTRACT.md Ajout 31, demande de l'admin à l'équipe Explorateur : « parler à la mascotte sur chaque ligne du Cosmodex ») :
+// api.arret existe seulement quand CE joueur peut envoyer un arrêt sur image pour ce jeu (jeu lancé depuis l'Atelier : son créateur, ou un
+// admin, dont l'envoi devient une « 🛡️ Remarque de l'admin ») ; api.arret.nom = le nom de la mascotte (le jeu ne l'écrit jamais lui-même) ;
+// api.arret.ouvrir({ texte, x, y }) : pause, photo, fenêtre avec le texte au début du champ et l'œil posé en x / y (% de l'écran du jeu) ;
+// ▶ Reprendre = la partie repart ; la promesse rend true si c'est envoyé, false sinon.
+function atlArretApi(vivant) {
+  return { get nom() { return gNM(); }, ouvrir: o => new Promise(ok => { o = o || {}; if (!vivant()) { ok(false); return; }
+    atlArretJeu({ texte: typeof o.texte === 'string' ? o.texte : '', x: o.x, y: o.y, fini: ok }); }) };
 }
-function atlArretJeu0() {
-  if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2')) return;
+if (navigator.webdriver) window.JDW_ESSAI_ARRETAPI = id => { ATL.jeu = id || ATL.jeu || 'essai'; return atlArretApi(() => true); };   // bancs seulement (Ajout 31)
+function atlArretJeu(oa) {
+  const non = () => { if (oa && typeof oa.fini === 'function') try { oa.fini(false); } catch (e) {} };
+  if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2') || ATL_ARRET_ATT) { non(); return; }
+  ATL_ARRET_ATT = true; requestAnimationFrame(() => { ATL_ARRET_ATT = false; if (!atlArretJeu0(oa)) non(); });
+}
+function atlArretJeu0(oa) {
+  if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2')) return false;
   let shot = null; try { shot = atlCaptureJeu(); } catch (e) { shot = null; }   // AVANT la pause : l'image que le jeu vient de dessiner
   try { if (current && current.inst && current.inst.pause) current.inst.pause(); } catch (e) {}
   try { window.postMessage({ type: 'atl-pause' }, location.origin); } catch (e) {}   // même message que dans le cadre : le jeu se gèle
   atlFlotteur(false);
   if (shot) atlCaptureHtml(shot).catch(() => {});   // l'interface arrive par-dessus la photo, dans la seconde
-  atlArretUI(document.body, shot, ATL.jeu, () => { try { if (current && current.inst && current.inst.resume) current.inst.resume(); } catch (e) {} try { window.postMessage({ type: 'atl-reprendre' }, location.origin); } catch (e) {} if (ATL.jeu && !$('jdw-play').hidden) atlFlotteur(true); }, true);
+  atlArretUI(document.body, shot, ATL.jeu, () => { try { if (current && current.inst && current.inst.resume) current.inst.resume(); } catch (e) {} try { window.postMessage({ type: 'atl-reprendre' }, location.origin); } catch (e) {} if (ATL.jeu && !$('jdw-play').hidden) atlFlotteur(true); }, true, oa);
+  return true;
 }
 document.addEventListener('keydown', e => {
   if (!ATL || !ATL.jeu || $('jdw-play').hidden || e.repeat || (e.key !== 'p' && e.key !== 'P')) return;
