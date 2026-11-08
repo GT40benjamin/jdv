@@ -9,7 +9,7 @@ const gcPasCompte = () => isGuest() || !gcNom();
 const gcNb = n => (+n || 0).toLocaleString('fr-FR');
 const gcEl = (t, c, x) => atlEl(t, c, x);
 const gcBt = (c, x, f) => { const b = gcEl('button', c, x); b.type = 'button'; if (f) b.addEventListener('click', f); return b; };
-function gcTitre(id) { const g = GAMES.find(x => x.id === id || GC_ALIAS[x.id] === id); return g ? (typeof atlTitre === 'function' ? atlTitre(g) : g.title) : id; }
+function gcTitre(id) { const g = GAMES.find(x => x.id === id || GC_ALIAS[x.id] === id) || (window.JDW_GAMES || {})[id]; return g ? (typeof atlTitre === 'function' ? atlTitre(g) : g.title) || g.title || id : id; }
 function gcJeu(id) { return GAMES.find(x => x.id === id || GC_ALIAS[x.id] === id) || null; }
 function gcCircuit(t) { const c = CHRONO_TRACKS.find(x => x[0] === t); return c ? c[1] : t; }
 
@@ -19,7 +19,7 @@ CREA_RPC.add('gc_partie_debut');     // mode créateur : rien n'est enregistré
 const gcRpc0 = rpc;
 rpc = async function (fn, args, opts) {
   const r = await gcRpc0.call(this, fn, args, opts);
-  if (fn === 'add_score' || fn === 'chrono_save') setTimeout(gcApresScore, 500);   // le serveur a déjà décidé : on regarde s'il y a quelque chose à annoncer
+  if (fn === 'add_score' || fn === 'chrono_save' || fn === 'put_level_best') setTimeout(gcApresScore, 500);   // le serveur a déjà décidé : on regarde s'il y a quelque chose à annoncer
   if ((fn === 'chrono_ghost' || fn === 'chrono_save') && args && args.p_track) GC.course = args.p_track;
   return r;
 };
@@ -101,6 +101,7 @@ function gcFermerHaut() {
   if (GC.video) { GC.video(); return true; }
   if (GC.achat) { const m = document.querySelector('.atl-ofmod'); if (m) { if (m._fermer) m._fermer(); else m.remove(); } else GC.achat(); return true; }
   if (GC.bulle) { gcBulleFerme(); return true; }
+  if (GC.vue === 'niveaux') { gcVueRecords('jeux'); return true; }
   if (GC.vue && GC.corps) { gcRendu(GC.corps); return true; }
   if (document.getElementById('jdw-gc')) return gcFermer();
   return false;
@@ -174,7 +175,7 @@ async function gcPartager(Pa) {
   const ok = await gcCopier(lien); gcDire(ok ? 'Lien copié : envoie-le à ton ami !' : lien, ok ? 'ok' : '');
 }
 function gcLigneRecord(ul, x) {
-  const li = gcEl('li'), b = gcBt('gc-rec-b', '', () => { if (x.g) { gcFermer(); openGame(x.g); } });
+  const li = gcEl('li'), b = gcBt('gc-rec-b', '', () => { if (x.action) x.action(); else if (x.g) { gcFermer(); openGame(x.g); } });
   const t = gcEl('span', 'gc-rec-t'); t.append(gcEl('b', '', x.titre), gcEl('small', '', x.sous));
   b.append(t, gcEl('span', x.cl, x.droite)); li.appendChild(b); ul.appendChild(li);
 }
@@ -188,10 +189,21 @@ function gcVueRecords(sorte) {
     chronoBoards(true).then(d => { if (GC.vue === 'records' && ul.isConnected) gcCourses(ul, d); }).catch(() => {});
     return;
   }
+  for (const [id, n] of Object.entries(ca.niveaux || {})) gcLigneRecord(ul, { titre: gcTitre(id) + ' · vitesse', sous: n.nb + ' niveaux : un record par niveau', droite: '+' + ca.gain_niveau + ' 💎', cl: 'gc-gain', action: () => gcVueNiveaux(id) });
   const L = Object.entries(ca.jeux || {}).map(([id, x]) => ({ id, x, titre: gcTitre(id) })).sort((a, b) => a.titre.localeCompare(b.titre, 'fr'));
   for (const { id, x, titre } of L) {
     const d = gcDeja(id, x), moi = x.nom === gcNom();
     gcLigneRecord(ul, { titre, sous: 'Record mondial : ' + gcNb(x.record) + ' · ' + dispName(x.nom), droite: d ? '✓ aujourd’hui' : moi ? '🏆 Ton record' : '+' + ca.gain_jeu + ' 💎', cl: d || moi ? 'gc-rec-d' : 'gc-gain', g: gcJeu(id) });
+  }
+}
+function gcVueNiveaux(id) {
+  const C = GC.corps, ca = GC.carte || {}, n = (ca.niveaux || {})[id]; if (!n) return; gcBulleFerme(); GC.vue = 'niveaux'; GC.vueJeu = id; C.textContent = '';
+  const ul = gcEl('ul', 'gc-liste gc-rec'), ret = gcBt('gc-retour', '‹ Retour', () => gcVueRecords('jeux'));
+  C.append(ret, gcEl('h3', 'gc-l-titre', '🏆 ' + gcTitre(id) + ' : record de vitesse de chaque niveau'), ul);
+  ret.focus({ preventScroll: true }); C.scrollTop = 0;
+  for (let i = 1; i <= n.nb; i++) {
+    const r = n.lv['t' + i], moi = !!r && r.nom === gcNom(), fait = !!r && r.deja;
+    gcLigneRecord(ul, { titre: 'Niveau ' + i, sous: r ? 'Record mondial : ' + chronoMs(r.record) + ' · ' + dispName(r.nom) : 'Personne n’a encore fini ce niveau', droite: fait ? '✓ gagné' : moi ? '🏆 Ton record' : '+' + ca.gain_niveau + ' 💎', cl: fait || moi ? 'gc-rec-d' : 'gc-gain', g: gcJeu(id) });
   }
 }
 // toutes les courses de Turbo Chrono, avec le record mondial lu dans le classement : celles qui n'ont pas encore assez de joueurs y sont aussi, sans gain annoncé
@@ -380,13 +392,13 @@ async function gcApresScore() {
 }
 // pourquoi un record mondial ne rapporte rien, en quelques mots
 function gcPourquoi(g) {
-  const ici = g.sorte === 'course' ? 'cette course' : 'ce jeu', non = 'Pas de +' + g.credits + ' 💎 : ';
-  return { soi_meme: non + 'c’était déjà ton record.', joueurs: non + 'il faut au moins ' + ((GC.carte && GC.carte.min) || 5) + ' joueurs sur ' + ici + '.', deja: non + 'déjà gagné sur ' + ici + ' aujourd’hui.', partie: non + 'partie trop courte.' }[g.raison] || 'Pas de gain cette fois.';
+  const ici = g.sorte === 'course' ? 'cette course' : g.sorte === 'niveau' ? 'ce niveau' : 'ce jeu', non = 'Pas de +' + g.credits + ' 💎 : ';
+  return { soi_meme: non + 'c’était déjà ton record.', joueurs: non + 'il faut au moins ' + ((GC.carte && GC.carte.min) || 5) + ' joueurs sur ' + ici + '.', deja: non + 'déjà gagné sur ' + ici + ' aujourd’hui.', deja_niveau: non + 'déjà gagné sur ce niveau.', createur: non + 'tu as créé ce jeu.', partie: non + 'partie trop courte.' }[g.raison] || 'Pas de gain cette fois.';
 }
 function gcGrandSuivant() {
   if (GC.grand) return; const g = GC.file.shift(); if (!g) return; GC.grand = true;
-  const V = gcEl('div', 'gc-grand'), b = gcEl('div', 'gc-grand-b'), ami = g.sorte === 'ami', course = g.sorte === 'course';
-  const titre = ami ? { filleul: 'Cadeau de bienvenue !', parrain: dispName(g.nom) + ' s’est inscrit !', achat: dispName(g.nom) + ' a acheté un pack !' }[g.role] : 'Record mondial battu !';
+  const V = gcEl('div', 'gc-grand'), b = gcEl('div', 'gc-grand-b'), ami = g.sorte === 'ami', course = g.sorte === 'course', niveau = g.sorte === 'niveau', premier = g.raison === 'premier';
+  const titre = ami ? { filleul: 'Cadeau de bienvenue !', parrain: dispName(g.nom) + ' s’est inscrit !', achat: dispName(g.nom) + ' a acheté un pack !' }[g.role] : premier ? 'Bravo, première mondiale !' : 'Record mondial battu !';
   V.setAttribute('role', 'alertdialog'); V.setAttribute('aria-modal', 'true'); V.setAttribute('aria-label', titre);
   const paye = g.etat === 'paye', compteur = gcEl('div', 'gc-g-compteur'), nb = gcEl('b', '', gcNb(g.de));
   if (paye) { compteur.append(gcEl('span', '', '💎'), nb); b.appendChild(compteur); }
@@ -396,12 +408,15 @@ function gcGrandSuivant() {
   if (paye) b.appendChild(gain);
   else if (g.etat === 'attente') b.appendChild(gcEl('p', 'gc-grand-a', 'Tes ' + g.credits + ' 💎 arrivent dès que l’équipe a vérifié ton score.'));
   else b.appendChild(gcEl('p', 'gc-grand-a', gcPourquoi(g)));
-  if (!ami) { const quoi = course ? 'Turbo Chrono · ' + gcCircuit(g.niveau) : gcTitre(g.jeu), val = v => course ? chronoMs(v) : gcNb(v); b.appendChild(gcEl('p', 'gc-p', quoi + ' : ' + val(g.score) + (g.ancien_nom ? ' (ancien record : ' + val(g.ancien) + ' · ' + dispName(g.ancien_nom) + ')' : ''))); }
+  if (premier) b.appendChild(gcEl('p', 'gc-p', 'Jamais personne n’avait réussi ce niveau.'));
+  if (!ami) { const quoi = course ? 'Turbo Chrono · ' + gcCircuit(g.niveau) : niveau ? gcTitre(g.jeu) + ' · Niveau ' + String(g.niveau).replace(/^t/, '') : gcTitre(g.jeu), val = v => course || niveau ? chronoMs(v) : gcNb(v); b.appendChild(gcEl('p', 'gc-p', quoi + ' : ' + val(g.score) + (g.ancien_nom ? ' (ancien record : ' + val(g.ancien) + ' · ' + dispName(g.ancien_nom) + ')' : ''))); }
   else if (g.role === 'filleul') b.appendChild(gcEl('p', 'gc-p', 'De la part de ' + dispName(g.nom)));
-  const ok = gcBt('gc-bt', g.etat === 'paye' ? 'Super !' : 'OK', () => V._fin()); b.appendChild(ok); V.appendChild(b); document.body.appendChild(V); ok.focus({ preventScroll: true });
-  const t = setTimeout(() => V._fin(), 9000);
+  let pris = false;
+  const prendre = () => { if (pris) return; pris = true; ok.disabled = true; gcVol(gain.getBoundingClientRect(), nb, +g.credits || 0, g.de, g.vers, x => gcNb(x)).then(() => { if (!g.test) gcMajSolde(g.vers); setTimeout(() => { if (V.isConnected) V._fin(); }, 500); }); };
+  const ok = gcBt('gc-bt', premier ? 'Récupérer mes ' + g.credits + ' 💎' : g.etat === 'paye' ? 'Super !' : 'OK', () => { if (premier) prendre(); else V._fin(); }); b.appendChild(ok); V.appendChild(b); document.body.appendChild(V); ok.focus({ preventScroll: true });
+  const t = setTimeout(() => V._fin(), premier ? 30000 : 9000);
   V._fin = () => { clearTimeout(t); V.remove(); GC.grand = false; gcGrandSuivant(); };
-  if (paye) setTimeout(() => { if (!V.isConnected) return; gcVol(gain.getBoundingClientRect(), nb, +g.credits || 0, g.de, g.vers, x => gcNb(x)).then(() => { if (!g.test) gcMajSolde(g.vers); }); }, 450);
+  if (paye && !premier) setTimeout(() => { if (!V.isConnected) return; gcVol(gain.getBoundingClientRect(), nb, +g.credits || 0, g.de, g.vers, x => gcNb(x)).then(() => { if (!g.test) gcMajSolde(g.vers); }); }, 450);
   gcCarte();
 }
 // les 💎 partent du gain, volent jusqu'au compteur, et le nombre monte
@@ -492,6 +507,7 @@ function gcSigles() {
     const t = w.querySelector(':scope > .tile'); if (!t) continue;
     const g = GAMES.find(y => 'Jouer à ' + y.title === t.getAttribute('aria-label')); let x = null;
     if (g && g.id === 'chrono') { const ids = Object.keys(ca.courses || {}); if (ids.length) x = { gain: ca.gain_course, v: ids.length > 1 ? ids.length + ' courses avec un record à battre' : gcCircuit(ids[0]), nom: '', sans: true, deja: ids.every(i => gcDeja('c:' + i, ca.courses[i])), course: true }; }
+    else if (g && (ca.niveaux || {})[g.id]) x = { gain: ca.gain_niveau, v: 'Un record de vitesse par niveau', nom: '', sans: true, deja: false };
     else if (g) { const id = ca.jeux[GC_ALIAS[g.id]] ? GC_ALIAS[g.id] : g.id, r = ca.jeux[id]; if (r) x = { gain: ca.gain_jeu, v: gcNb(r.record), nom: r.nom, deja: gcDeja(id, r) }; }
     gcPose(w, x, 'gc-sur-tuile'); w.classList.toggle('gc-a-sigle', !!x); if (x) gcPlacerTuile(w);
   }
