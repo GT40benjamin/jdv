@@ -30,7 +30,7 @@
     let u = '';
     if (/^i\/[0-9a-f-]{36}\.(png|jpg|webp)$/.test(p)) u = base() + '/storage/v1/object/public/atelier-ia/' + p;
     else if (/^e\/[0-9a-f-]{36}\.(jpg|png)$/.test(p)) u = base() + '/storage/v1/object/public/atelier/' + p;
-    if (u && w) u = u.replace('/object/public/', '/render/image/public/') + '?width=' + w + '&quality=78';
+    if (u && w) u = u.replace('/object/public/', '/render/image/public/') + '?width=' + w + '&quality=78&resize=contain';   // l'admin (8 nov., 9 h 47, jaquette « ratée ») : sans « contain », Supabase garde la hauteur d'origine et RECADRE (120 × 1248 = une bande du milieu)
     return u;
   }
   const typeDe = id => (AIM.types[id] && AIM.types[id].type) || 'jeu';
@@ -156,7 +156,7 @@
     const ps = atlProjets(), tiles = R.querySelectorAll('.atl-pgrid .atl-pwrap > .atl-ptile');
     ps.forEach((pj, i) => {
       const t = tiles[i], x = AIM.types[pj.id]; if (!t || !x || x.type !== 'images') return;
-      const v = t.querySelector('.atl-pv'); if (v) { v.textContent = ''; const im = E('img'); im.alt = ''; im.src = miniUrl(pj.id, 300); v.appendChild(im); }
+      const v = t.querySelector('.atl-pv'); if (v) { v.textContent = ''; const im = E('img', 'crea-pvimg'); im.alt = ''; im.src = miniUrl(pj.id, 300); v.appendChild(im); }
       const s = t.querySelector('.atl-pver'); if (s) { s.className = 'atl-pver'; s.textContent = '📷 ' + atelierDe(pj.id).nom + ' · ' + statutAt(pj.id); }
       for (const q of t.querySelectorAll('.atl-pver2, .atl-pprepa')) q.remove();
     });
@@ -502,7 +502,7 @@
           const nv = c.versions.filter(v => v.etat === 'prete' && v.outil !== 'import').sort((a, b) => b.n - a.n)[0];
           if (nv && !adm()) { AIM.etinc = { v: nv.id, at: Date.now() }; if (AIM.vue !== 'atelier') AIM.neufAtelier = true; scintille(); } }
         AIM.nPretes[c.id] = n; }
-      if (AIM.types[d.id]) { AIM.types[d.id].titre = d.titre; AIM.types[d.id].images = cs.length; const L = resultats(); if (L.length) AIM.types[d.id].retouche = L[0].v.path; }   // la miniature suit la dernière retouche
+      if (AIM.types[d.id]) { AIM.types[d.id].titre = d.titre; AIM.types[d.id].images = cs.length; const L = resultats(), P = L.find(x => !x.c.pour) || L[0]; if (P) AIM.types[d.id].retouche = P.v.path; }   // la miniature suit la dernière retouche d'une PHOTO (pas d'un élément rangé dedans)
       if (avant && JSON.stringify(avant.creations) !== JSON.stringify(cs)) { AIM.pos = 0.5; }
       return true;
     } catch (e) {
@@ -731,7 +731,7 @@
   }
   function jaquette(pj, img) {
     const ic = E('span', 'ic jaq');
-    if (estAtelier(pj.id)) { const im = E('img'); im.alt = ''; im.src = miniUrl(pj.id, 120); ic.appendChild(im); ic.classList.add('at-mini'); return ic; }   // le sien ou celui d'un joueur (admin)
+    if (estAtelier(pj.id)) { const im = E('img'); im.alt = ''; im.src = miniUrl(pj.id, 180); ic.appendChild(im); ic.classList.add('at-mini'); return ic; }   // le sien ou celui d'un joueur (admin)
     { try { atlPvJaq(ic, pj); } catch (e) { ic.textContent = '🎮'; } ic.style.background = '#2a1f45'; }
     return ic;
   }
@@ -793,7 +793,7 @@
     for (const [k, ic, lab] of cfg.menu) {
       const b = B('crea-nd crea-mat-b' + (AIM.vue === k ? ' on' : ''), null, () => { AIM.root.classList.remove('tiroir'); if (k === 'guide') { ouvrirGuide(); return; } AIM.vue = k; render(); });
       b.dataset.k = k; b.append(E('i', '', ic), E('span', 'nm', lab || PK()));
-      if (k === 'resultats') { const n = resultats().length; if (n) b.appendChild(E('span', 'n', String(n))); }
+      if (k === 'resultats') { const n = nResultats(); if (n) b.appendChild(E('span', 'n', String(n))); }
       if (k === 'atelier' && AIM.neufAtelier) { if (AIM.vue === 'atelier') AIM.neufAtelier = false; else b.appendChild(E('span', 'n neuf', '✨')); }
       if (k === 'guide' && AIM.vue !== 'guide') { const n = AIM.msgs.filter(m => m.pk && m.at && +new Date(m.at) > AIM.vuAt).length; if (n) b.appendChild(E('span', 'n', String(Math.min(9, n)))); }   // ses nouveaux messages
       A.appendChild(b);
@@ -1050,10 +1050,12 @@
     chargerMsgs().then(render);
   }
   // ✨ le résultat fini du type (atelier photo : les photos retouchées), à télécharger
+  // l'admin (8 nov., 9 h 37) : on compte les PHOTOS (une tuile par photo, règle suprême), jamais les versions (SAMBA : 9 photos, pas 45)
+  const nResultats = () => new Set(resultats().map(x => x.c.id)).size;
   const resultats = () => { const L = []; for (const c of (AIM.d && AIM.d.creations) || []) for (const v of c.versions) if (v.etat === 'prete' && v.outil !== 'import' && v.path) L.push({ c, v }); return L.sort((a, b) => String(b.v.at || '').localeCompare(String(a.v.at || ''))); };
   function renderResultats(O) {
     const cfg = atelierDe(AIM.fiche), L = resultats(), p = E('div', 'crea-carte crea-page');
-    const h = E('div', 'crea-h', '✨ ' + cfg.resultat.toUpperCase()); h.appendChild(E('small', '', L.length ? L.length + ' prête' + (L.length > 1 ? 's' : '') + ' à télécharger' : '')); p.appendChild(h);
+    const h = E('div', 'crea-h', '✨ ' + cfg.resultat.toUpperCase()); { const n = nResultats(); h.appendChild(E('small', '', n ? n + ' photo' + (n > 1 ? 's' : '') + ' prête' + (n > 1 ? 's' : '') + ' à télécharger' : '')); } p.appendChild(h);
     if (!L.length) { p.append(E('p', 'crea-vide-t', cfg.videResultat), B('crea-bt', '🖼️ Aller dans mon atelier', () => { AIM.vue = 'atelier'; render(); })); p.lastChild.style.alignSelf = 'flex-start'; O.appendChild(p); return; }
     const g = E('div', 'crea-res'), vus = [];   // vus : les tuiles affichées, pour « ☑️ Sélectionner » (atelier-impression.js)
     for (const c of (AIM.d && AIM.d.creations) || []) {
