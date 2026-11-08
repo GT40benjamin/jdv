@@ -1434,7 +1434,7 @@ function mount(root, api) {
   let W = 1, H = 1, dpr = 1, U = 1, Z = 1, Z0 = 1, zf = 1, portrait = false;
   function resize() {
     const r = root.getBoundingClientRect();
-    W = Math.max(1, r.width); H = Math.max(1, r.height); dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = Math.max(1, r.width); H = Math.max(1, r.height); dpr = Math.min(window.__dprMax || 2, window.devicePixelRatio || 1);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     portrait = H > W * 1.1; U = portrait ? Math.max(1, Math.min(W / 390, H / 800)) :   /* V17 : au téléphone debout, jamais de texte sous 13 px (le chef) */ Math.max(H < 520 ? 0.8 : 0.72, Math.min(W / 1280, H / 720));   // téléphone couché : pas de texte de moins de 9 px
     Z0 = portrait ? Math.min(W / 500, H / 900) : Math.min(W, H) / (H < 520 ? 600 : 760); Z = Z0 * zf;
@@ -6547,7 +6547,7 @@ function mount(root, api) {
   function rnd() { if (!CB || CB.rs == null) return Math.random(); CB.rs = (CB.rs + 0x6D2B79F5) | 0; let t = CB.rs; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
   // réglages de pantin par bête : vues de face seulement (raie vue de dessus, crabe-forteresse qui marche de côté)
   // V17 : les profils dessinés tournés vers la GAUCHE (vérifiés un par un sur la planche de tous les profils) : le jeu les retourne
-  const PROFIL_GAUCHE = new Set(['luciver1', 'anguille1', 'bave1']);
+  const PROFIL_GAUCHE = new Set(['luciver1', 'anguille1', 'bave1', 'spore3', 'fumerolle1', 'quartz3', 'prisme1', 'pipistrou3', 'nuage3', 'glop2', 'antenne2', 'axolot3', 'girafe1', 'girafe2', 'koala2', 'etoile2', 'faucon2', 'nageciel3', 'esp3', 'esp4', 'esp5', 'esp6', 'esp7', 'esp8', 'esp9', 'esp10']);   /* V28 (l'admin) : 23 de plus, leur dessin de profil regarde à gauche : elles marchaient à reculons */
   const PANT_OPT = { colibri1: { profilSeul: true }, colibri2: { profilSeul: true }, colibri3: { profilSeul: true }, lamantin3: { sansPattes: true }, cube1: { sansPattes: true }, cube2: { sansPattes: true }, cube3: { sansPattes: true }, poulpe1: { sansPattes: true }, poulpe2: { sansPattes: true }, poulpe3: { sansPattes: true }, glop1: { sansPattes: true }, glop2: { sansPattes: true }, glop3: { sansPattes: true }, bave1: { sansPattes: true }, bave2: { sansPattes: true }, chronorbe: { sansPattes: true }, nebulea: { sansPattes: true }, leviaflot: { sansPattes: true } };   // V16 : tous les stades ont maintenant un vrai profil, une face et un dos (plus de « face seule »)
   // pendant un combat, les décors de l'arène (rochers, cristaux, arbres) s'effacent : on voit les combattants en entier
   const dansArene = (x, y) => !!CB && Math.abs(x - CB.mx) < 420 && y > CB.my - 190 && y < CB.my + 170;
@@ -11764,7 +11764,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     ajouterAF({ id, nom, t: [t], g, st: 0, nst: 1, fam: 'espace', vers: null, evo: null, rar: 4, b: [], tl, espace: true, reg20: n });
     AF[id].appr = apprentissage(AF[id].t);
     ESPECES[id] = { nom, taille: tl, role: 'chasseur', vie: 40, degats: 8, butin: ['cuivre', 'fer'], af: true, gros: tl > 170 ? 1 : 0 };
-    PANTINS[id] = { auto: true, amp: 0, bipede: false, sansPattes: true, ailes: false, vole: true }; PANT_DE[id] = id;
+    PANTINS[id] = { auto: true, amp: 0, bipede: false, sansPattes: true, ailes: false, vole: true, gauche: PROFIL_GAUCHE.has(id) }; PANT_DE[id] = id;
   }
   FAM_DESSINEES.add('espace');
   const ESPECE_REG = n => 'esp' + n;
