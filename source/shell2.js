@@ -16901,6 +16901,7 @@ function atlDiscBloc(f) {
     const citeMaj = () => { cb.textContent = ''; cb.hidden = !cite; if (cite) cb.appendChild(atlCiteBloc(cite, () => { cite = null; citeMaj(); })); };
     b._citer = c => { cite = c; citeMaj(); try { ta.focus({ preventScroll: true }); } catch (e) {} const lg = b.querySelector('.atl-disclog'); if (lg) requestAnimationFrame(() => { lg.scrollTop = lg.scrollHeight; }); };
     const grandit = () => { ta.style.height = 'auto'; const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20; ta.style.height = Math.min(ta.scrollHeight, lh * 5 + 20) + 'px'; go.classList.toggle('on', !!ta.value.trim()); };
+    ta.addEventListener('input', () => { const e = ATL.discEnvoye; if (e && Date.now() - e.at < 3000 && ta.value.trim() === e.t) ta.value = ''; });   // 8 nov. : un texte déjà envoyé qui revient (clavier du téléphone) repart aussitôt
     ta.addEventListener('input', grandit);
     // 2.0.100 (l'admin : « pouvoir encore lui parler même quand il réfléchit ») : la case et « Envoyer » ne sont JAMAIS bloqués ; chaque message
     // s'affiche tout de suite et part dans une file (dans l'ordre, un après l'autre) ; un refus remet son texte dans la case
@@ -16912,6 +16913,10 @@ function atlDiscBloc(f) {
       if (!t) t = '📎 ' + pjs.map(x => x.file.name).join(', ');   // 7 nov. 2026 : des fichiers sans texte
       if (!(ATL.discPend || []).some(x => !x.envoye)) ATL.discErr = false;
       ta.value = ''; msg.textContent = ''; try { ta.style.height = ''; go.classList.remove('on'); } catch (e) {}
+      // 8 nov. (l'admin : « le message déjà envoyé reste dans la zone de saisie ») : le champ reste vide, y compris s'il a été reconstruit entre-temps
+      const env = ATL.discEnvoye = { t, at: Date.now() };
+      const vide = () => { if (ATL.discEnvoye !== env) return; for (const x of document.querySelectorAll('.atl-chat textarea.atl-discin')) if (x.value.trim() === env.t) { x.value = ''; x.style.height = ''; try { x.setSelectionRange(0, 0); } catch (e) {} } };
+      for (const ms of [60, 250, 700, 1500, 3000]) setTimeout(vide, ms);
       PJ.l = []; PJ.peint();
       const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id, atelier: adm, demande: ci ? ci.id : null, fichiers: pjs.length ? pjs.map(x => ({ nom: x.file.name, taille: x.file.size, type: x.famille, envoi: true })) : null };
       ATL.discPend = (ATL.discPend || []).concat([pm]); atlDiscMaj(W0(), f, true); enBas();
@@ -16922,7 +16927,7 @@ function atlDiscBloc(f) {
           else if (pjs.length) { const ids = []; for (const x of pjs) ids.push(await atlPjEnvoyer(f, x)); await rpc('at_discuter_fichiers', { p_name: profile.name, p_fiche: f.id, p_texte: t, p_micro: false, p_fichiers: ids }, { quiet: true }); }
           else await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true });
           ok = true; }
-        catch (e) { ATL.discErr = true; msg.textContent = atlPjPourquoi(e) || atlWhy(e); if (!/^📎 /.test(t) || !pjs.length) ta.value = ta.value.trim() ? t + '\n' + ta.value : t; if (pjs.length) { PJ.l = pjs.concat(PJ.l).slice(0, ATL_PJ_MAX); PJ.peint(); } if (ci && !cite) { cite = ci; citeMaj(); } }   // rien n'est perdu (texte, fichiers, citation)
+        catch (e) { if (ATL.discEnvoye === env) ATL.discEnvoye = null; ATL.discErr = true; msg.textContent = atlPjPourquoi(e) || atlWhy(e); if (!/^📎 /.test(t) || !pjs.length) ta.value = ta.value.trim() ? t + '\n' + ta.value : t; if (pjs.length) { PJ.l = pjs.concat(PJ.l).slice(0, ATL_PJ_MAX); PJ.peint(); } if (ci && !cite) { cite = ci; citeMaj(); } }   // rien n'est perdu (texte, fichiers, citation)
         if (ok) pm.envoye = true; else ATL.discPend = (ATL.discPend || []).filter(x => x !== pm);
         if (!(ATL.discPend || []).some(x => !x.envoye)) {   // la file est vide : on relit tout (les messages arrivés, les offres remplacées)
           try { ATL.demAt = 0; await atlDemCharger(true); await atlLoad(true); } catch (e) {}
@@ -20884,7 +20889,7 @@ function atlVueRemettre(e) {
     im.replaceWith(old);
   }
   for (const [k, open] of e.det) { const d = cles.get(k); if (d && d.tagName === 'DETAILS' && d.open !== open) d.open = open; }
-  for (const [k, v] of e.val) { const f = cles.get(k); if (f && 'value' in f && !f.value) f.value = v; }
+  for (const [k, v] of e.val) { const f = cles.get(k), env = ATL.discEnvoye; if (f && 'value' in f && !f.value && !(env && Date.now() - env.at < 30000 && String(v).trim() === env.t)) f.value = v; }   // 8 nov. : jamais un message déjà envoyé
   for (const [k, top, left] of e.sc) { const el = cles.get(k); if (el) { el.scrollTop = top; el.scrollLeft = left; } }
   for (const [k, n, bas] of e.logs) {
     const l = cles.get(k); if (!l) continue;
@@ -21993,9 +21998,9 @@ function atlMicDebut(field, btn) {
       if (ATL_MIC !== m) return;
       let r; try { r = new ATL_SR(); } catch (e) { atlMicFin(); return; }
       m.r = r; r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true;
-      r.onresult = ev => { let fin = '', mid = ''; for (let k = 0; k < ev.results.length; k++) { const x = ev.results[k]; if (x.isFinal) fin += ' ' + x[0].transcript; else mid += ' ' + x[0].transcript; }   /* 2.0.77 : sur Android, chaque morceau arrive SANS espace devant (« regardelàlanavette… ») : on les sépare toujours */ m.sess = fin.replace(/\s+/g, ' ').trim(); m.last = Date.now(); montre(mid.replace(/\s+/g, ' ').trim()); };
+      r.onresult = ev => { if (ATL_MIC !== m) return; let fin = '', mid = ''; for (let k = 0; k < ev.results.length; k++) { const x = ev.results[k]; if (x.isFinal) fin += ' ' + x[0].transcript; else mid += ' ' + x[0].transcript; }   /* 2.0.77 : sur Android, chaque morceau arrive SANS espace devant (« regardelàlanavette… ») : on les sépare toujours */ m.sess = fin.replace(/\s+/g, ' ').trim(); m.last = Date.now(); m.mid = mid.replace(/\s+/g, ' ').trim(); montre(m.mid); };
       r.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { atlMicFin(); atlToast('🎤 Autorise le micro pour dicter (ou écris au clavier).'); } };
-      r.onend = () => { if (ATL_MIC !== m || m.r !== r) return; if (m.sess) { m.garde = (m.garde + ' ' + m.sess).trim(); m.sess = ''; } montre(''); setTimeout(lance, 120); };   // relance en silence
+      r.onend = () => { if (ATL_MIC !== m || m.r !== r) return; if (m.sess) { m.garde = (m.garde + ' ' + m.sess).trim(); m.sess = ''; } m.mid = ''; montre(''); setTimeout(lance, 120); };   // relance en silence
       try { r.start(); } catch (e) { setTimeout(() => { if (ATL_MIC === m) { try { r.start(); } catch (x) { atlMicFin(); } } }, 300); }
     };
     lance();
@@ -22004,8 +22009,8 @@ function atlMicDebut(field, btn) {
     m.off = nv.onEvent(ev => {
       if (ATL_MIC !== m || !ev || ev.state !== 'stt') return;
       const ws = Array.isArray(ev.words) ? ev.words.map(String) : [];
-      if (ev.ev === 'partial') { m.last = Date.now(); montre((ws[0] || '').trim()); }
-      else if (ev.ev === 'result') { const w = (ws[0] || '').trim(); if (w) { m.garde = (m.garde + ' ' + w).trim(); m.last = Date.now(); } montre(''); encore(); }
+      if (ev.ev === 'partial') { m.last = Date.now(); m.mid = (ws[0] || '').trim(); montre(m.mid); }
+      else if (ev.ev === 'result') { const w = (ws[0] || '').trim(); if (w) { m.garde = (m.garde + ' ' + w).trim(); m.last = Date.now(); } m.mid = ''; montre(''); encore(); }
       else if (ev.ev === 'error') { if (String(ev.err || '') === 'perm') { atlMicFin(); atlToast('🎤 Autorise le micro de l’appli pour dicter.'); } else encore(); }
     });
     const encore = () => setTimeout(() => { if (ATL_MIC === m) { const st = String(nv.listen()); if (st === 'none') atlMicFin(); } }, 200);
@@ -22016,9 +22021,9 @@ function atlMicDebut(field, btn) {
 function atlMicFin() {
   const m = ATL_MIC; if (!m) return; ATL_MIC = null;
   clearInterval(m.chrono);
-  try { if (m.r) { m.r.onend = null; m.r.stop(); } } catch (e) {}
+  try { if (m.r) { m.r.onend = null; m.r.onresult = null; m.r.stop(); } } catch (e) {}
   try { if (m.nv) m.nv.stopListen(); if (m.off) m.off(); } catch (e) {}
-  if (m.sess) { m.garde = (m.garde + ' ' + m.sess).trim(); m.sess = ''; }
+  if (m.sess || m.mid) { m.garde = (m.garde + ' ' + (m.sess || '') + ' ' + (m.mid || '')).replace(/\s+/g, ' ').trim(); m.sess = ''; m.mid = ''; }   // 8 nov. : ce qui est affiché reste (les mots pas encore définitifs aussi)
   try { if (m.montre) { ATL_MIC = null; m.montre(''); } } catch (e) {}
   micQuiet(false); atlMicEtat();
 }
