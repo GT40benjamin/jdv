@@ -411,11 +411,26 @@
       const ib = B('crea-mic crea-imgb', '🖼️', () => { const f = AIM.root.querySelector('.crea-file'); f.dataset.nv = '1'; f.click(); }); ib.setAttribute('aria-label', 'Joindre une image'); ch.insertBefore(ib, mic);
     }
     const env = E('button', 'crea-env', '➤'); env.type = 'submit'; env.setAttribute('aria-label', 'Envoyer');
+    if (!avecImage && AIM.vue !== 'nouveau' && AIM.fiche) S.appendChild(autoInter());   // ⚡ mode auto, juste au-dessus du champ
     S.append(ch, env);
     S.addEventListener('submit', e => { e.preventDefault(); const v = ta.value.trim(); if (!v) return; ta.value = ''; AIM.brouPk = ''; envoyerMasc(v); });
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TOUCH) { e.preventDefault(); S.requestSubmit(); } });
     return S;
   }
+  // l'admin (8 nov. matin) : « je ne vois pas le mode auto dans l'atelier photo ». Le même ⚡ MODE AUTO que dans les jeux (même réglage du projet,
+  // at_fiches.auto, posé par at_auto_poser), mais BIEN VISIBLE : un interrupteur « ⚡ Mode auto » juste au-dessus du champ, dans le panneau
+  // (PC et téléphone) et dans la grande discussion. Allumé : {g} lance tout seul une retouche jusqu'à auto_max_credits (20 💎) sans redemander ;
+  // au-dessus, ou sans assez de crédits, il redemande ; jamais d'achat. Seul le joueur l'allume (ses crédits) : en vue admin il est grisé
+  // tant qu'il est éteint, et l'admin peut seulement l'éteindre. Le champ n'est jamais recréé pour ça : l'interrupteur se repeint sur place.
+  // Le composant est celui de l'Interface (atlAutoInter de shell2.js) : une seule source pour les jeux et l'atelier photo
+  function autoInter() {
+    const w = E('div', 'crea-autow');
+    if (typeof atlAutoInter !== 'function') return w;
+    try { if (!AIM.fi || AIM.fi.id !== AIM.fiche) AIM.fi = { id: AIM.fiche, auto: false };   // AIM.fi = la fiche de at_lire (auto, auto_max)
+      w.appendChild(atlAutoInter(AIM.fi, { admin: () => adm(), apres: (auto, max) => { if (AIM.fi) { AIM.fi.auto = auto; if (max) AIM.fi.auto_max = max; } chargerMsgs().then(render); } })); } catch (e) {}
+    return w;   // sa propre ligne, au-dessus du champ ; repeinte sur place (jamais de champ recréé)
+  }
+  function autoPeindre() { if (!AIM.root) return; for (const x of AIM.root.querySelectorAll('.atl-autosw')) { if (AIM.fi && AIM.fi.id === AIM.fiche) x._f = AIM.fi; try { if (x._peint) x._peint(); } catch (e) {} } }
   // l'admin (6 nov., 23 h) : « je veux retoucher cette photo » → {g} ne le fait pas tout de suite : il propose de CRÉER UN ATELIER sur mesure.
   // Le projet est créé (gratuit), l'idée part dans sa discussion, et on continue DANS LE MONTAGE de l'Interface comme pour un jeu :
   // questions, photo d'exemple (🖼️), résumé, puis l'offre chiffrée « Aménager mon atelier » ; les outils n'existent qu'après la V1 livrée
@@ -515,7 +530,7 @@
     if (!AIM.fiche) return;
     try {
       const r = adm() ? await rpc('at_admin_lire', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true }) : await rpc('at_lire', { p_name: nom(), p_fiche: AIM.fiche }, { quiet: true });
-      AIM.fi = (r && r.fiche) || AIM.fi || null;
+      AIM.fi = (r && r.fiche) || AIM.fi || null; autoPeindre();
       if (adm()) AIM.demsAdm = (r && Array.isArray(r.demandes_projet)) ? r.demandes_projet : AIM.demsAdm || [];
       else if (atelierOuvert(AIM.fiche)) { try { await atlDemCharger(); } catch (e) {} }   // ses offres « Choisir » (cartes de l'Interface) dans la conversation
       AIM.msgs = ((r && r.messages) || []).filter(m => !m.remplacee).map(m => ({ t: String(m.texte || ''), pk: !!m.atelier, at: m.at, reaction: m.reaction || null }));
@@ -1314,7 +1329,7 @@
     el.addEventListener('pointercancel', () => { y0 = null; });
   }
   // on écrit dans le panneau : il monte en grand (la photo devient la miniature de l'en-tête) ; le champ n'est pas recréé, le focus reste
-  document.addEventListener('focusin', e => { const R = AIM.root; if (R && etroit() && R.classList.contains('pk-plein') && R.dataset.pk !== 'grand' && e.target.closest && e.target.closest('.crea-masc .crea-saisie')) feuille('grand'); });
+  document.addEventListener('focusin', e => { const R = AIM.root; if (R && etroit() && R.classList.contains('pk-plein') && R.dataset.pk !== 'grand' && e.target.closest && e.target.closest('.crea-masc .crea-saisie') && e.target.tagName === 'TEXTAREA') feuille('grand'); });   // le champ seulement : pas l'interrupteur ⚡ (il bougerait sous le doigt)
   function renderFlot() {
     const R = AIM.root; if (!R) return;
     const f = R.querySelector('.crea-flot'), bb = f.querySelector('.bb'), pk = f.querySelector('.pk');

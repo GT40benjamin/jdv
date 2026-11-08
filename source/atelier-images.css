@@ -902,3 +902,8 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
   .crea .crea-fil .crea-admb{flex:0 0 auto}
   .crea .crea-fil .crea-admb .l{display:none}
 }
+/* l'admin (8 nov.) : ⚡ MODE AUTO bien visible, sur sa propre ligne juste au-dessus du champ (panneau PC, panneau du téléphone, grande discussion) ;
+   l'interrupteur lui-même est celui de l'Interface (.atl-autosw de shell2.css) */
+.crea-saisie{flex-wrap:wrap}
+.crea-saisie .crea-autow{flex:1 0 100%;order:-1;min-width:0;padding:0 2px}
+.crea-saisie .crea-autow:empty{display:none}
