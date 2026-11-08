@@ -3079,7 +3079,7 @@ function mount(root, api) {
     pupBordEcran(t);
     ctx.save(); ctx.font = '600 ' + Math.round(12 * U) + 'px ' + FB;
     const nbd = Object.keys(X.decouvre).length, lw = portrait ? W - 40 * U - 70 : Math.min(470 * U, W / 2 - Math.min(150 * U, (W - 200 * U) / 2) - 54 * U);   // jamais sous les onglets du haut ni sous la pause
-    const lignesC = [...couper2(nbd + ' systèmes découverts sur ' + GAL.sys.length + ' · ' + X.visites.length + (X.visites.length > 1 ? ' visités' : ' visité') + ' · objectif : le Cœur de la galaxie', lw), ...couper2(ligneRegionCarte(), lw), ...(() => { const o = objectif(); return o ? couper2('🎯 ' + o.etape, lw) : []; })(), ...couper2('🟢 portée du moteur  🟡 station  🔴 il faut un meilleur moteur', lw)];
+    const lignesC = [...couper2(nbd + ' systèmes découverts sur ' + GAL.sys.length + ' · ' + X.visites.length + (X.visites.length > 1 ? ' visités' : ' visité') + ' · objectif : les 20 badges du Bras d’Astréa', lw), ...couper2(ligneRegionCarte(), lw), ...(() => { const o = objectif(); return o ? couper2('🎯 ' + o.etape, lw) : []; })(), ...couper2('🟢 portée du moteur  🟡 station  🔴 il faut un meilleur moteur', lw)];
     ctx.restore();
     const plH = 52 * U + lignesC.length * 17 * U, plW = lw + 30 * U;
     ctx.save(); ctx.globalAlpha = 0.94; pupMetal(10 * U, 10 * U, plW, plH, 14 * U); ctx.restore();
@@ -3112,6 +3112,7 @@ function mount(root, api) {
     // V13 : la fiche grandit pour tout contenir, ligne après ligne (jamais de texte l'un sur l'autre), le bouton toujours en bas
     const pw = Math.min(W - 24 * U, 380 * U), lw = pw - 32 * U;
     const lignes = ['Étoile : ' + s.et.nom, s.nbp + ' planète' + (s.nbp > 1 ? 's' : '') + (s.station ? ' · 🛰️ station de commerce' : ''), 'Distance : ' + Math.round(d) + ' années-lumière · ⛽ ' + cout];
+    { const la = ligneAreneFiche(s); if (la) lignes.push(la); }   /* V28 : l'arène de la région */
     if (X.visites.includes(s.i)) lignes.push('Déjà visité : ' + Array.from({ length: s.nbp }, (_, k) => MONDE.planete(s.i, k).type).slice(0, 3).join(', ') + (s.nbp > 3 ? '…' : ''));
     const dep = raison === 'carbu' ? infoDepannage(ici) : null;
     ctx.save(); ctx.font = '700 ' + Math.round(12 * U) + 'px ' + FB; const depL = dep ? couper2(dep.texte, lw) : [];
@@ -4849,8 +4850,9 @@ function mount(root, api) {
   }
   function objectif() {
     const X = E0(), c = chapitre(); if (!c) return null;
-    const S0 = GAL.sys[sysIci()]; let sys = null, k = null, faire = c.but;
-    if (c.id === 'antenne') return objectifAntenne(c, S0);   // V24 : l'antenne relais (détecteur, grotte, maison)
+    const S0 = GAL.sys[sysIci()]; let sys = null, k = null, faire = c.but, obArene = false;
+    if (c.id === 'antenne') return objectifAntenne(c, S0);
+    if (c.id === 'regions4' || c.id === 'badges') { const ob = objectifBadge(c, S0); sys = ob.sys; k = ob.k; faire = ob.faire; obArene = !!ob.A && !ob.sol; }   /* V28 : d'arène en arène */   // V24 : l'antenne relais (détecteur, grotte, maison)
     if (c.id === 'navette') {
       const n = (X.posees || []).length + (X.pieces || []).length;
       sys = S0.i; faire = crashV17() || dansGrotte() ? etapeCrash() : n < 3 ? 'Ramasse les pièces de la navette (' + n + ' / 3), suis la flèche jaune' : 'Rapporte les pièces à la navette et répare-la';
@@ -4877,6 +4879,7 @@ function mount(root, api) {
     } else if (c.id === 'rivaux1') { etape = embActif() ? '⚔️ Le Croc-Violet m’attaque ! Je me défends (' + (auDoigt ? 'bouton 💥' : 'tir : clic, J ou B') + ')' : faire;   /* V24 : au doigt, le bouton 💥 */
     } else if (sys === sysIci()) {
       if (P) etape = 'Pose-toi sur la planète ' + P.nom + ' 🪐 (suis la flèche bleue)';
+      else if (obArene) etape = 'Va au vaisseau-arène 🏟️ (suis la flèche bleue) et amarre-toi';
       else if (c.id === 'coeur') etape = faire + ' (suis la flèche bleue)';
       else if (etatIci() === 'station') etape = faire;
       else etape = 'Va à la station 🛰️ de ce système (suis la flèche bleue)';
@@ -4905,6 +4908,7 @@ function mount(root, api) {
     if (dest) return cibleDest();   // V14 : la destination choisie sur la carte
     if (state === 'station') guideStation = false;
     if (!o && !(guideStation && state === 'espace')) return null;
+    { const ca = cibleArenePourObjectif(o); if (ca) return ca; }   // V28 : l'arène de la région
     if (state === 'jeu') {
       if (ARCHIVE) return { x: ARCHIVE.x, y: ARCHIVE.y, ico: '📜', nom: 'l’archive' };
       { const ag = cibleAgence(); if (ag) return ag; }   // V24 : la grotte de la pierre d'écho (avec le scanner de planète), la pierre au fond
@@ -7773,7 +7777,7 @@ function mount(root, api) {
     if (AR.bulle) { AR.bulle.t += dt; if (AR.bulle.t > 1.8) { const P = AR.bulle.P; AR.bulle = null; combatArene(P); } }
   }
   function combatArene(P) {
-    const A = AR.A, n = P.champion ? 3 : 2, niv = P.champion ? A.niv : A.niv - 6 + P.i * 2, L = [];
+    const A = AR.A, n = P.champion ? 3 : 2, niv = P.champion ? A.niv : Math.max(2, A.niv - 6 + P.i * 2), L = [];   /* V28 : jamais en dessous du niveau 2 (arène de la région 1) */
     let pool = AF_LISTE.filter(id => dessinee(id) && !AF[id].legende && AF[id].rar < 5 && AF[id].t.includes(A.type)); if (!pool.length) pool = AF_LISTE.filter(id => dessinee(id) && !AF[id].legende);
     const r = MONDE.rng(MONDE.hash(A.n, P.i, 404));
     for (let i = 0; i < n; i++) { let id = pool[Math.floor(r() * pool.length)]; const nv = niv + (P.champion && i === n - 1 ? 3 : 0);
@@ -11327,9 +11331,10 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   const NOMS_BRAS_AUTRES = ['Bras de Lyra', 'Bras d’Orphée', 'Bras de Nyx'];
   function nomBras(b) { return b === BRAS_PRINC ? 'Bras d’Astréa' : NOMS_BRAS_AUTRES[((b - BRAS_PRINC + 4) % 4) - 1]; }
   // la région d'un système : 1 à 20 le long du bras principal (de son bout vers le centre) ; HYPER (21) = l'hyper-centre ; 0 = un autre bras (fermé)
+  // (selon la place où le système est DESSINÉ : sa distance au centre, la carte étant aplatie de 0,92 en hauteur ; les zones de la carte ont exactement ces bords)
   function region20(s) {
-    if (!s) return 0; if (s.coeur || s.rad < R20.centre) return HYPER; if (s.i % 4 !== BRAS_PRINC) return 0;
-    return 1 + Math.min(19, Math.max(0, Math.floor((R20.bout + 0.0001 - s.rad) / PAS20)));
+    if (!s) return 0; const r = s.coeur ? 0 : Math.hypot(s.x, s.y / 0.92); if (r < R20.centre) return HYPER; if (s.i % 4 !== BRAS_PRINC) return 0;
+    return 1 + Math.min(19, Math.max(0, Math.floor((R20.bout + 0.0001 - r) / PAS20)));
   }
   function texteRegion20(s) { const n = region20(s); return n === HYPER ? '🕳️ L’Hyper-Centre · un trou noir' : n ? 'Région ' + n + ' · ' + REG20[n - 1].nom : '🌌 ' + nomBras(s.i % 4); }
   function couleurRegion20(s) { const n = region20(s); return n === HYPER ? '#ff8ae0' : n ? REG20[n - 1].c : '#aab2cc'; }
@@ -11384,6 +11389,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
       ctx.lineWidth = badge ? 3 : 2; ctx.strokeStyle = badge ? '#ffd23a' : R.c; ctx.stroke();
       ctx.textAlign = 'center'; ctx.fillStyle = badge ? '#ffd23a' : '#ffffff'; ctx.font = '800 ' + Math.round(rr * 1.05) + 'px ' + FB; ctx.fillText(n === HYPER ? '🕳️' : String(n), q.x, q.y + 0.5);
       if (badge) { ctx.font = Math.round(rr * 0.95) + 'px ' + FB; ctx.fillText('🏅', q.x + rr * 0.95, q.y - rr * 0.85); }
+      cadenasRegion(n, q.x, q.y, rr);
       places.push({ x0: q.x - rr, y0: q.y - rr, x1: q.x + rr, y1: q.y + rr });
       const nomVu = zoom >= 2.4 || n === ici || n === 1 || n === HYPER;
       if (!nomVu) continue;
@@ -11396,6 +11402,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
       ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(4,4,15,0.92)'; ctx.strokeText(txt, tx, ty); ctx.fillStyle = R.c; ctx.fillText(txt, tx, ty);
     }
     ctx.restore();
+    arenesCarte(c0, k, t, places);
   }
   // la ligne « où tu es » de l'en-tête de la carte
   function ligneRegionCarte() { const S = GAL.sys[sysIci()]; return '📍 ' + texteRegion20(S).replace(/^🌌 /, '') + '   🏅 ' + badgesGagnes() + ' / 20 badges'; }
@@ -11418,6 +11425,108 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     direVite(n && n !== HYPER ? (neuve ? '🌌 Nouvelle région ! ' : '🌌 ') + 'Région ' + n + ' · ' + REG20[n - 1].nom : texteRegion20(GAL.sys[SYS.i]), 4.5);
     if (neuve) son('ok', 0.7);
   }
+
+  // ---------------------------------------------------------------- V28 morceau 2 : UNE ARÈNE PAR RÉGION, LE VERROU DES BADGES, L'HISTOIRE D'ARÈNE EN ARÈNE
+  // Chaque région reçoit l'arène du type qui va avec son nom (les 20 arènes de la V16 : vaisseau-arène ou bâtiment sur une planète) ;
+  // un champion de plus en plus fort en allant vers le centre ; 2 sbires à battre avant lui (comme avant).
+  const nivRegion20 = n => Math.round(6 + (n - 1) * 3.2);
+  const ARENE_REG = new Array(HYPER + 1).fill(null);
+  (function rangerArenes() {
+    const pris = new Set(), utilise = new Set();
+    for (let n = 1; n <= 20; n++) {
+      const A = ARENES.find(a => a.type === TYPES_REG20[n - 1] && !utilise.has(a)); if (!A) continue; utilise.add(A);
+      const mid = R20.bout - (n - 0.5) * PAS20, note = S => Math.abs(Math.hypot(S.x, S.y / 0.92) - mid) + Math.abs(S.disp) * 300 - (S.station ? 25 : 0);
+      const L = GAL.sys.filter(S => region20(S) === n && S.i !== GAL.depart.i).sort((a, b) => note(a) - note(b));
+      if (!L.length) continue;
+      A.reg20 = n; A.niv = nivRegion20(n); A.reg = Math.min(4, Math.floor((n - 1) / 4));
+      if (A.sol) {   // un bâtiment sur une planète du bon Astrobiome, dans la région
+        let q = null; for (const S of L) { for (let k = 0; k < S.nbp; k++) if (!pris.has(S.i * 16 + k) && MONDE.planete(S.i, k).bid === A.bid) { q = { sys: S.i, k }; break; } if (q) break; }
+        if (q) { A.sys = q.sys; A.k = q.k; pris.add(q.sys * 16 + q.k); } else A.sol = false;
+      }
+      if (!A.sol) { const S = L.find(S => !pris.has(S.i * 16 + 15)) || L[0]; A.sys = S.i; A.k = undefined; pris.add(S.i * 16 + 15); }
+      ARENE_REG[n] = A;
+    }
+  })();
+  badgeRegion = n => { const A = ARENE_REG[n]; try { return !!(A && (AFX().badges || {})[A.id]); } catch (e) { return false; } };
+  // ---------------------------------------------------------------- le verrou : on n'entre dans la région n qu'avec le badge de la région n − 1
+  // (une partie d'avant la V28 garde ouvertes les régions où elle est déjà allée : personne n'est bloqué loin de chez lui)
+  let OUV = { cle: '', max: 1 };
+  function maxVisitee() {
+    const X = E0(), V = X.visites || [], cle = V.length + ':' + (SYS ? SYS.i : -1);
+    if (OUV.cle !== cle) { let m = 1; for (const i of V.concat(SYS ? [SYS.i] : [])) { const r = region20(GAL.sys[i]); if (r && r !== HYPER && r > m) m = r; } OUV = { cle, max: m }; }
+    return OUV.max;
+  }
+  function regionOuverte(n) { if (n === 1) return true; if (!n || n === HYPER) return false; return badgeRegion(n - 1) || n <= maxVisitee(); }
+  function verrouRegion(s) {
+    const n = region20(s); if (!s || (SYS && s.i === SYS.i)) return null;
+    if (n === 0) return '🌌 Le ' + nomBras(s.i % 4) + ' n’est pas encore ouvert : on y ira plus tard, par l’hyper-centre';
+    if (n === HYPER) return '🕳️ Le trou noir de l’hyper-centre t’empêche d’entrer… pour l’instant';
+    if (!regionOuverte(n)) return '🏅 Il te faut le badge de la région ' + (n - 1) + ' (' + REG20[n - 2].nom + ') pour entrer dans la région ' + n;
+    return null;
+  }
+  const sautBloqueV24 = sautBloque;
+  sautBloque = s => verrouRegion(s) || sautBloqueV24(s);
+  // ---------------------------------------------------------------- l'histoire : les arènes deviennent l'aventure principale
+  function prochaineRegionSansBadge() { for (let n = 1; n <= 20; n++) if (!badgeRegion(n)) return n; return 0; }
+  (function chapitresV28() {
+    const i0 = CHAPITRES.findIndex(c => c.id === 'mk2'); if (i0 < 0) return;
+    CHAPITRES.splice(i0, 0, { id: 'regions4', but: 'Gagne les badges des arènes des régions 1 à 4 pour ouvrir la région 5 🏅', fait: X => regionOuverte(5) });
+    for (const id of ['mk3', 'mk4', 'mk5', 'coeur', 'couronne']) { const i = CHAPITRES.findIndex(c => c.id === id); if (i >= 0) CHAPITRES.splice(i, 1); }   // le Cœur est fermé (trou noir) : plus de route vers lui
+    const ia = CHAPITRES.findIndex(c => c.id === 'antenne');
+    CHAPITRES.splice(ia + 1, 0, { id: 'badges', but: 'Gagne les 20 badges, région après région, jusqu’au Seuil Interdit 🏅', fait: X => badgeRegion(20) },
+      { id: 'seuil', but: 'Les 20 badges ! Le trou noir de l’hyper-centre garde son secret… pour l’instant 🕳️', fait: () => false });
+  })();
+  // l'objectif d'un chapitre d'arène : l'arène de la prochaine région sans badge (ou le moteur qu'il faut pour y aller)
+  function objectifBadge(c, S0) {
+    const X = E0(), n = prochaineRegionSansBadge(), A = n && ARENE_REG[n]; if (!A) return { sys: null, k: null, faire: c.but };
+    const S = GAL.sys[A.sys], m = MONDE.REGIONS[S.reg].moteur;
+    if (m > X.amel.moteur) { const St = stationPlusProche(S0), px = AMEL.moteur.prix[m - 1] || 0;
+      return { sys: St ? St.i : GAL.depart.i, k: null, moteur: true, faire: X.astros >= px ? 'Achète le moteur Mk' + m + ' à la station (' + px.toLocaleString('fr-FR') + ' 🪙) pour aller jusqu’à la région ' + n : 'Gagne ' + px.toLocaleString('fr-FR') + ' 🪙 (mine et vends) pour le moteur Mk' + m + ' : il t’emmènera jusqu’à la région ' + n }; }
+    const ou = A.sol ? ' (sur la planète ' + MONDE.planete(A.sys, A.k).nom + ')' : '';
+    return { sys: A.sys, k: A.sol ? A.k : null, A, faire: '🏅 Région ' + n + ' · ' + REG20[n - 1].nom + ' : bats les sbires puis le champion ' + A.champion + ' à l’arène ' + A.nom + ou };
+  }
+  // dans le système de l'arène : la flèche et le bandeau montrent le vaisseau-arène (au sol, le bâtiment de l'arène)
+  function cibleArenePourObjectif(o) {
+    if (!o || !o.c || (o.c.id !== 'badges' && o.c.id !== 'regions4')) return null;
+    if (state === 'espace' && SYS && o.sys === SYS.i && areneDu(SYS.i)) { placeArene(); return { x: POS_ARENE.x, y: POS_ARENE.y, ico: '🏟️', nom: 'l’arène' }; }
+    if (state === 'jeu' && ARSOL && o.k != null && PL && PL.sys === o.sys && PL.k === o.k) return { x: ARSOL.x, y: ARSOL.y, ico: '🏟️', nom: 'l’arène ' + ARSOL.A.nom };
+    return null;
+  }
+  // la ligne « arène » de la fiche d'un système, sur la carte
+  function ligneAreneFiche(s) {
+    for (let n = 1; n <= 20; n++) { const A = ARENE_REG[n]; if (!A || A.sys !== s.i) continue;
+      return '🏟️ Arène ' + A.nom + ' · champion ' + A.champion + (badgeRegion(n) ? ' · 🏅 badge gagné' : ' · niv. ' + A.niv) + (A.sol ? ' (sur une planète)' : ''); }
+    return null;
+  }
+  // sur la carte : le système de chaque arène, bien visible quand on zoome (🏟️), et un cadenas sur les régions encore fermées
+  function arenesCarte(c0, k, t, places) {
+    const ici = region20(GAL.sys[sysIci()]), z = carte.z;
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let n = 1; n <= 20; n++) {
+      const A = ARENE_REG[n]; if (!A) continue; const S = GAL.sys[A.sys], x = c0.x + S.x * k, y = c0.y + S.y * k;
+      if (x < -40 || x > W + 40 || y < -40 || y > H + 40) continue;
+      const fort = z >= 2.2 || n === ici, gagne = badgeRegion(n), R = REG20[n - 1];
+      if (!fort) { ctx.fillStyle = R.c; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(x, y, 3 * U, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; continue; }
+      const r = 12 * U + Math.sin(t * 3 + n) * 1.2 * U;
+      ctx.fillStyle = 'rgba(8,8,24,0.85)'; ctx.beginPath(); ctx.arc(x, y - 16 * U, r, 0, TAU); ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = gagne ? '#ffd23a' : R.c; ctx.stroke();
+      ctx.font = Math.round(14 * U) + 'px ' + FB; ctx.fillText('🏟️', x, y - 16 * U);
+      if (gagne) { ctx.font = Math.round(11 * U) + 'px ' + FB; ctx.fillText('✅', x + r * 0.85, y - 16 * U - r * 0.75); }
+      if (z >= 3.4 || n === ici) { const txt = 'Arène ' + A.nom; ctx.font = '700 ' + Math.round(11 * U) + 'px ' + FB;
+        const w = ctx.measureText(txt).width / 2 + 3 * U, ly = y - 16 * U - r - 9 * U, bx = { x0: x - w, y0: ly - 8 * U, x1: x + w, y1: ly + 8 * U };
+        if (places && places.some(q => bx.x0 < q.x1 && bx.x1 > q.x0 && bx.y0 < q.y1 && bx.y1 > q.y0)) continue; if (places) places.push(bx); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(4,4,15,0.92)'; ctx.strokeText(txt, x, y - 16 * U - r - 9 * U); ctx.fillStyle = gagne ? '#ffd23a' : R.c; ctx.fillText(txt, x, y - 16 * U - r - 9 * U); }
+    }
+    ctx.restore();
+  }
+  // le cadenas des régions fermées, sur leur rond
+  function cadenasRegion(n, x, y, rr) { if (n === HYPER || regionOuverte(n)) return; ctx.save(); ctx.font = Math.round(rr * 0.95) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🔒', x - rr * 0.95, y - rr * 0.85); ctx.restore(); }
+  // en gagnant un badge : la région suivante s'ouvre (dit dans le bilan du combat)
+  const gagnerBadgeV16 = gagnerBadge;
+  gagnerBadge = () => {
+    const A = AR && AR.A, n = A && A.reg20, avant = n && n < 20 && regionOuverte(n + 1);
+    gagnerBadgeV16();
+    if (n && n < 20 && !avant && CB) CB.gain.push('🔓 La région ' + (n + 1) + ' · ' + REG20[n].nom + ' est ouverte !');
+    if (n === 20 && CB) CB.gain.push('🕳️ Les 20 badges ! Le trou noir de l’hyper-centre t’attend… plus tard');
+  };
 
 
   // =================================================================== LA BOUCLE
@@ -11507,6 +11616,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     pause() { if (['jeu', 'espace', 'combat', 'arene'].includes(state)) setPaused(true); },   // la borne (Start) : pause partout où le jeu avance tout seul
     resume() { setPaused(false); },
     _test: {
+      v28: () => ({ ARENE_REG, region20, regionOuverte, verrouRegion, sautBloque, prochaineRegionSansBadge, REG20, objectif, chapitre, CHAPITRES, GAL, entrerArene, gagnerBadge: () => gagnerBadge(), AR: () => AR }),
       state: () => state, J: () => J, PL: () => PL, look: () => look, cine: () => cine,
       crash: () => ({ dep: GAL.depart.i, v17: crashV17(), bid: PL && PL.bid, heure: heure(), phase: phaseJour(heure()), lum: PL && PL.lum, nav: NAV && { x: NAV.x, y: NAV.y, cassee: NAV.cassee, epave: NAV.epave, brume: !!NAV.brume }, epave: epave && { x: epave.x, y: epave.y, repare: !!epave.repare }, pieces: E0().pieces.slice(), posees: E0().posees.slice(), sol: piecesSol.map(q => ({ id: q.id, x: Math.round(q.x), y: Math.round(q.y) })), lieux: lieuxCrash(), radar: E0().radar, radarT: E0().radarT, faune: CR.map(c => ({ e: c.esp, s: c.crash, n: c.nivFixe, nuit: !!c.chasseNuit, x: Math.round(c.x), y: Math.round(c.y) })), cache: CRASH.cache, abri: CRASH.abri, action: actionBtn && actionBtn.txt, etape: crashV17() ? etapeCrash() : null }),
       setHeure(h) { E0().heure = h; }, combatAvec(i) { return combatContact(CR[i]); }, bSel: () => bSel, enConstruction: () => construire, pantin: () => EXPL_PANTIN, btnsT: () => tapBtns.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h, t: b.t || '' })), blesserT: d => blesserJoueur(d), vieT: () => COMBAT.vie, setVieT(v) { COMBAT.vie = v; }, soignerMoiT: () => soignerMoi(), creaT: () => ({ on: CREATEUR, ouvert: !!CREA }), afListeT: () => Object.keys(AF).filter(id => !AF[id].ancienne && PANT_DE[id]).map(id => ({ id, tl: AF[id].tl, st: AF[id].st, ailes: !!(PANTINS[PANT_DE[id]] || {}).ailes, auto: !!(PANTINS[PANT_DE[id]] || {}).auto })), filonsT: rad => filonsAutour(J.x, J.y, rad).map(o => ({ x: Math.round(o.x), y: Math.round(o.y), m: o.f.m.id })), entrerGrotte, sortirGrotte, GRT: () => GRT, lieuxCrashT: () => lieuxCrash().map(q => ({ id: q.id, x: q.x, y: q.y })), entrerGrotteT: () => entrerGrotte(), dansGrotte, ouvrirEquipe, fermerEquipe, EQW: () => EQW && { sel: EQW.sel, zones: EQW.zones.map(z => ({ x: z.x, y: z.y, w: z.w, h: z.h, ou: z.ou, i: z.i, place: z.place, bete: z.bete })) }, massifsT: () => massifsHerbe().map(m => ({ x: m.x, y: m.y, r: m.r })), dansHerbeT: () => dansHerbe(), ouCacheT: () => ouCache(tG), sonsT: () => Object.keys(SONS), nappesT: () => nappes(tG).map(n => ({ x: n.x, y: n.y, r: n.r })), dansBrumeT: () => dansBrume(tG), echelleUI: () => ({ W, H, U, dpr, portrait }), sacOuvrir(v) { sacOuvert = v; }, sacSelT: () => sacSel, jeterSac, ongletT: () => ongletC, cosmoT: () => cosmoOuvert, autoMineT: () => autoMine && { arrive: !!autoMine.arrive }, sacFlashT: () => sacFlash, curseur: () => curseurActuel, sac: () => nb(E0().sac), remplirSac(n) { E0().sac.fer = (E0().sac.fer || 0) + n; }, bulleTest: () => bulle && { s: bulle.s, pensee: !!bulle.pensee, t: +bulle.t.toFixed(1) }, fileP: () => PENS_FILE.length, ecran: (x, y) => [sx(x), sy(y)], dpr: () => dpr, filonProche() { let b = null, bd = 1e9; for (const o of filonsAutour(J.x, J.y, 900)) { const d = Math.hypot(o.x - J.x, o.y - J.y); if (d < bd && o.f.qte > 0) { bd = d; b = o; } } return b && { x: b.x, y: b.y }; }, keysJeu: () => keys, outil: () => outilActif(), choisirOutil, mineCible: () => !!mineCible, filonsT: (x, y, r) => filonsAutour(x, y, r).map(o => ({ x: o.x, y: o.y, m: o.f.m.id, q: o.f.qte })), messages: () => msgs.map(m => m.s), brumeT: () => NAV && NAV.brume ? NAV.brume.t : -1, captureCombat: () => CB && { ennemis: CB.ennemis.map(G => G.nom + ' niv. ' + G.n) }, sortirCombat() { if (CB) { terminer('fuite'); quitterCombat(); } }, aller(x, y) { J.x = x; J.y = y; camX = x; camY = y - 40; }, donnerMin(o) { const X = E0(); for (const k in o) X.sac[k] = (X.sac[k] || 0) + o[k]; }, actionCrash() { if (actionBtn && actionBtn.f) actionBtn.f(); }, remplacerFaune, cacheesCrash, peuplerCrash, tG: () => tG,
