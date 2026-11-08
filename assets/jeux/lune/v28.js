@@ -6554,16 +6554,20 @@ function mount(root, api) {
     ESPECES[id] = { nom: a.nom, taille: a.tl, role: a.st === 0 && a.rar < 3 ? 'craintif' : 'chasseur', vie: 40, degats: 8, butin: ['cuivre', 'fer'], af: true, gros: a.tl > 170 ? 1 : 0 };
     PANTINS[id] = Object.assign({ gauche: PROFIL_GAUCHE.has(id), auto: true, amp: a.vol ? 0 : 0.4, bipede: !!a.bip, sansPattes: !!(a.vol || a.ser), ailes: !!(a.vol && !a.nage && !a.flotte) }, PANT_OPT[id] || {}); PANT_DE[id] = id;
   }
-  const FAM_PAQ = new Map();
+  const FAM_PAQ = new Map(), FAM_ESSAIS = new Map();
   function chargerFamille(fam) {
     if (FAM_PAQ.has(fam)) return FAM_PAQ.get(fam);
     const P = (async () => {
       try {
-        const b = await lirePaquet(ROOT() + 'assets/jeux/lune/v16/a-' + fam + '.bin'); if (!b) return false;
+        const b = await lirePaquet(ROOT() + 'assets/jeux/lune/v16/a-' + fam + '.bin'); if (!b) throw 0;
         const n = b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24), idx = JSON.parse(new TextDecoder().decode(b.subarray(8, 8 + n))), base = 8 + n;
-        await Promise.all(idx.map(([nom, o, l]) => new Promise(res => { const im = new Image(); im.onload = () => { IMG[nom] = im; res(); }; im.onerror = () => res(); im.src = URL.createObjectURL(new Blob([b.subarray(base + o, base + o + l)], { type: 'image/webp' })); })));
+        let manque = 0;
+        await Promise.all(idx.map(([nom, o, l]) => new Promise(res => { if (IMG[nom]) return res(); const im = new Image(); im.onload = () => { IMG[nom] = im; res(); }; im.onerror = () => { manque++; res(); }; im.src = URL.createObjectURL(new Blob([b.subarray(base + o, base + o + l)], { type: 'image/webp' })); })));
+        if (manque) throw 0;
         return true;
-      } catch (e) { return false; }
+      } catch (e) {   /* V28 (PATOU : « dans le Cosmodex, sans image ») : un paquet raté (réseau lent, 100 paquets d'un coup) n'est plus perdu pour toute la partie : nouvel essai 4 s plus tard, 4 fois au plus */
+        const k = (FAM_ESSAIS.get(fam) || 0) + 1; FAM_ESSAIS.set(fam, k); if (k < 5) setTimeout(() => FAM_PAQ.delete(fam), 4000); return false;
+      }
     })();
     FAM_PAQ.set(fam, P); return P;
   }
@@ -7261,6 +7265,7 @@ function mount(root, api) {
   function boutonCosmo() { bouton(W - 62 - 50 * U - 58 * U, 46 * U + 30, 50 * U, 40 * U, '', () => ouvrirCosmo(), cosmoOuvert, '📖'); }
   function miniBete(id, x, y, s, vu, pris) {
     const p = PANT_DE[id], R = PANTINS[p], im = R && !R.auto ? piece(p, NUM(R).face) : piece(p, 0);   // les pantins en pièces (renard, Roi-mâchoire) : leur vue de face entière
+    if (!im && vu && AF[id] && FAM_DESSINEES.has(AF[id].fam)) chargerFamille(AF[id].fam);   /* V28 : paquet raté → nouvel essai (chargerFamille ne refait rien s'il est déjà là ou en route) */
     if (!im || !vu) { ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.font = '800 ' + Math.round(s * 0.5) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(vu ? '…' : '?', x, y); ctx.restore(); return; }
     const N = R && !R.auto ? NUM(R) : null, PF = N && R.face && R.face.pattes && R.patteFace ? piece(p, N.pf) : null;
     if (PF) {   // pantin en pièces (renard) : la vue de face n'a pas de pattes, on pose les deux pattes de face dessous, comme en jeu
@@ -11882,6 +11887,9 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     pause() { if (['jeu', 'espace', 'combat', 'arene'].includes(state)) setPaused(true); },   // la borne (Start) : pause partout où le jeu avance tout seul
     resume() { setPaused(false); },
     _test: {
+      /* V28 : la planche de la série (commande 88394ef1) : chaque bête dessinée comme dans le Cosmodex, sur une autre toile */
+      chargerToutes: () => Promise.all([...FAM_DESSINEES].map(f => chargerFamille(f))),
+      miniSur: (g, id, x, y, s) => { const vrai = ctx; ctx = g; try { miniBete(id, x, y, s, true, true); } finally { ctx = vrai; } },
       v28: () => ({ FAUNE_E: () => FAUNE_E, tirs: () => VS.tirs, entrerEva, ARENE_REG, region20, regionOuverte, verrouRegion, sautBloque, prochaineRegionSansBadge, REG20, objectif, chapitre, CHAPITRES, GAL, entrerArene, gagnerBadge: () => gagnerBadge(), AR: () => AR }),
       state: () => state, J: () => J, PL: () => PL, look: () => look, cine: () => cine,
       crash: () => ({ dep: GAL.depart.i, v17: crashV17(), bid: PL && PL.bid, heure: heure(), phase: phaseJour(heure()), lum: PL && PL.lum, nav: NAV && { x: NAV.x, y: NAV.y, cassee: NAV.cassee, epave: NAV.epave, brume: !!NAV.brume }, epave: epave && { x: epave.x, y: epave.y, repare: !!epave.repare }, pieces: E0().pieces.slice(), posees: E0().posees.slice(), sol: piecesSol.map(q => ({ id: q.id, x: Math.round(q.x), y: Math.round(q.y) })), lieux: lieuxCrash(), radar: E0().radar, radarT: E0().radarT, faune: CR.map(c => ({ e: c.esp, s: c.crash, n: c.nivFixe, nuit: !!c.chasseNuit, x: Math.round(c.x), y: Math.round(c.y) })), cache: CRASH.cache, abri: CRASH.abri, action: actionBtn && actionBtn.txt, etape: crashV17() ? etapeCrash() : null }),
