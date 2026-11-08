@@ -475,6 +475,24 @@ function gcVol(de, vers, credits, v0, v1, txt) {
   });
 }
 
+// donné aux jeux : api.levelBest.gains() dit ce que chaque niveau peut rapporter, pour que le jeu l'affiche sur sa carte (null : rien à afficher)
+const gcLevelBestG0 = levelBestApi;
+levelBestApi = function (g) {
+  const a = gcLevelBestG0.apply(this, arguments);
+  a.gains = async function () {
+    try {
+      if (gcPasCompte() || !ONLINE || netOff() || (typeof CREA !== 'undefined' && CREA)) return null;
+      if (!GC.carteVue) await gcCarte();
+      if (!GC.carte || GC.carte.test || !(GC.carte.niveaux || {})[g.id]) return null;
+      const r = await rpc('gc_niveaux_jeu', { p_name: gcNom(), p_jeu: g.id }, { quiet: true, quiet404: true });
+      if (!r || !r.niveaux) return null;
+      for (const x of Object.values(r.niveaux)) if (x.nom) x.nom = dispName(x.nom);
+      return r;
+    } catch (e) { return null; }
+  };
+  return a;
+};
+
 // ---------- le sigle 🏆 ----------
 // une partie qui commence : on attend la première réponse du serveur si elle n'est pas encore là (sinon un record battu tôt serait refusé sans explication)
 async function gcPartie(id) {
