@@ -1834,7 +1834,8 @@ function mount(root, api) {
       let voile = false;
       if (J && o.y > J.y && /arbre|palmier|sapin|geant|champigeant|cactus/.test(o.d.type)) { const hx = sx(J.x), hy = sy(J.y), x0 = sx(o.x) - im.ax * k, x1 = x0 + im.cv.width * k, y0 = sy(o.y) - im.ay * k;
         const mg = o.d.type === 'champigeant' ? (x1 - x0) * 0.3 : 6 * Z;   /* V27 (ticket a2b47d96, « le champignon, on ne le voit pas ») : le champignon géant ne devient transparent que si je suis VRAIMENT derrière son pied (son dessin a de grandes marges vides) */
-        if (hx > x0 + mg && hx < x1 - mg && hy - 60 * Z < sy(o.y) && hy > y0 + 20 * Z) { voile = true; ctx.save(); ctx.globalAlpha = o.d.type === 'champigeant' ? 0.6 : 0.5; } }
+        const derriere = o.d.type === 'champigeant' ? derriereChampi(o, im, k, hx, hy) : hx > x0 + mg && hx < x1 - mg && hy - 60 * Z < sy(o.y) && hy > y0 + 20 * Z;   /* V28 (ticket 62d83379, « le chapeau, on ne le voit pas ») */
+        if (derriere) { voile = true; ctx.save(); ctx.globalAlpha = o.d.type === 'champigeant' ? 0.75 : 0.5; } }
       if (LUEUR[o.d.type] && PL.lum < 0.97) lueurs.push(o);
       // balancement léger des plantes au vent
       const sway = o.d.type === 'herbe' ? 0.12 + Math.sin(t * 3.2 + o.d.h % 7) * 0.12 : /arbre|palmier|sapin|fleur|lumifleur|buisson|fougere|geant/.test(o.d.type) ? Math.sin(t * 1.3 + o.d.h % 7) * (PL.bid === 'tempete' ? 0.07 : 0.025) : 0;
@@ -2589,6 +2590,7 @@ function mount(root, api) {
     }
     // l'archive des Anciens, puis le coffre de la base
     const aa = actionArchive(); if (aa) actionBtn = aa;
+    if (!actionBtn) { const de = actionDetecteur(); if (de) actionBtn = de; } majDetecteur(dt);   // V28 (ticket 0a811919) : poser / allumer le détecteur, avant les fruits et le minage
     if (!actionBtn) { const li = actionLieu(); if (li) actionBtn = li; }   // V16 : le trésor du lieu dangereux
     if (!actionBtn) { const ar = actionAreneSol(); if (ar) actionBtn = ar; }   // V16 : l'entrée d'une arène au sol
     if (!actionBtn) { const fr = actionFruit(); if (fr) actionBtn = fr; }
@@ -3044,8 +3046,9 @@ function mount(root, api) {
     if (false) MONDE.REGIONS.forEach((r, i) => { if (!r.rmin) return; ctx.strokeStyle = r.coul + '55'; ctx.setLineDash([6, 8]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(c0.x, c0.y, r.rmin * k, r.rmin * 0.92 * k, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = r.coul; ctx.font = '700 ' + Math.round(12 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.fillText(r.nom.toUpperCase(), c0.x, c0.y + r.rmin * 0.92 * k + 16 * U); });
     // les routes entre stations découvertes proches
-    const st = GAL.sys.filter(s => s.station && X.decouvre[s.i]);
-    ctx.strokeStyle = 'rgba(120,200,255,0.25)'; ctx.lineWidth = 1.5; ctx.beginPath();
+    // V28 (carte simplifiée, « trop d'informations ») : seulement quand on zoome fort, et plus discrètes
+    const st = carte.z >= 4 ? GAL.sys.filter(s => s.station && X.decouvre[s.i]) : [];
+    ctx.strokeStyle = 'rgba(120,200,255,0.13)'; ctx.lineWidth = 1; ctx.beginPath();
     for (let i = 0; i < st.length; i++) for (let j = i + 1; j < st.length; j++) if (Math.hypot(st[i].x - st[j].x, st[i].y - st[j].y) < 110) { const a = carteXY(st[i]), b = carteXY(st[j]); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
     ctx.stroke();
     // la portée du moteur
@@ -4911,6 +4914,7 @@ function mount(root, api) {
     { const ca = cibleArenePourObjectif(o); if (ca) return ca; }   // V28 : l'arène de la région
     if (state === 'jeu') {
       if (ARCHIVE) return { x: ARCHIVE.x, y: ARCHIVE.y, ico: '📜', nom: 'l’archive' };
+      { const cd = cibleDetecteur(); if (cd) return cd; }   // V28 : la flèche vers le détecteur à allumer
       { const ag = cibleAgence(); if (ag) return ag; }   // V24 : la grotte de la pierre d'écho (avec le scanner de planète), la pierre au fond
       if (o.c.id === 'navette' && cibleCrash()) return cibleCrash();
       if (o.c.id === 'navette') return NAV && NAV.cassee && !piecesSol.length && E0().pieces.length ? { x: NAV.x, y: NAV.y, ico: '🚀', nom: 'la navette' } : null;
@@ -8273,7 +8277,9 @@ function mount(root, api) {
     if (state === 'combat' && CB && CB.qte && !CB.qte.res) { if (padP('a')) appuiQte(); return; }
     if (state === 'prologue' && PRO && !PRO.choix) { if (padP('a')) suitePrologue(); return; }
     if (state === 'cine16') { if (padP('a')) suiteCine(); else if (padP('b')) finCine16(); return; }
-    if (state === 'carte' && carte) { if (padP('rt')) carte.zl = Math.min(4, (carte.zl || 1) * 1.5); if (padP('lt')) carte.zl = Math.max(0.5, (carte.zl || 1) / 1.5); }
+    if (state === 'carte' && carte) { const gal = carte.vue !== 'ici';   /* V28 : sur la GALAXIE, LT / RT zooment la galaxie (avant : seulement la carte locale) */
+      if (padP('rt')) { if (gal) carte.z = Math.min(30, carte.z * 1.5); else carte.zl = Math.min(4, (carte.zl || 1) * 1.5); }
+      if (padP('lt')) { if (gal) carte.z = Math.max(0.9, carte.z / 1.5); else carte.zl = Math.max(0.5, (carte.zl || 1) / 1.5); } }
     if (padHudOk() && padP('b')) { padHud = false; padF = null; return; }   // V24 : B referme le menu des boutons
     const L = padCibles();
     if (padP('b')) { const r = L.find(b => /retour|fermer|quitter|annuler|reprendre|✕|×/i.test(b.t || '')); if (state === 'carte' && carte && carte.objSel) carte.objSel = null; else if (r && !(state === 'carte')) r.f(); else padTouche('Escape'); padF = null; return; }
@@ -10065,9 +10071,9 @@ function mount(root, api) {
     if (!aEcho()) {
       faire = 'Trouve la pierre d’écho (au fond d’une grotte, sur une planète hostile du système ' + S.nom + ')';
       if (ici === 'jeu' && dansGrotteEcho()) etape = ECHO_C ? '💎 Va tout au fond de la grotte : la pierre d’écho (attention aux bêtes)' : 'Ressors de la grotte ☀️';
-      else if (ici === 'jeu' && PL && PL.sys === M.sys) etape = PL.k === M.k ? (scanPl() && (E0().analyses || {})[PL.key] ? '🔎 La pierre d’écho est dans une grotte de cette planète : suis la flèche 🔎' : '📡 Détecteur : de la pierre d’écho quelque part sous cette planète… cherche une grotte (un scanner de planète 🔎 aiderait)') : '📡 Détecteur : aucune pierre d’écho sur cette planète · essaie une autre planète de ' + S.nom;
+      else if (ici === 'jeu' && PL && PL.sys === M.sys) etape = etapeDetecteur(S);   /* V28 (ticket 0a811919) : poser → allumer → signal */
       else if (ici === 'jeu') etape = 'Retourne à ta navette 🚀 et décolle · puis va vers ' + S.nom;
-      else if (S0.i === M.sys) etape = 'Pose-toi sur une planète de ' + S.nom + ' : le détecteur 📡 te dira si la pierre d’écho y est';
+      else if (S0.i === M.sys) etape = 'Pose-toi sur une planète de ' + S.nom + ', puis pose ton détecteur 📡 : il te dira si la pierre d’écho y est';
       else { const hs = prochainSaut(S0, S); etape = !hs ? 'Objectif ' + S.nom + ' : trop loin pour ton moteur, ouvre la carte 🗺️' : hs === S ? 'Objectif ' + S.nom + ' : ouvre la carte 🗺️ et saute vers ' + S.nom : 'Escale : ' + hs.nom + ' → objectif ' + S.nom + ' (ouvre la carte 🗺️)'; }
     } else {
       sys = null; faire = 'Construis ta maison et l’antenne relais, où tu veux 📡';
@@ -10126,8 +10132,9 @@ function mount(root, api) {
   function arriveeIci() {
     const X = E0(), M = mission();
     if (chapId() === 'antenne' && !aEcho() && M && PL.sys === M.sys && !dansGrotte()) {
-      if (PL.k === M.k) { dire(scanPl() ? '📡 Détecteur : de la pierre d’écho sur cette planète !' : '📡 Détecteur : de la pierre d’écho, quelque part sous cette planète… mais où ?', 5); if (!scanPl()) setTimeout(() => { if (!dead && planeteEcho()) penser('Elle est dans une grotte, mais cette planète est immense… Un scanner de planète 🔎 me montrerait où chercher : on en vend à la station.'); }, 5500); }
-      else { dire('📡 Détecteur : aucune pierre d’écho sur cette planète.', 5); X.echoNon = (X.echoNon || 0) + 1; if (!scanPl() && X.echoNon >= 1) setTimeout(() => { if (!dead && state === 'jeu') penser('Pas ici… Je ne vais pas fouiller toutes les planètes au hasard. Un scanner de planète 🔎 m’aiderait : on en vend à la station.'); }, 5500); }
+      /* V28 (ticket 0a811919) : plus de résultat tout seul en se posant : le détecteur se POSE, s'ALLUME, puis donne son signal */
+      const r = resultatDet(); if (!r) dire('📡 Pose ton détecteur (bouton E) pour savoir si la pierre d’écho est sous cette planète', 5);
+      else dire(r === 'oui' ? '📡 Ici, ton détecteur avait trouvé de la pierre d’écho !' : '📡 Ici, ton détecteur n’avait rien trouvé : essaie une autre planète de ' + GAL.sys[M.sys].nom, 5);
     }
     if (scanPl() && !dansGrotte()) { X.analyses = X.analyses || {}; AGV.an = 0; dire('🔎 Analyse au sol en cours…', 3); }
   }
@@ -10226,6 +10233,7 @@ function mount(root, api) {
   }
   // les dessins : l'entrée de la grotte, la pierre d'écho, les pierres gravées des archives
   function objetsAgence(objets) {
+    objetsDetecteur(objets);   // V28 : le détecteur posé
     if (!PL || !J) return;
     const L = lieuGrotteEcho();
     if (L) objets.push({ y: L.y, draw: () => { const im = IMG['p-lieu_l10-0']; if (!im) { chargerFamille('arene'); return; } const h = 330 * Z, w = im.width * h / im.height, x = sx(L.x), y = sy(L.y);
@@ -11308,7 +11316,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   function boutonGuide(id, fx, fy, fw, fh) {
     if (!arretDispo() || !AF[id]) return;
     const nom = String(api.arret.nom || '').trim().slice(0, 16), h = 30 * U, w = Math.min(fw - 16 * U, (nom ? 150 : 120) * U);
-    bouton(fx + fw - w - 8 * U, fy + 8 * U, w, h, nom ? 'Parler à ' + nom : 'Signaler', () => parlerGuide(id, fx + fw / 2, fy + fh * 0.3), false, '💬');
+    bouton(fx + 8 * U, fy + 8 * U, w, h, nom ? 'Parler à ' + nom : 'Signaler',   /* V28 : en haut à GAUCHE (le stade en chiffre romain est en haut à droite) */ () => parlerGuide(id, fx + fw / 2, fy + fh * 0.3), false, '💬');
   }
   async function parlerGuide(id, bx, by) {
     if (guideOuvert || !arretDispo()) return; guideOuvert = true;
@@ -11333,75 +11341,101 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   const NOMS_BRAS_AUTRES = ['Bras de Lyra', 'Bras d’Orphée', 'Bras de Nyx'];
   function nomBras(b) { return b === BRAS_PRINC ? 'Bras d’Astréa' : NOMS_BRAS_AUTRES[((b - BRAS_PRINC + 4) % 4) - 1]; }
   // la région d'un système : 1 à 20 le long du bras principal (de son bout vers le centre) ; HYPER (21) = l'hyper-centre ; 0 = un autre bras (fermé)
-  // (selon la place où le système est DESSINÉ : sa distance au centre, la carte étant aplatie de 0,92 en hauteur ; les zones de la carte ont exactement ces bords)
+  // CARTE SIMPLIFIÉE (remarques de PATOU, 8 nov. 9 h 10 → 9 h 17 : « trop de couleurs », « régions trop obliques, plus carrées », « découpe plus précise ») :
+  // chaque système est rattaché au POINT DU BRAS le plus proche de lui ; les régions sont des tronçons du bras de même longueur, coupés DROIT
+  // (perpendiculairement au bras), et assez larges pour contenir leurs systèmes. La carte étant aplatie de 0,92 en hauteur, les calculs se font « à plat ».
+  const aBras = r => BRAS_PRINC * TAU / 4 + Math.log(r / 40) * 1.55;
+  const brasU = r => { const a = aBras(r); return { x: Math.cos(a) * r, y: Math.sin(a) * r }; };   // le milieu du bras, carte non aplatie
+  const normBras = r => { const a = aBras(r), tx = Math.cos(a) - 1.55 * Math.sin(a), ty = Math.sin(a) + 1.55 * Math.cos(a), l = Math.hypot(tx, ty); return { x: -ty / l, y: tx / l }; };
+  const SURBRAS = new Map();
+  function surBras(s) {   // { r : où il est le long du bras (comme un rayon), d : son écart au milieu du bras, du côté de la normale }
+    let q = SURBRAS.get(s.i); if (q) return q;
+    const px = s.x, py = s.y / 0.92; let best = 1e18, rb = 40;
+    for (let r = 40; r <= 1080; r += 4) { const c = brasU(r), d = (c.x - px) * (c.x - px) + (c.y - py) * (c.y - py); if (d < best) { best = d; rb = r; } }
+    for (let r = Math.max(40, rb - 4); r <= rb + 4; r += 0.25) { const c = brasU(r), d = (c.x - px) * (c.x - px) + (c.y - py) * (c.y - py); if (d < best) { best = d; rb = r; } }
+    const c = brasU(rb), n = normBras(rb); q = { r: rb, d: (px - c.x) * n.x + (py - c.y) * n.y }; SURBRAS.set(s.i, q); return q;
+  }
   function region20(s) {
-    if (!s) return 0; const r = s.coeur ? 0 : Math.hypot(s.x, s.y / 0.92); if (r < R20.centre) return HYPER; if (s.i % 4 !== BRAS_PRINC) return 0;
+    if (!s) return 0; if (s.coeur || Math.hypot(s.x, s.y / 0.92) < R20.centre) return HYPER; if (s.i % 4 !== BRAS_PRINC) return 0;
+    const r = surBras(s).r; if (r < R20.centre + 0.0001) return 20;
     return 1 + Math.min(19, Math.max(0, Math.floor((R20.bout + 0.0001 - r) / PAS20)));
   }
+  // la demi-largeur de chaque région : ce qu'il faut pour contenir 92 % de ses systèmes (les quelques systèmes perdus loin du bras restent dehors)
+  const LARG20 = (() => {
+    const L = []; for (let n = 1; n <= 20; n++) L[n] = [];
+    for (const s of GAL.sys) { const n = region20(s); if (n >= 1 && n <= 20) L[n].push(Math.abs(surBras(s).d)); }
+    const brut = [0]; for (let n = 1; n <= 20; n++) { const a = L[n].sort((x, y) => x - y), p = a.length ? a[Math.min(a.length - 1, Math.floor(a.length * 0.92))] : 40; brut[n] = clamp(p + 12, 30, 115); }
+    // lissées (1-2-1, deux passes) : le ruban ne fait pas d'angle d'une région à l'autre, et la région du départ n'est pas une boîte plus large que les autres
+    let out = brut.slice(); for (let k = 0; k < 2; k++) { const o = out.slice(); for (let n = 1; n <= 20; n++) o[n] = (out[Math.max(1, n - 1)] + 2 * out[n] + out[Math.min(20, n + 1)]) / 4; out = o; }
+    return out;
+  })();
+  function largeur20(r) { const f = (R20.bout - r) / PAS20 + 0.5, n = clamp(Math.floor(f), 1, 20), m = clamp(n + 1, 1, 20), u = clamp(f - n, 0, 1); return LARG20[n] * (1 - u) + LARG20[m] * u; }
+  // un point du bord de la zone, sur la carte (aplatie) : côté +1 ou −1 de la normale
+  function bordZone(r, cote, marge) { const c = brasU(r), n = normBras(r), w = largeur20(r) + (marge || 0); return { x: c.x + n.x * w * cote, y: (c.y + n.y * w * cote) * 0.92 }; }
+  // le côté EXTÉRIEUR du bras (le plus loin du centre de la galaxie), pour les numéros et les noms
+  function coteExterieur(r) { const c = brasU(r), n = normBras(r); return c.x * n.x + c.y * n.y >= 0 ? 1 : -1; }
   function texteRegion20(s) { const n = region20(s); return n === HYPER ? '🕳️ L’Hyper-Centre · un trou noir' : n ? 'Région ' + n + ' · ' + REG20[n - 1].nom : '🌌 ' + nomBras(s.i % 4); }
-  function couleurRegion20(s) { const n = region20(s); return n === HYPER ? '#ff8ae0' : n ? REG20[n - 1].c : '#aab2cc'; }
-  // la ligne du bras (mêmes formules que la galaxie) ; da = un écart d'angle de part et d'autre du milieu du bras
+  function couleurRegion20(s) { const n = region20(s); return n === HYPER ? '#ff8ae0' : n ? '#cfe0ff' : '#aab2cc'; }
+  // la ligne du bras pour les AUTRES bras (leur nom, au bout) : mêmes formules que la galaxie
   const brasXY = (b, rad, da) => { const a = b * TAU / 4 + Math.log(rad / 40) * 1.55 + (da || 0); return { x: Math.cos(a) * rad, y: Math.sin(a) * rad * 0.92 }; };
-  const largeurBras = rad => 0.8 * (0.09 + 0.16 * (1 - (rad - 40) / 960));
-  function milieuRegion20(n) { return n === HYPER ? { x: 0, y: 0 } : brasXY(BRAS_PRINC, R20.bout - (n - 0.5) * PAS20); }
-  // le rond du numéro d'une région : sur le bord EXTÉRIEUR du bras (il ne cache jamais les systèmes du milieu du bras), et le côté du nom
-  function bordRegion20(n, f) {
-    if (n === HYPER) return { x: 0, y: -R20.centre * 0.92 * (f || 1), dx: 0, dy: -1 };
-    // (un écart d'angle POSITIF tombe toujours du côté intérieur du bras, vers le centre : le bord extérieur est du côté négatif)
-    const rad = R20.bout - (n - 0.5) * PAS20, q = brasXY(BRAS_PRINC, rad, -largeurBras(rad) * (f || 1)), m = brasXY(BRAS_PRINC, rad);
-    const l = Math.hypot(q.x - m.x, q.y - m.y) || 1; return { x: q.x, y: q.y, dx: (q.x - m.x) / l, dy: (q.y - m.y) / l };
+  function milieuRegion20(n) { if (n === HYPER) return { x: 0, y: 0 }; const c = brasU(R20.bout - (n - 0.5) * PAS20); return { x: c.x, y: c.y * 0.92 }; }
+  // le rond du numéro d'une région : sur le bord extérieur de sa zone (il ne cache jamais les systèmes), et la direction vers où écrire son nom
+  function bordRegion20(n) {
+    if (n === HYPER) return { x: 0, y: -R20.centre * 0.92, dx: 0, dy: -1 };
+    const r = R20.bout - (n - 0.5) * PAS20, s = coteExterieur(r), q = bordZone(r, s, 6), nn = normBras(r);
+    const l = Math.hypot(nn.x, nn.y * 0.92) || 1; return { x: q.x, y: q.y, dx: nn.x * s / l, dy: nn.y * 0.92 * s / l };
   }
   function badgesGagnes() { try { return Object.keys(AFX().badges || {}).length; } catch (e) { return 0; } }
   function badgeRegion(n) { try { return !!(AFX().badges || {})['a' + n]; } catch (e) { return false; } }
-  // ---------------------------------------------------------------- sur la carte de la galaxie : les 20 zones, les noms des bras, le départ
+  // ---------------------------------------------------------------- sur la carte de la galaxie : les 20 zones (UNE couleur douce, ta région en doré), les noms des bras
+  const ZONE = { fond: 'rgba(150,180,255,0.07)', bord: 'rgba(175,200,255,0.42)', coupe: 'rgba(175,200,255,0.30)', ici: '255,214,120' };
   function zonesCarte(c0, k, t) {
     const ici = region20(GAL.sys[sysIci()]), P = q => ({ x: c0.x + q.x * k, y: c0.y + q.y * k });
     ctx.save(); ctx.lineJoin = 'round';
     // l'hyper-centre : tout rond, un trou noir (un disque d'accrétion qui tourne doucement autour d'un cœur noir)
-    { const r = R20.centre * k, g = ctx.createRadialGradient(c0.x, c0.y, r * 0.18, c0.x, c0.y, r); g.addColorStop(0, 'rgba(0,0,0,0.95)'); g.addColorStop(0.32, 'rgba(20,0,30,0.85)'); g.addColorStop(0.5, 'rgba(255,138,224,0.30)'); g.addColorStop(0.72, 'rgba(255,190,120,0.16)'); g.addColorStop(1, 'rgba(255,138,224,0.05)');
+    { const r = R20.centre * k, g = ctx.createRadialGradient(c0.x, c0.y, r * 0.18, c0.x, c0.y, r); g.addColorStop(0, 'rgba(0,0,0,0.95)'); g.addColorStop(0.32, 'rgba(20,0,30,0.85)'); g.addColorStop(0.5, 'rgba(255,138,224,0.22)'); g.addColorStop(0.72, 'rgba(255,190,120,0.10)'); g.addColorStop(1, 'rgba(255,138,224,0.03)');
       ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(c0.x, c0.y, r, r * 0.92, 0, 0, TAU); ctx.fill();
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
-      for (let j = 0; j < 3; j++) { ctx.strokeStyle = ['rgba(255,170,230,0.35)', 'rgba(255,210,150,0.25)', 'rgba(190,150,255,0.25)'][j]; ctx.lineWidth = Math.max(1.5, r * 0.06); ctx.beginPath(); ctx.ellipse(c0.x, c0.y, r * (0.5 + j * 0.12), r * (0.5 + j * 0.12) * 0.92, 0, t * (0.4 + j * 0.15) + j * 2, t * (0.4 + j * 0.15) + j * 2 + 2.2); ctx.stroke(); }
+      for (let j = 0; j < 3; j++) { ctx.strokeStyle = ['rgba(255,170,230,0.28)', 'rgba(255,210,150,0.2)', 'rgba(190,150,255,0.2)'][j]; ctx.lineWidth = Math.max(1.5, r * 0.06); ctx.beginPath(); ctx.ellipse(c0.x, c0.y, r * (0.5 + j * 0.12), r * (0.5 + j * 0.12) * 0.92, 0, t * (0.4 + j * 0.15) + j * 2, t * (0.4 + j * 0.15) + j * 2 + 2.2); ctx.stroke(); }
       ctx.restore();
-      ctx.globalAlpha = 0.75; ctx.strokeStyle = '#ff8ae0'; ctx.lineWidth = 1.6; ctx.setLineDash([7, 6]); ctx.lineDashOffset = -t * 12; ctx.beginPath(); ctx.ellipse(c0.x, c0.y, r, r * 0.92, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; }
-    // les régions 1 à 20 : des tronçons du bras principal, chacun de sa couleur
-    for (let n = 1; n <= 20; n++) {
-      const r1 = R20.bout - (n - 1) * PAS20, r2 = R20.bout - n * PAS20, R = REG20[n - 1], pts = [];
-      for (let j = 0; j <= 10; j++) { const rad = r1 + (r2 - r1) * j / 10; pts.push(P(brasXY(BRAS_PRINC, rad, largeurBras(rad)))); }
-      for (let j = 10; j >= 0; j--) { const rad = r1 + (r2 - r1) * j / 10; pts.push(P(brasXY(BRAS_PRINC, rad, -largeurBras(rad)))); }
-      ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath();
-      ctx.globalAlpha = n === ici ? 0.30 + 0.07 * Math.sin(t * 3) : 0.17; ctx.fillStyle = R.c; ctx.fill();
-      ctx.globalAlpha = n === ici ? 0.95 : 0.55; ctx.strokeStyle = R.c; ctx.lineWidth = n === ici ? 2.5 : 1.2; ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-    // les noms des bras, au bout de chacun ; les 3 bras de décor sont fermés pour l'instant
+      ctx.globalAlpha = 0.6; ctx.strokeStyle = '#d8b8ff'; ctx.lineWidth = 1.4; ctx.setLineDash([7, 6]); ctx.beginPath(); ctx.ellipse(c0.x, c0.y, r, r * 0.92, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; }
+    // les 20 régions : des blocs posés droit le long du bras (coupés perpendiculairement), tous de la même couleur douce ; ta région en doré qui respire
+    const zone = n => { const r1 = R20.bout - (n - 1) * PAS20, r2 = R20.bout - n * PAS20, pts = [];
+      for (let j = 0; j <= 12; j++) pts.push(P(bordZone(r1 + (r2 - r1) * j / 12, 1)));
+      for (let j = 12; j >= 0; j--) pts.push(P(bordZone(r1 + (r2 - r1) * j / 12, -1)));
+      ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath(); };
+    for (let n = 1; n <= 20; n++) { zone(n); ctx.fillStyle = ZONE.fond; ctx.fill(); }
+    // les bords du ruban, puis les coupes entre régions (droites, en travers du bras)
+    ctx.strokeStyle = ZONE.bord; ctx.lineWidth = 1.2;
+    for (const cote of [1, -1]) { ctx.beginPath(); for (let j = 0; j <= 240; j++) { const p = P(bordZone(R20.bout - (R20.bout - R20.centre) * j / 240, cote)); if (j) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); } ctx.stroke(); }
+    ctx.strokeStyle = ZONE.coupe; ctx.lineWidth = 1;
+    for (let n = 0; n <= 20; n++) { const r = R20.bout - n * PAS20, a = P(bordZone(r, 1)), b = P(bordZone(r, -1)); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+    if (ici >= 1 && ici <= 20) { zone(ici); const p = 0.5 + 0.5 * Math.sin(t * 3); ctx.fillStyle = 'rgba(' + ZONE.ici + ',' + (0.13 + 0.07 * p) + ')'; ctx.fill(); ctx.strokeStyle = 'rgba(' + ZONE.ici + ',0.95)'; ctx.lineWidth = 2.2; ctx.stroke(); }
+    // les noms des bras, au bout de chacun
     ctx.font = '800 ' + Math.round(12 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(4,4,15,0.9)';
     for (let b = 0; b < 4; b++) {
       const q = P(brasXY(b, b === BRAS_PRINC ? 1150 : 1075)), princ = b === BRAS_PRINC, txt = (princ ? '✨ ' : '') + nomBras(b);
-      ctx.globalAlpha = princ ? 1 : 0.8; ctx.strokeText(txt, q.x, q.y); ctx.fillStyle = princ ? '#ffd27a' : '#aab2cc'; ctx.fillText(txt, q.x, q.y);
+      ctx.globalAlpha = princ ? 1 : 0.75; ctx.strokeText(txt, q.x, q.y); ctx.fillStyle = princ ? '#ffd27a' : '#aab2cc'; ctx.fillText(txt, q.x, q.y);
     }
     ctx.globalAlpha = 1;
-    // les numéros des régions (et leur nom quand on zoome, ou pour la région où tu es) ; un badge gagné = un rond doré
-    const zoom = carte.z, rr = (zoom < 2 ? 9 : 12) * U, ic = P(GAL.sys[sysIci()]);
+    // les numéros des régions, sur le bord extérieur ; leur nom seulement quand on zoome (et toujours pour TA région) ; badge gagné = 🏅, région fermée = 🔒
+    const zoom = carte.z, rr = (zoom < 2 ? 8.5 : 11) * U, ic = P(GAL.sys[sysIci()]);
     const places = [{ x0: ic.x - 70 * U, y0: ic.y - 48 * U, x1: ic.x + 70 * U, y1: ic.y + 50 * U }];   // la place de TOI, de son nom et de l'objectif
     for (let n = 1; n <= HYPER; n++) {
-      const R = n === HYPER ? { nom: 'L’Hyper-Centre', c: '#ff8ae0' } : REG20[n - 1], B = bordRegion20(n, n === HYPER ? 1 : 1.05), q0 = P(B), q = { x: q0.x + B.dx * rr * 0.6, y: q0.y + B.dy * rr * 0.6 }, badge = badgeRegion(n);
+      const B = bordRegion20(n), q0 = P(B), q = { x: q0.x + B.dx * rr * 1.1, y: q0.y + B.dy * rr * 1.1 }, badge = badgeRegion(n), moi = n === ici;
       if (q.x < -60 || q.x > W + 60 || q.y < -60 || q.y > H + 60) continue;
-      ctx.beginPath(); ctx.arc(q.x, q.y, rr, 0, TAU); ctx.fillStyle = 'rgba(8,8,24,0.9)'; ctx.fill();
-      ctx.lineWidth = badge ? 3 : 2; ctx.strokeStyle = badge ? '#ffd23a' : R.c; ctx.stroke();
-      ctx.textAlign = 'center'; ctx.fillStyle = badge ? '#ffd23a' : '#ffffff'; ctx.font = '800 ' + Math.round(rr * 1.05) + 'px ' + FB; ctx.fillText(n === HYPER ? '🕳️' : String(n), q.x, q.y + 0.5);
-      if (badge) { ctx.font = Math.round(rr * 0.95) + 'px ' + FB; ctx.fillText('🏅', q.x + rr * 0.95, q.y - rr * 0.85); }
-      cadenasRegion(n, q.x, q.y, rr);
-      places.push({ x0: q.x - rr, y0: q.y - rr, x1: q.x + rr, y1: q.y + rr });
-      const nomVu = zoom >= 2.4 || n === ici || n === 1 || n === HYPER;
+      if (n !== HYPER) { ctx.beginPath(); ctx.arc(q.x, q.y, rr, 0, TAU); ctx.fillStyle = 'rgba(8,8,24,0.9)'; ctx.fill(); ctx.lineWidth = moi || badge ? 2.5 : 1.5; ctx.strokeStyle = moi ? 'rgb(' + ZONE.ici + ')' : badge ? '#ffd23a' : 'rgba(190,205,255,0.75)'; ctx.stroke();
+        ctx.textAlign = 'center'; ctx.fillStyle = moi || badge ? '#ffe9a8' : '#ffffff'; ctx.font = '800 ' + Math.round(rr * 1.05) + 'px ' + FB; ctx.fillText(String(n), q.x, q.y + 0.5);
+        if (badge) { ctx.font = Math.round(rr * 0.95) + 'px ' + FB; ctx.fillText('🏅', q.x + rr * 0.95, q.y - rr * 0.85); }
+        cadenasRegion(n, q.x, q.y, rr); places.push({ x0: q.x - rr, y0: q.y - rr, x1: q.x + rr, y1: q.y + rr }); }
+      const nomVu = zoom >= 2.4 || moi || n === HYPER;
       if (!nomVu) continue;
-      // le nom, du côté extérieur du rond (à gauche ou à droite selon le côté du bras), ou au-dessus pour l'hyper-centre
-      const txt = n === HYPER ? 'L’Hyper-Centre' : (n === 1 ? '🏠 Départ · ' : '') + 'Région ' + n + ' · ' + R.nom; ctx.font = '700 ' + Math.round(11.5 * U) + 'px ' + FB;
-      const w = ctx.measureText(txt).width, droite = n === HYPER ? null : B.dx >= 0, tx = n === HYPER ? q.x : droite ? q.x + rr + 5 * U : q.x - rr - 5 * U, ty = n === HYPER ? q.y - rr - 10 * U : q.y;
+      const txt = n === HYPER ? 'L’Hyper-Centre' : (n === 1 ? '🏠 Départ · ' : '') + 'Région ' + n + ' · ' + REG20[n - 1].nom; ctx.font = '700 ' + Math.round(11.5 * U) + 'px ' + FB;
+      const w = ctx.measureText(txt).width, droite = n === HYPER ? null : B.dx >= 0, tx = n === HYPER ? q.x : droite ? q.x + rr + 5 * U : q.x - rr - 5 * U, ty = n === HYPER ? q.y - 12 * U : q.y;
       const bx = n === HYPER ? { x0: tx - w / 2, y0: ty - 8 * U, x1: tx + w / 2, y1: ty + 8 * U } : droite ? { x0: tx, y0: ty - 8 * U, x1: tx + w, y1: ty + 8 * U } : { x0: tx - w, y0: ty - 8 * U, x1: tx, y1: ty + 8 * U };
       if (places.some(z => bx.x0 < z.x1 && bx.x1 > z.x0 && bx.y0 < z.y1 && bx.y1 > z.y0)) continue;
       places.push(bx); ctx.textAlign = n === HYPER ? 'center' : droite ? 'left' : 'right';
-      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(4,4,15,0.92)'; ctx.strokeText(txt, tx, ty); ctx.fillStyle = R.c; ctx.fillText(txt, tx, ty);
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(4,4,15,0.92)'; ctx.strokeText(txt, tx, ty); ctx.fillStyle = moi ? '#ffe9a8' : n === HYPER ? '#e8c8ff' : '#dfe6ff'; ctx.fillText(txt, tx, ty);
     }
     ctx.restore();
     arenesCarte(c0, k, t, places);
@@ -11437,7 +11471,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     const pris = new Set(), utilise = new Set();
     for (let n = 1; n <= 20; n++) {
       const A = ARENES.find(a => a.type === TYPES_REG20[n - 1] && !utilise.has(a)); if (!A) continue; utilise.add(A);
-      const mid = R20.bout - (n - 0.5) * PAS20, note = S => Math.abs(Math.hypot(S.x, S.y / 0.92) - mid) + Math.abs(S.disp) * 300 - (S.station ? 25 : 0);
+      const mid = R20.bout - (n - 0.5) * PAS20, note = S => Math.abs(surBras(S).r - mid) + Math.abs(surBras(S).d) * 1.2 - (S.station ? 25 : 0);   // au milieu de la région, près du milieu du bras
       const L = GAL.sys.filter(S => region20(S) === n && S.i !== GAL.depart.i).sort((a, b) => note(a) - note(b));
       if (!L.length) continue;
       A.reg20 = n; A.niv = nivRegion20(n); A.reg = Math.min(4, Math.floor((n - 1) / 4));
@@ -11458,6 +11492,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     if (OUV.cle !== cle) { let m = 1; for (const i of V.concat(SYS ? [SYS.i] : [])) { const r = region20(GAL.sys[i]); if (r && r !== HYPER && r > m) m = r; } OUV = { cle, max: m }; }
     return OUV.max;
   }
+  function premiereFermee() { for (let n = 2; n <= 20; n++) if (!regionOuverte(n)) return n; return 0; }
   function regionOuverte(n) { if (n === 1) return true; if (!n || n === HYPER) return false; return badgeRegion(n - 1) || n <= maxVisitee(); }
   function verrouRegion(s) {
     const n = region20(s); if (!s || (SYS && s.i === SYS.i)) return null;
@@ -11508,19 +11543,19 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
       const A = ARENE_REG[n]; if (!A) continue; const S = GAL.sys[A.sys], x = c0.x + S.x * k, y = c0.y + S.y * k;
       if (x < -40 || x > W + 40 || y < -40 || y > H + 40) continue;
       const fort = z >= 2.2 || n === ici, gagne = badgeRegion(n), R = REG20[n - 1];
-      if (!fort) { ctx.fillStyle = R.c; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(x, y, 3 * U, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; continue; }
+      if (!fort) { ctx.fillStyle = gagne ? '#ffd23a' : '#e8eeff'; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(x, y, 3 * U, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; continue; }
       const r = 12 * U + Math.sin(t * 3 + n) * 1.2 * U;
-      ctx.fillStyle = 'rgba(8,8,24,0.85)'; ctx.beginPath(); ctx.arc(x, y - 16 * U, r, 0, TAU); ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = gagne ? '#ffd23a' : R.c; ctx.stroke();
+      ctx.fillStyle = 'rgba(8,8,24,0.85)'; ctx.beginPath(); ctx.arc(x, y - 16 * U, r, 0, TAU); ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = gagne ? '#ffd23a' : 'rgba(200,215,255,0.85)'; ctx.stroke();
       ctx.font = Math.round(14 * U) + 'px ' + FB; ctx.fillText('🏟️', x, y - 16 * U);
       if (gagne) { ctx.font = Math.round(11 * U) + 'px ' + FB; ctx.fillText('✅', x + r * 0.85, y - 16 * U - r * 0.75); }
       if (z >= 3.4 || n === ici) { const txt = 'Arène ' + A.nom; ctx.font = '700 ' + Math.round(11 * U) + 'px ' + FB;
         const w = ctx.measureText(txt).width / 2 + 3 * U, ly = y - 16 * U - r - 9 * U, bx = { x0: x - w, y0: ly - 8 * U, x1: x + w, y1: ly + 8 * U };
-        if (places && places.some(q => bx.x0 < q.x1 && bx.x1 > q.x0 && bx.y0 < q.y1 && bx.y1 > q.y0)) continue; if (places) places.push(bx); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(4,4,15,0.92)'; ctx.strokeText(txt, x, y - 16 * U - r - 9 * U); ctx.fillStyle = gagne ? '#ffd23a' : R.c; ctx.fillText(txt, x, y - 16 * U - r - 9 * U); }
+        if (places && places.some(q => bx.x0 < q.x1 && bx.x1 > q.x0 && bx.y0 < q.y1 && bx.y1 > q.y0)) continue; if (places) places.push(bx); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(4,4,15,0.92)'; ctx.strokeText(txt, x, y - 16 * U - r - 9 * U); ctx.fillStyle = gagne ? '#ffd23a' : '#e8eeff'; ctx.fillText(txt, x, y - 16 * U - r - 9 * U); }
     }
     ctx.restore();
   }
   // le cadenas des régions fermées, sur leur rond
-  function cadenasRegion(n, x, y, rr) { if (n === HYPER || regionOuverte(n)) return; ctx.save(); ctx.font = Math.round(rr * 0.95) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🔒', x - rr * 0.95, y - rr * 0.85); ctx.restore(); }
+  function cadenasRegion(n, x, y, rr) { if (n === HYPER || regionOuverte(n)) return; if (carte && carte.z < 2.4 && n !== premiereFermee()) return;   /* vue large : seulement le cadenas de la prochaine région à ouvrir */ ctx.save(); ctx.font = Math.round(rr * 0.95) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🔒', x - rr * 0.95, y - rr * 0.85); ctx.restore(); }
   // en gagnant un badge : la région suivante s'ouvre (dit dans le bilan du combat)
   const gagnerBadgeV16 = gagnerBadge;
   gagnerBadge = () => {
@@ -11592,6 +11627,84 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   }
   // la liste des arènes de la page « Aventure » : dans l'ordre des régions (Astréa d'abord), et la région écrite sous chaque arène
   ARENES.sort((a, b) => (a.reg20 || 99) - (b.reg20 || 99));
+  // ---------------------------------------------------------------- V28 (offert, ticket 62d83379 de PATOU, « le champignon, le chapeau on ne le voit pas ») :
+  // le grand champignon ne s'efface que si le héros est VRAIMENT derrière la partie dessinée (et non dans les marges vides de son image), et il reste bien visible (0,75)
+  const BOITE_OP = new WeakMap();
+  function boiteOpaque(cv) {
+    let b = BOITE_OP.get(cv); if (b) return b;
+    try { const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let x0 = cv.width, y0 = cv.height, x1 = 0, y1 = 0;
+      for (let y = 0; y < cv.height; y += 2) for (let x = 0; x < cv.width; x += 2) if (d[(y * cv.width + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      b = x1 > x0 ? { x0, y0, x1, y1 } : { x0: 0, y0: 0, x1: cv.width, y1: cv.height }; } catch (e) { b = { x0: 0, y0: 0, x1: cv.width, y1: cv.height }; }
+    BOITE_OP.set(cv, b); return b;
+  }
+  function derriereChampi(o, im, k, hx, hy) {
+    const b = boiteOpaque(im.cv), gx = sx(o.x) - im.ax * k, gy = sy(o.y) - im.ay * k, ox0 = gx + b.x0 * k, ox1 = gx + b.x1 * k, oy0 = gy + b.y0 * k, w = ox1 - ox0;
+    return hx > ox0 + w * 0.18 && hx < ox1 - w * 0.18 && hy - 60 * Z < sy(o.y) && hy > oy0 + 30 * Z;
+  }
+  // ---------------------------------------------------------------- V28 (offert, ticket 02d9f1fc de PATOU, « on ne voit pas leur niveau d'évolution, en grand en chiffre romain en haut à droite ») :
+  // sur la fiche de chaque bête du Cosmodex, son stade en GRAND chiffre romain (I, II, III ; ★ pour une légendaire) en haut à droite
+  const ficheBeteV16 = ficheBete;
+  ficheBete = (id, x, y, w, h, t) => {
+    ficheBeteV16(id, x, y, w, h, t);
+    const a = AF[id]; if (!a) return; const txt = a.legende || a.nst <= 1 && a.rar >= 5 ? '★' : ['I', 'II', 'III'][a.st] || 'I', fs = Math.round(Math.min(46 * U, h * 0.12));
+    ctx.save(); ctx.font = fs + 'px ' + FT; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(4, fs * 0.16); ctx.strokeStyle = '#1a1030'; ctx.strokeText(txt, x + w - 14 * U, y + 10 * U);
+    const g = ctx.createLinearGradient(0, y + 10 * U, 0, y + 10 * U + fs); g.addColorStop(0, '#fff3c0'); g.addColorStop(1, '#ffb73a'); ctx.fillStyle = g; ctx.fillText(txt, x + w - 14 * U, y + 10 * U);
+    ctx.font = '700 ' + Math.round(10.5 * U) + 'px ' + FB; ctx.fillStyle = '#ffe9a8'; ctx.fillText(a.legende ? 'légendaire' : 'stade ' + (a.st + 1) + ' / ' + a.nst, x + w - 14 * U, y + 14 * U + fs);
+    ctx.restore();
+  };
+
+  // ---------------------------------------------------------------- V28 (offert, ticket 0a811919 de PATOU : « je n'ai pas posé de détecteur et il me dit qu'il n'y a rien sur cette planète ») :
+  // le détecteur devient un VRAI objet, en 3 étapes guidées : 1) je le POSE (bouton E), 2) je l'ALLUME, 3) il écoute sous la planète (ondes, 4 s)
+  // et SEULEMENT ALORS il donne son signal : de la pierre d'écho ici, ou rien. Le résultat reste écrit pour cette planète.
+  let DET = null;   // { pk, x, y, on, t }
+  const DET_DUREE = 4;
+  function planeteMission() { const M = mission(); return chapId() === 'antenne' && !aEcho() && M && PL && J && PL.sys === M.sys && !dansGrotte() ? M : null; }
+  function resultatDet() { return PL ? (E0().detect || {})[PL.key] : null; }
+  function actionDetecteur() {
+    if (!planeteMission() || resultatDet()) return null;
+    if (!DET || DET.pk !== PL.key) return { txt: 'Poser le détecteur', ico: '📡', d: 0, f: () => { DET = { pk: PL.key, x: J.x + 110, y: J.y + 34, on: false, t: 0 }; son('construit', 0.6); dire('📡 Détecteur posé ! Allume-le pour qu’il écoute sous la planète.', 3.5); } };
+    if (!DET.on && Math.hypot(DET.x - J.x, (DET.y - J.y) * 1.4) < 170) return { txt: 'Allumer le détecteur', ico: '🔆', d: 0, f: () => { DET.on = true; DET.t = 0; son('ui', 0.9); dire('📡 Le détecteur écoute sous la planète… attends son signal', 3.5); } };
+    return null;
+  }
+  function majDetecteur(dt) {
+    if (!DET) return; if (!PL || DET.pk !== PL.key) { DET = null; return; }
+    if (!DET.on || resultatDet()) return; DET.t += dt; if (DET.t < DET_DUREE) return;
+    const X = E0(), M = mission(); if (!M) return; X.detect = X.detect || {}; const oui = PL.k === M.k; X.detect[PL.key] = oui ? 'oui' : 'non';
+    if (oui) { dire(scanPl() ? '📡 SIGNAL ! De la pierre d’écho sous cette planète !' : '📡 SIGNAL ! De la pierre d’écho, quelque part sous cette planète… mais où ?', 5); son('ok', 0.9); flash = 0.25;
+      if (!scanPl()) setTimeout(() => { if (!dead && planeteEcho()) penser('Elle est dans une grotte, mais cette planète est immense… Un scanner de planète 🔎 me montrerait où chercher : on en vend à la station.'); }, 5500); }
+    else { dire('📡 Pas de signal : aucune pierre d’écho sous cette planète. Essaie une autre planète de ' + GAL.sys[M.sys].nom + ' 🚀', 5.5); son('ui', 0.7); X.echoNon = (X.echoNon || 0) + 1;
+      if (!scanPl() && X.echoNon >= 2) setTimeout(() => { if (!dead && state === 'jeu') penser('Pas ici non plus… Un scanner de planète 🔎 m’aiderait : on en vend à la station.'); }, 6000); }
+    sauver();
+  }
+  // le texte de l'étape (bandeau, journal) sur une planète du système de la mission
+  function etapeDetecteur(S) {
+    const r = resultatDet();
+    if (!r) return DET && DET.pk === PL.key ? (DET.on ? '📡 Le détecteur écoute sous la planète… attends son signal' : '🔆 Allume ton détecteur (bouton E) : suis la flèche') : '📡 Pose ton détecteur (bouton E) : il te dira si la pierre d’écho est sous cette planète';
+    if (r === 'oui') return scanPl() && (E0().analyses || {})[PL.key] ? '🔎 La pierre d’écho est dans une grotte de cette planète : suis la flèche 🔎' : '📡 Signal ! De la pierre d’écho quelque part sous cette planète… cherche une grotte (un scanner de planète 🔎 aiderait)';
+    return '📡 Pas de signal ici · essaie une autre planète de ' + S.nom + ' 🚀';
+  }
+  function cibleDetecteur() { return DET && PL && DET.pk === PL.key && !DET.on && !resultatDet() ? { x: DET.x, y: DET.y, ico: '📡', nom: 'ton détecteur' } : null; }
+  // le détecteur : un trépied, une parabole, un voyant ; allumé, des ondes qui descendent dans le sol et un cercle qui se remplit ; puis ✓ ou ✗
+  function objetsDetecteur(objets) {
+    if (!DET || !PL || DET.pk !== PL.key) return; const D = DET;
+    objets.push({ y: D.y, draw: t => { const x = sx(D.x), y = sy(D.y), k = Z * 1.5; if (x < -120 || x > W + 120 || y < -160 || y > H + 80) return;
+      const r = resultatDet(), on = D.on && !r, p = on ? clamp(D.t / DET_DUREE, 0, 1) : r ? 1 : 0;
+      ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x, y, 26 * k, 8 * k, 0, 0, TAU); ctx.fill();
+      if (on) { ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 3; i++) { const u = (t * 0.9 + i / 3) % 1; ctx.strokeStyle = 'rgba(120,230,255,' + (0.5 * (1 - u)) + ')'; ctx.lineWidth = 3 * k; ctx.beginPath(); ctx.ellipse(x, y, (20 + u * 90) * k, (6 + u * 28) * k, 0, 0, TAU); ctx.stroke(); } ctx.globalCompositeOperation = 'source-over'; }
+      ctx.strokeStyle = '#3a3e52'; ctx.lineWidth = 3.5 * k; ctx.lineCap = 'round';
+      for (const dx of [-16, 16, 0]) { ctx.beginPath(); ctx.moveTo(x, y - 34 * k); ctx.lineTo(x + dx * k, y - (dx ? 0 : 6) * k); ctx.stroke(); }
+      ctx.fillStyle = '#c8d0e8'; ctx.strokeStyle = '#2a2e40'; ctx.lineWidth = 2.5 * k; ctx.beginPath(); ctx.ellipse(x, y - 44 * k, 20 * k, 10 * k, -0.35, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, y - 44 * k); ctx.lineTo(x + 8 * k, y - 60 * k); ctx.stroke();
+      const vc = r === 'oui' ? '#7aff9a' : r === 'non' ? '#ff7a6a' : on ? (Math.sin(t * 10) > 0 ? '#7ae8ff' : '#2a6a8a') : '#ffd23a';
+      ctx.fillStyle = vc; ctx.beginPath(); ctx.arc(x + 8 * k, y - 62 * k, 4.5 * k, 0, TAU); ctx.fill();
+      if (on || r) { ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 4 * k; ctx.beginPath(); ctx.arc(x, y - 92 * k, 13 * k, 0, TAU); ctx.stroke();
+        ctx.strokeStyle = r === 'non' ? '#ff7a6a' : '#7ae8ff'; ctx.beginPath(); ctx.arc(x, y - 92 * k, 13 * k, -Math.PI / 2, -Math.PI / 2 + p * TAU); ctx.stroke();
+        ctx.font = Math.round(13 * k) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.fillText(r === 'oui' ? '✓' : r === 'non' ? '✗' : '📡', x, y - 92 * k); }
+      ctx.restore();
+      apres.push(() => etiquetteMonde(r === 'oui' ? '📡 Signal : pierre d’écho !' : r === 'non' ? '📡 Pas de signal ici' : on ? '📡 J’écoute… ' + Math.ceil(DET_DUREE - D.t) + ' s' : '📡 Détecteur (éteint)', x, y + 18 * k, y - 120 * k, r === 'non' ? '#ffb0a8' : '#bff4ff', 12));
+    } });
+  }
 
 
   // =================================================================== LA BOUCLE
