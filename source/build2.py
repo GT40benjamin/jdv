@@ -25,7 +25,7 @@ def shell2_avec_ateliers():
     i = sh.find('\n})();', k) if k >= 0 else -1
     if i < 0: raise SystemExit('shell2.js : fin de la fonction englobante (après window.JDW_SHELL) introuvable')
     # 7 nov. 2026 : les OUTILS de l'atelier photo (équipe Outils) dans leur propre fichier, juste après (même portée : rpc, CFG, profile…)
-    return sh[:i] + '\n' + open(J + 'atelier-images.js', encoding='utf-8').read() + '\n' + open(J + 'atelier-outils.js', encoding='utf-8').read() + '\n' + open(J + 'atelier-impression.js', encoding='utf-8').read() + sh[i:]
+    return sh[:i] + '\n' + open(J + 'atelier-images.js', encoding='utf-8').read() + '\n' + open(J + 'atelier-outils.js', encoding='utf-8').read() + '\n' + open(J + 'atelier-impression.js', encoding='utf-8').read() + '\n' + open(J + 'gagner.js', encoding='utf-8').read() + sh[i:]
 
 # ---------- CSS Plein Gaz : variables globales, le reste préfixé #jdw-pg ----------
 
@@ -180,7 +180,7 @@ def page(config=None):
     return (('<title>Pégase · Elixir Game Studio</title>\n' if PAGE == 'pegase' else '<title>Borne d\'arcade entre amis</title>\n') +
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
             '<link rel="stylesheet" href="' + FONT_CSS + '">\n'
-            '<style>\n' + pg_css + '\n' + open(J + 'shell2.css').read() + '\n' + open(J + 'atelier-images.css', encoding='utf-8').read() + '\n' + open(J + 'atelier-outils.css', encoding='utf-8').read() + '\n' + open(J + 'atelier-impression.css', encoding='utf-8').read() + '\n' +open(J + 'accessoires.css', encoding='utf-8').read() + '\n' + open(J + 'manette.css', encoding='utf-8').read() + '\n</style>\n' + body + '\n'
+            '<style>\n' + pg_css + '\n' + open(J + 'shell2.css').read() + '\n' + open(J + 'atelier-images.css', encoding='utf-8').read() + '\n' + open(J + 'atelier-outils.css', encoding='utf-8').read() + '\n' + open(J + 'atelier-impression.css', encoding='utf-8').read() + '\n' + open(J + 'gagner.css', encoding='utf-8').read() + '\n' +open(J + 'accessoires.css', encoding='utf-8').read() + '\n' + open(J + 'manette.css', encoding='utf-8').read() + '\n</style>\n' + body + '\n'
             '<script>\n(() => {\n' + script + '\n})();\n</script>\n' + games + cfg +
             # manette (API Gamepad) : glyphes, api.pad des jeux, navigation ; avant la bibliothèque, qui s'en sert
             '<script>\n' + open(J + 'manette.js', encoding='utf-8').read() + '\n</script>\n'
