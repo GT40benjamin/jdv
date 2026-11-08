@@ -6216,3 +6216,6 @@ body:has(#jdw-liveinv:not([hidden])) .fs-tip{display:none!important}
 .atl-disc.atl-pjdrop{outline:3px dashed #7b55d6;outline-offset:-6px}
 .atl-disc.atl-pjdrop::after{content:'Lâche tes fichiers ici 📎';position:absolute;inset:0;display:grid;place-items:center;background:rgba(123,85,214,.12);color:#4a2370;font:800 20px var(--body);pointer-events:none;z-index:5;border-radius:inherit}
 .atl-disc{position:relative}
+/* 8 nov. : vue admin, « ⚡ Mode auto » grisé (seul le joueur l'allume) */
+.atl-autoit.gris{opacity:.55;cursor:not-allowed;filter:grayscale(.6)}
+.atl-autoit.gris:hover{background:none}
