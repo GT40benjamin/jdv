@@ -6226,3 +6226,46 @@ body:has(#jdw-liveinv:not([hidden])) .fs-tip{display:none!important}
 .atl-disc.atl-pjdrop::after{content:'Lâche tes fichiers ici 📎';position:absolute;inset:0;display:grid;place-items:center;background:rgba(123,85,214,.12);color:#4a2370;font:800 20px var(--body);pointer-events:none;z-index:5;border-radius:inherit}
 .atl-disc{position:relative}
 /* 8 nov. : vue admin, « ⚡ Mode auto » grisé (seul le joueur l'allume) */
+/* 8 nov. 2026 (l'admin : « la visionneuse COUPE l'image ») : LA VISIONNEUSE, une seule pour toute la borne (atlVisio). L'image tient ENTIÈRE sous
+   le bandeau ; zoom molette / deux doigts, glisser, double-clic ; uniquement transform (pas de recalcul de mise en page). Par-dessus tout. */
+.atl-visio{position:fixed;inset:0;z-index:2147483400;display:block;background:rgba(6,4,14,.94);color:#fff;font-family:var(--body);outline:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:contain}
+.atl-visbar{position:absolute;left:0;right:0;top:0;z-index:2;display:flex;align-items:center;gap:10px;box-sizing:border-box;height:calc(env(safe-area-inset-top,0px) + 60px);padding:env(safe-area-inset-top,0px) max(10px,env(safe-area-inset-right,0px)) 0 max(10px,env(safe-area-inset-left,0px));background:linear-gradient(rgba(6,4,14,.96),rgba(6,4,14,.82));border-bottom:1px solid rgba(255,255,255,.08)}
+.atl-visbar .atl-visret{flex:none;min-height:40px;color:#fff;border-color:rgba(255,255,255,.35)}
+.atl-vist{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 15px var(--body);color:#fff}
+.atl-vispc{flex:none;min-width:52px;text-align:right;font:700 13px var(--body);color:rgba(255,255,255,.75);font-variant-numeric:tabular-nums}
+.atl-visbar .atl-visx{flex:none;width:44px;height:44px;min-height:0;border-radius:50%;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-size:20px}
+.atl-visc{position:absolute;left:0;right:0;bottom:0;top:calc(env(safe-area-inset-top,0px) + 60px);overflow:hidden;touch-action:none;cursor:zoom-in;user-select:none;-webkit-user-select:none}
+.atl-visio.zoome .atl-visc{cursor:grab}.atl-visio.zoome .atl-visc:active{cursor:grabbing}
+.atl-visimg{position:absolute;left:0;top:0;max-width:none;max-height:none;transform-origin:0 0;will-change:transform;opacity:0;transition:opacity .15s;image-rendering:auto;-webkit-user-drag:none;pointer-events:none;border-radius:0;box-shadow:0 10px 50px rgba(0,0,0,.55)}
+.atl-visio.pret .atl-visimg{opacity:1}
+.atl-visaide{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.55);color:rgba(255,255,255,.85);font:600 12.5px var(--body);white-space:nowrap;pointer-events:none;animation:atlVisAide 4s ease forwards}
+@keyframes atlVisAide{0%,70%{opacity:1}100%{opacity:0}}
+.atl-vismiss{position:absolute;inset:0;display:grid;place-items:center;margin:0;font:700 16px var(--body);color:rgba(255,255,255,.85)}
+@media (prefers-reduced-motion:reduce){.atl-visimg{transition:none}.atl-visaide{animation:none;opacity:.9}}
+/* 8 nov. 2026 : l'ARRÊT SUR IMAGE dans la discussion — sa capture dans la bulle (toucher = la visionneuse), « ↩ Répondre » ; la citation
+   (miniature + texte) au-dessus d'une réponse et au-dessus du champ pendant qu'on l'écrit */
+.atl-bthumb{display:block;width:100%;max-width:280px;margin:8px 0 2px;padding:0;border:0;border-radius:12px;overflow:hidden;background:#0d0a18;cursor:zoom-in;box-shadow:0 2px 8px rgba(20,40,20,.25);line-height:0}
+.atl-bthumb img{display:block;width:100%;height:auto;max-height:240px;object-fit:contain;background:#0d0a18}
+.atl-bthumb.miss{min-height:60px}.atl-bthumb.miss img{display:none}
+.atl-bthumb.miss::after{content:'🖼️ image pas arrivée';display:block;padding:20px 12px;color:#fff;font:600 13px/1.3 var(--body)}
+.atl-bthumb:focus-visible,.atl-brep:focus-visible,.atl-citeimg:focus-visible,.atl-citex:focus-visible{outline:2px solid #7b55d6;outline-offset:2px}
+.atl-brep{display:inline-flex;align-items:center;gap:4px;min-height:34px;margin:8px 0 0;padding:4px 14px;border-radius:999px;border:1px solid rgba(20,60,30,.22);background:rgba(255,255,255,.7);color:#1d4d2a;font:800 13.5px/1 var(--body);cursor:pointer}
+.atl-fdem .atl-brep{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.16);color:#fff}
+@media (hover:hover){.atl-brep:hover{background:#fff}.atl-fdem .atl-brep:hover{background:rgba(255,255,255,.28)}}
+.atl-mimg{-webkit-touch-callout:none}
+.atl-cite{display:flex;align-items:center;gap:10px;min-width:0;margin:0 0 6px;padding:6px 8px 6px 6px;border-left:3px solid #7b55d6;border-radius:10px;background:rgba(255,255,255,.6);color:#2d2440}
+.atl-citeimg{flex:none;width:52px;height:52px;padding:0;border:0;border-radius:8px;overflow:hidden;background:#0d0a18;cursor:zoom-in;line-height:0}
+.atl-citeimg img{width:100%;height:100%;object-fit:cover}
+.atl-citeimg.miss img{display:none}.atl-citeimg.miss::after{content:'🖼️';display:grid;place-items:center;height:100%;font-size:20px}
+.atl-citetx{flex:1;min-width:0;display:grid;gap:2px}
+.atl-citetx b{font:800 12.5px/1.2 var(--body);color:#5b3fb8}
+.atl-citetx span{font:13px/1.3 var(--body);color:#3d3550;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.atl-citex{flex:none;width:36px;height:36px;min-height:0;padding:0;border:0;border-radius:50%;background:#efe8fa;color:#4a2370;font:900 15px/1 var(--body);cursor:pointer}
+.atl-chat .atl-citebar{flex:none;padding:8px 12px 0;background:#f6f1fb}
+.atl-chat .atl-citebar[hidden]{display:none}
+.atl-chat .atl-citebar .atl-cite{margin:0;background:#fff;box-shadow:0 1px 3px rgba(40,20,70,.12)}
+.atl-chat .atl-citebar + .atl-discrow{border-top:0;padding-top:6px}
+.atl-chat .atl-autosw + .atl-citebar{padding-top:6px}
+.atl-chat .atl-autosw + .atl-citebar + .atl-discrow{border-top:0;padding-top:6px}
+@media (max-height:500px){.atl-bthumb{max-width:220px}.atl-bthumb img{max-height:130px}.atl-chat .atl-autosw-s{display:none}}
+.atl-chat .atl-fdem .atl-brep{border-color:rgba(20,60,30,.25);background:rgba(255,255,255,.75);color:#1d4d2a}
