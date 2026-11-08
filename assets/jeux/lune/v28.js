@@ -6547,7 +6547,7 @@ function mount(root, api) {
   function rnd() { if (!CB || CB.rs == null) return Math.random(); CB.rs = (CB.rs + 0x6D2B79F5) | 0; let t = CB.rs; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
   // réglages de pantin par bête : vues de face seulement (raie vue de dessus, crabe-forteresse qui marche de côté)
   // V17 : les profils dessinés tournés vers la GAUCHE (vérifiés un par un sur la planche de tous les profils) : le jeu les retourne
-  const PROFIL_GAUCHE = new Set(['luciver1', 'anguille1', 'bave1', 'spore3', 'fumerolle1', 'quartz3', 'prisme1', 'pipistrou3', 'nuage3', 'glop2', 'antenne2', 'axolot3', 'girafe1', 'girafe2', 'koala2', 'etoile2', 'faucon2', 'nageciel3', 'esp3', 'esp4', 'esp5', 'esp6', 'esp7', 'esp8', 'esp9', 'esp10']);   /* V28 (l'admin) : 23 de plus, leur dessin de profil regarde à gauche : elles marchaient à reculons */
+  const PROFIL_GAUCHE = new Set(['fumerolle2', 'rouage3', 'poulpe1', 'poulpe2', 'poulpe3', 'bison3', 'capy2', 'sphinx3', 'luciver1', 'anguille1', 'bave1', 'spore3', 'fumerolle1', 'quartz3', 'prisme1', 'pipistrou3', 'nuage3', 'glop2', 'antenne2', 'axolot3', 'girafe1', 'girafe2', 'koala2', 'etoile2', 'faucon2', 'nageciel3', 'esp3', 'esp4', 'esp5', 'esp6', 'esp7', 'esp8', 'esp9', 'esp10']);   /* V28 (l'admin) : 23 de plus, leur dessin de profil regarde à gauche : elles marchaient à reculons */
   const PANT_OPT = { colibri1: { profilSeul: true }, colibri2: { profilSeul: true }, colibri3: { profilSeul: true }, lamantin3: { sansPattes: true }, cube1: { sansPattes: true }, cube2: { sansPattes: true }, cube3: { sansPattes: true }, poulpe1: { sansPattes: true }, poulpe2: { sansPattes: true }, poulpe3: { sansPattes: true }, glop1: { sansPattes: true }, glop2: { sansPattes: true }, glop3: { sansPattes: true }, bave1: { sansPattes: true }, bave2: { sansPattes: true }, chronorbe: { sansPattes: true }, nebulea: { sansPattes: true }, leviaflot: { sansPattes: true } };   // V16 : tous les stades ont maintenant un vrai profil, une face et un dos (plus de « face seule »)
   // pendant un combat, les décors de l'arène (rochers, cristaux, arbres) s'effacent : on voit les combattants en entier
   const dansArene = (x, y) => !!CB && Math.abs(x - CB.mx) < 420 && y > CB.my - 190 && y < CB.my + 170;
@@ -7136,8 +7136,8 @@ function mount(root, api) {
   }
   function portrait1(F, x, y, r) {
     ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.clip();
-    const im = F.sorte === 'bete' ? piece(PANT_DE[F.e], 0) : F.sorte === 'robot' ? (IMG['p-robot' + ((F.own ? F.rf || 0 : formeRobot()) + 1) + '-0'] || IMG.robot1) : null;
-    if (im) { const s = r * 2.2 / Math.max(im.width, im.height); ctx.translate(x, y); if (F.camp) ctx.scale(-1, 1); ctx.drawImage(im, -im.width * s / 2, -im.height * s / 2, im.width * s, im.height * s); }
+    const im = F.sorte === 'bete' ? ((PANTINS[PANT_DE[F.e]] && !PANTINS[PANT_DE[F.e]].auto && profilPantin(F.e)) || piece(PANT_DE[F.e], 0)) : F.sorte === 'robot' ? (IMG['p-robot' + ((F.own ? F.rf || 0 : formeRobot()) + 1) + '-0'] || IMG.robot1) : null;
+    if (im) { const s = r * 2.2 / Math.max(im.width, im.height); ctx.translate(x, y); if (!!F.camp !== !!(F.sorte === 'bete' && PANTINS[PANT_DE[F.e]] && PANTINS[PANT_DE[F.e]].gauche)) ctx.scale(-1, 1); ctx.drawImage(im, -im.width * s / 2, -im.height * s / 2, im.width * s, im.height * s); }
     else if (F.sorte === 'hero') { ctx.fillStyle = '#1a2a5a'; ctx.fillRect(x - r, y - r, r * 2, r * 2); portraitHeros(x, y, r, 0, F.own ? (F.look || {}) : look); }   /* V26 : son vrai visage */
     else { ctx.font = Math.round(r * 1.2) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(F.sorte === 'robot' ? '🤖' : '🐾', x, y + 1); }
     ctx.restore();
@@ -7270,6 +7270,8 @@ function mount(root, api) {
     const p = PANT_DE[id], R = PANTINS[p], im = R && !R.auto ? piece(p, NUM(R).face) : piece(p, 0);   // les pantins en pièces (renard, Roi-mâchoire) : leur vue de face entière
     if (!im && vu && AF[id] && FAM_DESSINEES.has(AF[id].fam)) chargerFamille(AF[id].fam);   /* V28 : paquet raté → nouvel essai (chargerFamille ne refait rien s'il est déjà là ou en route) */
     if (!im || !vu) { ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.font = '800 ' + Math.round(s * 0.5) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(vu ? '…' : '?', x, y); ctx.restore(); return; }
+    const pp = R && !R.auto ? profilPantin(id) : null;   /* V28 : renard, Roi-mâchoire : le même profil vers la droite que dans le jeu */
+    if (pp) { const k = s / Math.max(pp.width, pp.height); ctx.save(); if (!pris) { ctx.filter = 'brightness(0)'; ctx.globalAlpha = 0.55; } ctx.drawImage(pp, x - pp.width * k / 2, y - pp.height * k / 2, pp.width * k, pp.height * k); ctx.restore(); return; }
     const N = R && !R.auto ? NUM(R) : null, PF = N && R.face && R.face.pattes && R.patteFace ? piece(p, N.pf) : null;
     if (PF) {   // pantin en pièces (renard) : la vue de face n'a pas de pattes, on pose les deux pattes de face dessous, comme en jeu
       const V = R.face, kp = R.patteFace.k / V.k, chh0 = im.height * (V.coupe || 1), lp0 = PF.height * kp, k = s / Math.max(im.width, chh0 + lp0 * 0.92), cw = im.width * k, chh = chh0 * k, top = y - (chh + lp0 * k * 0.92) / 2;
@@ -7279,6 +7281,7 @@ function mount(root, api) {
       ctx.restore(); return;
     }
     const k = s / Math.max(im.width, im.height); ctx.save(); if (!pris) { ctx.filter = 'brightness(0)'; ctx.globalAlpha = 0.55; }
+    if (R && R.auto && R.gauche) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); }   /* V28 : dessinée vers la gauche → retournée : toutes regardent à droite, comme dans le jeu */
     ctx.drawImage(im, x - im.width * k / 2, y - im.height * k / 2, im.width * k, im.height * k); ctx.restore();
   }
   function texteEvo(a) {
@@ -11792,7 +11795,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     const F = FAUNE_E; if (!F || F.rien || !SYS || F.sys !== SYS.i) return; const im = IMG['p-' + F.esp + '-0']; if (!im) { chargerFamille('espace'); return; }
     const x = ssx(F.x), y = ssy(F.y) + Math.sin(t * 1.3 + F.n) * 6 * ZS() * 2, k = ZS() * 2, h = AF[F.esp].tl * 1.05 * k, w = im.width * h / im.height; if (x < -w || x > W + w || y < -h || y > H + h) return;
     const c = TYPES[AF[F.esp].t[0]].c, R = Math.max(w, h) * 0.7; ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, c + '50'); g.addColorStop(0.6, c + '18'); g.addColorStop(1, c + '00'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill(); ctx.restore();   /* une lueur RONDE (pas de carré) */
-    ctx.save(); ctx.translate(x, y); if (F.vx < 0) ctx.scale(-1, 1); ctx.rotate(Math.sin(t * 0.9 + F.n) * 0.06); ctx.drawImage(im, -w / 2, -h / 2, w, h); ctx.restore();
+    ctx.save(); ctx.translate(x, y); if ((F.vx < 0) !== PROFIL_GAUCHE.has(F.esp)) ctx.scale(-1, 1); ctx.rotate(Math.sin(t * 0.9 + F.n) * 0.06); ctx.drawImage(im, -w / 2, -h / 2, w, h); ctx.restore();
     if (Math.hypot(ship.x - F.x, ship.y - F.y) < 1300) { const txt = (F.agressif ? '😱 ' : '🌠 ') + AF[F.esp].nom + ' · niv. ' + F.niv; ctx.save(); ctx.font = '800 ' + Math.round(12 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; const tw = ctx.measureText(txt).width + 16 * U, ty = y + h * 0.55 + 12 * U;
       ctx.fillStyle = 'rgba(8,10,28,0.82)'; ctx.beginPath(); ctx.roundRect(x - tw / 2, ty - 11 * U, tw, 22 * U, 11 * U); ctx.fill(); ctx.strokeStyle = F.agressif ? 'rgba(255,140,120,0.8)' : 'rgba(170,220,255,0.7)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.fillStyle = F.agressif ? '#ffb0a8' : '#d8f0ff'; ctx.fillText(txt, x, ty + 0.5); ctx.restore(); }
   }
@@ -11842,19 +11845,24 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   // 2) elle devient une silhouette qui brille et pulse, l'ancienne et la nouvelle forme alternent de plus en plus vite ;
   // 3) flash, onde de choc ; 4) la nouvelle forme apparaît dans un éclat, étincelles qui retombent, son nom en grand, le chiffre romain qui monte.
   // Toucher / A / Entrée : passe directement à l'éclat, puis termine. Tout est préparé une seule fois (images hors écran) : fluide au téléphone.
-  function beteDroite(g, id, x, y, s) {   // la bête tournée vers la droite (profil, retourné s'il regarde à gauche ; pantin en pièces : dessiné de profil par le jeu)
-    const p = PANT_DE[id], R = PANTINS[p];
-    if (R && !R.auto && ESPECES[id]) {
+  const PROFIL_PANTIN = new Map();
+  function profilPantin(id) {   // un pantin en pièces (renard, Roi-mâchoire) : son profil vers la droite, dessiné une seule fois par le jeu puis gardé en image
+    if (PROFIL_PANTIN.has(id)) return PROFIL_PANTIN.get(id);
+    const p = PANT_DE[id], R = PANTINS[p]; if (!R || R.auto || !ESPECES[id] || !pretPantin(p)) return null;
+    {
       const N = 900, cv = document.createElement('canvas'); cv.width = cv.height = N; const v0 = { ctx, W, H, Z, camX, camY };
       try { ctx = cv.getContext('2d'); W = 0; H = 0; Z = 1; camX = 0; camY = 0;
         dessinerPantinCreature({ esp: id, x: N / 2, y: N * 0.86, th: Math.PI / 2, ph: 0, clip: 'repos', id: 1, echelle: N * 0.62 / ESPECES[id].taille, flash: 0, prep: 0, tm: 0, tc: 0, sansOmbre: true }, 0);
       } finally { ctx = v0.ctx; W = v0.W; H = v0.H; Z = v0.Z; camX = v0.camX; camY = v0.camY; }
       const d = cv.getContext('2d').getImageData(0, 0, N, N).data; let x0 = N, y0 = N, x1 = 0, y1 = 0;
       for (let yy = 0; yy < N; yy += 2) for (let xx = 0; xx < N; xx += 2) if (d[(yy * N + xx) * 4 + 3] > 30) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; }
-      if (x1 > x0) { const w = x1 - x0 + 2, h = y1 - y0 + 2, k = s / Math.max(w, h); g.drawImage(cv, x0, y0, w, h, x - w * k / 2, y - h * k / 2, w * k, h * k); return true; }
+      if (x1 <= x0) return null;
+      const w = x1 - x0 + 2, h = y1 - y0 + 2, o = document.createElement('canvas'); o.width = w; o.height = h; o.getContext('2d').drawImage(cv, x0, y0, w, h, 0, 0, w, h); PROFIL_PANTIN.set(id, o); return o;
     }
-    const vrai = ctx; ctx = g; g.save(); if (R && R.gauche) { g.translate(x, 0); g.scale(-1, 1); g.translate(-x, 0); }
-    try { miniBete(id, x, y, s, true, true); } finally { g.restore(); ctx = vrai; }
+  }
+  function beteDroite(g, id, x, y, s) {   // la bête tournée vers la droite (profil ; miniBete retourne celles dessinées vers la gauche et donne le profil des pantins en pièces)
+    const vrai = ctx; ctx = g;
+    try { miniBete(id, x, y, s, true, true); } finally { ctx = vrai; }   // miniBete retourne déjà celles dessinées vers la gauche
     return true;
   }
   const EVO_T = { focus: 1.0, flash: 4.6, fin: 9.4 }, EVO_TAILLE = 640;
@@ -12041,6 +12049,9 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
       /* V28 (l'admin, 12 h 05 : « tous regarder à droite ») : pour la planche et les posters seulement — chaque bête tournée vers la DROITE :
          son dessin de profil, retourné s'il regarde à gauche ; les pantins en pièces (Renard, Roi-mâchoire) dessinés de profil par le jeu lui-même */
       miniDroite: (g, id, x, y, s) => { beteDroite(g, id, x, y, s); },
+      portraitSur: (g, F, x, y, r) => { const vrai = ctx; ctx = g; try { portrait1(F, x, y, r); } finally { ctx = vrai; } },
+      enJeuSur: (g, id, x, y, h, th) => { const v0 = { ctx, W, H, Z, camX, camY }; try { ctx = g; W = 0; H = 0; Z = 1; camX = 0; camY = 0; dessinerPantinCreature({ esp: id, x, y, th, ph: 0, clip: 'repos', id: 1, echelle: h / ESPECES[id].taille, flash: 0, prep: 0, tm: 0, tc: 0, sansOmbre: true }, 0); } finally { ctx = v0.ctx; W = v0.W; H = v0.H; Z = v0.Z; camX = v0.camX; camY = v0.camY; } },
+      gauches: () => Array.from(PROFIL_GAUCHE), nonAuto: () => AF_LISTE.filter(id => PANTINS[PANT_DE[id]] && !PANTINS[PANT_DE[id]].auto),
       evoDemo: (de, vers) => { EVO = { b: { e: de, n: 20, demo: true }, de, vers: vers || AF[de].vers || de, t: 0, reste: [], demo: true }; chargerFamille(AF[EVO.vers].fam); state = 'evolution'; },
       evoEtat: () => EVO && { t: EVO.t, spV: !!EVO.spV, part: EVO.part && EVO.part.length },
       evoVraie: id => { const A = AFX(), b = nouvelleBete(id, 30); A.equipe[0] = b; lancerEvolution([b]); return b; },
