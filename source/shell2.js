@@ -16907,7 +16907,21 @@ function atlDiscBloc(f) {
     let cite = null; const cb = atlEl('div', 'atl-citebar'); cb.hidden = true;   // 8 nov. : « ↩ Répondre » à un arrêt sur image
     const citeMaj = () => { cb.textContent = ''; cb.hidden = !cite; if (cite) cb.appendChild(atlCiteBloc(cite, () => { cite = null; citeMaj(); })); };
     b._citer = c => { cite = c; citeMaj(); try { ta.focus({ preventScroll: true }); } catch (e) {} const lg = b.querySelector('.atl-disclog'); if (lg) requestAnimationFrame(() => { lg.scrollTop = lg.scrollHeight; }); };
-    const grandit = () => { ta.style.height = 'auto'; const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20; ta.style.height = Math.min(ta.scrollHeight, lh * 5 + 20) + 'px'; go.classList.toggle('on', !!ta.value.trim()); };
+    // 8 nov. (SAMBA : « un encart où j'écris réglable en hauteur », pour coller un long bloc) : à l'ordinateur, une poignée qu'on tire, hauteur retenue (double-clic : retour au réglage normal) ;
+    // au téléphone, le champ grandit tout seul avec le texte, jusqu'à 40 % de l'écran visible ; « envoyer » reste à côté, toujours visible
+    let taH = +store.get('jdw.atl.taH', 0) || 0; const taTel = () => matchMedia('(max-width:900px),(pointer:coarse)').matches;   // même règle que la poignée (CSS)
+    const taPlafond = () => { const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20; return taTel() ? Math.max(92, Math.round(((window.visualViewport && window.visualViewport.height) || innerHeight) * 0.4)) : Math.max(lh * 5 + 20, taH); };
+    const taMaxPc = () => Math.max(160, Math.round((b.getBoundingClientRect().height || innerHeight) * 0.6));
+    const grandit = () => { const mx = taPlafond(), h = !taTel() && taH ? taH : 0; ta.style.minHeight = h ? h + 'px' : ''; ta.style.maxHeight = mx + 'px'; ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, mx) + 'px'; go.classList.toggle('on', !!ta.value.trim()); };
+    ta._grandit = grandit;
+    const poig = atlEl('button', 'atl-tapoig'); poig.type = 'button'; poig.setAttribute('role', 'separator'); poig.setAttribute('aria-orientation', 'horizontal'); poig.setAttribute('aria-label', 'Régler la hauteur du champ (flèches haut et bas)'); poig.title = 'Tire pour agrandir le champ (double-clic : taille normale)'; poig.appendChild(atlEl('i'));
+    const taFixe = v => { taH = v; store.set('jdw.atl.taH', v); grandit(); const lg = b.querySelector('.atl-disclog'); if (lg && lg._bas !== false) lg.scrollTop = lg.scrollHeight; };
+    { let y0 = 0, h0 = 0, tire = false; const bouge = e => { if (!tire) return; taH = Math.min(taMaxPc(), Math.max(46, Math.round(h0 + y0 - e.clientY))); grandit(); };
+      poig.addEventListener('pointerdown', e => { e.preventDefault(); tire = true; y0 = e.clientY; h0 = ta.getBoundingClientRect().height; try { poig.setPointerCapture(e.pointerId); } catch (x) {} });
+      poig.addEventListener('pointermove', bouge);
+      const fin = () => { if (!tire) return; tire = false; taFixe(taH); }; poig.addEventListener('pointerup', fin); poig.addEventListener('pointercancel', fin);
+      poig.addEventListener('dblclick', e => { e.preventDefault(); taFixe(0); });
+      poig.addEventListener('keydown', e => { const c = taH || ta.getBoundingClientRect().height; if (e.key === 'ArrowUp') { e.preventDefault(); taFixe(Math.min(taMaxPc(), Math.round(c + 24))); } else if (e.key === 'ArrowDown') { e.preventDefault(); taFixe(Math.max(46, Math.round(c - 24))); } else if (e.key === 'Home') { e.preventDefault(); taFixe(0); } }); }
     ta.addEventListener('input', () => { const e = ATL.discEnvoye; if (e && Date.now() - e.at < 3000 && ta.value.trim() === e.t) ta.value = ''; });   // 8 nov. : un texte déjà envoyé qui revient (clavier du téléphone) repart aussitôt
     ta.addEventListener('input', grandit);
     // 2.0.100 (l'admin : « pouvoir encore lui parler même quand il réfléchit ») : la case et « Envoyer » ne sont JAMAIS bloqués ; chaque message
@@ -16919,7 +16933,7 @@ function atlDiscBloc(f) {
       const ci = cite; cite = null; citeMaj();
       if (!t) t = '📎 ' + pjs.map(x => x.file.name).join(', ');   // 7 nov. 2026 : des fichiers sans texte
       if (!(ATL.discPend || []).some(x => !x.envoye)) ATL.discErr = false;
-      ta.value = ''; msg.textContent = ''; try { ta.style.height = ''; go.classList.remove('on'); } catch (e) {}
+      ta.value = ''; atlLongOublier(ta);   /* 8 nov. : LA cause du « message déjà envoyé qui reste » : un texte de 200 caractères ou plus restait en brouillon (jdw.atl.longs) et revenait au toucher suivant du champ ; il n'est gardé que si l'envoi échoue */ msg.textContent = ''; try { ta.style.height = ''; go.classList.remove('on'); } catch (e) {}
       // 8 nov. (l'admin : « le message déjà envoyé reste dans la zone de saisie ») : le champ reste vide, y compris s'il a été reconstruit entre-temps
       const env = ATL.discEnvoye = { t, at: Date.now() };
       const vide = () => { if (ATL.discEnvoye !== env) return; for (const x of document.querySelectorAll('.atl-chat textarea.atl-discin')) if (x.value.trim() === env.t) { x.value = ''; x.style.height = ''; try { x.setSelectionRange(0, 0); } catch (e) {} } };
@@ -16934,7 +16948,7 @@ function atlDiscBloc(f) {
           else if (pjs.length) { const ids = []; for (const x of pjs) ids.push(await atlPjEnvoyer(f, x)); await rpc('at_discuter_fichiers', { p_name: profile.name, p_fiche: f.id, p_texte: t, p_micro: false, p_fichiers: ids }, { quiet: true }); }
           else await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true });
           ok = true; }
-        catch (e) { if (ATL.discEnvoye === env) ATL.discEnvoye = null; ATL.discErr = true; msg.textContent = atlPjPourquoi(e) || atlWhy(e); if (!/^📎 /.test(t) || !pjs.length) ta.value = ta.value.trim() ? t + '\n' + ta.value : t; if (pjs.length) { PJ.l = pjs.concat(PJ.l).slice(0, ATL_PJ_MAX); PJ.peint(); } if (ci && !cite) { cite = ci; citeMaj(); } }   // rien n'est perdu (texte, fichiers, citation)
+        catch (e) { if (ATL.discEnvoye === env) ATL.discEnvoye = null; ATL.discErr = true; msg.textContent = atlPjPourquoi(e) || atlWhy(e); if (!/^📎 /.test(t) || !pjs.length) { ta.value = ta.value.trim() ? t + '\n' + ta.value : t; atlLongMaj(ta); grandit(); } if (pjs.length) { PJ.l = pjs.concat(PJ.l).slice(0, ATL_PJ_MAX); PJ.peint(); } if (ci && !cite) { cite = ci; citeMaj(); } }   // rien n'est perdu (texte, fichiers, citation)
         if (ok) pm.envoye = true; else ATL.discPend = (ATL.discPend || []).filter(x => x !== pm);
         if (!(ATL.discPend || []).some(x => !x.envoye)) {   // la file est vide : on relit tout (les messages arrivés, les offres remplacées)
           try { ATL.demAt = 0; await atlDemCharger(true); await atlLoad(true); } catch (e) {}
@@ -16945,7 +16959,7 @@ function atlDiscBloc(f) {
     };
     go.addEventListener('click', envoyer);
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !atlPetit()) { e.preventDefault(); envoyer(); } });   // ordinateur : Entrée envoie, Maj+Entrée va à la ligne
-    const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
+    const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); tw.appendChild(poig); if (taH && !taTel()) ta.style.minHeight = taH + 'px'; if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
     if (f && f.id) { tw.prepend(PJ.bouton); corps.appendChild(PJ.plateau); PJ.depot(b); }   // 7 nov. 2026 : 📎 joindre des fichiers
     const rg = atlEl('p', 'atl-discrg'), np = atlEl('button', 'atl-discnp', '＋ Nouveau projet'); np.type = 'button'; np.addEventListener('click', atlNouveau);
     rg.append(document.createTextNode('Ici, on parle seulement de « ' + (f.titre || 'ton jeu') + ' ». Une idée pour un autre jeu ? '), np);
@@ -17046,7 +17060,7 @@ function atlDiscMaj(W, f, force) {
 }
 // 2.0.162 : le bouton ↓ quand on remonte, et les anciens messages qui se chargent en arrivant en haut
 // 2.0.162 : la hauteur visible réelle (clavier ouvert compris) pour le chat plein écran du téléphone
-(() => { try { const vv = window.visualViewport; if (!vv) return; const maj = () => { const r = document.documentElement.style; r.setProperty('--vvh', vv.height + 'px'); r.setProperty('--vvt', vv.offsetTop + 'px'); requestAnimationFrame(() => { for (const l of document.querySelectorAll('.atl-chat .atl-disclog')) if (l._bas !== false) l.scrollTop = l.scrollHeight; }); }; vv.addEventListener('resize', maj); vv.addEventListener('scroll', maj); maj(); } catch (e) {} })();
+(() => { try { const vv = window.visualViewport; if (!vv) return; const maj = () => { const r = document.documentElement.style; r.setProperty('--vvh', vv.height + 'px'); r.setProperty('--vvt', vv.offsetTop + 'px'); for (const t of document.querySelectorAll('.atl-chat textarea.atl-discin')) if (t._grandit && t.value) t._grandit(); requestAnimationFrame(() => { for (const l of document.querySelectorAll('.atl-chat .atl-disclog')) if (l._bas !== false) l.scrollTop = l.scrollHeight; }); }; vv.addEventListener('resize', maj); vv.addEventListener('scroll', maj); maj(); } catch (e) {} })();
 function atlDiscDefile(b, log, f) {
   if (!log._qr) { log._qr = true; log.addEventListener('click', e => { const q = e.target.closest && e.target.closest('.atl-chat .atl-qr'); if (q && !e.target.closest('button')) q.classList.toggle('ouvert'); }); }   // 2.0.165 : une longue réponse s'ouvre au toucher
   let bas = b.querySelector('.atl-dbas'); if (!bas) { bas = atlEl('button', 'atl-dbas', '↓'); bas.type = 'button'; bas.setAttribute('aria-label', 'Aller au dernier message'); bas.hidden = true; bas.addEventListener('click', () => { log.scrollTo({ top: log.scrollHeight, behavior: 'smooth' }); }); (b.querySelector('.atl-discc') || b).appendChild(bas); }
@@ -20997,7 +21011,7 @@ function atlVueRemettre(e) {
     im.replaceWith(old);
   }
   for (const [k, open] of e.det) { const d = cles.get(k); if (d && d.tagName === 'DETAILS' && d.open !== open) d.open = open; }
-  for (const [k, v] of e.val) { const f = cles.get(k), env = ATL.discEnvoye; if (f && 'value' in f && !f.value && !(env && Date.now() - env.at < 30000 && String(v).trim() === env.t)) f.value = v; }   // 8 nov. : jamais un message déjà envoyé
+  for (const [k, v] of e.val) { const f = cles.get(k), env = ATL.discEnvoye; if (f && 'value' in f && !f.value && !(env && Date.now() - env.at < 30000 && String(v).trim() === env.t)) { f.value = v; if (f._grandit) f._grandit(); } }   // 8 nov. : jamais un message déjà envoyé
   for (const [k, top, left] of e.sc) { const el = cles.get(k); if (el) { el.scrollTop = top; el.scrollLeft = left; } }
   for (const [k, n, bas] of e.logs) {
     const l = cles.get(k); if (!l) continue;
@@ -22094,7 +22108,7 @@ const atlLongPres = b => { const out = []; let n = b; for (let i = 0; i < 5 && n
 document.addEventListener('input', e => { if (e.target && e.target.matches && e.target.matches(ATL_LONG)) atlLongMaj(e.target); }, true);
 document.addEventListener('focusin', e => {   // un long texte resté sur l'appareil (fenêtre fermée, réseau coupé…) revient dans sa case vide
   const el = e.target; if (!el || !el.matches || !el.matches(ATL_LONG) || el.value || el._brVu) return; el._brVu = true;
-  try { const x = (store.get(ATL_LONG_BR, {}) || {})[atlLongCle(el)]; if (x && x.t) { el.value = x.t; atlLongMaj(el); atlToast('📝 Ton texte d’avant est revenu.'); } } catch (e2) {}
+  try { const x = (store.get(ATL_LONG_BR, {}) || {})[atlLongCle(el)]; if (x && x.t) { if (el.classList.contains('atl-discin') && atlDiscMsgs().some(m => m && String(m.texte || '').trim() === String(x.t).trim())) { atlLongOublier(el); return; }   /* 8 nov. : un brouillon déjà envoyé (resté d'avant le correctif) ne revient pas */ el.value = x.t; atlLongMaj(el); if (el._grandit) el._grandit(); atlToast('📝 Ton texte d’avant est revenu.'); } } catch (e2) {}
 }, true);
 document.addEventListener('click', e => {
   const b = e.target && e.target.closest && e.target.closest('button'); if (!b || !b.closest('#jdw-atelier, .atl-mod, .atl-arret, .atl-arret2, .atl-dnew')) return;

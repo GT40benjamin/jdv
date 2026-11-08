@@ -6307,3 +6307,9 @@ body:has(#jdw-liveinv:not([hidden])) .fs-tip{display:none!important}
 .atl-viserr{display:block;margin-top:6px;color:#b3261e;font:700 12.5px var(--body)}
 .atl-viserr:empty{display:none}
 .atl-visv.verrou:disabled{cursor:not-allowed;opacity:.62}
+/* 8 nov. 2026 (SAMBA) : la poignée du champ de la discussion (ordinateur) ; au téléphone, le champ grandit tout seul */
+.atl-tapoig{position:absolute;left:50%;top:-10px;z-index:2;display:grid;place-items:center;width:64px;height:18px;min-height:0;margin:0;padding:0;border:0;background:none;transform:translateX(-50%);cursor:ns-resize;touch-action:none}
+.atl-tapoig i{display:block;width:44px;height:5px;border-radius:3px;background:#c4b6de;box-shadow:0 0 0 2px #f6f1fb}
+@media (hover:hover){.atl-tapoig:hover i{background:#7b55d6}}
+.atl-tapoig:focus-visible{outline:2px solid #7b55d6;outline-offset:1px;border-radius:6px}
+@media (max-width:900px),(pointer:coarse){.atl-tapoig{display:none}}
