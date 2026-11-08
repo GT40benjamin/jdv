@@ -182,7 +182,7 @@
     q('.crea-menu').addEventListener('click', () => { R.classList.toggle('tiroir'); if (R.classList.contains('tiroir')) setTimeout(() => { const b = R.querySelector('.crea-arbre button'); if (b) b.focus({ preventScroll: true }); }, 60); });
     q('.crea-voile').addEventListener('click', () => R.classList.remove('tiroir'));
     q('.crea-retour').addEventListener('click', fermerVersProjets);
-    q('.crea-flot').addEventListener('click', () => { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); setTimeout(() => { const t = q('.crea-masc textarea'); if (t) t.focus({ preventScroll: true }); }, 60); });
+    q('.crea-flot').addEventListener('click', () => { AIM.vuAt = Date.now(); feuille('moyen'); });   // téléphone : la barre « 💬 » ouvre le panneau à mi-hauteur
     q('.crea-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0], nv = e.target.dataset.nv; e.target.value = ''; delete e.target.dataset.nv; if (!f) return; if (nv && AIM.vue === 'nouveau') imageNouveau(f); else importer(f); });
     q('.crea-cred').addEventListener('click', () => { try { atlRecharger(); } catch (e) {} });
     // l'admin (7 nov.) : le bouton 🔊 / 🔇 des autres écrans (l'Atelier des jeux, à côté de « Mes demandes ») — le MÊME réglage partagé
@@ -833,7 +833,7 @@
       setTimeout(() => { const t = R.querySelector('.crea-disc .crea-saisie textarea'); if (t) { t.focus({ preventScroll: true }); try { t.setSelectionRange(t.value.length, t.value.length); } catch (e) {} } }, 60);
       return;
     }
-    if (etroit()) { R.classList.add('pk-plein'); AIM.vuAt = Date.now(); renderFlot(); }
+    if (etroit()) { AIM.vuAt = Date.now(); feuille('moyen'); }
     else { R.classList.remove('pk-replie'); try { store.set('jdw.crea.pkreplie', false); } catch (e) {} }
     setTimeout(() => { const t = R.querySelector('.crea-masc textarea'); if (t && !TOUCH) t.focus({ preventScroll: true }); }, 60);
   }
@@ -1212,7 +1212,10 @@
   const champActif = Z => { const a = document.activeElement; return !!(a && Z && Z.contains(a) && a.closest('.crea-saisie')); };
   function renderMasc() {
     const P = AIM.root.querySelector('.crea-masc');
-    if (AIM.vue !== 'nouveau' && champActif(P)) { const vF = P.querySelector('.crea-fil2'); if (vF) { const F = filMascEl(); vF.replaceWith(F); tenirFil(F, 'masc'); return; } }
+    if (AIM.vue !== 'nouveau' && champActif(P)) { const vF = P.querySelector('.crea-fil2'); if (vF) { const F = filMascEl(); vF.replaceWith(F); tenirFil(F, 'masc');
+        // une nouvelle version pendant qu'on écrit : la miniature de l'en-tête suit, sans rien recréer
+        const mn = P.querySelector('.crea-pkmini'), c = curCrea(), v = c && vueDe(c); if (mn && v && v.path) { const mi = mn.querySelector('img'), src = urlImg(v.path, 160); if (mi && mi.getAttribute('src') !== src) mi.src = src; const sm = mn.querySelector('small'); if (sm) sm.textContent = numAff(c, v); }
+        return; } }
     const foc = !!(document.activeElement && document.activeElement.tagName === 'TEXTAREA' && AIM.root.contains(document.activeElement) && document.activeElement.closest('.crea-saisie'));
     P.textContent = '';
     AIM.root.classList.toggle('nv', AIM.vue === 'nouveau');   // pendant la création : la discussion est AU CENTRE, pas de panneau à droite
@@ -1220,9 +1223,12 @@
     const t = B('crea-pkt', null, () => { if (AIM.root.classList.contains('pk-replie')) { AIM.pkOuvert = true; AIM.root.classList.remove('pk-replie'); try { store.set('jdw.crea.pkreplie', false); } catch (e) {} curseur(); } });
     const im = E('img'); im.alt = ''; im.src = AV();
     const tx = E('div'); tx.append(E('b', '', PK()), E('small', '', '● en ligne · je t’écoute'));
-    const rep = B('crea-pkrep', etroit() ? '✕' : '⟩', e => { e.stopPropagation(); if (etroit()) AIM.root.classList.remove('pk-plein'); else { AIM.root.classList.add('pk-replie'); try { store.set('jdw.crea.pkreplie', true); } catch (x) {} } });
-    rep.setAttribute('aria-label', etroit() ? 'Retour à l’outil' : 'Replier ' + PK());
-    t.append(im, tx, rep); P.appendChild(t);
+    const rep = B('crea-pkrep', etroit() ? '✕' : '⟩', e => { e.stopPropagation(); if (etroit()) feuille('mini'); else { AIM.root.classList.add('pk-replie'); try { store.set('jdw.crea.pkreplie', true); } catch (x) {} } });
+    rep.setAttribute('aria-label', etroit() ? 'Réduire la conversation' : 'Replier ' + PK()); if (etroit()) rep.textContent = '⌄';
+    // téléphone : la miniature de la photo et de la version regardée ; un toucher réduit le panneau et montre la photo en grand
+    { const c = curCrea(), v = c && vueDe(c); if (v && v.path) { const mn = B('crea-pkmini', null, e => { e.stopPropagation(); feuille('mini'); }); const mi = E('img'); mi.alt = ''; mi.src = urlImg(v.path, 160); mn.append(mi, E('small', '', numAff(c, v))); mn.title = 'Revoir la photo en grand'; mn.setAttribute('aria-label', 'Revoir « ' + (c.titre || 'ma photo') + ' » en grand'); t.appendChild(mn); } }
+    t.append(im, tx, rep);
+    const pg = E('div', 'crea-poignee'); pg.setAttribute('aria-hidden', 'true'); P.append(pg, t); glisser(pg, true); glisser(t, false);
     const F = filMascEl(); P.appendChild(F);
     const S = saisie(); P.appendChild(S);
     // tout en bas, maintenant et une fois les bulles posées (images, polices), sauf si on est remonté lire ; redescendre tout en bas = on suit à nouveau
@@ -1289,6 +1295,25 @@
     chargerMsgs().then(render);
   }
   const filMasc = () => (AIM.vue === 'nouveau' ? AIM.loc : AIM.msgs.concat(AIM.loc).sort((a, b) => String(a.at || '').localeCompare(String(b.at || ''))));
+  // l'admin (7 nov., téléphone : « quand la conversation s'ouvre, je ne vois plus ma photo ») : la conversation est un PANNEAU qui monte du bas.
+  // Trois états, rien n'est recréé (seulement des classes) : 'mini' = une barre « 💬 » avec le dernier message ; 'moyen' = le panneau à 55 %,
+  // la photo au-dessus (avec sa liste de versions) ; 'grand' = la conversation presque en plein écran, la photo en miniature dans son en-tête
+  function feuille(e) {
+    const R = AIM.root; if (!R) return;
+    if (e === 'mini') { R.classList.remove('pk-plein'); delete R.dataset.pk; }
+    else { R.classList.add('pk-plein'); R.dataset.pk = e; }
+    renderFlot();
+  }
+  // la poignée (et l'en-tête) : glisser vers le haut = en grand ; vers le bas = d'un cran (grand → moyen → barre) ; un toucher sur la poignée = moyen ↔ grand
+  function glisser(el, poignee) {
+    let y0 = null;
+    el.addEventListener('pointerdown', e => { if (!etroit() || !AIM.root.classList.contains('pk-plein')) return; y0 = e.clientY; }, { passive: true });
+    el.addEventListener('pointerup', e => { if (y0 == null) return; const dy = e.clientY - y0, et = AIM.root.dataset.pk || 'moyen'; y0 = null;
+      if (dy < -30) feuille('grand'); else if (dy > 30) feuille(et === 'grand' ? 'moyen' : 'mini'); else if (poignee && Math.abs(dy) < 10) feuille(et === 'grand' ? 'moyen' : 'grand'); });
+    el.addEventListener('pointercancel', () => { y0 = null; });
+  }
+  // on écrit dans le panneau : il monte en grand (la photo devient la miniature de l'en-tête) ; le champ n'est pas recréé, le focus reste
+  document.addEventListener('focusin', e => { const R = AIM.root; if (R && etroit() && R.classList.contains('pk-plein') && R.dataset.pk !== 'grand' && e.target.closest && e.target.closest('.crea-masc .crea-saisie')) feuille('grand'); });
   function renderFlot() {
     const R = AIM.root; if (!R) return;
     const f = R.querySelector('.crea-flot'), bb = f.querySelector('.bb'), pk = f.querySelector('.pk');
@@ -1300,6 +1325,11 @@
     if (cle !== AIM.bulleCle) { AIM.bulleCle = cle; AIM.bulleAt = Date.now(); clearTimeout(AIM.bulleT); AIM.bulleT = setTimeout(renderFlot, 6500); }
     const t = AIM.vue === 'nouveau' || (AIM.fiche && atelierOuvert(AIM.fiche) && AIM.vue === 'atelier') || Date.now() - (AIM.bulleAt || 0) > 6000 ? '' :   // le testeur (7 nov.) : jamais par-dessus « Mon atelier » (le commentaire de {g} y est déjà)
       AIM.prop ? 'Je le fais sur ton image ? 👆' : der ? der.t.replace(/\s+/g, ' ').slice(0, 70) + (der.t.length > 70 ? '…' : '') : '';
+    if (etroit() && AIM.vue !== 'nouveau' && AIM.fiche) {   // téléphone : la BARRE du bas, toujours lisible
+      const d = der ? sansChemin(der.t).replace(/\s+/g, ' ').trim() : '';
+      bb.textContent = ''; bb.append(E('b', '', '💬 ' + PK()), E('span', '', AIM.prop ? 'Je le fais sur ton image ? 👆' : (d ? d.slice(0, 120) : 'Écris-moi ce que tu veux faire 😊'))); bb.hidden = false; f.classList.add('barre'); return;
+    }
+    f.classList.remove('barre');
     bb.textContent = t; bb.hidden = !t;
   }
 
@@ -1334,7 +1364,7 @@
         new Promise((_, ko) => setTimeout(() => ko(new Error('pas de reponse')), 30000))]);   // jamais bloqué : 30 s sans réponse = un message
       if (typeof r.solde === 'number') { AIM.solde = r.solde; bougerCred(); }
       if (apres) apres();
-      AIM.root.classList.remove('pk-plein'); if (AIM.vue === 'guide') AIM.vue = 'atelier';   // « Oui » dans la conversation : retour à Mon atelier pour voir la photo se faire
+      if (AIM.root.classList.contains('pk-plein')) feuille('moyen'); if (AIM.vue === 'guide') AIM.vue = 'atelier';   // « Oui » dans la conversation : retour à Mon atelier pour voir la photo se faire
       await Promise.all([charger(), chargerMsgs()]); render();
     } catch (e) {
       const m = pourquoi(e);

@@ -847,3 +847,46 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 .crea-filmarq{display:none}
 @media (max-width:699px){.crea-fil::before{content:none;display:none}.crea-filmarq{display:block;font-family:var(--body);font-size:13px;font-weight:700;letter-spacing:.5px;color:var(--cdoux);overflow:hidden;text-overflow:ellipsis}.crea.nuit .crea-filmarq{color:#b9acd8}}
 .crea .crea-admbt{display:inline-flex;align-items:center;justify-content:center;gap:2px}   /* 🛡️ et « Admin » sur une ligne */
+/* téléphone (l'admin, 7 nov.) : la conversation en PANNEAU qui monte du bas — barre « 💬 » ; panneau à 55 % avec la photo au-dessus ; en grand */
+@media (max-width:899px){
+  .crea-flot.barre{left:0;right:0;bottom:var(--kb,0px);align-items:center;gap:10px;padding:12px 14px calc(9px + env(safe-area-inset-bottom,0px));background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -6px 22px rgba(40,10,80,.18);justify-content:flex-start;text-align:left}
+  .crea-flot.barre::before{content:"";position:absolute;left:50%;top:5px;width:38px;height:4px;margin-left:-19px;border-radius:2px;background:#d9cfee}
+  .crea-flot.barre .pk{order:-1;flex:0 0 42px;width:42px;height:42px;box-shadow:none;background:#f2eaff}
+  .crea-flot.barre .pk img{width:36px;height:36px}
+  .crea-flot.barre .bb{flex:1;min-width:0;max-width:none;display:flex;flex-direction:column;gap:1px;padding:0;background:none;box-shadow:none;border-radius:0}
+  .crea-flot.barre .bb b{font-size:13.5px;color:var(--cv)}
+  .crea-flot.barre .bb span{font-size:13px;font-weight:500;color:#4e4660;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .crea.nuit .crea-flot.barre{background:#231b52}.crea.nuit .crea-flot.barre .bb span{color:#d6cbef}
+  .crea-outil{padding-bottom:84px}
+  .crea.pk-plein .crea-masc{top:auto;left:0;right:0;bottom:var(--kb,0px);width:auto;height:calc((100vh - var(--kb,0px) - var(--kbt,0px)) * .55);height:calc((100dvh - var(--kb,0px) - var(--kbt,0px)) * .55);border-radius:20px 20px 0 0;box-shadow:0 -10px 30px rgba(40,10,80,.28);z-index:9}
+  .crea.pk-plein[data-pk="grand"] .crea-masc{height:calc(100vh - var(--kb,0px) - var(--kbt,0px) - 8px);height:calc(100dvh - var(--kb,0px) - var(--kbt,0px) - 8px)}
+  .crea-poignee{display:none}
+  .crea.pk-plein .crea-poignee{display:block;flex:0 0 18px;position:relative;cursor:grab;touch-action:none;background:inherit}
+  .crea.pk-plein .crea-poignee::before{content:"";position:absolute;left:50%;top:7px;width:44px;height:5px;margin-left:-22px;border-radius:3px;background:#cbbfe6}
+  .crea.pk-plein .crea-pkt{padding-top:2px;touch-action:none}
+  .crea-pkmini{display:none}
+  .crea.pk-plein .crea-pkmini{display:flex;align-items:center;gap:6px;order:3;margin-left:auto;padding:3px 8px 3px 3px;border:1.5px solid #e2d8ef;border-radius:12px;background:#fff;color:var(--cv);flex:0 0 auto}
+  .crea.pk-plein .crea-pkmini img{width:46px;height:34px;border-radius:8px;object-fit:cover;background:#17121f}
+  .crea.pk-plein .crea-pkmini small{font-size:12px;font-weight:800}
+  .crea.pk-plein .crea-pkt .crea-pkrep{order:4}
+  .crea.pk-plein[data-pk="moyen"] .crea-outil{bottom:calc((100vh - var(--kb,0px) - var(--kbt,0px)) * .55);bottom:calc((100dvh - var(--kb,0px) - var(--kbt,0px)) * .55);padding-bottom:6px;overflow:hidden}
+  .crea.pk-plein[data-pk="moyen"] .crea-oimg{height:100%;min-height:0}
+  .crea.pk-plein[data-pk="moyen"] .crea-colo,.crea.pk-plein[data-pk="moyen"] .crea-filmw{display:none}
+  .crea.pk-plein[data-pk="moyen"] .crea-scene{flex:1 1 auto;min-height:0}
+  .crea.pk-plein[data-pk="moyen"] .crea-cadre{flex:1 1 auto;height:auto;min-height:0}
+}
+@media (max-width:899px) and (orientation:landscape){
+  .crea.pk-plein[data-pk="moyen"] .crea-masc{top:var(--kbt,0px);left:auto;width:52vw;height:auto;border-radius:20px 0 0 20px}
+  .crea.pk-plein[data-pk="moyen"] .crea-outil{bottom:0;right:calc(52vw + 6px)}
+  .crea.pk-plein[data-pk="moyen"] .crea-poignee{display:none}
+}
+@media (max-width:899px) and (orientation:landscape){
+  .crea-cadre{height:min(58vw,330px,calc(100vh - 196px));height:min(58vw,330px,calc(100dvh - 196px))}   /* téléphone couché : la photo tient entre l'en-tête et la barre « 💬 » */
+}
+@media (max-width:899px){   /* le panneau du téléphone n'hérite jamais de la colonne repliée du PC (texte vertical) */
+  .crea.pk-plein.pk-replie .crea-masc{cursor:default}
+  .crea.pk-plein.pk-replie .crea-masc > :not(.crea-pkt){display:flex}
+  .crea.pk-plein.pk-replie .crea-masc > .crea-poignee{display:block}
+  .crea.pk-plein.pk-replie .crea-pkt{flex-direction:row;padding:2px 12px 10px;height:auto;border-bottom:1px solid #eee6f4}
+  .crea.pk-plein.pk-replie .crea-pkt > div{writing-mode:horizontal-tb;transform:none}
+}
