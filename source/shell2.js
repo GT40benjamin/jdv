@@ -15568,9 +15568,10 @@ function atlFenSuivre() {
     w.addEventListener('click', e => { if (e.target === w && !atlFenEcrit(w)) { e.stopImmediatePropagation(); atlFenFermer(w); } }, true);   // en dehors de la carte
   }
 }
-addEventListener('popstate', () => { if (ATL_FEN_RETOUR) { ATL_FEN_RETOUR = false; return; } try { if (atlFenOuverte()) atlFenFermer(null, true); } catch (e) {} });
+addEventListener('popstate', () => { if (ATL_VIS_RETOUR) { ATL_VIS_RETOUR = false; return; } if (atlVisioFermer(true)) return; if (ATL_FEN_RETOUR) { ATL_FEN_RETOUR = false; return; } try { if (atlFenOuverte()) atlFenFermer(null, true); } catch (e) {} });
 document.addEventListener('keydown', e => { if (e.key !== 'Escape' || (typeof ATL_MIC !== 'undefined' && ATL_MIC)) return; try { if (atlFenOuverte()) { e.preventDefault(); e.stopPropagation(); atlFenFermer(); } } catch (x) {} }, true);
 function jdwBack() {
+  if (atlVisioFermer()) return true;   // 8 nov. : l'image en grand (B de la manette, retour d'Android)
   if (PRIV.back && PRIV.back()) return true;
   // 2.0.142 : « Comment jouer » ouvert, ou fermé par ce même appui → rien de plus ; l'écran-titre d'un jeu recule d'un cran
   if (typeof HOWTO !== 'undefined' && (HOWTO.open || Date.now() - (HOWTO.fermeAt || 0) < 450)) { if (HOWTO.open) howtoHide(true); return true; }
@@ -16254,7 +16255,7 @@ function atlRenderFiche() {
   if (imgs.length || rtxt) {
     refs.appendChild(atlEl('div', 'atl-rh', '🖼️ Images de référence'));
     const row = atlEl('div', 'atl-rimgs');
-    for (const m of imgs.slice(-8)) { const a = atlEl('a'); a.href = atlImgUrl(m.image); a.target = '_blank'; a.rel = 'noopener'; const im = atlEl('img'); im.loading = 'lazy'; im.alt = 'Image de référence'; im.src = atlImgUrl(m.image); im.onerror = () => a.remove(); a.appendChild(im); row.appendChild(a); }
+    for (const m of imgs.slice(-8)) { const a = atlEl('a'); a.href = atlImgUrl(m.image); a.target = '_blank'; a.rel = 'noopener'; a.addEventListener('click', e => { e.preventDefault(); atlVisio(a.href, { titre: 'Image de référence' }); }); const im = atlEl('img'); im.loading = 'lazy'; im.alt = 'Image de référence'; im.src = atlImgUrl(m.image); im.onerror = () => a.remove(); a.appendChild(im); row.appendChild(a); }
     if (imgs.length) refs.appendChild(row);
     if (rtxt) refs.appendChild(atlEl('p', 'atl-rt', rtxt));
   }
@@ -16279,8 +16280,9 @@ function atlBubble(m, wel) {
   if (wel) { for (const p of atlWelcome()) bub.appendChild(atlEl('p', '', p)); }
   else {
     if (m.texte) bub.appendChild(atlEl('p', '', m.texte));
+    if (m.demande && (!at || m.auteur || m.pending)) { const c = atlCiteInfo(m.demande); if (c) { bub.insertBefore(atlCiteBloc(c), bub.firstChild); li.classList.add('atl-mcite'); } }   // 8 nov. : une réponse à un arrêt sur image : sa citation
     if (Array.isArray(m.images) && m.images.length && !m.planche) { if (m.images.every(it => it && it.apercu)) { bub.appendChild(atlEl('p', 'atl-apercu', '👀 Aperçu de ton jeu')); li.classList.add('atl-mapercu'); } bub.appendChild(atlImgs(m)); }   // 2.0.104 : un aperçu (SQL v114), jamais un élément du jeu
-    if (m.image) { const a = atlEl('a', 'atl-bimg'); a.href = atlImgUrl(m.image); a.target = '_blank'; a.rel = 'noopener'; const im = atlEl('img'); im.alt = 'Image jointe'; im.loading = 'lazy'; im.src = atlImgUrl(m.image); im.onerror = () => { a.replaceWith(atlEl('em', 'atl-miss', '🖼️ image pas arrivée')); }; a.appendChild(im); bub.appendChild(a); }
+    if (m.image) { const a = atlEl('a', 'atl-bimg'); a.href = atlImgUrl(m.image); a.target = '_blank'; a.rel = 'noopener'; a.addEventListener('click', e => { e.preventDefault(); atlVisio(a.href, { titre: 'Image jointe' }); }); const im = atlEl('img'); im.alt = 'Image jointe'; im.loading = 'lazy'; im.src = atlImgUrl(m.image); im.onerror = () => { a.replaceWith(atlEl('em', 'atl-miss', '🖼️ image pas arrivée')); }; a.appendChild(im); bub.appendChild(a); }
   }
   // 2.1.13 (l'admin : « comme sur WhatsApp ») : la réaction de la mascotte sur un message du joueur (at_messages.reaction, SQL v172), petit badge rond
   // accroché au coin bas de la bulle ; survol (souris) ou toucher (téléphone) : « <mascotte> a réagi ❤️ »
@@ -16724,6 +16726,57 @@ function atlDiscVu(f, at) {
 }
 function atlDiscDems(f) { return (atlAdminIci() ? (ATL.data.demandes_projet || []) : (((ATL.dem || {}).demandes) || [])).filter(x => x && (atlAdminIci() || x.fiche === f.id)); }
 const atlDiscSig = x => !x ? '' : [x.etat, x.etat_at, x.remplacee ? 1 : 0, x.choix ? 1 : 0, (x.etapes || []).length, (x.questions || []).map(q => q && q.reponse ? 1 : 0).join(''), atlPropOuverte(x) ? 1 : 0, String(x.reponse || '').length].join(',');
+// ---- 8 nov. 2026 (l'admin : « chaque arrêt sur image, il faut ABSOLUMENT l'image dans la conversation, et même pouvoir répondre pour
+// récupérer l'image si j'ai des choses à dire sur un élément ») : dans la discussion d'un jeu, la bulle d'un arrêt sur image montre SA
+// capture (un toucher = la visionneuse) et « ↩ Répondre » (aussi : appui long, clic droit). La réponse part avec at_discuter_sur : elle
+// reste rattachée à l'arrêt (at_messages.demande = son id, l'image est a/<id>.jpg) ; dans le fil, elle montre la citation (miniature + texte).
+const atlDemImgUrl = x => { const p = String((x && x.image) || ''); return /^a\//.test(p) ? atlImgUrl(p) : p ? (atlIaUrl(p) || '') : ''; };
+const atlCiteTexte = t => String(t || '').split('\n\n↪ ')[0].replace(/^🛡️ Remarque de l['’]admin — /, '').replace(/^🎯 Arrêt sur image(, pendant la partie)?(\s*\(viseur[^)]*\))?\s*:\s*/, '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '').trim();
+function atlCiteInfo(id) {   // l'arrêt sur image cité : sa miniature et son texte (la demande, sinon le message avec image)
+  if (!id) return null;
+  try {
+    const ds = atlAdminIci() ? (ATL.data.demandes_projet || []) : ((ATL.dem || {}).demandes || []), x = ds.find(d => d && d.id === id), u = atlDemImgUrl(x);
+    if (u) return { id, u, texte: atlCiteTexte(x.texte) };
+    const m = atlTousMsgs().find(z => z && z.id === id && z.image); if (m) return { id, u: atlImgUrl(m.image), texte: atlCiteTexte(m.texte) };
+  } catch (e) {}
+  return null;
+}
+function atlCiteBloc(c, fermer) {   // la citation : miniature + « 🎯 Arrêt sur image » + le texte (2 lignes) ; fermer → la petite croix (barre du champ)
+  const q = atlEl('div', 'atl-cite'), vb = atlEl('button', 'atl-citeimg'), im = atlEl('img'); vb.type = 'button'; vb.setAttribute('aria-label', 'Voir l’arrêt sur image en grand');
+  im.alt = ''; im.loading = 'lazy'; im.src = c.u; im.onerror = () => vb.classList.add('miss'); vb.appendChild(im);
+  vb.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); atlVisio(c.u, { titre: '🎯 Arrêt sur image' + (c.texte ? ' : ' + c.texte.slice(0, 60) : '') }); });
+  const tx = atlEl('div', 'atl-citetx'); tx.append(atlEl('b', '', fermer ? '↩ Tu réponds à l’arrêt sur image' : '↩ Arrêt sur image'), atlEl('span', '', c.texte || '🎯'));
+  q.append(vb, tx);
+  if (fermer) { const x = atlEl('button', 'atl-citex', '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Ne plus répondre à cette image'); x.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); fermer(); }); q.appendChild(x); }
+  return q;
+}
+function atlDiscCiter(id) {   // « ↩ Répondre » : la citation au-dessus du champ de la discussion ouverte
+  const c = atlCiteInfo(id); if (!c) return false;
+  const d = [...document.querySelectorAll('.atl-chat')].find(e => e._citer && e.checkVisibility && e.checkVisibility()); if (!d) return false;
+  d._citer(c); return true;
+}
+function atlDiscOrneDem(bl, x) {   // la bulle d'un arrêt sur image : sa capture, « ↩ Répondre », appui long / clic droit
+  const u = atlDemImgUrl(x); if (!u || !bl) return bl;
+  const bub = bl.querySelector('.atl-b') || bl, c = { id: x.id, u, texte: atlCiteTexte(x.texte) };
+  bl.classList.add('atl-mimg');
+  const vb = atlEl('button', 'atl-bthumb'), im = atlEl('img'); vb.type = 'button'; vb.setAttribute('aria-label', 'Voir l’arrêt sur image en grand');
+  im.alt = 'Arrêt sur image'; im.loading = 'lazy'; im.src = u; im.onerror = () => vb.classList.add('miss'); vb.appendChild(im);
+  vb.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (bl._long && Date.now() - bl._long < 700) return; atlVisio(u, { titre: '🎯 Arrêt sur image' + (c.texte ? ' : ' + c.texte.slice(0, 60) : '') }); });
+  im.addEventListener('load', () => { const lg = bl.closest('.atl-disclog'); if (lg && lg._bas !== false && lg.scrollHeight - lg.scrollTop - lg.clientHeight < 400) lg.scrollTop = lg.scrollHeight; });
+  const rp = atlEl('button', 'atl-brep', '↩ Répondre'); rp.type = 'button'; rp.setAttribute('aria-label', 'Répondre à cet arrêt sur image');
+  rp.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); atlDiscCiter(x.id); });
+  const p0 = bub.querySelector('p'); if (p0) p0.after(vb); else bub.prepend(vb);
+  if (p0 && /Arrêt sur image/.test(String(x.texte || '')) && c.texte) p0.textContent = '🎫 ' + (/^🛡️/.test(String(x.texte)) ? '🛡️ Remarque de l’admin — ' : '') + '🎯 Arrêt sur image : ' + c.texte;   // sans le « (viseur à 40 %…) » technique
+  bub.appendChild(rp);
+  // appui long (téléphone) et clic droit (ordinateur) : répondre, comme dans les messageries
+  let tm = 0, x0 = 0, y0 = 0;
+  const stop = () => { clearTimeout(tm); tm = 0; };
+  bl.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') return; x0 = e.clientX; y0 = e.clientY; stop(); tm = setTimeout(() => { tm = 0; bl._long = Date.now(); try { navigator.vibrate && navigator.vibrate(15); } catch (z) {} atlDiscCiter(x.id); }, 500); });
+  bl.addEventListener('pointermove', e => { if (tm && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) stop(); });
+  bl.addEventListener('pointerup', stop); bl.addEventListener('pointercancel', stop);
+  bl.addEventListener('contextmenu', e => { e.preventDefault(); if (e.pointerType && e.pointerType !== 'mouse') return; atlDiscCiter(x.id); });
+  return bl;
+}
 // une réponse de la mascotte sur une demande : sa bulle, avec les questions à choix et la carte d'offres (les mêmes que dans « Mes demandes »)
 function atlDiscBulleDem(x, at) {
   const b = atlBubble({ atelier: true, texte: x.reponse ? String(x.reponse) : '', at }), col = b.querySelector('.atl-mc'), tm = col.querySelector('.atl-t');
@@ -16758,7 +16811,7 @@ function atlDiscFil(f) {
   }
   const attIds0 = new Set(atlDiscDems(f).filter(x => x && !['faite', 'impossible', 'regroupee'].includes(x.etat) && (atlPropOuverte(x) || atlQAttente(x))).map(x => x.id));   // 2.0.136 : leurs offres vont dans la carte du bas
   const rgIds = new Set(atlDiscDems(f).filter(x => x && x.etat === 'regroupee').map(x => x.id));   // 2.0.136 (v147) : un ticket regroupé ne laisse que sa ligne « 🔗 Regroupée »
-  for (const m of atlDiscMsgs().concat((ATL.discPend || []).filter(m => m.fiche === f.id))) if (!(m.demande && rgIds.has(m.demande)))
+  for (const m of atlDiscMsgs().concat((ATL.discPend || []).filter(m => m.fiche === f.id))) if (!(m.demande && rgIds.has(m.demande) && m.atelier && !m.pending))
     add(m.at, 'm' + (m.id || 'p') + (m.reaction ? '♥' + m.reaction : '') + (m.pending ? 'p' : '') + (m.q_envoye ? 'e' : '') + (m.remplacee ? 'r' : '') + (Array.isArray(m.questions) ? m.questions.map(q => q && q.reponse ? 1 : 0).join('') : '') + (m.demande ? atlDiscSig(dem(m.demande)) + '~' + m.demande : ''), !!m.atelier && !m.pending, () => atlBubble(m.demande && attIds0.has(m.demande) ? Object.assign({}, m, { sansOffre: true }) : m), !m.atelier && !m.pending);
   // 2.0.136 (l'admin) : plusieurs tickets livrés dans la même version = UNE bulle (« ✅ Livré dans la V2 : 4 corrections », liste dépliable)
   const livres = {}; for (const x of atlDiscDems(f)) if (x && x.etat === 'faite' && (x.version_livree | 0)) (livres[x.version_livree | 0] = livres[x.version_livree | 0] || []).push(x);
@@ -16781,7 +16834,7 @@ function atlDiscFil(f) {
     const ne = atlDiscDe(x), hi = Array.isArray(x.historique) ? x.historique.filter(h => h && h.sorte) : [], et = Array.isArray(x.etapes) ? x.etapes : [], sd = atlDiscSig(x), env = x.etat === 'envoyee';
     const J = (tx, at, cls) => () => { const bl = atlBubble({ texte: tx, at }); bl.classList.add(cls || 'atl-fdem'); return bl; };
     if (!ne && !(av1 && /^🚀\s*Conception de ta V/.test(String(x.texte || '')))) {   // la demande écrite dans « Mes demandes » (ou en arrêt sur image) : elle se raconte ici aussi (2.0.124 : pas le ticket de conception, ouvert par la mascotte)
-      add(x.at, 'dj' + x.id, false, J('🎫 ' + net((hi.find(h => h.avant) || {}).avant || x.texte).split('\n\n↪ ')[0], x.at), env && !hi.length);
+      add(x.at, 'dj' + x.id + (x.image ? 'i' : ''), false, (j => () => atlDiscOrneDem(j(), x))(J('🎫 ' + net((hi.find(h => h.avant) || {}).avant || x.texte).split('\n\n↪ ')[0], x.at)), env && !hi.length);   // 8 nov. : + sa capture et « ↩ Répondre »
       hi.forEach((h, i) => {
         if (h.reponse) { const t0 = iso(T(h.at) - 1000); add(t0, 'dg' + x.id + i, true, () => atlBubble({ atelier: true, texte: String(h.reponse), at: t0 })); }
         const tx = h.sorte === 'reponse' ? '↪ ' + h.texte : h.sorte === 'modif' ? '✏️ ' + net(h.texte) : h.sorte === 'refus' ? '🙅 Non merci' + (h.mot ? ' : ' + h.mot : '')
@@ -16842,6 +16895,9 @@ function atlDiscBloc(f) {
     ta.placeholder = atlPetit() ? 'Écris ' + gA() + '…' : 'Écris ' + gA() + '… (c’est gratuit)';   // 7 nov. 2026 : au téléphone, 📎 ⚡ 🎤 dans le champ : l'aide tient sur une ligne (« Gratuit » est dans l'en-tête)   // 2.0.162 : l'aide tient dans le champ, en une ligne
     const go = atlEl('button', 'atl-discgo atl-dsend', '➤'), msg = atlEl('small', 'atl-dnmsg', ''); go.type = 'button'; go.setAttribute('aria-label', 'Envoyer');
     const PJ = atlPjZone(msg, () => { go.classList.toggle('on', !!ta.value.trim() || PJ.l.length > 0); });
+    let cite = null; const cb = atlEl('div', 'atl-citebar'); cb.hidden = true;   // 8 nov. : « ↩ Répondre » à un arrêt sur image
+    const citeMaj = () => { cb.textContent = ''; cb.hidden = !cite; if (cite) cb.appendChild(atlCiteBloc(cite, () => { cite = null; citeMaj(); })); };
+    b._citer = c => { cite = c; citeMaj(); try { ta.focus({ preventScroll: true }); } catch (e) {} const lg = b.querySelector('.atl-disclog'); if (lg) requestAnimationFrame(() => { lg.scrollTop = lg.scrollHeight; }); };
     const grandit = () => { ta.style.height = 'auto'; const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20; ta.style.height = Math.min(ta.scrollHeight, lh * 5 + 20) + 'px'; go.classList.toggle('on', !!ta.value.trim()); };
     ta.addEventListener('input', grandit);
     // 2.0.100 (l'admin : « pouvoir encore lui parler même quand il réfléchit ») : la case et « Envoyer » ne sont JAMAIS bloqués ; chaque message
@@ -16850,19 +16906,21 @@ function atlDiscBloc(f) {
     const envoyer = () => {
       atlMicFin();
       const pjs = PJ.l.slice(); let t = ta.value.trim(); if (!t && !pjs.length) { ta.focus(); return; }
+      const ci = cite; cite = null; citeMaj();
       if (!t) t = '📎 ' + pjs.map(x => x.file.name).join(', ');   // 7 nov. 2026 : des fichiers sans texte
       if (!(ATL.discPend || []).some(x => !x.envoye)) ATL.discErr = false;
       ta.value = ''; msg.textContent = ''; try { ta.style.height = ''; go.classList.remove('on'); } catch (e) {}
       PJ.l = []; PJ.peint();
-      const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id, atelier: adm, fichiers: pjs.length ? pjs.map(x => ({ nom: x.file.name, taille: x.file.size, type: x.famille, envoi: true })) : null };
+      const pm = { texte: t, pending: true, at: new Date().toISOString(), fiche: f.id, atelier: adm, demande: ci ? ci.id : null, fichiers: pjs.length ? pjs.map(x => ({ nom: x.file.name, taille: x.file.size, type: x.famille, envoi: true })) : null };
       ATL.discPend = (ATL.discPend || []).concat([pm]); atlDiscMaj(W0(), f, true); enBas();
       ATL.discFile = (ATL.discFile || Promise.resolve()).then(async () => {
         let ok = false;
         try {
-          if (pjs.length) { const ids = []; for (const x of pjs) ids.push(await atlPjEnvoyer(f, x)); await rpc('at_discuter_fichiers', { p_name: profile.name, p_fiche: f.id, p_texte: t, p_micro: false, p_fichiers: ids }, { quiet: true }); }
+          if (ci) { const ids = []; for (const x of pjs) ids.push(await atlPjEnvoyer(f, x)); await rpc('at_discuter_sur', { p_name: profile.name, p_fiche: f.id, p_cite: ci.id, p_texte: t, p_micro: false, p_fichiers: ids.length ? ids : null }, { quiet: true }); }   // 8 nov. : rattaché à l'arrêt sur image
+          else if (pjs.length) { const ids = []; for (const x of pjs) ids.push(await atlPjEnvoyer(f, x)); await rpc('at_discuter_fichiers', { p_name: profile.name, p_fiche: f.id, p_texte: t, p_micro: false, p_fichiers: ids }, { quiet: true }); }
           else await rpc('at_discuter', { p_name: profile.name, p_fiche: f.id, p_texte: t }, { quiet: true });
           ok = true; }
-        catch (e) { ATL.discErr = true; msg.textContent = atlPjPourquoi(e) || atlWhy(e); if (!/^📎 /.test(t) || !pjs.length) ta.value = ta.value.trim() ? t + '\n' + ta.value : t; if (pjs.length) { PJ.l = pjs.concat(PJ.l).slice(0, ATL_PJ_MAX); PJ.peint(); } }   // rien n'est perdu (texte ET fichiers)
+        catch (e) { ATL.discErr = true; msg.textContent = atlPjPourquoi(e) || atlWhy(e); if (!/^📎 /.test(t) || !pjs.length) ta.value = ta.value.trim() ? t + '\n' + ta.value : t; if (pjs.length) { PJ.l = pjs.concat(PJ.l).slice(0, ATL_PJ_MAX); PJ.peint(); } if (ci && !cite) { cite = ci; citeMaj(); } }   // rien n'est perdu (texte, fichiers, citation)
         if (ok) pm.envoye = true; else ATL.discPend = (ATL.discPend || []).filter(x => x !== pm);
         if (!(ATL.discPend || []).some(x => !x.envoye)) {   // la file est vide : on relit tout (les messages arrivés, les offres remplacées)
           try { ATL.demAt = 0; await atlDemCharger(true); await atlLoad(true); } catch (e) {}
@@ -16877,7 +16935,7 @@ function atlDiscBloc(f) {
     if (f && f.id) { tw.prepend(PJ.bouton); corps.appendChild(PJ.plateau); PJ.depot(b); }   // 7 nov. 2026 : 📎 joindre des fichiers
     const rg = atlEl('p', 'atl-discrg'), np = atlEl('button', 'atl-discnp', '＋ Nouveau projet'); np.type = 'button'; np.addEventListener('click', atlNouveau);
     rg.append(document.createTextNode('Ici, on parle seulement de « ' + (f.titre || 'ton jeu') + ' ». Une idée pour un autre jeu ? '), np);
-    row.append(tw, go); if (f && f.id) corps.appendChild(atlAutoInter(f)); corps.append(row, msg);   // 8 nov. : ⚡ l’interrupteur du mode auto, au-dessus du champ void rg; void aide;   // 2.0.162 : plus de pavé d'aide sous le champ
+    row.append(tw, go); if (f && f.id) corps.appendChild(atlAutoInter(f)); corps.append(cb, row, msg);   // 8 nov. : ⚡ l’interrupteur du mode auto, au-dessus du champ void rg; void aide;   // 2.0.162 : plus de pavé d'aide sous le champ
   }
   b.append(hd, corps); return b;
 }
@@ -17872,10 +17930,14 @@ function atlCapture(i) {
 function atlArret() {
   const R = ATL.root, fr = R && R.querySelector('.atl-wiz .atl-gframe'), f = atlFiche(); if (!fr || !f || fr.querySelector('.atl-arret')) return;
   const i = fr.querySelector('iframe'); if (!i) { atlFrameStart(); return; }
+  if (fr.dataset.arretAtt) return; fr.dataset.arretAtt = '1';
+  const go = () => { delete fr.dataset.arretAtt; if (!fr.isConnected || fr.querySelector('.atl-arret')) return;
+  let shot = null; try { shot = atlCapture(i); } catch (e) { shot = null; }   // 8 nov. : juste après le dessin du jeu, AVANT sa pause (WebGL noir sinon)
   try { i.contentWindow.postMessage({ type: 'atl-pause' }, location.origin); } catch (e) {}
-  let shot = null; try { shot = atlCapture(i); } catch (e) { shot = null; }
   atlArretUI(fr, shot, f.id, () => { try { i.contentWindow.postMessage({ type: 'atl-reprendre' }, location.origin); i.focus(); } catch (e) {} });
   try { fr.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+  };
+  try { (i.contentWindow.requestAnimationFrame || requestAnimationFrame).call(i.contentWindow, go); } catch (e) { go(); }
 }
 // 2.0.20 : « 📱 Portrait seulement » / « 🖥️ Paysage seulement » / « 🔄 Les deux » — enregistré sur la fiche (at_orientation, gratuit,
 // auteur ou admin) ; la borne l'applique au lancement (« Tourne ton téléphone ») et l'équipe le lit pour ses essais
@@ -18221,11 +18283,27 @@ function atlRevenir(id, tab) {
 }
 if (window.JDW_PG_TEST) window.__jdwAtl = { fin: sc => showEnd(sc), jouer: () => atlJouerVrai(atlFiche()), son: () => ({ joue: !!(ATL_SON && !ATL_SON.paused), t: ATL_SON ? ATL_SON.currentTime : 0, u: ATL_SON_U }), etat: () => ({ jeu: ATL.jeu, tab: ATL.tab, open: ATL.open }), lire: () => atlLoad(true), dem: () => JSON.stringify(atlDemEnCours().map(x => [x.id, (x.etapes || []).length])) };   // essais seulement
 if (navigator.webdriver) window.JDW_ESSAI_ARRET = () => { if (!ATL.jeu) ATL.jeu = 'essai'; atlArretJeu(); };   // 2.0.170 : bancs seulement (l'arrêt sur image hors Atelier)
+// 8 nov. 2026 (remarque de l'admin 769e1ada : « la capture d'arrêt sur image est NOIRE sur les jeux 3D ») : un canvas WebGL s'efface dès que
+// l'image est affichée ; lu plus tard (au clavier, après la pause), il est noir. Deux remèdes : (1) pendant un jeu de l'Atelier, ses contextes
+// WebGL gardent leur image (preserveDrawingBuffer) ; (2) la photo est prise dans la PROCHAINE image (requestAnimationFrame, juste après le
+// dessin du jeu, qui a demandé la sienne avant nous), et seulement ENSUITE le jeu est mis en pause.
+try {
+  const gc0 = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (t, a) {
+    if (window.JDW_ATL_JEU && /^(webgl2?|experimental-webgl)$/.test(String(t))) a = Object.assign({}, a || {}, { preserveDrawingBuffer: true });
+    return gc0.call(this, t, a);
+  };
+} catch (e) {}
+let ATL_ARRET_ATT = false;
 function atlArretJeu() {
+  if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2') || ATL_ARRET_ATT) return;
+  ATL_ARRET_ATT = true; requestAnimationFrame(() => { ATL_ARRET_ATT = false; atlArretJeu0(); });
+}
+function atlArretJeu0() {
   if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2')) return;
+  let shot = null; try { shot = atlCaptureJeu(); } catch (e) { shot = null; }   // AVANT la pause : l'image que le jeu vient de dessiner
   try { if (current && current.inst && current.inst.pause) current.inst.pause(); } catch (e) {}
   try { window.postMessage({ type: 'atl-pause' }, location.origin); } catch (e) {}   // même message que dans le cadre : le jeu se gèle
-  let shot = null; try { shot = atlCaptureJeu(); } catch (e) { shot = null; }
   atlFlotteur(false);
   if (shot) atlCaptureHtml(shot).catch(() => {});   // l'interface arrive par-dessus la photo, dans la seconde
   atlArretUI(document.body, shot, ATL.jeu, () => { try { if (current && current.inst && current.inst.resume) current.inst.resume(); } catch (e) {} try { window.postMessage({ type: 'atl-reprendre' }, location.origin); } catch (e) {} if (ATL.jeu && !$('jdw-play').hidden) atlFlotteur(true); }, true);
@@ -20429,6 +20507,7 @@ rpc = (rpc0 => async function (fn, a, o) {
   const agir = (action, args) => rpc0('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: action, p_args: args || {} }, o);
   if (fn === 'at_dire') return agir('dire', { texte: a.p_texte });
   if (fn === 'at_discuter') return agir('discussion', { texte: a.p_texte });
+  if (fn === 'at_discuter_sur') { const r = await agir('discussion', { texte: a.p_texte, cite: a.p_cite }); if (r && r.id && Array.isArray(a.p_fichiers) && a.p_fichiers.length) await rpc0('at_fichiers_joindre', { p_name: profile.name, p_message: r.id, p_fichiers: a.p_fichiers }, o); return r; }   // 8 nov. : répondre à un arrêt sur image
   if (fn === 'at_discuter_fichiers') { const r = await agir('discussion', { texte: a.p_texte }); if (r && r.id) await rpc0('at_fichiers_joindre', { p_name: profile.name, p_message: r.id, p_fichiers: a.p_fichiers }, o); return r; }   // 7 nov. 2026 : 📎   // 2.0.108 : l'admin répond dans « Discuter du jeu » (le joueur voit la mascotte)
   if (fn === 'at_fiche_etape') return a.p_cle === 'titre' ? agir('renommer', { titre: a.p_valeur }) : agir('fiche', { cle: a.p_cle, valeur: a.p_valeur });
   if (fn === 'at_fiche_joueur') return agir('fiche', { cle: a.p_cle, valeur: a.p_texte });
@@ -20734,6 +20813,7 @@ function atlOccupe() {
   if (!ATL || !ATL.root || !ATL.open) return false;
   if (Date.now() - ATL_DOUX.agit < 2000 || Date.now() - ATL_DOUX.tape < 4000) return true;
   if (document.querySelector('.atl-revele')) return true;   // 2.0.160 : aucun redessin pendant le moment de la V1
+  if (atlVisioOuverte()) return true;   // 8 nov. : l'image en grand (la visionneuse) : rien ne se redessine dessous
   const z = ATL.root.querySelector('.atl-zoom:not([hidden])'); return !!(z && z.querySelector(':scope > img'));   // l'image en grand (atlZoom) ; « Mes demandes » (même cadre) reste en direct
 }
 const ATL_CLS_ETAT = /^(on|new|open|ouvert|actif|joue|sel|choix|rep|att|neuf|eu|vu|lu|bas|fini|desc|low)$/;
@@ -21045,10 +21125,104 @@ function atlImgs(m) {
   }
   return box;
 }
-function atlZoom(u) {
-  const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z || !u) return;
-  z.textContent = ''; const im = atlEl('img'); im.alt = 'Image en grand'; im.src = u; z.append(im, atlEl('small', '', 'Touche pour fermer')); z.hidden = false;
+// ---- 8 nov. 2026 (l'admin : « la visionneuse COUPE l'image, on n'en voit que le haut ») : LA VISIONNEUSE, une seule pour toute la borne.
+// À l'ouverture, l'image tient ENTIÈRE sous le bandeau « ← Retour  ✕ » (PC, téléphone debout et couché). Molette = zoom centré sur la souris ;
+// deux doigts = pincer ; glisser = se déplacer quand c'est zoomé ; double-clic / double-toucher = « entière » ⇄ 100 %. Fluide : seulement
+// transform (translate + scale) dans requestAnimationFrame, jamais de recalcul de mise en page. Par-dessus TOUT (même le jeu en plein écran,
+// l'arrêt sur image) ; Échap, le retour du navigateur / d'Android, B de la manette et « ← Retour » la ferment, et seulement elle.
+// atlVisio(url, { titre }) — l'atelier photo (atelier-images.js, même portée) l'appelle aussi. atlZoom(u) = atlVisio(u).
+let ATL_VIS = null, ATL_VIS_RETOUR = false;
+const atlVisioOuverte = () => !!(ATL_VIS && ATL_VIS.el.isConnected);
+function atlVisioFermer(parHistoire) {
+  if (!atlVisioOuverte()) { ATL_VIS = null; return false; }
+  const v = ATL_VIS; ATL_VIS = null; v.fin();
+  if (!parHistoire && history.state && history.state.atlVis) { ATL_VIS_RETOUR = true; try { history.back(); } catch (e) { ATL_VIS_RETOUR = false; } }
+  return true;
 }
+function atlVisio(u, o) {
+  if (!u) return null; o = o || {};
+  atlVisioFermer(true);
+  const V = atlEl('div', 'atl-visio'); V.setAttribute('role', 'dialog'); V.setAttribute('aria-modal', 'true'); V.setAttribute('aria-label', o.titre || 'Image en grand'); V.tabIndex = -1;
+  const bar = atlEl('div', 'atl-visbar'), bk = atlEl('button', 'btn btn-ghost btn-sm atl-visret', '← Retour'), tt = atlEl('span', 'atl-vist', o.titre || ''), pc = atlEl('span', 'atl-vispc', ''), x = atlEl('button', 'icon-btn atl-visx', '✕');
+  bk.type = x.type = 'button'; x.setAttribute('aria-label', 'Fermer'); bar.append(bk, tt, pc, x);
+  const sc = atlEl('div', 'atl-visc'), im = atlEl('img', 'atl-visimg'); im.alt = o.titre || 'Image en grand'; im.draggable = false; im.decoding = 'async';
+  const aide = atlEl('small', 'atl-visaide', TOUCH ? 'Deux doigts pour zoomer · double-toucher : 100 %' : 'Molette pour zoomer · glisser pour te déplacer · double-clic : 100 %');
+  sc.appendChild(im); V.append(bar, sc, aide);
+  const S = { s: 1, x: 0, y: 0, fit: 1, w: 0, h: 0, raf: 0, anim: 0 };
+  const peindre = () => { S.raf = 0; im.style.transform = 'translate3d(' + S.x + 'px,' + S.y + 'px,0) scale(' + S.s + ')'; pc.textContent = S.w ? Math.round(S.s * 100) + ' %' : ''; V.classList.toggle('zoome', S.s > S.fit * 1.01); };
+  const plan = () => { if (!S.raf) S.raf = requestAnimationFrame(peindre); };
+  const taille = () => [sc.clientWidth, sc.clientHeight];
+  const borne = () => { const [W, H] = taille(), w = S.w * S.s, h = S.h * S.s; S.x = w <= W ? (W - w) / 2 : Math.min(0, Math.max(W - w, S.x)); S.y = h <= H ? (H - h) / 2 : Math.min(0, Math.max(H - h, S.y)); };
+  const maxS = () => Math.max(4, S.fit * 6);
+  const zoomA = (ns, cx, cy) => { ns = Math.min(maxS(), Math.max(S.fit, ns)); const k = ns / S.s; S.x = cx - (cx - S.x) * k; S.y = cy - (cy - S.y) * k; S.s = ns; borne(); plan(); };
+  const anime = (ns, cx, cy) => {   // double-clic : un petit glissé de 180 ms (toujours transform seulement)
+    cancelAnimationFrame(S.anim); ns = Math.min(maxS(), Math.max(S.fit, ns));
+    const s0 = S.s, x0 = S.x, y0 = S.y, k = ns / s0; S.s = ns; S.x = cx - (cx - x0) * k; S.y = cy - (cy - y0) * k; borne(); const s1 = S.s, x1 = S.x, y1 = S.y; S.s = s0; S.x = x0; S.y = y0;
+    const t0 = performance.now(), pas = t => { const q = Math.min(1, (t - t0) / 180), e = 1 - Math.pow(1 - q, 3); S.s = s0 + (s1 - s0) * e; S.x = x0 + (x1 - x0) * e; S.y = y0 + (y1 - y0) * e; peindre(); if (q < 1) S.anim = requestAnimationFrame(pas); };
+    S.anim = requestAnimationFrame(pas);
+  };
+  const ajuste = () => { if (!S.w) return; const [W, H] = taille(); if (!W || !H) return; const ent = !S.s || S.s <= S.fit * 1.001; S.fit = Math.min(W / S.w, H / S.h, 2); if (ent) S.s = S.fit; else S.s = Math.max(S.s, S.fit); borne(); plan(); };   // une petite image : jusqu'à 2× pour remplir
+  const bascule = (cx, cy) => { if (S.s > S.fit * 1.05) anime(S.fit, cx, cy); else anime(S.fit >= 0.95 ? S.fit * 2 : 1, cx, cy); };   // « entière » ⇄ 100 % (une petite image, déjà en grand : ×2)
+  im.addEventListener('load', () => { S.w = im.naturalWidth || 1; S.h = im.naturalHeight || 1; im.style.width = S.w + 'px'; im.style.height = S.h + 'px'; S.s = 0; ajuste(); peindre(); V.classList.add('pret'); });
+  im.addEventListener('error', () => { sc.textContent = ''; sc.appendChild(atlEl('p', 'atl-vismiss', '🖼️ Cette image n’arrive pas. Réessaie dans un moment.')); });
+  const P = new Map(); let pz = null, glis = null, bouge = false, tapT = 0, tapP = null;
+  const loc = e => { const r = sc.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  sc.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    try { sc.setPointerCapture(e.pointerId); } catch (x) {}
+    cancelAnimationFrame(S.anim); P.set(e.pointerId, loc(e)); if (P.size === 1) bouge = false;
+    if (P.size === 2) { const [a, b] = [...P.values()]; pz = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, s: S.s, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2, x: S.x, y: S.y }; glis = null; bouge = true; }
+    else if (P.size === 1) { const p = P.get(e.pointerId); glis = { px: p[0], py: p[1], x: S.x, y: S.y }; }
+  });
+  sc.addEventListener('pointermove', e => {
+    if (!P.has(e.pointerId)) return; P.set(e.pointerId, loc(e));
+    if (pz && P.size >= 2) {
+      const [a, b] = [...P.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      const ns = Math.min(maxS(), Math.max(S.fit, pz.s * d / pz.d)), k = ns / pz.s;
+      S.s = ns; S.x = mx - (pz.mx - pz.x) * k; S.y = my - (pz.my - pz.y) * k; borne(); plan(); return;
+    }
+    if (glis) { const p = P.get(e.pointerId), dx = p[0] - glis.px, dy = p[1] - glis.py; if (Math.abs(dx) + Math.abs(dy) > 6) bouge = true; if (bouge) { S.x = glis.x + dx; S.y = glis.y + dy; borne(); plan(); } }
+  });
+  const lache = e => {
+    if (!P.has(e.pointerId)) return; const p = P.get(e.pointerId); P.delete(e.pointerId);
+    if (P.size < 2) pz = null;
+    if (P.size === 1) { const q = [...P.values()][0]; glis = { px: q[0], py: q[1], x: S.x, y: S.y }; return; }
+    glis = null; if (e.type !== 'pointerup' || bouge) return;
+    const r = im.getBoundingClientRect(), dehors = !V.classList.contains('zoome') && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom);   // toucher À CÔTÉ de l'image la ferme
+    if (e.pointerType !== 'mouse') {   // double-toucher : « entière » ⇄ 100 % ; un seul toucher à côté : fermer
+      if (tapT && tapP && Math.hypot(p[0] - tapP[0], p[1] - tapP[1]) < 40) { clearTimeout(tapT); tapT = 0; bascule(p[0], p[1]); return; }
+      clearTimeout(tapT); tapP = p; tapT = setTimeout(() => { tapT = 0; if (dehors) atlVisioFermer(); }, 330); return;
+    }
+    if (dehors) atlVisioFermer();
+  };
+  sc.addEventListener('pointerup', lache); sc.addEventListener('pointercancel', lache);
+  sc.addEventListener('dblclick', e => { const p = loc(e); bascule(p[0], p[1]); });
+  sc.addEventListener('wheel', e => { e.preventDefault(); const p = loc(e), d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY; zoomA(S.s * Math.exp(-d * 0.0018), p[0], p[1]); }, { passive: false });
+  sc.addEventListener('click', e => e.stopPropagation()); bar.addEventListener('click', e => e.stopPropagation());
+  const ferme = e => { if (e) { e.preventDefault(); e.stopPropagation(); } atlVisioFermer(); };
+  bk.addEventListener('click', ferme); x.addEventListener('click', ferme);
+  const cle = e => {
+    if (!atlVisioOuverte()) return;
+    if (e.key === 'Escape') { ferme(e); e.stopImmediatePropagation(); return; }
+    const [W, H] = taille();
+    if (e.key === '+' || e.key === '=') { e.preventDefault(); e.stopImmediatePropagation(); anime(S.s * 1.5, W / 2, H / 2); }
+    else if (e.key === '-' || e.key === '_') { e.preventDefault(); e.stopImmediatePropagation(); anime(S.s / 1.5, W / 2, H / 2); }
+    else if (e.key === '0') { e.preventDefault(); e.stopImmediatePropagation(); anime(S.fit, W / 2, H / 2); }
+    else if (!/^(Tab|Enter| )$/.test(e.key)) e.stopImmediatePropagation();   // rien d'autre n'atteint le jeu ni l'Atelier en dessous
+  };
+  const rs = () => ajuste();
+  window.addEventListener('keydown', cle, true); window.addEventListener('resize', rs);
+  const avant = document.activeElement;
+  ATL_VIS = { el: V, fin: () => { clearTimeout(tapT); cancelAnimationFrame(S.raf); cancelAnimationFrame(S.anim); window.removeEventListener('keydown', cle, true); window.removeEventListener('resize', rs); V.remove(); try { if (avant && avant.isConnected) avant.focus({ preventScroll: true }); } catch (e) {} } };
+  document.body.appendChild(V);
+  try { history.pushState({ atlVis: 1 }, ''); } catch (e) {}
+  im.src = u;
+  try { V.focus({ preventScroll: true }); } catch (e) {}
+  if (navigator.webdriver) V._etat = () => ({ s: S.s, fit: S.fit, x: S.x, y: S.y, w: S.w, h: S.h, W: sc.clientWidth, H: sc.clientHeight });   // bancs seulement
+  return V;
+}
+function atlZoom(u, titre) { return atlVisio(u, { titre }); }   // 8 nov. : partout, la même visionneuse (avant : l'image dans .atl-zoom, coupée en bas)
+if (navigator.webdriver) window.JDW_ESSAI_VISIO = (u, o) => atlVisio(u, o);   // bancs seulement
 async function atlValider(oui) {
   if (ATL.sending) return; ATL.sending = true; atlErr('');
   const et = atlEtat(), hint = () => { const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Dis-moi le numéro de la section à modifier (1 à 9) et ce que tu veux à la place…'; if (!TOUCH) inp.focus(); };
