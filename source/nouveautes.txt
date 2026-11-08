@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🎮 Joue à deux à ton jeu en essai, mode auto et pièces jointes (borne 2.1.26)
+[borne] 🎮 « Inviter un ami à jouer avec moi » : invite un ami de ta salle à jouer avec toi à la version en essai de ton jeu (pour les jeux à plusieurs).
+[borne] ⚡ Le mode auto, à côté du micro : {g} lance tes demandes tout de suite (jusqu'à 20 💎), sans te redemander.
+[borne] 📎 Joins un fichier à {g} : PDF, Word, Excel, texte, image, son ou zip, pour lui expliquer ton idée.
+[borne] 🟣 À côté de « Mon jeu », une petite pastille montre la version qui se prépare.
 [borne] ## 🕒 L'heure de tes versions (borne 2.1.23)
 [borne] 🕒 Dans « Feuille de route & versions », chaque version dit maintenant le jour ET l'heure de sa sortie : « V12 · aujourd'hui à 19 h 20 ».
 [borne] ## ⏳ Mieux voir quand ta version se prépare (borne 2.1.21)
