@@ -16873,11 +16873,11 @@ function atlDiscBloc(f) {
     };
     go.addEventListener('click', envoyer);
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !atlPetit()) { e.preventDefault(); envoyer(); } });   // ordinateur : Entrée envoie, Maj+Entrée va à la ligne
-    const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (f && f.id) tw.appendChild(atlAutoBouton(f)); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));   // 7 nov. 2026 : ⚡ mode auto, à côté du micro
+    const tw = atlEl('div', 'atl-artw'), row = atlEl('div', 'atl-discrow'); tw.appendChild(ta); if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
     if (f && f.id) { tw.prepend(PJ.bouton); corps.appendChild(PJ.plateau); PJ.depot(b); }   // 7 nov. 2026 : 📎 joindre des fichiers
     const rg = atlEl('p', 'atl-discrg'), np = atlEl('button', 'atl-discnp', '＋ Nouveau projet'); np.type = 'button'; np.addEventListener('click', atlNouveau);
     rg.append(document.createTextNode('Ici, on parle seulement de « ' + (f.titre || 'ton jeu') + ' ». Une idée pour un autre jeu ? '), np);
-    row.append(tw, go); corps.append(row, msg); void rg; void aide;   // 2.0.162 : plus de pavé d'aide sous le champ
+    row.append(tw, go); if (f && f.id) corps.appendChild(atlAutoInter(f)); corps.append(row, msg);   // 8 nov. : ⚡ l’interrupteur du mode auto, au-dessus du champ void rg; void aide;   // 2.0.162 : plus de pavé d'aide sous le champ
   }
   b.append(hd, corps); return b;
 }
@@ -16940,7 +16940,7 @@ function atlDiscMaj(W, f, force) {
   const neuf = !adm && !!der && der.at > atlDiscVu(f); b.classList.toggle('neuf', neuf);
   const tb = W.querySelector('.atl-ptab[data-k="demandes"]'), db = W.querySelector('.atl-discbtn'); if (tb) tb.classList.toggle('atl-pdot', neuf); if (db) db.classList.toggle('atl-pdot', neuf);
   if (!on) return;
-  const sig = (f.auto ? 'A|' : '') + fil.map(i => i.k + '@' + i.at).join('|');   // 8 nov. : le mode auto change le texte d'accueil
+  const sig = (f.auto ? 'A' + atlAutoMax(f) + '|' : '') + fil.map(i => i.k + '@' + i.at).join('|');   // 8 nov. : le mode auto change le texte d'accueil
   if (log.dataset.sig === sig && !force) return;
   if ([...log.querySelectorAll('.atl-q input, .atl-dedit:not([hidden]) textarea')].some(e => e.value.trim() || document.activeElement === e)) return;   // une réponse en cours d'écriture : on ne touche à rien
   const dist = log.scrollHeight - log.scrollTop - log.clientHeight, derK = (fil.filter(i => i.t < 9e15).pop() || {}).k || '', nouveau = !!log.dataset.der && log.dataset.der !== derK; log.dataset.der = derK;
@@ -16948,7 +16948,7 @@ function atlDiscMaj(W, f, force) {
   const acc = atlBubble({ atelier: true, texte: ' ', at: f.created_at }), bb = acc.querySelector('.atl-b'), t0 = acc.querySelector('.atl-t'); if (t0) t0.remove();
   acc.classList.add('atl-wel'); bb.textContent = '';
   bb.append(atlEl('p', '', '💬 On parle de « ' + (f.titre || 'ton jeu') + ' » ?'), atlEl('p', '', 'Ici, c’est gratuit : pose-moi tes questions, demande-moi où en est ton jeu, prépare avec moi tes idées de changements, même les gros.'),
-    atlEl('p', '', f.auto ? 'Quand une idée demande du travail, je te fais une proposition avec son coût. ⚡ Mode auto allumé : je la lance tout de suite jusqu’à ' + (ATL.autoMax || 20) + ' 💎 ; au-dessus, j’attends ton « oui ». Tout ce que je fais sur ton jeu s’affiche ici.'
+    atlEl('p', '', f.auto ? 'Quand une idée demande du travail, je te fais une proposition avec son coût. ⚡ Mode auto allumé : je la lance tout de suite si elle coûte ' + atlAutoMax(f) + ' 💎 ou moins ; au-dessus, j’attends ton « oui ». Tout ce que je fais sur ton jeu s’affiche ici.'
       : 'Quand une idée demande du travail, je te fais une proposition avec son coût : rien n’est lancé sans ton « oui ». Tout ce que je fais sur ton jeu s’affiche ici.'));   // 8 nov. : le texte suit le mode auto
   if (!atlAvantV1(f)) log.appendChild(acc);
   const fin = fil.filter(i => i.t >= 9e15);   // 2.0.124 : la carte de lancement / « je construis ta V1 » reste sous la réponse en préparation
@@ -21657,53 +21657,74 @@ function atlPjCartes(L) {
 // 8 nov. (chef, remarque du 2e testeur) : ce sont les crédits DU JOUEUR, donc seul le joueur ALLUME le mode auto ; en vue admin (projet d'un
 // joueur), « ⚡ Mode auto » est grisé (« Seul le joueur peut l'allumer ») et l'admin peut seulement l'éteindre (serveur : mode-auto-admin.sql).
 function atlAutoFiche(f) { try { const c = atlFiche(); if (c && f && c.id === f.id) return c; } catch (e) {} return f; }
-function atlAutoBouton(f) {
-  const b = atlEl('button', 'atl-autob'); b.type = 'button'; b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false');
-  b._peint = () => { const on = !!(atlAutoFiche(f) || {}).auto, mx = ATL.autoMax || 20;
-    b.textContent = on ? '⚡' : '🤚'; b.classList.toggle('on', on);
-    b.title = on ? 'Mode auto : ' + gNM() + ' lance tout seul (jusqu’à ' + mx + ' 💎)' : 'Je valide moi-même : ' + gNM() + ' attend ton « oui »';
-    b.setAttribute('aria-label', 'Comment ' + gNM() + ' lance tes demandes : ' + (on ? 'mode auto' : 'je valide moi-même')); };
-  b._peint(); b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); atlAutoMenu(b, f); });
-  return b;
+// 8 nov. (l'admin : « je ne vois pas le mode auto ») : le petit rond 🤚/⚡ dans le champ était trop discret. À la place, un INTERRUPTEUR écrit
+// « ⚡ Mode auto : non » (gris) / « ⚡ Mode auto : oui » (coloré), juste au-dessus du champ de la discussion, avec une ligne qui explique.
+// 8 nov. (l'admin, ensuite : « un menu déroulant : accepter les demandes automatiques égales ou en dessous de X crédits, qu'on règle comme on
+// veut ») : à côté, « jusqu'à [20 💎 ▾] », la limite DU PROJET (serveur : mode-auto-limite.sql, at_auto_limite ; fiche.auto_max).
+// Le joueur la règle comme il veut ; un admin, sur le projet d'un joueur, peut seulement la baisser (ce sont les crédits du joueur).
+// UN SEUL composant pour toute la borne : l'atelier photo (atelier-images.js, même portée) l'appelle aussi.
+// atlAutoInter(f, o) → div.atl-autosw. f = la fiche { id, auto, auto_max } (l'état vrai est relu dans atlFiche() si c'est la même) ;
+// o.admin() = vue admin du projet d'un joueur (par défaut atlAdminIci()) : éteint, il est grisé ; allumé, l'admin peut seulement l'éteindre ;
+// o.apres(auto, max) = rappel après un changement. Tous les interrupteurs affichés se repeignent ensemble ; el._peint() force un repeint.
+const ATL_AUTO_PALIERS = [5, 10, 15, 20, 30, 50, 75, 100, 150, 200, 300, 500, 1000];
+function atlAutoMax(f) { const cf = atlAutoFiche(f) || {}; return (cf.auto_max | 0) || ATL.autoMax || 20; }
+function atlAutoInter(f, o) {
+  o = o || {};
+  const w = atlEl('div', 'atl-autosw'), b = atlEl('button', 'atl-autosw-b'), k = atlEl('span', 'atl-autosw-k'), t = atlEl('span', 'atl-autosw-t'), s = atlEl('small', 'atl-autosw-s');
+  const lb = atlEl('label', 'atl-autosw-m'), sel = atlEl('select', 'atl-autosw-sel');
+  b.type = 'button'; b.setAttribute('role', 'switch'); k.appendChild(atlEl('i')); b.append(k, t); lb.append(atlEl('span', '', 'jusqu’à'), sel); w.append(b, lb, s);
+  w._f = f; w._o = o;
+  const adm = () => { try { return o.admin ? !!o.admin() : atlAdminIci(); } catch (e) { return false; } };
+  w._peint = () => {
+    const on = !!(atlAutoFiche(w._f) || {}).auto, mx = atlAutoMax(w._f), a = adm(), gris = a && !on, att = !!ATL.autoAtt;
+    w.classList.toggle('on', on); w.classList.toggle('gris', gris); w.classList.toggle('att', att);
+    t.textContent = ''; t.append(document.createTextNode('⚡ Mode auto : '), atlEl('b', '', on ? 'oui' : 'non'));
+    b.setAttribute('aria-checked', String(on)); b.disabled = gris; b.setAttribute('aria-busy', String(att)); if (gris) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
+    const vals = ATL_AUTO_PALIERS.includes(mx) ? ATL_AUTO_PALIERS : ATL_AUTO_PALIERS.concat(mx).sort((x, y) => x - y);
+    sel.textContent = '';
+    for (const v of vals) { const op = atlEl('option', '', v + ' 💎'); op.value = String(v); if (a && v > mx) op.disabled = true; sel.appendChild(op); }   // admin : seulement baisser
+    sel.value = String(mx); sel.setAttribute('aria-busy', String(att));
+    sel.setAttribute('aria-label', 'Limite du mode auto : il lance tout seul les demandes égales ou en dessous de ' + mx + ' crédits');
+    s.textContent = a ? (on ? 'Le joueur l’a allumé. Toi, tu peux seulement l’éteindre ou baisser la limite.' : 'Seul le joueur peut l’allumer ou monter la limite : ce sont ses crédits.')
+      : on ? gNM() + ' lance tout seul les demandes à ' + mx + ' 💎 ou moins ; au-dessus, il te redemande.'
+        : gNM() + ' te montre le prix et attend ton « oui ».';
+    b.title = (on ? 'Mode auto : oui. ' : 'Mode auto : non. ') + s.textContent;
+    b.setAttribute('aria-label', 'Mode auto : ' + (on ? 'oui' : 'non') + '. ' + s.textContent);
+  };
+  w._peint();
+  b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (b.disabled || ATL.autoAtt) return; const on = !!(atlAutoFiche(w._f) || {}).auto; atlAutoPoser(w._f, !on, o.apres); });
+  sel.addEventListener('click', e => e.stopPropagation());
+  sel.addEventListener('change', () => { const v = parseInt(sel.value, 10) | 0; if (!v || ATL.autoAtt) { w._peint(); return; } atlAutoLimite(w._f, v, o.apres); });
+  return w;
 }
-function atlAutoMenu(b, f) {
-  const old = document.getElementById('atl-automenu'); if (old) { const ob = old._b; old._fermer(); if (ob === b) return; }
-  const on = !!(atlAutoFiche(f) || {}).auto, mx = ATL.autoMax || 20;
-  const M = atlEl('div', 'atl-automenu'); M.id = 'atl-automenu'; M.setAttribute('role', 'menu'); M.setAttribute('aria-label', 'Comment ' + gNM() + ' lance tes demandes'); M._b = b;
-  const fermer = () => { M.remove(); b.setAttribute('aria-expanded', 'false'); document.removeEventListener('pointerdown', dehors, true); document.removeEventListener('keydown', esc, true); removeEventListener('resize', fermer); };
-  const dehors = e => { if (!M.contains(e.target) && !b.contains(e.target)) fermer(); };
-  const esc = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermer(); try { b.focus(); } catch (x) {} } };
-  M._fermer = fermer;
-  const adm = (() => { try { return atlAdminIci(); } catch (e) { return false; } })();   // vue admin : le projet d'un joueur
-  const it = (val, ic, t, sous, gris) => {
-    const x = atlEl('button', 'atl-autoit' + (val === on ? ' sel' : '') + (val ? ' auto' : '') + (gris ? ' gris' : '')); x.type = 'button'; x.setAttribute('role', 'menuitemradio'); x.setAttribute('aria-checked', String(val === on));
-    if (gris) { x.disabled = true; x.setAttribute('aria-disabled', 'true'); }
-    const tx = atlEl('span', 'atl-autotx'); tx.append(atlEl('b', '', t), atlEl('small', '', sous));
-    x.append(atlEl('span', 'atl-autoic', ic), tx, atlEl('span', 'atl-autock', val === on ? '✓' : ''));
-    x.addEventListener('click', () => { if (gris) return; fermer(); atlAutoPoser(f, val, b); }); return x; };
-  M.append(it(false, '🤚', 'Je valide moi-même', gNM() + ' te montre le prix et attend ton « oui »'),
-    adm && !on ? it(true, '⚡', 'Mode auto', 'Seul le joueur peut l’allumer : ce sont ses crédits. Toi, tu peux seulement l’éteindre.', true)
-      : it(true, '⚡', 'Mode auto', gNM() + ' lance tout seul, jusqu’à ' + mx + ' 💎 par demande. Au-dessus, il te redemande.'));
-  document.body.appendChild(M);
-  const r = b.getBoundingClientRect(), w = Math.min(320, innerWidth - 16); M.style.width = w + 'px';
-  M.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px';
-  const h = M.getBoundingClientRect().height; M.style.top = (r.top - h - 8 >= 8 ? r.top - h - 8 : Math.min(innerHeight - h - 8, r.bottom + 8)) + 'px';
-  b.setAttribute('aria-expanded', 'true');
-  setTimeout(() => { if (M.isConnected) document.addEventListener('pointerdown', dehors, true); }, 0); document.addEventListener('keydown', esc, true); addEventListener('resize', fermer);
-  if (!TOUCH) try { (M.querySelector('.atl-autoit.sel') || M.querySelector('.atl-autoit')).focus(); } catch (e) {}
-}
-async function atlAutoPoser(f, on, b) {
-  const cf = atlAutoFiche(f); if (!cf || !!cf.auto === on) return;
-  for (const x of document.querySelectorAll('.atl-autob')) x.disabled = true;
+const atlAutoPeindre = () => { for (const x of document.querySelectorAll('.atl-autosw')) if (x._peint) try { x._peint(); } catch (e) {} };
+async function atlAutoPoser(f, on, apres) {
+  const cf = atlAutoFiche(f); if (!cf || !cf.id || !!cf.auto === on || ATL.autoAtt) return;
+  ATL.autoAtt = true; atlAutoPeindre();
   try {
     const r = await rpc('at_auto_poser', { p_name: profile.name, p_fiche: cf.id, p_on: on }, { quiet: true });
-    cf.auto = f.auto = !!(r && r.auto); if (r && r.max) ATL.autoMax = r.max | 0;
-    atlToast(cf.auto ? '⚡ Mode auto : ' + gNM() + ' lance tout seul, jusqu’à ' + (ATL.autoMax || 20) + ' 💎' : '🤚 ' + gNM() + ' te redemandera avant chaque lancement');
+    cf.auto = f.auto = !!(r && r.auto); if (r && r.max) cf.auto_max = f.auto_max = r.max | 0;
+    atlToast(cf.auto ? '⚡ Mode auto : oui. ' + gNM() + ' lance tout seul les demandes à ' + atlAutoMax(f) + ' 💎 ou moins' : '⚡ Mode auto : non. ' + gNM() + ' te redemandera avant chaque lancement');
+    ATL.autoAtt = false; atlAutoPeindre();
+    try { if (typeof apres === 'function') apres(cf.auto, atlAutoMax(f)); } catch (e) {}
     try { await atlLoad(true); } catch (e) {}
   } catch (e) { atlToast(/seul le joueur/.test(String((e && e.message) || e)) ? 'Seul le joueur peut allumer le mode auto : ce sont ses crédits.' : 'Pas possible pour l’instant : réessaie dans un moment.'); }
-  finally { for (const x of document.querySelectorAll('.atl-autob')) { x.disabled = false; if (x._peint) x._peint(); } }
+  finally { ATL.autoAtt = false; atlAutoPeindre(); }
 }
-try { if (navigator.webdriver) window.JDW_ESSAI_AUTO = () => { const f = atlFiche(); return f ? { id: f.id, auto: !!f.auto } : null; }; } catch (e) {}   // bancs seulement
+async function atlAutoLimite(f, v, apres) {   // 8 nov. : « jusqu'à X 💎 », la limite du projet
+  const cf = atlAutoFiche(f); if (!cf || !cf.id || atlAutoMax(f) === v || ATL.autoAtt) { atlAutoPeindre(); return; }
+  ATL.autoAtt = true; atlAutoPeindre();
+  try {
+    const r = await rpc('at_auto_limite', { p_name: profile.name, p_fiche: cf.id, p_max: v }, { quiet: true });
+    cf.auto_max = f.auto_max = (r && r.max) | 0 || v;
+    atlToast('⚡ Mode auto : jusqu’à ' + atlAutoMax(f) + ' 💎. ' + (cf.auto ? gNM() + ' lance tout seul les demandes à ce prix ou moins.' : 'Allume-le pour que ' + gNM() + ' lance tout seul les demandes à ce prix ou moins.'));
+    ATL.autoAtt = false; atlAutoPeindre();
+    try { if (typeof apres === 'function') apres(!!cf.auto, atlAutoMax(f)); } catch (e) {}
+    try { await atlLoad(true); } catch (e) {}
+  } catch (e) { atlToast(/seul le joueur/.test(String((e && e.message) || e)) ? 'Seul le joueur peut monter la limite : ce sont ses crédits.' : 'Pas possible pour l’instant : réessaie dans un moment.'); }
+  finally { ATL.autoAtt = false; atlAutoPeindre(); }
+}
+try { if (navigator.webdriver) window.JDW_ESSAI_AUTO = () => { const f = atlFiche(); return f ? { id: f.id, auto: !!f.auto, max: atlAutoMax(f) } : null; }; } catch (e) {}   // bancs seulement
 function atlMicBouton(field, cls) {   // le bouton 🎤 d'un champ (fenêtres) ; la touche rapide écrite dessus sur ordinateur
   const b = atlEl('button', cls || 'atl-armic', '🎤'); b.type = 'button'; b.setAttribute('aria-label', 'Parler au micro'); if (!TOUCH) { b.dataset.k = 'Ctrl+Espace'; b.title = 'Dicter (Ctrl+Espace)'; }
   b._champ = field; ATL_MICS.add(b); b.addEventListener('click', () => atlMicBascule(field, b)); return b;
