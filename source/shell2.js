@@ -18988,6 +18988,11 @@ async function atlEnregistrerReduit(u, largeur, nom) {
   const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(bm, 0, 0, c.width, c.height); try { bm.close(); } catch (e) {}
   const b = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.92)); if (!b) throw new Error('image'); atlBlobSauver(b, atlNomFichier(nom, 'x.jpg', 'image/jpeg')); return b.size;
 }
+async function atlUrlPrivee(path) {   // une adresse signée (10 min) d'un fichier du seau privé, que le serveur laisse lire à ce compte (at_fichier_obj_ok)
+  const tok = await acctToken(profile); if (!tok) throw new Error('compte');
+  const base = CFG.url.replace(/\/+$/, ''), r = await netFetch(base + '/storage/v1/object/sign/atelier-fichiers/' + path, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresIn: 600 }) }, 30000);
+  if (!r.ok) throw new Error('signature ' + r.status); const j = await r.json(); if (!j || typeof j.signedURL !== 'string') throw new Error('signature'); return base + '/storage/v1' + j.signedURL;
+}
 function atlPosterMenu(a, f, nom) {
   return ({ bar, dl, enregistre, dlEtat, V }) => {
     const old = V.querySelector('.atl-vismenu'); if (old) { old.remove(); return; }
@@ -18997,32 +19002,32 @@ function atlPosterMenu(a, f, nom) {
     const reduit = async (url, w, n) => { dl.disabled = true; dlEtat('⏳ …'); try { await atlEnregistrerReduit(url, w, n); dlEtat('✅ Enregistrée', 2500); } catch (e) { dlEtat('⚠️ Réessaie', 3000); } finally { dl.disabled = false; } };
     const ligne = (t, sous, droite, fn, cls) => { const b = atlEl('button', 'atl-visv' + (cls ? ' ' + cls : '')), tx = atlEl('span', 'atl-visvt'); b.type = 'button'; b.setAttribute('role', 'menuitem'); tx.append(atlEl('b', '', t), atlEl('small', '', sous)); b.append(tx, atlEl('span', 'atl-visvp', droite)); b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); fn(b); }); M.appendChild(b); return b; };
     const taille = (w, p) => ligne(w === 1080 ? 'Petite' : 'HD', w + ' px', 'Gratuit', () => { fermer(); const dep = atlIaUrl(p); if (dep) enregistre(dep, nom + ' ' + w); else reduit(img, w, nom + ' ' + w); });
+    // la 4K : le prix, un « oui », une seule fois par poster (at_poster_4k) ; le chemin n'arrive qu'après l'achat, le fichier vient du seau privé par une adresse signée ; pas encore déposé (ou SQL pas appliqué) : « Bientôt »
+    const ligne4k = () => {
+      const l4 = ligne('4K', String(a.taille_4k || '3840 px'), '…', () => {}), droite = l4.querySelector('.atl-visvp'), zone = atlEl('div', 'atl-visoui'); let et = null; zone.hidden = true; M.appendChild(zone); l4.disabled = true;
+      const prendre = achat => rpc('at_poster_4k', { p_name: profile.name, p_fiche: f.id, p_poster: a.image, p_acheter: !!achat }, { quiet: true });
+      const bientot = () => { l4.classList.add('verrou'); droite.textContent = '🔒 Bientôt'; l4.disabled = true; };
+      const dl4 = async p => { fermer(); dl.disabled = true; dlEtat('⏳ …'); let u = ''; try { u = await atlUrlPrivee(p); } catch (e) { dl.disabled = false; dlEtat('⚠️ Réessaie', 3000); return; } dl.disabled = false; enregistre(u, nom + ' 4K'); };
+      prendre(false).then(r => { if (!M.isConnected) return; if (!r || r.dispo === false) { bientot(); return; } et = r; l4.disabled = false; droite.textContent = r.achete ? '🔓 Débloquée' : '🔒 ' + (+r.prix | 0).toLocaleString('fr-FR') + ' 💎'; l4.classList.toggle('verrou', !r.achete); }).catch(bientot);
+      l4.addEventListener('click', e => {
+        e.preventDefault(); e.stopPropagation(); if (!et) return; if (et.achete && et.path) { dl4(et.path); return; }
+        zone.hidden = false; zone.textContent = ''; const prix = (+et.prix | 0).toLocaleString('fr-FR'), manque = (+et.prix | 0) - (+et.solde | 0);
+        if (manque > 0) { zone.appendChild(atlEl('p', '', '🔒 La 4K coûte ' + prix + ' 💎. Il te manque ' + manque.toLocaleString('fr-FR') + ' 💎.')); return; }
+        zone.appendChild(atlEl('p', '', 'Débloquer la 4K de ce poster pour ' + prix + ' 💎 ? Une seule fois : ensuite, elle reste à toi. (Tu as ' + (+et.solde | 0).toLocaleString('fr-FR') + ' 💎.)'));
+        const ou = atlEl('button', 'btn btn-play btn-sm', 'Oui, ' + prix + ' 💎'), non = atlEl('button', 'btn btn-ghost btn-sm', 'Non'), er = atlEl('small', 'atl-viserr', ''); ou.type = non.type = 'button';
+        non.addEventListener('click', ev => { ev.stopPropagation(); zone.hidden = true; });
+        ou.addEventListener('click', async ev => { ev.stopPropagation(); ou.disabled = non.disabled = true; try { const r = await prendre(true); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); dl4(r.path); try { atlLoad(true); } catch (x) {} } catch (x) { ou.disabled = non.disabled = false; er.textContent = /credits insuffisants/.test(String(x && x.message)) ? 'Il te manque des crédits.' : 'Pas possible pour l’instant : réessaie dans un moment.'; } });
+        const row = atlEl('div', 'atl-visouib'); row.append(ou, non); zone.append(row, er);
+      });
+    };
     // 8 nov. (décision de l'admin, données d'Explorateur) : `gratuit` / `payant` : seule la version gratuite se télécharge ; 4K et impression sont payantes, et leur livraison (fichiers privés) n'existe pas encore : « Bientôt », sans rien vendre
     if (typeof a.gratuit === 'string' && Array.isArray(a.payant)) {
       ligne('Gratuite', String(a.taille || a.gratuit + ' px'), 'Gratuit', () => { fermer(); enregistre(img, nom); });
       const NOMS = { '4k': ['4K', a.taille_4k], impression: ['À imprimer', a.taille_impression] };
-      for (const k of a.payant) { const x = NOMS[k]; if (!x) continue; const b = ligne(x[0], String(x[1] || ''), '🔒 Bientôt', () => {}, 'verrou'); b.disabled = true; }
+      for (const k of a.payant) { const x = NOMS[k]; if (!x) continue; if (k === '4k') { ligne4k(); continue; } const b = ligne(x[0], String(x[1] || ''), '🔒 Bientôt', () => {}, 'verrou'); b.disabled = true; }
     } else {
     taille(1080, a.image_1080); if (large >= 2160 || a.image_2160) taille(2160, a.image_2160);
     if (large && large < 2160 && !a.image_2160) ligne('Grande', large + ' px', 'Gratuit', () => { fermer(); enregistre(img, nom); });
-    if (a.a_4k) {
-      const l4 = ligne('4K', String(a.taille_4k || '3840 px'), '…', () => {}, 'k4'), droite = l4.querySelector('.atl-visvp');
-      let et = null; const prendre = async (achat) => rpc('at_poster_4k', { p_name: profile.name, p_fiche: f.id, p_poster: a.image, p_acheter: !!achat }, { quiet: true });
-      const zone = atlEl('div', 'atl-visoui'); zone.hidden = true; M.appendChild(zone);
-      const dl4 = p => { fermer(); enregistre(atlIaUrl(p), nom + ' 4K'); };
-      l4.disabled = true;
-      prendre(false).then(r => { et = r; if (!M.isConnected) return; l4.disabled = false; droite.textContent = r.achete ? '🔓 Débloquée' : '🔒 ' + r.prix + ' 💎'; l4.classList.toggle('verrou', !r.achete); }).catch(() => { droite.textContent = 'Indisponible'; });
-      l4.addEventListener('click', e => {
-        e.preventDefault(); e.stopPropagation(); if (!et) return; if (et.achete && et.image) { dl4(et.image); return; }
-        zone.hidden = false; zone.textContent = ''; const manque = (+et.prix | 0) - (+et.solde | 0);
-        if (manque > 0) { zone.appendChild(atlEl('p', '', '🔒 La 4K coûte ' + et.prix + ' 💎. Il te manque ' + manque + ' 💎.')); return; }
-        zone.appendChild(atlEl('p', '', 'Débloquer la 4K de ce poster pour ' + et.prix + ' 💎 ? Une seule fois : ensuite, elle reste à toi. (Tu as ' + (+et.solde | 0) + ' 💎.)'));
-        const ou = atlEl('button', 'btn btn-play btn-sm', 'Oui, ' + et.prix + ' 💎'), non = atlEl('button', 'btn btn-ghost btn-sm', 'Non'), er = atlEl('small', 'atl-viserr', ''); ou.type = non.type = 'button';
-        non.addEventListener('click', ev => { ev.stopPropagation(); zone.hidden = true; });
-        ou.addEventListener('click', async ev => { ev.stopPropagation(); ou.disabled = non.disabled = true; try { const r = await prendre(true); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); dl4(r.image); try { atlLoad(true); } catch (x) {} } catch (x) { ou.disabled = non.disabled = false; er.textContent = /credits insuffisants/.test(String(x && x.message)) ? 'Il te manque des crédits.' : 'Pas possible pour l’instant : réessaie dans un moment.'; } });
-        const row = atlEl('div', 'atl-visouib'); row.append(ou, non); zone.append(row, er);
-      });
-    }
     }
     V.appendChild(M); const r = dl.getBoundingClientRect(); M.style.top = (r.bottom + 6) + 'px'; M.style.right = Math.max(8, innerWidth - r.right) + 'px';
     setTimeout(() => { if (M.isConnected) document.addEventListener('pointerdown', dehors, true); }, 0);
