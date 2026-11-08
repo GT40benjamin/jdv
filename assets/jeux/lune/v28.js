@@ -7655,7 +7655,7 @@ function mount(root, api) {
   // =================================================================== V16 : LES 20 ARÈNES (vaisseaux à explorer, un champion et un BADGE chacune) et les 10 LIEUX EXTRÊMEMENT DANGEREUX
   // Une arène par type ×2, 4 par région, dans les systèmes importants. On s'amarre, on explore l'intérieur (couloirs, lasers, portes, sbires), puis le champion.
   const TYPES10 = ['seve', 'brasier', 'maree', 'foudre', 'roc', 'tempete', 'givre', 'ombre', 'lueur', 'metal'];
-  const NOMS_ARENE = ['Serre Orbitale', 'Forge Stellaire', 'Abysse Bleue', 'Tour des Orages', 'Bastion de Roche', 'Cyclone d’Argent', 'Palais de Givre', 'Nef Obscure', 'Cathédrale de Lumière', 'Arsenal d’Acier',
+  const NOMS_ARENE = ['Serre Orbitale', 'Fournaise Écarlate', 'Abysse Bleue', 'Tour des Orages', 'Bastion de Roche', 'Cyclone d’Argent', 'Palais de Givre', 'Nef Obscure', 'Cathédrale de Lumière', 'Arsenal d’Acier',
     'Jardin Suspendu', 'Cœur de Magma', 'Récif Céleste', 'Dynamo Géante', 'Mont Cristal', 'Œil de la Tempête', 'Aurore Polaire', 'Éclipse Éternelle', 'Prisme Royal', 'Citadelle des Anciens'];
   const CHAMPIONS = ['Sylvia', 'Pyros', 'Marin', 'Volta', 'Gravier', 'Zéphyr', 'Neige', 'Nocturne', 'Aurore', 'Boulon', 'Flora', 'Magma', 'Corail', 'Tesla', 'Quartz', 'Borée', 'Polaris', 'Ombrine', 'Lumen', 'Titan'];
   const FORMES_BADGE = ['etoile', 'hexa', 'bouclier', 'goutte', 'losange'];
@@ -7763,10 +7763,11 @@ function mount(root, api) {
     dire('🏟️ ' + A.nom + ' : arène ' + TYPES[A.type].nom + ' du champion ' + A.champion, 4);
   }
   function sortirArene() { if (!AR) return; CR = AR.ancienCR || []; J = AR.ancienJ; robot = AR.ancienRobot; camX = AR.camX; camY = AR.camY; zf = AR.zf; state = AR.ancienEtat === 'jeu' ? 'jeu' : 'espace'; stT = 0; AR = null; sauver(); }
-  const PNJ_ARENE = () => [
-    { x: SALLE_W * 1 + 600, y: SALLE_H / 2, i: 0, nom: 'Apprenti ' + ['Léo', 'Mia', 'Tom', 'Zoé'][AR.A.n % 4] },
-    { x: SALLE_W * 2 + 760, y: SALLE_H / 2 - 80, i: 1, nom: 'Garde ' + ['Kim', 'Sam', 'Noé', 'Lou'][AR.A.n % 4] },
-    { x: SALLE_W * 3 + 640, y: SALLE_H / 2, i: 2, nom: 'Champion ' + AR.A.champion, champion: true }];
+  const nomsDresseurs = A => ['Apprenti ' + ['Léo', 'Mia', 'Tom', 'Zoé'][A.n % 4], 'Garde ' + ['Kim', 'Sam', 'Noé', 'Lou'][A.n % 4], 'Champion ' + A.champion];   /* V28 : aussi pour les fiches « Arènes & badges » de l'atelier */
+  const PNJ_ARENE = () => { const N = nomsDresseurs(AR.A); return [
+    { x: SALLE_W * 1 + 600, y: SALLE_H / 2, i: 0, nom: N[0] },
+    { x: SALLE_W * 2 + 760, y: SALLE_H / 2 - 80, i: 1, nom: N[1] },
+    { x: SALLE_W * 3 + 640, y: SALLE_H / 2, i: 2, nom: N[2], champion: true }]; };
   function solideArene(x, y) {
     if (y < 70 || y > SALLE_H - 50 || x < 60 || x > SALLE_W * 4 - 60) return true;
     for (let s = 1; s < 4; s++) { const wx = SALLE_W * s; if (Math.abs(x - wx) < 34) { const ouvert = Math.abs(y - SALLE_H / 2) < PORTE / 2 && (s < 3 || (AR.sbires[0] && AR.sbires[1])); if (!ouvert) return true; } }
@@ -7787,13 +7788,19 @@ function mount(root, api) {
       AR.bulle = { P, t: 0, txt: P.champion ? (AR.fini ? 'Tu reviens me défier ? Très bien, montre-moi ta force !' : 'Bienvenue dans l’' + AR.A.nom + ' ! Bats-moi et le badge est à toi !') : ['Tu ne passeras pas si facilement !', 'Je garde cette salle, en garde !'][P.i] }; son('cri', 0.5); break; }
     if (AR.bulle) { AR.bulle.t += dt; if (AR.bulle.t > 1.8) { const P = AR.bulle.P; AR.bulle = null; combatArene(P); } }
   }
-  function combatArene(P) {
-    const A = AR.A, n = P.champion ? 3 : 2, niv = P.champion ? A.niv : Math.max(2, A.niv - 6 + P.i * 2), L = [];   /* V28 : jamais en dessous du niveau 2 (arène de la région 1) */
-    let pool = AF_LISTE.filter(id => dessinee(id) && !AF[id].legende && AF[id].rar < 5 && AF[id].t.includes(A.type)); if (!pool.length) pool = AF_LISTE.filter(id => dessinee(id) && !AF[id].legende);
-    const r = MONDE.rng(MONDE.hash(A.n, P.i, 404));
-    for (let i = 0; i < n; i++) { let id = pool[Math.floor(r() * pool.length)]; const nv = niv + (P.champion && i === n - 1 ? 3 : 0);
+  // l'équipe d'un dresseur de l'arène (i : 0 apprenti, 1 garde, 2 champion) : toujours la même pour une arène donnée
+  function equipeArene(A, i) {
+    const champ = i === 2, n = champ ? 3 : 2, niv = champ ? A.niv : Math.max(2, A.niv - 6 + i * 2), L = [];   /* V28 : jamais en dessous du niveau 2 (arène de la région 1) */
+    let pool = AF_LISTE.filter(id => dessinee(id) && !AF[id].legende && !AF[id].espace && AF[id].rar < 5 && AF[id].t.includes(A.type)); if (!pool.length) pool = AF_LISTE.filter(id => dessinee(id) && !AF[id].legende && !AF[id].espace);   /* V28 : les Astrofaunes de l'espace restent dans l'espace */
+    const r = MONDE.rng(MONDE.hash(A.n, i, 404));
+    for (let k0 = 0; k0 < n; k0++) { let id = pool[Math.floor(r() * pool.length)]; const nv = niv + (champ && k0 === n - 1 ? 3 : 0);
       for (let k = 0; k < 2; k++) { const a = AF[id]; if (a.vers && a.evo && a.evo.n && nv >= a.evo.n) id = a.vers; }
-      const c = beteArene(7600 + i, id, 0, 0); c.bete = { e: id, n: nv, att: attaquesAuNiveau(id, nv) }; L.push(c); }
+      for (let k = 0; k < 2; k++) { const av = AF_LISTE.find(x => AF[x].vers === id), e = av && AF[av].evo; if (e && nv < (e.n || (AF[av].st === 0 ? 16 : 30))) id = av; }   /* évolution par objet : pas avant le niveau 16 (stade 2) ou 30 (stade 3) */   /* V28 : trop jeune pour ce stade → sa forme d'avant (plus de stade 3 au niveau 2 en région 1) */
+      L.push({ id, n: nv }); }
+    return L;
+  }
+  function combatArene(P) {
+    const A = AR.A, L = equipeArene(A, P.i).map(({ id, n: nv }, i) => { const c = beteArene(7600 + i, id, 0, 0); c.bete = { e: id, n: nv, att: attaquesAuNiveau(id, nv) }; return c; });
     lancerCombat(null, { arene: true, rival: P.champion ? null : P.nom, champion: P.champion ? A.champion : null, cachees: L, niv: L.map(c => c.bete.n), mx: P.x - 120, my: P.y,
       surVictoire: () => { if (P.champion) gagnerBadge(); else AR.sbires[P.i] = true; } });
   }
@@ -11632,6 +11639,21 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     ctx.restore();
     tapBtns.push({ x: px, y: y0, w: pw, h: h0, f: () => { selBadge20 = 0; } });
   }
+  // V28 (demande de l'admin, 8 nov. 9 h 58) : la FICHE complète d'une région pour l'onglet « 🏟️ Arènes & badges » de l'atelier,
+  // tirée des mêmes données que le jeu (ARENE_REG, equipeArene, nomsDresseurs, MATIERE20) : rien n'est recopié à la main
+  function ficheRegion20(n) {
+    const A = ARENE_REG[n], R = REG20[n - 1], ty = t => (TYPES[t] || {}).nom || t;
+    if (!A) return { n, region: R.nom, couleur: R.c };
+    const S = GAL.sys[A.sys], P = A.sol && A.k != null ? MONDE.planete(A.sys, A.k) : null, N = nomsDresseurs(A);
+    const equipe = i => equipeArene(A, i).map(b => ({ id: b.id, nom: AF[b.id].nom, num: AF[b.id].num, niv: b.n }));
+    return { n, region: R.nom, couleur: R.c, typeRegion: ty(TYPES_REG20[n - 1]), arene: A.nom, typeArene: ty(A.type), icoType: (TYPES[A.type] || {}).ico || '',
+      lieu: P ? 'sur ' + NOM_BIOME(P.bid).replace(/^Planète/, 'la planète') + ' du système ' + S.nom : 'station-arène du système ' + S.nom, systeme: S.nom,
+      champion: A.champion, nivChampion: A.niv, equipeChampion: equipe(2),
+      sbires: [0, 1].map(i => ({ nom: N[i], equipe: equipe(i) })),
+      badge: 'Badge ' + R.nom, matiere: MATIERE20(n), imgBadge: 'p-badge' + n + '-0',
+      exige: n === 1 ? 'rien, c’est la région de départ' : 'le badge de la région ' + (n - 1) + ' (' + REG20[n - 2].nom + ')',
+      ouvre: n < 20 ? 'la région ' + (n + 1) + ' (' + REG20[n].nom + ')' : 'l’Hyper-Centre de la galaxie' };
+  }
   // la liste des arènes de la page « Aventure » : dans l'ordre des régions (Astréa d'abord), et la région écrite sous chaque arène
   ARENES.sort((a, b) => (a.reg20 || 99) - (b.reg20 || 99));
   // ---------------------------------------------------------------- V28 (offert, ticket 62d83379 de PATOU, « le champignon, le chapeau on ne le voit pas ») :
@@ -11888,7 +11910,8 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     resume() { setPaused(false); },
     _test: {
       /* V28 : la planche de la série (commande 88394ef1) : chaque bête dessinée comme dans le Cosmodex, sur une autre toile */
-      chargerToutes: () => Promise.all([...FAM_DESSINEES].map(f => chargerFamille(f))),
+      chargerToutes: () => Promise.all([...FAM_DESSINEES, 'badges'].map(f => chargerFamille(f))),
+      fiches20: () => Array.from({ length: 20 }, (_, i) => ficheRegion20(i + 1)),
       miniSur: (g, id, x, y, s) => { const vrai = ctx; ctx = g; try { miniBete(id, x, y, s, true, true); } finally { ctx = vrai; } },
       v28: () => ({ FAUNE_E: () => FAUNE_E, tirs: () => VS.tirs, entrerEva, ARENE_REG, region20, regionOuverte, verrouRegion, sautBloque, prochaineRegionSansBadge, REG20, objectif, chapitre, CHAPITRES, GAL, entrerArene, gagnerBadge: () => gagnerBadge(), AR: () => AR }),
       state: () => state, J: () => J, PL: () => PL, look: () => look, cine: () => cine,
