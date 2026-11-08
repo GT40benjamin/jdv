@@ -5346,7 +5346,9 @@ function mount(root, api) {
     let d = Math.round(((c.th % TAU) + TAU) % TAU / (Math.PI / 4)) % 8;
     // sans dessin de face (ou de dos), la bête garde son dernier profil
     let vue = d === 0 ? 'face' : d === 4 ? 'dos' : 'profil', droite = d >= 1 && d <= 3;
-    if (vue !== 'profil' && !piece(p, vue === 'face' ? 1 : 2)) { vue = 'profil'; droite = c.cote !== false; } else if (vue === 'profil') c.cote = droite;
+    // V27 (ticket d2eed81e, « Plumevent est cassé » : son bec se cachait) : une bête « profilSeul » (le colibri et son long bec) garde toujours son dessin de profil ;
+    // de face, le bec devenait un petit triangle (il rentrait dans la tête) et, de dos, il disparaissait derrière
+    if (vue !== 'profil' && (R.profilSeul || !piece(p, vue === 'face' ? 1 : 2))) { vue = 'profil'; droite = c.cote !== false; } else if (vue === 'profil') c.cote = droite;
     ctx.save(); ctx.globalAlpha = a; if (filtre) ctx.filter = filtre;
     { const hb = hauteurBond(c, hJeu); if (hb) ctx.translate(0, -hb); }
     // pose d'attaque dessinée : elle s'affiche pendant l'élan (le joueur voit venir le coup) ; tremblement pour l'annoncer
@@ -6531,7 +6533,7 @@ function mount(root, api) {
   // réglages de pantin par bête : vues de face seulement (raie vue de dessus, crabe-forteresse qui marche de côté)
   // V17 : les profils dessinés tournés vers la GAUCHE (vérifiés un par un sur la planche de tous les profils) : le jeu les retourne
   const PROFIL_GAUCHE = new Set(['luciver1', 'anguille1', 'bave1']);
-  const PANT_OPT = { lamantin3: { sansPattes: true }, cube1: { sansPattes: true }, cube2: { sansPattes: true }, cube3: { sansPattes: true }, poulpe1: { sansPattes: true }, poulpe2: { sansPattes: true }, poulpe3: { sansPattes: true }, glop1: { sansPattes: true }, glop2: { sansPattes: true }, glop3: { sansPattes: true }, bave1: { sansPattes: true }, bave2: { sansPattes: true }, chronorbe: { sansPattes: true }, nebulea: { sansPattes: true }, leviaflot: { sansPattes: true } };   // V16 : tous les stades ont maintenant un vrai profil, une face et un dos (plus de « face seule »)
+  const PANT_OPT = { colibri1: { profilSeul: true }, colibri2: { profilSeul: true }, colibri3: { profilSeul: true }, lamantin3: { sansPattes: true }, cube1: { sansPattes: true }, cube2: { sansPattes: true }, cube3: { sansPattes: true }, poulpe1: { sansPattes: true }, poulpe2: { sansPattes: true }, poulpe3: { sansPattes: true }, glop1: { sansPattes: true }, glop2: { sansPattes: true }, glop3: { sansPattes: true }, bave1: { sansPattes: true }, bave2: { sansPattes: true }, chronorbe: { sansPattes: true }, nebulea: { sansPattes: true }, leviaflot: { sansPattes: true } };   // V16 : tous les stades ont maintenant un vrai profil, une face et un dos (plus de « face seule »)
   // pendant un combat, les décors de l'arène (rochers, cristaux, arbres) s'effacent : on voit les combattants en entier
   const dansArene = (x, y) => !!CB && Math.abs(x - CB.mx) < 420 && y > CB.my - 190 && y < CB.my + 170;
   // les nouvelles bêtes ont aussi leur fiche d'espèce (taille, rôle) et leur pantin automatique ; leurs images arrivent par famille (v16/a-<famille>.bin)
