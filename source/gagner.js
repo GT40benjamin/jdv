@@ -87,7 +87,6 @@ async function gcOuvrir() {
   V.addEventListener('click', e => { if (e.target === V) gcFermer(); });
   V._esc = e => { if (e.key === 'Escape' && !GC.video) gcFermerHaut(); }; document.addEventListener('keydown', V._esc);
   GC.corps = C; GC.solde = so; X.focus({ preventScroll: true });
-  C.appendChild(gcEl('p', 'gc-charge', 'Chargement…'));
   gcRecharger();
   GC.majMenu = setInterval(gcMajMenu, 30000);   // reste à jour tout seul tant que le menu est ouvert
 }
@@ -106,18 +105,49 @@ function gcFermerHaut() {
   if (document.getElementById('jdw-gc')) return gcFermer();
   return false;
 }
+// l'ouverture : les 5 tuiles tout de suite (grisées, avec les derniers gains connus), le reste derrière ; si le serveur traîne ou ne répond pas, on le dit
+const GC_ST0 = { c: 3, l: 5, p: 100, j: 20, k: 10 };
+const gcCleApercu = () => 'jdw.gc.apercu.' + gcNom();
+function gcZone(C, txt, bouton) {
+  let z = C.querySelector(':scope > .gc-charge-z'); if (!z) { z = gcEl('div', 'gc-charge-z'); C.appendChild(z); }
+  z.textContent = ''; z.appendChild(gcEl('p', 'gc-charge', txt));
+  if (bouton) z.appendChild(gcBt('gc-bt gc-bt2', 'Réessayer', gcRecharger));
+}
+function gcApercu(C) {
+  const m = Object.assign({}, GC_ST0, store.get(gcCleApercu(), null) || {});
+  C.textContent = ''; GC.vue = null;
+  if (GC.solde && m.solde != null) { GC.solde.hidden = false; GC.solde.textContent = gcNb(m.solde) + ' 💎'; }
+  const c = gcTuiles({ pub: { courte: { credits: m.c }, longue: { credits: m.l }, dispo: true, test: true, faites: 0, max: 10 }, parrain: { gain: m.p, recompenses: 0, max: 10 }, records: { gain_jeu: m.j, gain_course: m.k } });
+  c.classList.add('gc-apercu');
+  for (const b of c.querySelectorAll('.gc-tuile')) { b.disabled = true; const n = b.querySelector('.gc-t-non'); if (n) n.remove(); b.classList.remove('off'); }
+  C.append(c, gcEl('p', 'gc-a-quoi', GC_A_QUOI));
+  gcZone(C, 'Chargement…');
+}
+function gcAdminPose(C) {
+  if (GC.admT) GC.admT.remove(); if (GC.admB) GC.admB.remove(); GC.admT = GC.admB = null;
+  if (!GC.adm) return;
+  const b = gcSectionAdmin(), t = gcBt('gc-admin-t', '🛡️ Admin', () => { GC.adminOuvert = !GC.adminOuvert; b.hidden = !GC.adminOuvert; });
+  b.hidden = !GC.adminOuvert; C.append(t, b); GC.admT = t; GC.admB = b;
+}
 async function gcRecharger() {
   const C = GC.corps; if (!C || !document.getElementById('jdw-gc')) return;
   if (gcPasCompte()) { gcRenduInvite(C); return; }
+  const n = GC.chargeN = (GC.chargeN || 0) + 1, vivant = () => n === GC.chargeN && C.isConnected;
+  if (!(GC.cartes && GC.cartes.isConnected)) gcApercu(C);
+  gcCarte();   // derrière : les tuiles Record et Course se mettent à jour quand elle arrive
+  const t = setTimeout(() => { if (vivant()) gcZone(C, 'Le serveur met du temps à répondre.', true); }, 8000);
   try {
-    const [st, carte] = await Promise.all([rpc('gc_etat', { p_name: gcNom() }, { quiet: true }), gcCarte()]);
-    GC.st = st; GC.carte = carte || GC.carte;
+    const st = await rpc('gc_etat', { p_name: gcNom() }, { quiet: true });
+    clearTimeout(t); if (!vivant()) return;
+    GC.st = st;
     if (!st || !st.actif) { C.textContent = ''; C.appendChild(gcEl('p', 'gc-vide', 'Cette section est fermée pour le moment.')); return; }
-    if (st.admin) { try { GC.adm = await rpc('gc_admin_etat', { p_name: gcNom() }, { quiet: true }); } catch (e) { GC.adm = null; } } else GC.adm = null;
+    store.set(gcCleApercu(), { solde: st.solde, c: st.pub.courte.credits, l: st.pub.longue.credits, p: st.parrain.gain, j: st.records.gain_jeu, k: st.records.gain_course });
+    if (!st.admin) GC.adm = null;
     gcRendu(C);
+    if (st.admin) rpc('gc_admin_etat', { p_name: gcNom() }, { quiet: true }).then(a => { if (vivant() && !GC.vue) { GC.adm = a; gcAdminPose(C); } }, () => {});   // derrière : les tuiles n'attendent pas
   } catch (e) {
-    C.textContent = ''; C.appendChild(gcEl('p', 'gc-vide', netOff() ? '📡 Il faut du réseau pour gagner des crédits.' : 'Le serveur ne répond pas pour le moment.'));
-    C.appendChild(gcBt('gc-bt gc-bt2', 'Réessayer', gcRecharger));
+    clearTimeout(t); if (!vivant()) return;
+    gcZone(C, netOff() ? '📡 Il faut du réseau pour gagner des crédits.' : 'Le serveur ne répond pas pour le moment.', true);
   }
 }
 function gcRenduInvite(C) {
@@ -133,11 +163,13 @@ function gcRendu(C) {
   if (GC.essai) GC.essai.hidden = !(st.admin && (gcTest() || st.pub.test));   // un seul petit badge, jamais pour un joueur
   GC.etat = gcEl('p', 'gc-etat'); GC.etat.setAttribute('role', 'status'); GC.etat.hidden = true; C.appendChild(GC.etat);
   GC.cartes = gcTuiles(st); C.appendChild(GC.cartes);
-  C.appendChild(gcEl('p', 'gc-a-quoi', 'Tes crédits servent à créer tes propres jeux et images dans l’Atelier. Avec 300 💎, tu peux créer un jeu comme Pigeon Bombardier.'));
-  if (GC.adm) {
-    const t = gcBt('gc-admin-t', '🛡️ Admin', () => { GC.adminOuvert = !GC.adminOuvert; b.hidden = !GC.adminOuvert; }), b = gcSectionAdmin();
-    b.hidden = !GC.adminOuvert; C.append(t, b);
-  }
+  C.appendChild(gcEl('p', 'gc-a-quoi', GC_A_QUOI));
+  gcAdminPose(C);
+}
+const GC_A_QUOI = 'Tes crédits servent à créer tes propres jeux et images dans l’Atelier. Avec 300 💎, tu peux créer un jeu comme Pigeon Bombardier.';
+function gcTuilesMaj() {
+  if (!GC.st || !GC.st.actif || GC.vue || !GC.cartes || !GC.cartes.isConnected || GC.bulle || GC.cartes.contains(document.activeElement)) return;
+  const c = gcTuiles(GC.st); GC.cartes.replaceWith(c); GC.cartes = c;
 }
 const gcTest = () => !!(GC.st && GC.st.actif && GC.st.ouvert === false);
 const gcDeja = (k, r) => !!(r && r.deja) || GC.sim.has(k);   // gagné aujourd'hui : vrai, ou simulé en mode test
@@ -161,7 +193,7 @@ function gcTuile(o) {
 function gcTuiles(st) {
   const g = gcEl('div', 'gc-tuiles'), P = st.pub, Pa = st.parrain, R = st.records, ca = GC.carte || {};
   const ouvertes = P.dispo && !(gcAppli() && !P.test), pubNon = !ouvertes ? 'Bientôt' : P.faites >= P.max ? 'Reviens demain' : '';
-  const rec = (l, cle) => { const k = Object.entries(l || {}); return !k.length ? 'Bientôt' : k.every(([i, r]) => gcDeja(cle(i), r)) ? 'Reviens demain' : ''; };
+  const rec = (l, cle) => { if (!GC.carte) return '…'; const k = Object.entries(l || {}); return !k.length ? 'Bientôt' : k.every(([i, r]) => gcDeja(cle(i), r)) ? 'Reviens demain' : ''; };
   g.append(gcTuile({ ic: '🎬', gain: P.courte.credits, nom: 'Pub courte', non: pubNon, action: () => gcRegarder('courte') }),
     gcTuile({ ic: '🎬', gain: P.longue.credits, nom: 'Pub longue', non: pubNon, action: () => gcRegarder('longue') }),
     gcTuile({ ic: '🤝', gain: Pa.gain, nom: 'Inviter un ami', large: true, non: Pa.recompenses >= Pa.max ? Pa.max + ' amis déjà invités' : '', action: () => gcPartager(Pa) }),
@@ -462,7 +494,7 @@ async function gcCarte1() {
     const c = await rpc('gc_records_carte', { p_name: gcPasCompte() ? '' : gcNom() }, { quiet: true, quiet404: true });
     if (!c || typeof c !== 'object') throw new Error('carte vide');
     GC.carte = c.actif ? c : null; GC.carteVue = true; GC.carteRate = 0;
-    gcBouton(); gcSigles(); gcJauge(); gcMonCode(); return c;
+    gcBouton(); gcSigles(); gcJauge(); gcMonCode(); gcTuilesMaj(); return c;
   } catch (e) { gcCarteRelance(); return null; }   // un appel raté n'efface ni le bouton ni les 💎 déjà là
 }
 // le serveur n'a pas répondu : on réessaie tout seul, de plus en plus lentement (3 s, 6 s, 12 s… une fois par minute au plus)
