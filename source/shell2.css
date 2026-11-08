@@ -6200,7 +6200,12 @@ body:has(#jdw-liveinv:not([hidden])) .fs-tip{display:none!important}
 .atl-autosw.att .atl-autosw-b{cursor:progress;opacity:.75}
 .atl-autosw-b:focus-visible{outline:2px solid #7b55d6;outline-offset:2px}
 @media (hover:hover){.atl-autosw:not(.gris):not(.att) .atl-autosw-b:hover{border-color:#b9a8d6}.atl-autosw.on:not(.att) .atl-autosw-b:hover{border-color:#e0a000}}
-@media (max-width:600px){.atl-autosw-s{font-size:12px;-webkit-line-clamp:3}}
+.atl-autosw-m{flex:none;display:inline-flex;align-items:center;gap:6px;color:#5d5670;font:800 13px/1 var(--body);white-space:nowrap}
+.atl-autosw-sel{min-height:36px;margin:0;padding:0 30px 0 12px;box-sizing:border-box;border-radius:999px;border:1px solid #d6cfe2;color:#3d2a66;font:800 14px/1 var(--body);cursor:pointer;appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%237b55d6' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 11px center;box-shadow:0 1px 0 rgba(60,30,100,.1)}
+.atl-autosw.on .atl-autosw-sel{border-color:#f0b400;color:#5a3500;box-shadow:0 0 0 3px rgba(255,200,60,.25)}
+.atl-autosw.att .atl-autosw-sel{cursor:progress;opacity:.75}
+.atl-autosw-sel:focus-visible{outline:2px solid #7b55d6;outline-offset:2px}
+@media (max-width:600px){.atl-autosw{flex-wrap:wrap;row-gap:6px}.atl-autosw-s{flex-basis:100%;font-size:12px;-webkit-line-clamp:3}}
 @media (prefers-reduced-motion:reduce){.atl-autosw-b,.atl-autosw-k,.atl-autosw-k i{transition:none}}
 /* 7 nov. 2026 : 📎 pièces jointes — le trombone à gauche dans le champ, les fichiers en attente au-dessus, les cartes dans les bulles, le dépôt */
 .atl-chat .atl-artw .atl-pjb{position:absolute;left:5px;bottom:5px;width:36px;height:36px;min-height:0;padding:0;border-radius:50%;border:1px solid #d9cdea;background:#fff;font-size:17px;line-height:1;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 0 rgba(60,30,100,.12)}
