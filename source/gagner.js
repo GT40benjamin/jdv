@@ -80,7 +80,7 @@ async function gcOuvrir() {
   const V = gcEl('div', 'gc-voile'); V.id = 'jdw-gc'; V.setAttribute('role', 'dialog'); V.setAttribute('aria-modal', 'true'); V.setAttribute('aria-label', 'Gagner des crédits');
   const B = gcEl('div', 'gc-boite'), H = gcEl('div', 'gc-tete'), Ti = gcEl('div', 'gc-titre');
   Ti.append(gcEl('h2', '', '💎 Gagner des crédits'));
-  const so = gcEl('b', 'gc-solde'); so.hidden = true; Ti.append(so);
+  const so = gcBt('gc-solde', '', gcAchat); so.hidden = true; so.title = 'Acheter des crédits'; so.setAttribute('aria-label', 'Mes crédits : acheter des crédits'); Ti.append(so);
   const es = gcEl('span', 'gc-essai', '🧪 Essai'); es.hidden = true; es.title = 'Visible seulement par les admins : aucun crédit réel'; Ti.append(es); GC.essai = es;
   const X = gcBt('gc-x', '✕', gcFermer); X.setAttribute('aria-label', 'Fermer');
   H.append(Ti, X); const C = gcEl('div', 'gc-corps'); C.tabIndex = -1; B.append(H, C); V.append(B); document.body.appendChild(V);
@@ -99,6 +99,7 @@ function gcFermer() {
 function gcFermerHaut() {
   const G = document.querySelector('.gc-grand'); if (G) { G._fin(); return true; }
   if (GC.video) { GC.video(); return true; }
+  if (GC.achat) { const m = document.querySelector('.atl-ofmod'); if (m) { if (m._fermer) m._fermer(); else m.remove(); } else GC.achat(); return true; }
   if (GC.bulle) { gcBulleFerme(); return true; }
   if (GC.vue && GC.corps) { gcRendu(GC.corps); return true; }
   if (document.getElementById('jdw-gc')) return gcFermer();
@@ -131,6 +132,7 @@ function gcRendu(C) {
   if (GC.essai) GC.essai.hidden = !(st.admin && (gcTest() || st.pub.test));   // un seul petit badge, jamais pour un joueur
   GC.etat = gcEl('p', 'gc-etat'); GC.etat.setAttribute('role', 'status'); GC.etat.hidden = true; C.appendChild(GC.etat);
   GC.cartes = gcTuiles(st); C.appendChild(GC.cartes);
+  C.appendChild(gcEl('p', 'gc-a-quoi', 'Tes crédits servent à créer tes propres jeux et images dans l’Atelier. Avec 300 💎, tu peux créer un jeu comme Pigeon Bombardier.'));
   if (GC.adm) {
     const t = gcBt('gc-admin-t', '🛡️ Admin', () => { GC.adminOuvert = !GC.adminOuvert; b.hidden = !GC.adminOuvert; }), b = gcSectionAdmin();
     b.hidden = !GC.adminOuvert; C.append(t, b);
@@ -150,7 +152,7 @@ async function gcMajMenu() {
 }
 // les tuiles : en gros le gain, le nom de l'action ; grisée, elle dit pourquoi en quelques mots
 function gcTuile(o) {
-  const b = gcBt('gc-tuile' + (o.non ? ' off' : '') + (o.large ? ' large' : ''), '', o.action); b.disabled = !!o.non;
+  const b = gcBt('gc-tuile' + (o.non ? ' off' : '') + (o.large ? ' large' : ''), '', e => { GC.tuile = e.currentTarget.getBoundingClientRect(); o.action(); }); b.disabled = !!o.non;
   b.append(gcEl('span', 'gc-t-ic', o.ic), gcEl('span', 'gc-t-gain', '+' + o.gain + ' 💎'), gcEl('span', 'gc-t-nom', o.nom));
   if (o.non) b.appendChild(gcEl('span', 'gc-t-non', o.non));
   return b;
@@ -202,6 +204,26 @@ function gcCourses(ul, d) {
     const droite = fait ? '✓ aujourd’hui' : moi ? '🏆 Ton record' : r ? '+' + ca.gain_course + ' 💎' : w ? w.length + ' / ' + mini + ' joueurs' : '';
     gcLigneRecord(ul, { titre, sous, droite, cl: fait || moi ? 'gc-rec-d' : r ? 'gc-gain' : 'gc-rec-n', g: gcJeu('chrono') });
   }
+}
+// la pastille du solde ouvre la fenêtre d'achat de la borne (la même que dans l'Atelier, donc le même paiement partout) ; en la fermant, on revient au menu
+async function gcAchat() {
+  if (GC.achat || GC.busy) return;
+  const V = document.getElementById('jdw-gc'); if (!V) return;
+  try {
+    atlBuild();
+    if (!ATL.data || !ATL.data.credits) { const r = await rpc('at_lire', { p_name: gcNom() }, { quiet: true }); if (r && !ATL.data) ATL.data = r; else if (r && ATL.data && !ATL.data.credits) ATL.data.credits = r.credits; }
+  } catch (e) { gcDire('Le serveur ne répond pas.', 'non'); return; }
+  const R = ATL.root, M = R.querySelector('.atl-mod'), etaitCache = R.hidden; if (!M) return;
+  const fin = () => {
+    if (!GC.achat) return; GC.achat = null; ob.disconnect();
+    M.hidden = true; M.textContent = ''; R.classList.remove('gc-que-achat'); if (etaitCache) R.hidden = true;
+    V.hidden = false; if (GC.solde) GC.solde.focus({ preventScroll: true }); gcRecharger();
+  };
+  const ob = new MutationObserver(() => { if (M.hidden) fin(); });
+  GC.achat = fin; V.hidden = true; R.classList.add('gc-que-achat'); R.hidden = false;
+  await atlRecharger();
+  ob.observe(M, { attributes: true, attributeFilter: ['hidden'] });
+  if (M.hidden) fin();
 }
 function gcDire(t, kind) { const e = GC.etat; if (!e) return; e.hidden = !t; e.textContent = t || ''; e.className = 'gc-etat' + (kind ? ' ' + kind : ''); if (t) e.scrollIntoView({ block: 'nearest' }); }
 
@@ -262,6 +284,7 @@ async function gcRegarder(sorte) {
     if (f && f.ok) {
       if (f.test) gcDire('🧪 Test réussi : +' + f.simule + ' 💎 simulés, aucun crédit versé.', 'ok');
       else gcDire('Bravo ! +' + f.credits + ' 💎 ajoutés à ton compte.', 'ok');
+      if (GC.solde && GC.solde.isConnected && GC.tuile) { const g = f.test ? f.simule : f.credits, fin = f.test ? (+GC.st.solde || 0) + g : +f.solde; await gcVol(GC.tuile, GC.solde, g, fin - g, fin, x => gcNb(x) + ' 💎'); await new Promise(r => setTimeout(r, 350)); }
       gcMajSolde(f.solde);
     } else gcDire(f && f.why === 'trop_tot' ? 'Cette pub était trop courte : pas de gain.' : 'Le gain n’a pas pu être validé.', 'non');
   } catch (e) {
@@ -328,10 +351,11 @@ function gcSectionAdmin() {
     s.appendChild(gcEl('p', 'gc-p gc-petit', 'Montre le grand message et fait bouger les jauges sur cet appareil. Rien n’est enregistré.'));
     const bs = gcEl('div', 'gc-code-b gc-sim'), ca = GC.carte || {};
     const prem = o => Object.keys(o || {})[0];
-    const go = g => { GC.file.push(Object.assign({ test: true, score: 12345, ancien: 12000, ancien_nom: 'SAMBA' }, g)); gcFermer(); gcGrandSuivant(); };
+    const go = g => { const de = (GC.st && +GC.st.solde) || 0; GC.file.push(Object.assign({ test: true, score: 12345, ancien: 12000, ancien_nom: 'SAMBA', de, vers: de + (+g.credits || 0) }, g)); gcFermer(); gcGrandSuivant(); };
     bs.append(gcBt('gc-bt gc-bt2', 'Record d’un jeu', () => { const k = Object.keys(ca.jeux || {}).find(i => !GC.sim.has(i)) || prem(ca.jeux); if (k) GC.sim.add(k); go({ sorte: 'jeu', jeu: k || 'neon', credits: (ca.gain_jeu || 20), etat: 'paye' }); }),
       gcBt('gc-bt gc-bt2', 'Record d’une course', () => { const k = Object.keys(ca.courses || {}).find(i => !GC.sim.has('c:' + i)) || prem(ca.courses) || 'stade'; GC.sim.add('c:' + k); go({ sorte: 'course', jeu: 'chrono', niveau: k, credits: (ca.gain_course || 10), etat: 'paye', score: 22000, ancien: 23000 }); }),
-      gcBt('gc-bt gc-bt2', 'En attente de vérification', () => go({ sorte: 'jeu', jeu: prem(ca.jeux) || 'neon', credits: (ca.gain_jeu || 20), etat: 'attente' })));
+      gcBt('gc-bt gc-bt2', 'En attente de vérification', () => go({ sorte: 'jeu', jeu: prem(ca.jeux) || 'neon', credits: (ca.gain_jeu || 20), etat: 'attente' })),
+      gcBt('gc-bt gc-bt2', 'Sans gain', () => go({ sorte: 'jeu', jeu: prem(ca.jeux) || 'neon', credits: (ca.gain_jeu || 20), etat: 'refuse', raison: 'soi_meme', ancien_nom: gcNom() })));
     s.appendChild(bs);
   }
   return s;
@@ -344,21 +368,64 @@ async function gcAdminRecord(id, ok) {
 // ---------- le grand message ----------
 async function gcApresScore() {
   if (gcPasCompte() || !ONLINE || netOff() || !GC.carte || GC.carte.test) return;
-  try { const L = await rpc('gc_mes_gains', { p_name: gcNom() }, { quiet: true, quiet404: true }); if (Array.isArray(L) && L.length) { GC.file.push(...L); gcGrandSuivant(); gcCarte(); } } catch (e) {}
+  try {
+    const L = await rpc('gc_mes_gains', { p_name: gcNom() }, { quiet: true, quiet404: true });
+    if (Array.isArray(L) && L.length) {
+      // le compteur de chaque écran : on part du solde d'avant les gains annoncés ici
+      let v = (+L[0].solde || 0) - L.reduce((t, g) => t + (g.etat === 'paye' ? (+g.credits || 0) : 0), 0);
+      for (const g of L) if (g.etat === 'paye') { g.de = v; v += +g.credits || 0; g.vers = v; }
+      GC.file.push(...L); gcGrandSuivant(); gcCarte();
+    }
+  } catch (e) {}
+}
+// pourquoi un record mondial ne rapporte rien, en quelques mots
+function gcPourquoi(g) {
+  const ici = g.sorte === 'course' ? 'cette course' : 'ce jeu', non = 'Pas de +' + g.credits + ' 💎 : ';
+  return { soi_meme: non + 'c’était déjà ton record.', joueurs: non + 'il faut au moins ' + ((GC.carte && GC.carte.min) || 5) + ' joueurs sur ' + ici + '.', deja: non + 'déjà gagné sur ' + ici + ' aujourd’hui.', partie: non + 'partie trop courte.' }[g.raison] || 'Pas de gain cette fois.';
 }
 function gcGrandSuivant() {
   if (GC.grand) return; const g = GC.file.shift(); if (!g) return; GC.grand = true;
-  const V = gcEl('div', 'gc-grand'); V.setAttribute('role', 'alertdialog'); V.setAttribute('aria-modal', 'true'); V.setAttribute('aria-label', 'Record mondial battu');
-  const b = gcEl('div', 'gc-grand-b'), course = g.sorte === 'course', quoi = course ? gcCircuit(g.niveau) : gcTitre(g.jeu), val = v => course ? chronoMs(v) : gcNb(v);
-  b.append(gcEl('div', 'gc-grand-ic', '🏆'), gcEl('h2', '', 'Record mondial battu !'));
+  const V = gcEl('div', 'gc-grand'), b = gcEl('div', 'gc-grand-b'), ami = g.sorte === 'ami', course = g.sorte === 'course';
+  const titre = ami ? { filleul: 'Cadeau de bienvenue !', parrain: dispName(g.nom) + ' s’est inscrit !', achat: dispName(g.nom) + ' a acheté un pack !' }[g.role] : 'Record mondial battu !';
+  V.setAttribute('role', 'alertdialog'); V.setAttribute('aria-modal', 'true'); V.setAttribute('aria-label', titre);
+  const paye = g.etat === 'paye', compteur = gcEl('div', 'gc-g-compteur'), nb = gcEl('b', '', gcNb(g.de));
+  if (paye) { compteur.append(gcEl('span', '', '💎'), nb); b.appendChild(compteur); }
+  b.append(gcEl('div', 'gc-grand-ic', ami ? (g.role === 'filleul' ? '🎁' : g.role === 'achat' ? '🛍️' : '🤝') : '🏆'), gcEl('h2', '', titre));
   if (g.test) b.appendChild(gcEl('p', 'gc-test', '🧪 Test : aucun crédit versé'));
-  if (g.etat === 'paye') b.appendChild(gcEl('p', 'gc-grand-g', '+' + g.credits + ' 💎'));
-  else b.appendChild(gcEl('p', 'gc-grand-a', 'Tes ' + g.credits + ' 💎 arrivent dès que l’équipe a vérifié ton score.'));
-  b.appendChild(gcEl('p', 'gc-p', quoi + ' : ' + val(g.score) + (g.ancien_nom ? ' (ancien record : ' + val(g.ancien) + ' · ' + dispName(g.ancien_nom) + ')' : '')));
-  const ok = gcBt('gc-bt', 'Super !', () => V._fin()); b.appendChild(ok); V.appendChild(b); document.body.appendChild(V); ok.focus({ preventScroll: true });
+  const gain = gcEl('p', 'gc-grand-g', '+' + g.credits + ' 💎');
+  if (paye) b.appendChild(gain);
+  else if (g.etat === 'attente') b.appendChild(gcEl('p', 'gc-grand-a', 'Tes ' + g.credits + ' 💎 arrivent dès que l’équipe a vérifié ton score.'));
+  else b.appendChild(gcEl('p', 'gc-grand-a', gcPourquoi(g)));
+  if (!ami) { const quoi = course ? 'Turbo Chrono · ' + gcCircuit(g.niveau) : gcTitre(g.jeu), val = v => course ? chronoMs(v) : gcNb(v); b.appendChild(gcEl('p', 'gc-p', quoi + ' : ' + val(g.score) + (g.ancien_nom ? ' (ancien record : ' + val(g.ancien) + ' · ' + dispName(g.ancien_nom) + ')' : ''))); }
+  else if (g.role === 'filleul') b.appendChild(gcEl('p', 'gc-p', 'De la part de ' + dispName(g.nom)));
+  const ok = gcBt('gc-bt', g.etat === 'paye' ? 'Super !' : 'OK', () => V._fin()); b.appendChild(ok); V.appendChild(b); document.body.appendChild(V); ok.focus({ preventScroll: true });
   const t = setTimeout(() => V._fin(), 9000);
   V._fin = () => { clearTimeout(t); V.remove(); GC.grand = false; gcGrandSuivant(); };
+  if (paye) setTimeout(() => { if (!V.isConnected) return; gcVol(gain.getBoundingClientRect(), nb, +g.credits || 0, g.de, g.vers, x => gcNb(x)).then(() => { if (!g.test) gcMajSolde(g.vers); }); }, 450);
   gcCarte();
+}
+// les 💎 partent du gain, volent jusqu'au compteur, et le nombre monte
+function gcVol(de, vers, credits, v0, v1, txt) {
+  return new Promise(fin => {
+    const nb = Math.max(4, Math.min(12, Math.round(credits / (credits >= 50 ? 10 : 2)))), doux = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (doux || !vers.isConnected || !Element.prototype.animate) { vers.textContent = txt(v1); fin(); return; }
+    const b = vers.getBoundingClientRect(), x1 = b.left + b.width / 2, y1 = b.top + b.height / 2, x0 = de.left + de.width / 2, y0 = de.top + de.height / 2;
+    for (let i = 0; i < nb; i++) {
+      const e = gcEl('span', 'gc-vol', '💎'); e.style.left = x0 + 'px'; e.style.top = y0 + 'px'; document.body.appendChild(e);
+      const dx = (Math.random() - .5) * 90, dy = -30 - Math.random() * 70;
+      e.animate([{ transform: 'translate(-50%,-50%) scale(.5)', opacity: 0 }, { transform: 'translate(calc(-50% + ' + dx + 'px),calc(-50% + ' + dy + 'px)) scale(1.15)', opacity: 1, offset: .32 }, { transform: 'translate(calc(-50% + ' + (x1 - x0) + 'px),calc(-50% + ' + (y1 - y0) + 'px)) scale(.55)', opacity: .9 }], { duration: 760, delay: i * 62, easing: 'cubic-bezier(.45,.05,.4,1)', fill: 'both' }).finished.then(() => e.remove(), () => e.remove());
+    }
+    const t0 = performance.now() + 620, dur = Math.max(760, nb * 62 + 420);
+    const pas = t => {
+      if (!vers.isConnected) { fin(); return; }
+      const k = Math.max(0, Math.min(1, (t - t0) / dur)); vers.textContent = txt(Math.round(v0 + (v1 - v0) * k));
+      if (k < 1) { requestAnimationFrame(pas); return; }
+      vers.classList.remove('gc-pop'); void vers.offsetWidth; vers.classList.add('gc-pop');
+      try { Audio.tone(1175, 0.09, 'triangle', 0.04, 1568); } catch (e) {}
+      fin();
+    };
+    requestAnimationFrame(pas);
+  });
 }
 
 // ---------- le sigle 🏆 ----------

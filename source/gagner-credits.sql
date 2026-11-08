@@ -41,7 +41,7 @@ insert into public.at_textes (k, v) values ('gc_regie', '{"adsense": "", "admob_
 -- les jeux d'arcade qui donnent des records (liste fermée : un nouveau jeu n'y entre que si on l'ajoute ; un jeu créé par un joueur n'y entre jamais)
 -- pas Abracadabra, pas Tête de Cible (flechettes), pas Pégase ; chrono est payé par course (gc_course), pas à ses points
 insert into public.at_textes (k, v) values ('gc_jeux_records',
-  '["noisette","lune","licornes","trone","jetporte","sorcier","pigeon","strike","remparts","sensinterdit","sensinterdit-km","neon","smoothie","ilo","magic","pleingaz","pleingaz-1vie","empilo","glouton","mouches","carreaux","rouleaux","canards"]'::jsonb)
+  '["noisette","lune","licornes","trone","jetporte","sorcier","pigeon","remparts","sensinterdit","sensinterdit-km","neon","smoothie","ilo","magic","pleingaz","pleingaz-1vie","empilo","glouton","mouches","carreaux","rouleaux","canards"]'::jsonb)
 on conflict (k) do nothing;
 
 -- ---------- 2. les tables (schéma privé : aucun accès direct depuis la page) ----------

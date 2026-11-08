@@ -14,7 +14,7 @@
 .gc-tete{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 16px 12px 22px;border-bottom:1px solid rgba(255,255,255,.08)}
 .gc-titre{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;min-width:0}
 .gc-titre h2{margin:0;font-size:20px;line-height:1.2}
-.gc-solde{padding:4px 10px;border-radius:999px;background:rgba(255,212,102,.14);color:#ffe9b0;font-size:13px}
+.gc-solde{border:0;font:inherit;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:999px;background:rgba(255,212,102,.14);color:#ffe9b0;font-size:13px}
 .gc-x{flex:0 0 auto;width:38px;height:38px;border:0;border-radius:10px;background:rgba(255,255,255,.07);color:#e9eef7;font-size:16px;cursor:pointer}
 .gc-x:hover{background:rgba(255,255,255,.14)}
 .gc-corps{overflow-y:auto;overscroll-behavior:contain;padding:14px 22px 22px;outline:0}
@@ -137,3 +137,16 @@
 /* fenêtre « Inviter des copains » */
 .gc-inv-note{margin:10px 0;padding:9px 12px;border-radius:12px;background:rgba(255,212,102,.12);color:#ffe9b0;font-size:14px;font-weight:600;line-height:1.35;text-align:center}
 .gc-inv-note[hidden]{display:none}
+
+/* le compteur de l'écran de gain et les 💎 qui volent */
+.gc-g-compteur{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:999px;background:rgba(255,212,102,.14);color:#ffe9b0;font-size:19px;font-weight:800;margin-bottom:2px}
+.gc-vol{position:fixed;z-index:2147483600;font-size:22px;line-height:1;pointer-events:none;will-change:transform,opacity}
+.gc-pop{animation:gc-compte .42s cubic-bezier(.2,1.8,.5,1)}
+@keyframes gc-compte{0%{transform:scale(1)}45%{transform:scale(1.28)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.gc-pop{animation:none}}
+
+/* à quoi servent les crédits ; la fenêtre d'achat ouverte depuis le menu */
+.gc-a-quoi{margin:14px 4px 2px;color:#aab6c9;font-size:13.5px;line-height:1.45;text-align:center}
+.gc-voile[hidden]{display:none}
+#jdw-atelier.gc-que-achat{background:none}
+#jdw-atelier.gc-que-achat > :not(.atl-mod){display:none!important}
