@@ -6269,3 +6269,5 @@ body:has(#jdw-liveinv:not([hidden])) .fs-tip{display:none!important}
 .atl-chat .atl-autosw + .atl-citebar + .atl-discrow{border-top:0;padding-top:6px}
 @media (max-height:500px){.atl-bthumb{max-width:220px}.atl-bthumb img{max-height:130px}.atl-chat .atl-autosw-s{display:none}}
 .atl-chat .atl-fdem .atl-brep{border-color:rgba(20,60,30,.25);background:rgba(255,255,255,.75);color:#1d4d2a}
+/* 8 nov. 2026 : sur une photo étroite (téléphone), la légende de l'œil prend toute la largeur, sous l'œil (au-dessus s'il est en bas) */
+.atl-arleg.large{right:6px;max-width:none;margin:34px 0 0;transform:none}.atl-arleg.large.haut{margin-top:-34px;transform:translateY(-100%)}

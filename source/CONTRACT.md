@@ -639,3 +639,17 @@ Le fichier (chargé SEULEMENT quand un admin ouvre l'onglet) : `{ aide?, schema?
 AU MONTAGE : `api.reglages` = ce que l'admin a enregistré, `{ <cle>: SEULEMENT les changements, _maj: { at, par } }`, ou `null`. Règle de
 fusion (le jeu fusionne en profondeur avec ses défauts) : un objet champ par champ, une LISTE remplacée en entier. Le jeu ignore les clés
 « _… ». Ni euros ni secret (refusé par le serveur), 200 Ko au plus. Un jeu sans `reglages` (ou qui ignore `api.reglages`) marche comme avant.
+
+## Ajout 31 : le jeu ouvre l'ARRÊT SUR IMAGE lui-même (api.arret, 8 nov. 2026 ; demande de l'admin à l'équipe Explorateur, 1er jeu : Astrofaune, « parler à {g} sur chaque ligne du Cosmodex »)
+Jusqu'ici, seul Select (ou la touche P, ou le petit guide flottant) ouvrait l'arrêt sur image d'un jeu lancé depuis l'Atelier. Un jeu peut
+maintenant l'ouvrir depuis un de ses boutons :
+- `api.arret` existe SEULEMENT quand CE joueur peut envoyer un arrêt sur image pour ce jeu : jeu lancé depuis l'Atelier, donc par son
+  créateur ou par un admin (l'envoi d'un admin devient une « 🛡️ Remarque de l'admin », gratuite, comme avec Select). Sinon il est ABSENT :
+  le jeu cache son bouton (`if (api && api.arret) …`). Rien ne casse sur une vieille borne.
+- `api.arret.nom` : le nom de la mascotte, pour écrire « 💬 Parler à <nom> ». Le jeu ne met JAMAIS ce nom dans son fichier
+  (la publication le refuse).
+- `api.arret.ouvrir({ texte, x, y })` : la borne met le jeu en pause, prend la photo de l'écran (comme Select), ouvre la fenêtre de l'arrêt
+  sur image avec `texte` déjà écrit au début du champ (le joueur le complète ou le change) et l'œil déjà posé en `x` / `y` (en % de la largeur
+  et de la hauteur de l'écran du jeu, 0 à 100 ; facultatifs). « ▶ Reprendre » (ou B, Échap) = la partie repart (`resume`). Rend une
+  promesse : `true` si la demande est envoyée, `false` sinon (fermée sans envoyer, ou impossible maintenant).
+Exemple : `if (api.arret) bouton.onclick = () => api.arret.ouvrir({ texte: 'Cosmodex, ligne « Lumifoule » : ', x: 50, y: 40 });`
