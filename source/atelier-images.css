@@ -53,6 +53,7 @@
 .crea-nouveau{margin-top:8px;display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border-radius:14px;border:2px dashed #cdb8f0;background:none;color:var(--cv2);font-weight:700;font-size:14.5px}
 .crea-nouveau.on{border-style:solid;background:var(--cv2);color:#fff}
 .crea-nouveau:disabled{opacity:.5}
+.crea-att{display:grid;justify-items:start;gap:8px;padding:6px 9px;font-size:14px;color:var(--cdoux)}.crea-att p{margin:0}.crea-att .btn{min-height:44px}
 .crea-pied{margin-top:auto;padding:10px 9px 2px;font-size:13px;color:var(--cdoux)}
 /* panneau {g} (à part) */
 .crea-pkt{display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;border-bottom:1px solid #eee6f4;background:#fff;text-align:left;width:100%}
