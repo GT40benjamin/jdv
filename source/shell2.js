@@ -469,10 +469,15 @@ function pauseStdMk() {
   const res = $('jdw-padpause-resume'), quit = $('jdw-padpause-quit');
   res.textContent = '▶️ Reprendre'; quit.textContent = '✖ Quitter';
   const niv = mk('jdw-padpause-niveau', 'btn-ghost', '🔁 Recommencer le niveau'), deb = mk('jdw-padpause-debut', 'btn-ghost', '🔄 Recommencer le jeu depuis le début');
-  const mus = mk('jdw-padpause-mus', 'btn-ghost pp-tog', ''), sfx = mk('jdw-padpause-sfx', 'btn-ghost pp-tog', ''), cmd = mk('jdw-padpause-cmd', 'btn-ghost', '🎮 Commandes');
+  const mus = mk('jdw-padpause-mus', 'btn-ghost pp-tog', ''), sfx = mk('jdw-padpause-sfx', 'btn-ghost pp-tog', ''), cmd = mk('jdw-padpause-cmd', 'btn-ghost', '🎮 Commandes'), bug = mk('jdw-padpause-bug', 'btn-ghost', '🐞 Signaler un bug');
   const ask = document.createElement('div'); ask.className = 'pp-ask'; ask.id = 'jdw-padpause-ask'; ask.hidden = true;
   const ext = document.createElement('div'); ext.className = 'pp-extra'; ext.id = 'jdw-padpause-extra';   // 2.0.131 : les boutons du jeu (api.pause.ajouter)
-  box.textContent = ''; box.append(res, niv, ext, deb, ask, mus, sfx, cmd, quit);
+  box.textContent = ''; box.append(res, niv, ext, deb, ask, mus, sfx, cmd, bug, quit);
+  bug.addEventListener('click', () => {   // la partie reste en pause ; la photo est prise SANS le menu ; au retour, de nouveau le menu de pause
+    const g = current && current.game; PADP.open = false; $('jdw-padpause').hidden = true;
+    const ok = atlBugOuvrir(() => { if (!current || current.game !== g) return; PADP.open = true; $('jdw-padpause').hidden = false; setTimeout(() => { if (PADP.open) bug.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); }, 40); });
+    if (!ok) { PADP.open = true; $('jdw-padpause').hidden = false; }
+  });
   niv.addEventListener('click', () => { const f = current && current.pause && current.pause.niveau; padPauseClose(true); if (f) setTimeout(() => { try { f(); } catch (e) { reportError('Recommencer le niveau : ' + e.message, e.stack); } }, 60); });
   deb.addEventListener('click', () => {
     ask.textContent = ''; const t = document.createElement('p'); t.textContent = 'Tu vas effacer ta progression dans ce jeu. Sûr ?';
@@ -494,6 +499,7 @@ function pauseStdMaj() {
   pauseStdMk(); const g = current && current.game, P = (current && current.pause) || {};
   const niv = $('jdw-padpause-niveau'), deb = $('jdw-padpause-debut'), ask = $('jdw-padpause-ask'); if (ask) ask.hidden = true;
   if (niv) niv.hidden = !P.niveau;
+  { const bb = $('jdw-padpause-bug'); if (bb) bb.hidden = !atlBugPossible(g); }
   const ext = $('jdw-padpause-extra');
   if (ext) { ext.textContent = ''; for (const a of (Array.isArray(P.extra) ? P.extra : [])) {   // 2.0.131 (Noisette) : après « Recommencer le niveau », même style
     const b = document.createElement('button'); b.className = 'btn btn-ghost'; b.type = 'button'; b.dataset.id = a.id; b.textContent = a.texte;
@@ -11272,6 +11278,7 @@ function mountGame(g) {
     player: playerObj(),
     reglages: ATL_NES.has(g.id) ? atlReglagesDe(g.id) : null,   // 7 nov. 2026 (CONTRACT.md Ajout 30) : les réglages de l'admin (at_fiches.reglages) ou null
     createur: CREA === g.id,   // 2.1.4 (CONTRACT.md Ajout 29) : lancé en MODE CRÉATEUR par l'auteur (ou un admin) — rien n'est enregistré
+    signalerBug: atlBugPossible(g) ? () => new Promise(ok => { if (!current || current.seq !== seq) { ok(false); return; } atlBugOuvrir(ok); }) : undefined,   // 8 nov. (CONTRACT.md Ajout 32) : pour les jeux qui gardent LEUR menu de pause
     arret: typeof ATL !== 'undefined' && ATL && ATL.jeu ? atlArretApi(() => !!current && current.seq === seq) : undefined,   // 8 nov. (CONTRACT.md Ajout 31) : le jeu ouvre l'arrêt sur image lui-même
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
     profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
@@ -17998,9 +18005,9 @@ function atlCreateurChamp(f) {
 function atlArretUI(host, shot, ficheId, reprendre, plein, oa) {   // oa (8 nov., CONTRACT.md Ajout 31) : { texte, x, y, fini(envoye) } — un jeu ouvre l'arrêt lui-même
   const cr = atlCred(), cout = cr && cr.ticket != null ? cr.ticket | 0 : 0, vis = { x: null, y: null };   // 2.0.20 : envoyer est gratuit
   const O = atlEl('div', 'atl-arret' + (plein ? ' atl-arret2' : '')); O.setAttribute('role', 'dialog'); O.setAttribute('aria-label', 'Arrêt sur image');
-  const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', 'Arrêt sur image ! Montre-moi avec mon œil 👁️ où regarder, puis dis-moi ce que tu veux : je lis ta légende.')); hd.append(atlGuideAv('atl-wav'), ht);
+  const bug = !!(oa && oa.bug), hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', bug ? '🐞 Signaler un bug' : gNM()), atlEl('p', '', bug ? 'Montre avec l’œil 👁️ où ça ne va pas, puis explique. La photo de ce moment part avec ton message, pour le créateur du jeu.' : 'Arrêt sur image ! Montre-moi avec mon œil 👁️ où regarder, puis dis-moi ce que tu veux : je lis ta légende.')); hd.append(atlGuideAv('atl-wav'), ht);
   // 2.0.20 (Benjamin : « ici il faut mettre le solde de points restant ; quand on envoie, on voit le crédit descendre en haut et la fenêtre se ferme »)
-  const sol = atlEl('span', 'atl-arsol'), solTx = v => '💎 ' + Math.max(0, v | 0) + ' crédits'; sol.textContent = cr ? solTx(cr.solde) : ''; sol.hidden = !cr || atlAdminIci(); hd.appendChild(sol);
+  const sol = atlEl('span', 'atl-arsol'), solTx = v => '💎 ' + Math.max(0, v | 0) + ' crédits'; sol.textContent = cr ? solTx(cr.solde) : ''; sol.hidden = !cr || atlAdminIci() || bug; hd.appendChild(sol);
   const descend = (de, a) => new Promise(ok => { sol.classList.add('desc'); const t0 = performance.now(), d = 700; const pas = () => { const k = Math.min(1, (performance.now() - t0) / d); sol.textContent = solTx(Math.round(de + (a - de) * k)); if (k < 1) requestAnimationFrame(pas); else ok(); }; requestAnimationFrame(pas); });
   const zone = atlEl('div', 'atl-arz'), mk = atlEl('span', 'atl-arv atl-oeil'), leg = atlEl('span', 'atl-arleg'); mk.hidden = true; leg.hidden = true;
   mk.appendChild(atlEl('span', 'atl-oeili', '👁️'));
@@ -18017,27 +18024,27 @@ function atlArretUI(host, shot, ficheId, reprendre, plein, oa) {   // oa (8 nov.
     { const et = z.width < 460; leg.classList.toggle('large', et); if (et) { leg.style.left = '6px'; leg.classList.remove('gauche'); } }   // 8 nov. : photo étroite (téléphone) : la légende sur toute la largeur, sous l'œil (au-dessus s'il est en bas)
     if (fixe) { vis.x = x; vis.y = y; majLeg(); }
   };
-  const majLeg = () => { const t = ta.value.trim(); leg.hidden = vis.x == null; leg.textContent = t ? (t.length > 70 ? t.slice(0, 68) + '…' : t) : 'Regarde ici ! Écris ce qu’il faut changer 👇'; };
+  const majLeg = () => { const t = ta.value.trim(); leg.hidden = vis.x == null; leg.textContent = t ? (t.length > 70 ? t.slice(0, 68) + '…' : t) : (oa && oa.bug ? 'Regarde ici ! Explique ce qui ne marche pas 👇' : 'Regarde ici ! Écris ce qu’il faut changer 👇'); };
   zone.addEventListener('pointermove', e => { if (glisse) { place(e, true); return; } if (!pose && e.pointerType === 'mouse') place(e, false); });
   zone.addEventListener('pointerdown', e => { glisse = true; try { zone.setPointerCapture(e.pointerId); } catch (x) {} place(e, true); pose = true; });
   const lache = () => { glisse = false; };
   zone.addEventListener('pointerup', lache); zone.addEventListener('pointercancel', lache);
   zone.addEventListener('pointerleave', () => { if (!pose) mk.hidden = true; });
-  const tw = atlEl('div', 'atl-artw'), ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.placeholder = 'Ce que tu veux changer ici…'; tw.appendChild(ta);
+  const tw = atlEl('div', 'atl-artw'), ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.placeholder = bug ? 'Qu’est-ce qui ne marche pas ?' : 'Ce que tu veux changer ici…'; tw.appendChild(ta);
   ta.addEventListener('input', () => { if (vis.x != null) majLeg(); });
   // le micro : le moteur unique (continu, Ctrl+Espace, bouton Vue / Select de la manette)
   if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true;
-  const row = atlEl('div', 'atl-arbtns'), rp = atlEl('button', 'btn btn-ghost', '▶ Reprendre'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (cout ? (cout ? ' · ' + cout + ' 💎' : '') : ''));
+  const row = atlEl('div', 'atl-arbtns'), rp = atlEl('button', 'btn btn-ghost', bug ? '← Retour' : '▶ Reprendre'), go = atlEl('button', 'btn btn-play', bug ? 'Envoyer au créateur' : 'Envoyer ' + gA() + (cout ? (cout ? ' · ' + cout + ' 💎' : '') : ''));
   rp.type = 'button'; go.type = 'button';
-  const adm = atlAdminIci(); if (adm) { go.textContent = '🛡️ Envoyer ma remarque'; tw.appendChild(atlEl('small', 'atl-noremb', '🛡️ Remarque de l’admin : gratuite, le joueur ne paie rien, l’équipe la reçoit tout de suite.')); }   // 2.0.131 (SQL v140)
+  const adm = !bug && atlAdminIci(); if (adm) { go.textContent = '🛡️ Envoyer ma remarque'; tw.appendChild(atlEl('small', 'atl-noremb', '🛡️ Remarque de l’admin : gratuite, le joueur ne paie rien, l’équipe la reçoit tout de suite.')); }   // 2.0.131 (SQL v140)
   const fin = () => { if (ATL_MIC && ATL_MIC.field === ta) atlMicFin(); O.remove(); reprendre(); if (oa && typeof oa.fini === 'function') { const f0 = oa.fini; oa.fini = null; try { f0(!!O._envoye); } catch (e) {} } };
   rp.addEventListener('click', fin); O._fin = fin;
   O.addEventListener('keydown', e => { if (e.key === 'Escape' && !e.repeat) { e.preventDefault(); e.stopPropagation(); fin(); } });   // 2.0.170 (chef) : Échap = reprendre la partie
   go.addEventListener('click', async () => {
     atlMicFin();
-    const t = ta.value.trim(); if (t.length < 2) { ta.focus(); return; }
-    if (cr && (cr.solde | 0) < cout) { er.hidden = false; er.textContent = 'Il te manque des crédits pour cette demande.'; atlCreditsBtn(er); return; }
+    const t = ta.value.trim(); if (t.length < (bug ? 3 : 2)) { ta.focus(); return; }
+    if (!bug && cr && (cr.solde | 0) < cout) { er.hidden = false; er.textContent = 'Il te manque des crédits pour cette demande.'; atlCreditsBtn(er); return; }
     go.disabled = true; er.hidden = true;
     try {
       let blob = null;
@@ -18053,23 +18060,24 @@ function atlArretUI(host, shot, ficheId, reprendre, plein, oa) {   // oa (8 nov.
         const raw = await new Promise(ok => c.toBlob(ok, 'image/png')); if (raw) { try { blob = await atlJpeg(raw); } catch (e) { blob = null; } }
       }
       const avant = cr ? cr.solde | 0 : 0;
-      const r = await rpc('at_demande', { p_name: profile.name, p_fiche: ficheId, p_texte: t, p_x: vis.x, p_y: vis.y, p_image: !!blob }, { quiet: true });
+      const r = bug ? await rpc('at_bug_signaler', { p_name: profile.name, p_jeu: oa.bug.jeu, p_texte: t, p_x: vis.x, p_y: vis.y, p_image: !!blob }, { quiet: true })   // 8 nov. : pour le créateur du jeu, gratuit
+        : await rpc('at_demande', { p_name: profile.name, p_fiche: ficheId, p_texte: t, p_x: vis.x, p_y: vis.y, p_image: !!blob }, { quiet: true });
       if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
       const anim = cr && !sol.hidden ? descend(avant, r && Number.isFinite(+r.solde) ? +r.solde : avant - cout) : Promise.resolve();
       if (blob && r && /^a\/[0-9a-f-]{36}\.jpg$/.test(String(r.image || ''))) {
         const tok = await acctToken(profile);
         await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/atelier/' + r.image, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'image/jpeg' }, body: blob }, 60000);
       }
-      go.textContent = adm ? '✅ Remarque envoyée' : '✅ Envoyé'; O._envoye = true; if (adm && r && r.id) O.dataset.remarque = r.id; await anim; await new Promise(ok => setTimeout(ok, 450)); fin(); atlLoad(true);
-    } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
+      go.textContent = bug ? '✅ Merci !' : adm ? '✅ Remarque envoyée' : '✅ Envoyé'; O._envoye = true; if (adm && r && r.id) O.dataset.remarque = r.id; await anim; await new Promise(ok => setTimeout(ok, bug ? 900 : 450)); fin(); if (bug) atlToast('🐞 Merci ! Le créateur du jeu a bien reçu ton message.'); else atlLoad(true);
+    } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : bug && /trop d essais/.test(String(e && e.message)) ? 'Tu as déjà envoyé beaucoup de messages : réessaie dans un moment.' : atlWhy(e); }
   });
   // 2.1.10 (l'admin, 7 nov.) : « 🎫 Mes demandes » — ses demandes de CE jeu en TICKETS (pas la discussion), sans quitter l'arrêt sur image
   const tk = atlEl('button', 'btn btn-ghost atl-artkb'); tk.type = 'button'; tk.addEventListener('click', () => atlTickets(O, ficheId));
   O._tkMaj = () => { const l = atlTkDems(ficheId).filter(x => x.etat !== 'regroupee'), nCh = l.filter(atlTkChoisir).length, nEn = l.filter(x => !atlTkFini(x) && !atlTkChoisir(x)).length;
     tk.textContent = '🎫 Mes demandes'; if (nCh || nEn) tk.appendChild(atlEl('span', 'atl-tkpast' + (nCh ? ' ch' : ''), nCh ? nCh + ' à choisir' : nEn + ' en cours'));
     tk.setAttribute('aria-label', 'Mes demandes' + (nCh ? ' : ' + nCh + ' à choisir' : nEn ? ' : ' + nEn + ' en cours' : '')); };
-  O._tkMaj(); if (!atlAdminIci()) atlDemCharger(false).then(() => { try { if (O.isConnected) O._tkMaj(); } catch (e) {} });
-  row.append(tk, rp, go); O.append(hd, zone, tw, er, row); if (cout) O.appendChild(atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); host.appendChild(O);
+  if (!bug) O._tkMaj(); if (!bug && !atlAdminIci()) atlDemCharger(false).then(() => { try { if (O.isConnected) O._tkMaj(); } catch (e) {} });
+  if (!bug) row.appendChild(tk); row.append(rp, go); O.append(hd, zone, tw, er, row); if (cout) O.appendChild(atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); host.appendChild(O);
   ta.focus({ preventScroll: true });   // 2.0.170 (l'admin) : le curseur dans le champ, aussi au téléphone
   if (oa) {   // 8 nov. (Ajout 31) : le texte du jeu au début du champ (modifiable), l'œil déjà posé là où le jeu le dit (en % de son écran)
     if (oa.texte) { ta.value = String(oa.texte).slice(0, 15000).replace(/\s+$/, '') + ' '; try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {} }
@@ -18231,7 +18239,7 @@ function atlH2I() {
 }
 const atlPasPhoto = el => !!(el && (el.id === 'jdw-atelier' || el.id === 'atl-flot' || el.id === 'jdw-fps' || (el.classList && (el.classList.contains('atl-arret2') || el.classList.contains('atl-rappel')))));
 const atlVisible = el => { if (!el || el.hidden) return false; const cs = getComputedStyle(el), r = el.getBoundingClientRect(); return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0.02 && r.width > 1 && r.height > 1 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight; };
-function atlCaptureJeu() {
+function atlCaptureJeu(html) {   // html : aussi sans canvas (un jeu en HTML) : la photo vient alors seulement de atlCaptureHtml
   const P0 = $('jdw-play'); if (!P0) return null;
   const W = innerWidth, H = innerHeight, k = Math.min(1280 / Math.max(W, H), Math.max(1, devicePixelRatio || 1)), o = document.createElement('canvas');
   o.width = Math.max(1, Math.round(W * k)); o.height = Math.max(1, Math.round(H * k));
@@ -18241,7 +18249,7 @@ function atlCaptureJeu() {
     if (!c.width || !c.height || !atlVisible(c)) continue; const r = c.getBoundingClientRect();
     try { const cp = document.createElement('canvas'); cp.width = Math.max(1, Math.round(r.width * k)); cp.height = Math.max(1, Math.round(r.height * k)); cp.getContext('2d').drawImage(c, 0, 0, cp.width, cp.height); g.drawImage(cp, r.left * k, r.top * k, r.width * k, r.height * k); snaps.push([c, cp]); } catch (e) {}
   }
-  if (!snaps.length) return null;
+  if (!snaps.length && !html) return null;
   o._snaps = snaps;
   // les calques HTML à poser ensuite : les enfants visibles de <body> qui ne sont pas l'Atelier, dans l'ordre (le jeu, puis ce qui est par-dessus)
   o._calques = [...document.body.children].filter(el => !atlPasPhoto(el) && !/^(SCRIPT|STYLE|LINK|TEMPLATE)$/.test(el.tagName) && atlVisible(el) && /fixed|absolute/.test(getComputedStyle(el).position))
@@ -18303,10 +18311,19 @@ if (navigator.webdriver) window.JDW_ESSAI_ARRET = () => { if (!ATL.jeu) ATL.jeu 
 try {
   const gc0 = HTMLCanvasElement.prototype.getContext;
   HTMLCanvasElement.prototype.getContext = function (t, a) {
-    if (window.JDW_ATL_JEU && /^(webgl2?|experimental-webgl)$/.test(String(t))) a = Object.assign({}, a || {}, { preserveDrawingBuffer: true });
+    if ((window.JDW_ATL_JEU || (current && current.game && ATL_NES.has(current.game.id))) && /^(webgl2?|experimental-webgl)$/.test(String(t))) a = Object.assign({}, a || {}, { preserveDrawingBuffer: true });
     return gc0.call(this, t, a);
   };
 } catch (e) {}
+// 8 nov. 2026 (l'admin) : « 🐞 Signaler un bug » dans la pause des jeux publiés de l'Atelier : pour le créateur du jeu (at_bug_signaler). Pas pendant un essai depuis l'Atelier (là, c'est l'arrêt sur image).
+function atlBugPossible(g) { try { if (!g || !ATL_NES.has(g.id) || isGuest() || !ONLINE || netOff() || ATL.jeu) return false; const x = ATL_JEUX.get(g.id); return !!(x && /^publie_/.test(String(x.etat || ''))); } catch (e) { return false; } }
+function atlBugOuvrir(fini) {
+  const g = current && current.game; if (!atlBugPossible(g) || document.querySelector('.atl-arret2')) { if (fini) fini(false); return false; }
+  let shot = null; try { shot = atlCaptureJeu(true); } catch (e) { shot = null; }
+  if (shot) atlCaptureHtml(shot).catch(() => {});
+  atlArretUI(document.body, shot, null, () => {}, true, { bug: { jeu: g.id }, fini: v => { if (fini) fini(!!v); } });
+  return true;
+}
 let ATL_ARRET_ATT = false;
 // 8 nov. 2026 (CONTRACT.md Ajout 31, demande de l'admin à l'équipe Explorateur : « parler à la mascotte sur chaque ligne du Cosmodex ») :
 // api.arret existe seulement quand CE joueur peut envoyer un arrêt sur image pour ce jeu (jeu lancé depuis l'Atelier : son créateur, ou un
@@ -18317,6 +18334,8 @@ function atlArretApi(vivant) {
   return { get nom() { return gNM(); }, ouvrir: o => new Promise(ok => { o = o || {}; if (!vivant()) { ok(false); return; }
     atlArretJeu({ texte: typeof o.texte === 'string' ? o.texte : '', x: o.x, y: o.y, fini: ok }); }) };
 }
+if (navigator.webdriver) window.JDW_ESSAI_PAUSE = () => padPauseOpen('banc');   // bancs seulement
+if (navigator.webdriver) window.JDW_ESSAI_BUGJEU = id => { atlNe(id); ATL_NES.add(id); ATL_JEUX.set(id, { jeu: id, etat: 'publie_monde', titre: 'Jeu de test' }); };   // bancs seulement
 if (navigator.webdriver) window.JDW_ESSAI_ARRETAPI = id => { ATL.jeu = id || ATL.jeu || 'essai'; return atlArretApi(() => true); };   // bancs seulement (Ajout 31)
 function atlArretJeu(oa) {
   const non = () => { if (oa && typeof oa.fini === 'function') try { oa.fini(false); } catch (e) {} };
