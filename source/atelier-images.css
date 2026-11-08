@@ -238,6 +238,8 @@
   .crea-arbre{position:fixed;left:0;top:0;bottom:0;width:84%;max-width:340px;z-index:8;border-radius:0 22px 22px 0;transform:translateX(-105%);visibility:hidden;transition:transform .25s ease,visibility 0s linear .25s;padding-top:calc(env(safe-area-inset-top,0px) + 12px)}
   .crea.tiroir .crea-arbre{transform:none;visibility:visible;transition:transform .25s ease}   /* fermé : invisible pour la manette et le clavier (testeurs, 6 nov.) */
   .crea.tiroir .crea-voile{display:block;position:fixed;inset:0;z-index:7;background:rgba(25,10,50,.45)}
+  #jdw-crea .crea-arbre{background:#fbf9fe}   /* 2e testeur (8 nov.) : le tiroir était à 95 % : on lisait la page derrière (« Outils », les tuiles) ; au téléphone, il est opaque */
+  #jdw-crea.nuit .crea-arbre{background:#1f1846}
   .crea-outil{left:var(--cg);right:var(--cg);bottom:0;padding-bottom:92px}
   .crea.pk-replie .crea-outil{right:var(--cg)}
   .crea-masc{display:none}
