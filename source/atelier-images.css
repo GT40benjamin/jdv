@@ -918,3 +918,14 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
 /* le panneau de conversation est étroit même sur PC (≈ 330-420 px) : l'interrupteur, « jusqu'à [X 💎 ▾] » puis l'explication en dessous, jamais coupés */
 .crea-autow .atl-autosw{flex-wrap:wrap;row-gap:6px}
 .crea-autow .atl-autosw-s{flex-basis:100%;-webkit-line-clamp:3}
+/* monde sombre (2e testeur : « jusqu'à » 2,2:1 et l'explication 2,8:1 sur le fond nuit) : l'interrupteur de l'Interface est fait pour un fond clair */
+#jdw-crea.nuit .crea-autow .atl-autosw-b{background:#2a2160;border-color:#4a3c94;color:#efe8ff}
+#jdw-crea.nuit .crea-autow .atl-autosw-k{background:#5b4f8f}
+#jdw-crea.nuit .crea-autow .atl-autosw.on .atl-autosw-b{background:linear-gradient(135deg,#fff3b0,#ffd34d 55%,#ffb14a);border-color:#f0b400;color:#5a3500}
+#jdw-crea.nuit .crea-autow .atl-autosw.on .atl-autosw-k{background:#ff8a1f}
+#jdw-crea.nuit .crea-autow .atl-autosw-m{color:#d6cbef}
+#jdw-crea.nuit .crea-autow .atl-autosw-sel{background-color:#231b52;border-color:#4a3c94;color:#f2ecff}
+#jdw-crea.nuit .crea-autow .atl-autosw.on .atl-autosw-sel{border-color:#f0b400;color:#ffe08a}
+#jdw-crea.nuit .crea-autow .atl-autosw-sel option{background:#231b52;color:#f2ecff}
+#jdw-crea.nuit .crea-autow .atl-autosw-s{color:#d6cbef}
+#jdw-crea.nuit .crea-autow .atl-autosw.on .atl-autosw-s{color:#ffd58a}
