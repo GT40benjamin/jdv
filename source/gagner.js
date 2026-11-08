@@ -29,8 +29,18 @@ const gcOpen0 = openGame;
 openGame = function (g) { GC.jeu = g ? g.id : null; GC.course = null; const r = gcOpen0.apply(this, arguments); setTimeout(gcJauge, 60); return r; };   // la jauge se voit dès l'ouverture du jeu, écran-titre compris
 // le lien de la salle (bouton « Inviter ») et le partage de la borne partent avec le jeton du joueur
 const gcInv0 = invMake;
-invMake = async function () { if (INV.link) INV.link = INV.link.replace(/&parrain=[^&]*$/, ''); const r = await gcInv0.apply(this, arguments); gcLienSalle(); return r; };
+invMake = async function () { gcNoteInvite(); if (INV.link) INV.link = INV.link.replace(/&parrain=[^&]*$/, ''); const r = await gcInv0.apply(this, arguments); gcLienSalle(); return r; };
 function gcLienSalle() { if (GC.code && INV.link && !/[?&]parrain=/.test(INV.link)) { INV.link += '&parrain=' + GC.code; invShareLink(INV.link); } }
+// une ligne dans la fenêtre de la salle, seulement si le joueur peut encore gagner (section ouverte, moins de 10 amis)
+async function gcNoteInvite() {
+  let n = document.getElementById('jdw-gc-invnote');
+  if (!n) { const lk = $('jdw-invshare-link'); if (!lk) return; n = gcEl('p', 'gc-inv-note'); n.id = 'jdw-gc-invnote'; n.hidden = true; lk.before(n); }
+  try {
+    const st = !gcPasCompte() && GC.carte && !GC.carte.test ? await rpc('gc_etat', { p_name: gcNom() }, { quiet: true, quiet404: true }) : null, P = st && st.actif && st.ouvert && st.parrain;
+    n.hidden = !(P && P.recompenses < P.max);
+    if (!n.hidden) n.textContent = '+' + P.gain + ' 💎 chacun quand un copain s’inscrit avec ce lien et vérifie son compte';
+  } catch (e) { n.hidden = true; }
+}
 const GC_SHARE0 = SHARE.borne.path;
 async function gcMonCode() {
   const nom = gcNom();
@@ -161,18 +171,37 @@ async function gcPartager(Pa) {
   if (navigator.share && TOUCH) { try { await navigator.share({ title: 'Borne d’arcade', text: texte, url: lien }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
   const ok = await gcCopier(lien); gcDire(ok ? 'Lien copié : envoie-le à ton ami !' : lien, ok ? 'ok' : '');
 }
+function gcLigneRecord(ul, x) {
+  const li = gcEl('li'), b = gcBt('gc-rec-b', '', () => { if (x.g) { gcFermer(); openGame(x.g); } });
+  const t = gcEl('span', 'gc-rec-t'); t.append(gcEl('b', '', x.titre), gcEl('small', '', x.sous));
+  b.append(t, gcEl('span', x.cl, x.droite)); li.appendChild(b); ul.appendChild(li);
+}
 function gcVueRecords(sorte) {
   const C = GC.corps, ca = GC.carte || {}; gcBulleFerme(); GC.vue = 'records'; C.textContent = '';
-  const L = [], ul = gcEl('ul', 'gc-liste gc-rec');
-  if (sorte === 'jeux') for (const [id, x] of Object.entries(ca.jeux || {})) L.push({ titre: gcTitre(id), v: gcNb(x.record), nom: x.nom, gain: ca.gain_jeu, deja: gcDeja(id, x), g: gcJeu(id) });
-  if (sorte === 'courses') for (const [t, x] of Object.entries(ca.courses || {})) L.push({ titre: gcCircuit(t), v: chronoMs(x.record), nom: x.nom, gain: ca.gain_course, deja: gcDeja('c:' + t, x), g: gcJeu('chrono') });
-  L.sort((a, b) => a.titre.localeCompare(b.titre, 'fr'));
-  for (const x of L) {
-    const li = gcEl('li'), b = gcBt('gc-rec-b', '', () => { if (x.g) { gcFermer(); openGame(x.g); } });
-    const t = gcEl('span', 'gc-rec-t'); t.append(gcEl('b', '', x.titre), gcEl('small', '', 'Record : ' + x.v + ' · ' + dispName(x.nom)));
-    b.append(t, gcEl('span', x.deja ? 'gc-rec-d' : 'gc-gain', x.deja ? '✓ aujourd’hui' : '+' + x.gain + ' 💎')); li.appendChild(b); ul.appendChild(li);
+  const ul = gcEl('ul', 'gc-liste gc-rec'), ret = gcBt('gc-retour', '‹ Retour', () => gcRendu(C));
+  C.append(ret, gcEl('h3', 'gc-l-titre', sorte === 'courses' ? '🏁 Turbo Chrono : record mondial de chaque course' : '🏆 Record mondial de chaque jeu'), ul);
+  ret.focus({ preventScroll: true }); C.scrollTop = 0;
+  if (sorte === 'courses') {
+    gcCourses(ul, null);
+    chronoBoards(true).then(d => { if (GC.vue === 'records' && ul.isConnected) gcCourses(ul, d); }).catch(() => {});
+    return;
   }
-  const ret = gcBt('gc-retour', '‹ Retour', () => gcRendu(C)); C.append(ret, ul); ret.focus({ preventScroll: true }); C.scrollTop = 0;
+  const L = Object.entries(ca.jeux || {}).map(([id, x]) => ({ id, x, titre: gcTitre(id) })).sort((a, b) => a.titre.localeCompare(b.titre, 'fr'));
+  for (const { id, x, titre } of L) {
+    const d = gcDeja(id, x), moi = x.nom === gcNom();
+    gcLigneRecord(ul, { titre, sous: 'Record mondial : ' + gcNb(x.record) + ' · ' + dispName(x.nom), droite: d ? '✓ aujourd’hui' : moi ? '🏆 Ton record' : '+' + ca.gain_jeu + ' 💎', cl: d || moi ? 'gc-rec-d' : 'gc-gain', g: gcJeu(id) });
+  }
+}
+// toutes les courses de Turbo Chrono, avec le record mondial lu dans le classement : celles qui n'ont pas encore assez de joueurs y sont aussi, sans gain annoncé
+function gcCourses(ul, d) {
+  const ca = GC.carte || {}, mini = ca.min || 5; ul.textContent = '';
+  for (const [t, titre] of CHRONO_TRACKS) {
+    const b = d && d[t], w = b && !b.err ? b.world : null, top = w && w[0], r = (ca.courses || {})[t];
+    const moi = top ? top.me : !!r && r.nom === gcNom(), fait = !!r && gcDeja('c:' + t, r);
+    const sous = top ? 'Record mondial : ' + chronoMs(top.ms) + ' · ' + top.name : r ? 'Record mondial : ' + chronoMs(r.record) + ' · ' + dispName(r.nom) : w ? 'Pas encore de record' : 'Chargement…';
+    const droite = fait ? '✓ aujourd’hui' : moi ? '🏆 Ton record' : r ? '+' + ca.gain_course + ' 💎' : w ? w.length + ' / ' + mini + ' joueurs' : '';
+    gcLigneRecord(ul, { titre, sous, droite, cl: fait || moi ? 'gc-rec-d' : r ? 'gc-gain' : 'gc-rec-n', g: gcJeu('chrono') });
+  }
 }
 function gcDire(t, kind) { const e = GC.etat; if (!e) return; e.hidden = !t; e.textContent = t || ''; e.className = 'gc-etat' + (kind ? ' ' + kind : ''); if (t) e.scrollIntoView({ block: 'nearest' }); }
 
@@ -368,7 +397,7 @@ function gcBullePose(B, a) {
   GC.bulle = B;
 }
 function gcSigleEl(x, cls) {
-  const b = gcBt('gc-sigle ' + (cls || ''), x.jauge ? '🏆 ' + x.jauge : '🏆', e => { e.stopPropagation(); e.preventDefault(); if (GC.bulle && GC.bulle._a === b) { if (TOUCH) gcBulleFerme(); } else { gcBulle(b, x); GC.bulle._a = b; } });   // à la souris, le survol l'a déjà ouverte : le clic ne la referme pas
+  const b = gcBt('gc-sigle ' + (cls || ''), x.jauge ? '🏆 ' + x.jauge : String(cls || '').includes('gc-sur-tuile') ? '💎' : '🏆', e => { e.stopPropagation(); e.preventDefault(); if (GC.bulle && GC.bulle._a === b) { if (TOUCH) gcBulleFerme(); } else { gcBulle(b, x); GC.bulle._a = b; } });   // à la souris, le survol l'a déjà ouverte : le clic ne la referme pas
   for (const ev of ['pointerdown', 'pointerup', 'mousedown', 'touchstart', 'touchend']) b.addEventListener(ev, e => e.stopPropagation());   // le toucher du sigle ne lance pas le jeu ni le circuit
   b.setAttribute('aria-label', 'Record mondial : +' + x.gain + ' crédits. ' + (x.sans ? x.v : 'Record actuel ' + x.v + ' par ' + dispName(x.nom)) + (x.deja ? '. Déjà gagné aujourd’hui.' : '.'));
   if (!TOUCH) { b.addEventListener('mouseenter', () => { if (!GC.bulle) { gcBulle(b, x); GC.bulle._a = b; } }); b.addEventListener('mouseleave', gcBulleFerme); }
