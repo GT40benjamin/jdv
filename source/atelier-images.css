@@ -892,3 +892,13 @@ button.crea-vcarte:hover{border-color:#cdb8f0}
   .crea.pk-plein.pk-replie .crea-pkt{flex-direction:row;padding:2px 12px 10px;height:auto;border-bottom:1px solid #eee6f4}
   .crea.pk-plein.pk-replie .crea-pkt > div{writing-mode:horizontal-tb;transform:none}
 }
+/* testeur 2 (8 nov., vue admin à 915×412) : de 900 à 1279 px, « CRÉE AVEC … » chevauchait « Projets des joueurs › … » et le badge admin devenait un rectangle vide.
+   Le titre garde sa place, le fil se resserre : seulement le nom du projet (coupé avec « … ») et le badge 🛡️ + le joueur, jamais coupé */
+@media (min-width:900px) and (max-width:1279px){
+  .crea-marque{flex:0 0 auto}
+  .crea-fil{display:flex;align-items:center;flex:1 1 0;min-width:0}
+  .crea-fil .lien{display:none}
+  .crea-fil strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .crea .crea-fil .crea-admb{flex:0 0 auto}
+  .crea .crea-fil .crea-admb .l{display:none}
+}
