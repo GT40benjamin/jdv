@@ -338,7 +338,7 @@ begin
   if c is not null then return c; end if;
   loop
     essai := essai + 1;
-    c := upper(translate(left(encode(gen_random_bytes(8), 'base64'), 8), '+/=O0I1L', 'ABCDEFGH'));
+    c := translate(upper(left(encode(gen_random_bytes(8), 'base64'), 8)), '+/=O0I1L', 'ABCDEFGH');   -- les majuscules AVANT le filtre : ni O, I, L, ni 0, 1
     begin
       insert into pegase_int.gc_codes (name, code) values (n, c);
       return c;

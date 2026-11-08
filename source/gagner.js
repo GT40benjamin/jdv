@@ -24,7 +24,7 @@ rpc = async function (fn, args, opts) {
   return r;
 };
 const gcMount0 = mountGame;
-mountGame = function (g) { GC.jeu = g ? g.id : null; GC.course = null; try { if (g && g.id && GC.carte && !GC.carte.test && !gcPasCompte() && ONLINE && !netOff()) rpc('gc_partie_debut', { p_name: gcNom(), p_jeu: g.id }, { quiet: true, quiet404: true }).catch(() => {}); } catch (e) {} return gcMount0.apply(this, arguments); };
+mountGame = function (g) { GC.jeu = g ? g.id : null; GC.course = null; gcPartie(g && g.id); return gcMount0.apply(this, arguments); };
 const gcOpen0 = openGame;
 openGame = function (g) { GC.jeu = g ? g.id : null; GC.course = null; const r = gcOpen0.apply(this, arguments); setTimeout(gcJauge, 60); return r; };   // la jauge se voit dès l'ouverture du jeu, écran-titre compris
 const gcBack0 = jdwBack;
@@ -373,11 +373,23 @@ function gcGrandSuivant() {
 }
 
 // ---------- le sigle 🏆 ----------
-async function gcCarte() {
+// une partie qui commence : on attend la première réponse du serveur si elle n'est pas encore là (sinon un record battu tôt serait refusé sans explication)
+async function gcPartie(id) {
+  try {
+    if (!id || gcPasCompte() || !ONLINE || netOff()) return;
+    if (!GC.carteVue) await gcCarte();
+    if (GC.carte && !GC.carte.test) await rpc('gc_partie_debut', { p_name: gcNom(), p_jeu: id }, { quiet: true, quiet404: true });
+  } catch (e) {}
+}
+function gcCarte() {   // un seul appel à la fois
+  if (!GC.carteP) GC.carteP = gcCarte1().finally(() => { GC.carteP = null; });
+  return GC.carteP;
+}
+async function gcCarte1() {
   GC.nomCarte = gcNom();
   try {
     const c = await rpc('gc_records_carte', { p_name: gcPasCompte() ? '' : gcNom() }, { quiet: true, quiet404: true });
-    GC.carte = c && c.actif ? c : null;
+    GC.carte = c && c.actif ? c : null; GC.carteVue = true;
     gcBouton(); gcSigles(); gcJauge(); return c;
   } catch (e) { return null; }
 }
