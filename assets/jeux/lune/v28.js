@@ -1597,6 +1597,7 @@ function mount(root, api) {
     const p = toLocal(e);
     if (paused) { hitBtn(p, e); return; }
     if ((state === 'jeu' || state === 'cine') && penseeOuverte() && !(pauseBtn && e.target === pauseBtn)) { fermerPensee(); const ba = state === 'jeu' && tapBtns.find(b => b.act && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (ba) { if (ba.tenir) { btnTenu = true; btnId = e.pointerId; } else son('ui', 0.6); ba.f(); } return; }   /* V24 : toucher un bouton (Entrer dans la grotte…) ferme la pensée ET fait l'action : une seule touche */   // V17 : clic / toucher = la suite
+    if (state === 'evolution') { passerEvolution(); return; }
     if (state === 'transi' && passerSaut()) return;   // V15 : toucher l'écran passe le saut   // V15 : le menu pause a ses boutons (Reprendre, Recommencer)
     if (state === 'station' && zoneListe && p.x >= zoneListe.x && p.x <= zoneListe.x + zoneListe.w && p.y >= zoneListe.y && p.y <= zoneListe.y + zoneListe.h) { pendListe = { p, id: e.pointerId, d0: defil, glisse: false }; return; }
     if (hitBtn(p, e)) return;
@@ -1632,7 +1633,7 @@ function mount(root, api) {
     if (k === 'p' || k === 'P') { if (['jeu', 'espace', 'combat', 'arene'].includes(state)) setPaused(!paused); return; }
     if (paused) { if (k === 'Escape' && razUI) razUI = null; else if (!razUI && (k === 'Enter' || k === ' ' || k === 'Escape')) setPaused(false); return; }
     if (state === 'combat' && CB) { e.preventDefault(); if (k === ' ' && CB.qte && !CB.qte.res) appuiQte(); else if (k === 'Enter' && CB.phase === 'fin') quitterCombat(); else if (/^[1-9]$/.test(k)) { const L = menuCombat(), b = L[+k - 1]; if (b && !b.off) b.f(); } else if (k === 'Escape' && CB.menu && CB.menu !== 'racine') CB.menu = 'racine'; return; }
-    if (state === 'evolution') { e.preventDefault(); return; }
+    if (state === 'evolution') { e.preventDefault(); if (k === ' ' || k === 'Enter') passerEvolution(); return; }
     if (state === 'tenues') { e.preventDefault(); if (k === 'Escape') fermerTenues(); return; }
     if (state === 'prologue') { e.preventDefault(); if (PRO && PRO.choix) { if (/^[1-4]$/.test(k)) choisirPro(CHOIX_PRO[+k - 1]); } else if (k === ' ' || k === 'Enter') suitePrologue(); return; }
     if (state === 'cine16') { e.preventDefault(); if (k === ' ' || k === 'Enter') suiteCine(); else if (k === 'Escape') finCine16(); return; }
@@ -2101,6 +2102,7 @@ function mount(root, api) {
     ctx.restore();
     return fs + fs2 * 1.3;
   }
+  let AFFICHE_SEULE = false;
   function drawTitre(t) {
     tapBtns = [];
     ciel(ctx, W, H, t, t * 18, 0, 1);
@@ -2116,6 +2118,7 @@ function mount(root, api) {
     const ex = portrait ? W * 0.5 : W * 0.24, ey = portrait ? H * 0.64 : H * 0.84, k = (portrait ? 2.1 : 2.4) * U;
     rocherLunaire(ex, ey + 4 * U, 120 * U);
     EXPL_PANTIN.draw(ctx, ex, ey, k, look, { th: 0.35 + Math.sin(t * 0.5) * 0.25, mode: 'repos', t });
+    if (AFFICHE_SEULE) return;   /* V28 : l'affiche (poster de l'atelier) = l'écran-titre sans ses boutons */
     // les boutons
     const bw = Math.min(W * 0.8, 340 * U), bh = 54 * U, bx = portrait ? (W - bw) / 2 : W * 0.62 - bw / 2;
     let by = portrait ? H * 0.74 : H * 0.5;
@@ -5174,7 +5177,7 @@ function mount(root, api) {
     const att = c.clip === 'attaque' || c.prep > 0, k01 = att ? Math.min(1, (c.tc || 0) / 0.25) : 0;
     const filtre = c.flash > 0 ? 'brightness(2.2)' : c.teinte && !c.boss ? 'hue-rotate(' + c.teinte + 'deg)' : null;
     // ombre au sol
-    { const rx = hJeu * 0.55, ry = rx * 0.28; ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(1, ry / rx); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, 'rgba(10,6,20,0.5)'); g.addColorStop(0.7, 'rgba(10,6,20,0.3)'); g.addColorStop(1, 'rgba(10,6,20,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.fill(); ctx.restore(); }
+    if (!c.sansOmbre) { const rx = hJeu * 0.55, ry = rx * 0.28; ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(1, ry / rx); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, 'rgba(10,6,20,0.5)'); g.addColorStop(0.7, 'rgba(10,6,20,0.3)'); g.addColorStop(1, 'rgba(10,6,20,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.fill(); ctx.restore(); }
     if (c.prep > 0) { zoneDanger(c, t); }
     if (R.auto) { dessinerAuto(c, t, p, R, filtre, a); return; }
     ctx.save(); ctx.globalAlpha = a; { const hb = hauteurBond(c, hJeu); if (hb) ctx.translate(0, -hb); }
@@ -8291,6 +8294,7 @@ function mount(root, api) {
     if (state === 'combat' && CB && CB.qte && !CB.qte.res) { if (padP('a')) appuiQte(); return; }
     if (state === 'prologue' && PRO && !PRO.choix) { if (padP('a')) suitePrologue(); return; }
     if (state === 'cine16') { if (padP('a')) suiteCine(); else if (padP('b')) finCine16(); return; }
+    if (state === 'evolution') { if (padP('a') || padP('b')) passerEvolution(); return; }   /* V28 : A passe la cinématique d'évolution */
     if (state === 'carte' && carte) { const gal = carte.vue !== 'ici';   /* V28 : sur la GALAXIE, LT / RT zooment la galaxie (avant : seulement la carte locale) */
       if (padP('rt')) { if (gal) carte.z = Math.min(30, carte.z * 1.5); else carte.zl = Math.min(4, (carte.zl || 1) * 1.5); }
       if (padP('lt')) { if (gal) carte.z = Math.max(0.9, carte.z / 1.5); else carte.zl = Math.max(0.5, (carte.zl || 1) / 1.5); } }
@@ -11344,6 +11348,18 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   // (Ravorny-6, tout au bout du bras) : région 1 = Astréa, le départ, puis on remonte le bras jusqu'à la région 20, le Seuil Interdit,
   // juste avant l'HYPER-CENTRE : tout rond, un trou noir qu'on ne peut pas encore traverser (on le découvrira plus tard ; c'est de là que
   // partiront les routes vers les autres bras). Noms : discussion avec PATOU (8 nov., 08 h 52) ; les autres bras sont fermés pour l'instant.
+  // V28 (l'admin, 8 nov. 12 h 08) : la lignée de Lumignon devient Lumignon → AURÉLYS (stade 2, N° 41) → PHALÉNOR (stade 3, N° 42, forme finale) :
+  // Aurélys ressemble au stade 2 de Lumignon (même corps rond, mêmes ailes). Chaque bête GARDE son identifiant et ses dessins
+  // (lumignon2 = Phalénor, lumignon3 = Aurélys) : une partie qui en possède une garde la même bête, avec juste son nouveau numéro et son nouveau stade.
+  (function ligneeLumignon() {
+    const L1 = AF.lumignon1, P = AF.lumignon2, A = AF.lumignon3; if (!L1 || !P || !A || P.st !== 1) return;
+    const iP = AF_LISTE.indexOf('lumignon2'), iA = AF_LISTE.indexOf('lumignon3'), vP = { st: P.st, rar: P.rar, tl: P.tl, evo: P.evo, num: P.num }, vA = { st: A.st, rar: A.rar, tl: A.tl, num: A.num };
+    AF_LISTE[iP] = 'lumignon3'; AF_LISTE[iA] = 'lumignon2';
+    Object.assign(A, { st: vP.st, rar: vP.rar, tl: vP.tl, num: vP.num, vers: 'lumignon2', evo: vP.evo });
+    Object.assign(P, { st: vA.st, rar: vA.rar, tl: vA.tl, num: vA.num, vers: null, evo: null });
+    L1.vers = 'lumignon3';
+    for (const id of ['lumignon2', 'lumignon3']) { const E = ESPECES[id], a = AF[id]; if (E) { E.taille = a.tl; E.gros = a.tl > 170 ? 1 : 0; E.role = a.st === 0 && a.rar < 3 ? 'craintif' : 'chasseur'; } }
+  })();
   const R20 = { centre: 120, bout: 1000 }, BRAS_PRINC = GAL.depart.i % 4, PAS20 = (R20.bout - R20.centre) / 20, HYPER = 21;
   const NOMS_REG20 = ['Astréa', 'Brumevent', 'Plaine d’Ambre', 'Récif Azur', 'Val d’Écho', 'Forge Stellaire', 'Mer de Givre', 'Jardins de Lune',
     'Canyon Rubis', 'Nébuleuse d’Or', 'Cité des Vents', 'Désert Solaire', 'Abysses Bleus', 'Pics de Cristal', 'Bois d’Aurore', 'Tempête Pourpre',
@@ -11821,6 +11837,114 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   // le Cosmodex : où vit une espèce de l'espace
   function lieuEspece(a) { return a && a.espace ? 'dans l’espace, région ' + a.reg20 + ' · ' + REG20[a.reg20 - 1].nom + ' 🌠' : null; }
 
+  // =================================================================== V28 (l'admin, 8 nov. 12 h 15, offert) : L'ÉVOLUTION, une vraie cinématique.
+  // 1) la scène s'assombrit, la caméra se concentre sur la bête, des particules de la couleur de son TYPE l'entourent ;
+  // 2) elle devient une silhouette qui brille et pulse, l'ancienne et la nouvelle forme alternent de plus en plus vite ;
+  // 3) flash, onde de choc ; 4) la nouvelle forme apparaît dans un éclat, étincelles qui retombent, son nom en grand, le chiffre romain qui monte.
+  // Toucher / A / Entrée : passe directement à l'éclat, puis termine. Tout est préparé une seule fois (images hors écran) : fluide au téléphone.
+  function beteDroite(g, id, x, y, s) {   // la bête tournée vers la droite (profil, retourné s'il regarde à gauche ; pantin en pièces : dessiné de profil par le jeu)
+    const p = PANT_DE[id], R = PANTINS[p];
+    if (R && !R.auto && ESPECES[id]) {
+      const N = 900, cv = document.createElement('canvas'); cv.width = cv.height = N; const v0 = { ctx, W, H, Z, camX, camY };
+      try { ctx = cv.getContext('2d'); W = 0; H = 0; Z = 1; camX = 0; camY = 0;
+        dessinerPantinCreature({ esp: id, x: N / 2, y: N * 0.86, th: Math.PI / 2, ph: 0, clip: 'repos', id: 1, echelle: N * 0.62 / ESPECES[id].taille, flash: 0, prep: 0, tm: 0, tc: 0, sansOmbre: true }, 0);
+      } finally { ctx = v0.ctx; W = v0.W; H = v0.H; Z = v0.Z; camX = v0.camX; camY = v0.camY; }
+      const d = cv.getContext('2d').getImageData(0, 0, N, N).data; let x0 = N, y0 = N, x1 = 0, y1 = 0;
+      for (let yy = 0; yy < N; yy += 2) for (let xx = 0; xx < N; xx += 2) if (d[(yy * N + xx) * 4 + 3] > 30) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; }
+      if (x1 > x0) { const w = x1 - x0 + 2, h = y1 - y0 + 2, k = s / Math.max(w, h); g.drawImage(cv, x0, y0, w, h, x - w * k / 2, y - h * k / 2, w * k, h * k); return true; }
+    }
+    const vrai = ctx; ctx = g; g.save(); if (R && R.gauche) { g.translate(x, 0); g.scale(-1, 1); g.translate(-x, 0); }
+    try { miniBete(id, x, y, s, true, true); } finally { g.restore(); ctx = vrai; }
+    return true;
+  }
+  const EVO_T = { focus: 1.0, flash: 4.6, fin: 9.4 }, EVO_TAILLE = 640;
+  const borne01 = (v, a, b) => Math.max(a, Math.min(b, v));
+  function evoPret(id) { const p = PANT_DE[id], R = PANTINS[p]; return !!(R && (R.auto ? piece(p, 0) : pretPantin(p))); }
+  function evoSprite(id, coul) {   // la bête (une fois), sa silhouette blanche et son halo flou (dessiné petit puis agrandi : un flou qui ne coûte rien)
+    const N = EVO_TAILLE, mk = n => { const c = document.createElement('canvas'); c.width = c.height = n; return c; }, im = mk(N), gi = im.getContext('2d'); gi.imageSmoothingQuality = 'high'; beteDroite(gi, id, N / 2, N / 2, N * 0.92);
+    const sil = mk(N), gs = sil.getContext('2d'); gs.drawImage(im, 0, 0); gs.globalCompositeOperation = 'source-in'; gs.fillStyle = '#ffffff'; gs.fillRect(0, 0, N, N);
+    const pet = mk(22), gp = pet.getContext('2d'); gp.imageSmoothingQuality = 'high'; gp.drawImage(im, 0, 0, 22, 22); gp.globalCompositeOperation = 'source-in'; gp.fillStyle = coul; gp.fillRect(0, 0, 22, 22);
+    return { im, sil, halo: pet };
+  }
+  function evoPoint(coul) { const c = document.createElement('canvas'); c.width = c.height = 48; const g = c.getContext('2d'), q = g.createRadialGradient(24, 24, 0, 24, 24, 24); q.addColorStop(0, '#ffffff'); q.addColorStop(0.16, coul); q.addColorStop(0.5, coul + '33'); q.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = q; g.fillRect(0, 0, 48, 48); g.globalCompositeOperation = 'lighter'; for (const [dx, dy] of [[1, 0], [0, 1]]) { const l = g.createLinearGradient(24 - 24 * dx, 24 - 24 * dy, 24 + 24 * dx, 24 + 24 * dy); l.addColorStop(0, 'rgba(255,255,255,0)'); l.addColorStop(0.5, '#ffffff'); l.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = l; if (dx) g.fillRect(0, 23, 48, 2); else g.fillRect(23, 0, 2, 48); } return c; }
+  function evoInit(E) {
+    const a = AF[E.vers] || AF[E.de], t0 = (a.t && a.t[0]) || 'neutre'; E.coul = (TYPES[t0] || {}).c || '#ffe9a8';
+    E.point = evoPoint(E.coul); E.pointB = evoPoint('#ffffff'); E.part = []; E.ph = 0; E.flip = false; E.tick = 0; E.etapes = {};
+    try { const f = document.createElement('canvas'); f.width = canvas.width; f.height = canvas.height; f.getContext('2d').drawImage(canvas, 0, 0); E.fond = f; } catch (e) { E.fond = null; }
+    E.init = true;
+  }
+  function passerEvolution() {
+    const E = EVO; if (!E || state !== 'evolution' || !E.init) return;
+    if (E.t < EVO_T.flash - 0.05) { if (E.spV) E.t = EVO_T.flash - 0.05; return; }   // avant l'éclat : on y saute (la nouvelle forme doit être prête)
+    if (E.t > EVO_T.flash + 0.9) finirEvolution();                                     // l'éclat vu : on termine
+  }
+  function evoTexte(s, y, taille, haut, bas, mw) {
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; let tl = taille; ctx.font = tl + 'px ' + FT; while (ctx.measureText(s).width > mw && tl > 12) { tl -= 1; ctx.font = tl + 'px ' + FT; }
+    ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, tl * 0.2); ctx.strokeStyle = '#120a2a'; ctx.strokeText(s, W / 2, y);
+    const g = ctx.createLinearGradient(0, y - tl / 2, 0, y + tl / 2); g.addColorStop(0, haut); g.addColorStop(1, bas); ctx.fillStyle = g; ctx.fillText(s, W / 2, y); ctx.restore();
+  }
+  function evoParticules(E, dt, cx, cy, R, charge) {
+    const T = E.t, P = E.part, flash = EVO_T.flash;
+    // pendant la charge : elles naissent autour et tournent vers la bête, de plus en plus nombreuses
+    if (T > 0.25 && T < flash && P.length < 150) { let n = dt * (24 + 120 * charge); while (n > 0 && P.length < 150) { if (n >= 1 || Math.random() < n) { const a = Math.random() * TAU; P.push({ m: 0, a, r: R * (1.5 + Math.random() * 1.3), v: R * (0.45 + charge * 1.5), z: (2 + Math.random() * 5) * U, b: Math.random() < 0.3, t: 0, vie: 3 }); } n -= 1; } }
+    // à l'éclat : une gerbe vers l'extérieur ; ensuite des étincelles retombent
+    if (T >= flash && !E.etapes.gerbe) { E.etapes.gerbe = 1; for (let i = 0; i < 130; i++) { const a = Math.random() * TAU, v = R * (1.2 + Math.random() * 3.4); P.push({ m: 1, x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, z: (2.5 + Math.random() * 7) * U, b: Math.random() < 0.4, t: 0, vie: 0.9 + Math.random() * 1.5 }); } }
+    if (T > flash + 0.2 && T < EVO_T.fin && P.length < 170 && Math.random() < dt * 34) P.push({ m: 2, x: Math.random() * W, y: -10 * U, vx: (Math.random() - 0.5) * 30 * U, vy: (70 + Math.random() * 130) * U, z: (2 + Math.random() * 4.5) * U, b: Math.random() < 0.45, t: 0, vie: 4 });
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let i = P.length - 1; i >= 0; i--) { const q = P[i]; q.t += dt; let x, y, al = 1;
+      if (q.m === 0) { q.r -= q.v * dt; q.a += dt * (1.6 + charge * 3.4); if (q.r < R * 0.12 || T >= flash) { P.splice(i, 1); continue; } x = cx + Math.cos(q.a) * q.r; y = cy + Math.sin(q.a) * q.r * 0.82; al = Math.min(1, q.t * 3); }
+      else { if (q.t > q.vie) { P.splice(i, 1); continue; } q.x += q.vx * dt; q.y += q.vy * dt; if (q.m === 1) { q.vx *= 1 - 1.4 * dt; q.vy = q.vy * (1 - 1.4 * dt) + 120 * U * dt; } x = q.x; y = q.y; al = q.m === 1 ? 1 - q.t / q.vie : Math.min(1, 1.6 - q.t * 0.4) * (0.55 + 0.45 * Math.sin(q.t * 9 + i)); }
+      if (al <= 0) continue; ctx.globalAlpha = Math.min(1, al); const z = q.z * 2; ctx.drawImage(q.b ? E.pointB : E.point, x - z, y - z, z * 2, z * 2); }
+    ctx.restore();
+  }
+  drawEvolution = function (t, dt) {
+    const E = EVO; if (!E.init) evoInit(E); dt = Math.min(0.05, dt || 0.016); tapBtns = [];
+    if (!E.spD && evoPret(E.de)) E.spD = evoSprite(E.de, E.coul);
+    if (!E.spV && E.vers !== E.de && evoPret(E.vers)) E.spV = evoSprite(E.vers, E.coul); else if (!E.spV && E.vers === E.de && E.spD) E.spV = E.spD;
+    // la nouvelle forme n'est pas encore chargée : on tient la fin de la charge (6 s au plus)
+    if (!(E.t > EVO_T.flash - 0.3 && !E.spV && (E.att = (E.att || 0) + dt) < 6)) E.t += dt;
+    const T = E.t, F = EVO_T, charge = borne01((T - F.focus) / (F.flash - F.focus), 0, 1), u = T - F.flash, apres = u >= 0.08, foc = lisse(0, F.focus, T), a0 = AF[E.de], a1 = AF[E.vers];
+    const cx = W / 2, cy = H * (portrait ? 0.46 : 0.54), R = Math.min(H * (portrait ? 0.27 : 0.33), W * 0.42, 340 * U), S0 = R * (portrait ? 2 : 1.7);
+    // 1) la scène qui s'assombrit, la caméra qui avance
+    ctx.fillStyle = '#05030f'; ctx.fillRect(0, 0, W, H);
+    if (E.fond && foc < 1) { const z = 1 + 0.1 * foc; ctx.save(); ctx.globalAlpha = 1 - foc; ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.drawImage(E.fond, -W / 2, -H / 2, W, H); ctx.restore(); }
+    // le tremblement monte avec la charge ; un coup sec à l'éclat
+    const am = (apres ? Math.max(0, 1 - u * 3.2) * 16 : charge * charge * 5) * U; ctx.save(); if (am > 0.1) ctx.translate((Math.random() - 0.5) * am, (Math.random() - 0.5) * am);
+    // le halo de fond, de la couleur du type
+    { const q = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.62), al = Math.round(borne01(foc * (0.22 + charge * 0.3 + (apres ? 0.16 : 0)), 0, 1) * 255).toString(16).padStart(2, '0'); q.addColorStop(0, E.coul + al); q.addColorStop(1, E.coul + '00'); ctx.fillStyle = q; ctx.fillRect(-20, -20, W + 40, H + 40); }
+    // les rayons qui tournent derrière la nouvelle forme
+    if (apres) { const al = Math.min(1, u * 2.5) * 0.5, n = 14; ctx.save(); ctx.translate(cx, cy); ctx.rotate(T * 0.35); ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < n; i++) { const a = i / n * TAU, L = Math.max(W, H), l = 0.09; const q = ctx.createLinearGradient(0, 0, Math.cos(a) * L * 0.6, Math.sin(a) * L * 0.6); q.addColorStop(0, E.coul); q.addColorStop(1, E.coul + '00'); ctx.globalAlpha = al * (i % 2 ? 0.55 : 1); ctx.fillStyle = q; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a - l) * L, Math.sin(a - l) * L); ctx.lineTo(Math.cos(a + l) * L, Math.sin(a + l) * L); ctx.closePath(); ctx.fill(); } ctx.restore(); }
+    // les anneaux d'énergie qui se resserrent pendant la charge
+    if (charge > 0 && !apres) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = E.coul; for (let i = 0; i < 3; i++) { const k = ((T * (0.55 + charge * 1.3) + i / 3) % 1), r = R * (1.9 - 1.5 * k); ctx.globalAlpha = (0.15 + charge * 0.5) * Math.sin(k * Math.PI); ctx.lineWidth = (2 + charge * 5) * U; ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.86, 0, 0, TAU); ctx.stroke(); } ctx.restore(); }
+    evoParticules(E, dt, cx, cy, R, charge);
+    // 2) la bête : en couleurs au début, puis silhouette brillante ; les deux formes alternent de plus en plus vite
+    const bl = lisse(0.02, 0.2, charge), p = 0.7 + (0.055 - 0.7) * Math.pow(charge, 1.25);
+    if (charge > 0.04 && !apres) { E.ph += dt / p; if (E.ph >= 1) { E.ph -= 1; E.flip = !E.flip; if (E.spV && T - E.tick > 0.075) { E.tick = T; son('ui', 0.16 + charge * 0.3, null, null, 0.8 + charge * 1.5); } } }
+    const dessine = (sp, sc, alSil, alIm, alHalo) => { if (!sp) return; const d = S0 * sc; if (alHalo > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alHalo; ctx.imageSmoothingQuality = 'high'; const g = d * 1.45; ctx.drawImage(sp.halo, cx - g / 2, cy - g / 2, g, g); ctx.restore(); } if (alIm > 0) { ctx.save(); ctx.globalAlpha = alIm; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(sp.im, cx - d / 2, cy - d / 2, d, d); ctx.restore(); } if (alSil > 0) { ctx.save(); ctx.globalAlpha = alSil; ctx.drawImage(sp.sil, cx - d / 2, cy - d / 2, d, d); ctx.restore(); } };
+    if (!apres) { const pul = 1 + Math.sin(T * (5 + charge * 30)) * (0.015 + charge * 0.05), mt = 0.82 + foc * 0.1 + charge * 0.14, sp = E.flip && E.spV ? E.spV : E.spD, gr = E.flip ? 1.1 : 1; const ent = lisse(0.05, 0.55, T); ctx.save(); ctx.globalAlpha = 1; dessine(sp, mt * pul * gr * (0.86 + 0.14 * ent), bl * ent, (1 - bl) * ent, foc * (0.12 + charge * 0.75)); ctx.restore(); }
+    else { const pop = 1.12 + 0.34 * Math.exp(-u * 5.5) * Math.cos(u * 13); dessine(E.spV || E.spD, pop, Math.max(0, 1 - u * 2.6), 1, 0.3 + 0.12 * Math.sin(T * 3)); }
+    ctx.restore();
+    // 3) l'éclat : flash blanc, ondes de choc
+    if (T >= F.flash && !E.etapes.boum) { E.etapes.boum = 1; son('explosion', 0.9, null, null, 0.9); try { criDe(E.vers, 1); } catch (e) { /* rien */ } }
+    if (u > 0 && u < 1.1) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 3; i++) { const k = borne01((u - i * 0.1) / 0.85, 0, 1); if (k <= 0 || k >= 1) continue; const r = Math.max(W, H) * 0.85 * Math.pow(k, 0.7); ctx.globalAlpha = (1 - k) * 0.9; ctx.strokeStyle = i === 1 ? '#ffffff' : E.coul; ctx.lineWidth = (22 - i * 6) * (1 - k) * U + 2; ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.86, 0, 0, TAU); ctx.stroke(); } ctx.restore(); }
+    { const fl = u > -0.12 && u < 0.55 ? (u < 0.05 ? (u + 0.12) / 0.17 : 1 - (u - 0.05) / 0.5) : 0; if (fl > 0) { ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, fl) + ')'; ctx.fillRect(0, 0, W, H); } }
+    // 4) les textes : le nom en grand, le chiffre romain qui monte, la petite fanfare
+    const mw = W - 40 * U, yT = H * 0.13;
+    if (!apres) { const al = lisse(0.45, 0.9, T); ctx.save(); ctx.globalAlpha = al; evoTexte('Quoi ? ' + a0.nom + ' évolue !', yT, Math.round((portrait ? 30 : 40) * U), '#ffffff', '#cfe0ff', mw); ctx.restore(); }
+    else {
+      const al = borne01((u - 0.15) * 3, 0, 1), z = 1 + 0.5 * Math.exp(-Math.max(0, u - 0.15) * 7); ctx.save(); ctx.globalAlpha = al; ctx.translate(W / 2, yT); ctx.scale(z, z); ctx.translate(-W / 2, -yT);
+      evoTexte(a0.nom + ' évolue en', yT - (portrait ? 26 : 30) * U, Math.round((portrait ? 22 : 28) * U), '#ffffff', '#cfe0ff', mw); evoTexte(a1.nom + ' !', yT + (portrait ? 16 : 22) * U, Math.round((portrait ? 44 : 60) * U), '#fff3c0', '#ffb73a', mw); ctx.restore();
+      if (u > 0.45) { const RO = ['I', 'II', 'III'], yR = Math.min(H - 62 * U, cy + R * 1.42), v = borne01((u - 0.45) * 3, 0, 1), mo = borne01((u - 1.0) * 3.5, 0, 1), pz = 1 + 0.7 * Math.exp(-Math.max(0, u - 1.0) * 7), fs = Math.round(44 * U), gap = 74 * U; ctx.save(); ctx.globalAlpha = v; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.font = fs + 'px ' + FT; ctx.lineWidth = 8 * U; ctx.strokeStyle = '#120a2a'; ctx.strokeText(RO[a0.st] || 'I', W / 2 - gap, yR); ctx.fillStyle = '#aab2cc'; ctx.fillText(RO[a0.st] || 'I', W / 2 - gap, yR);
+        ctx.font = '800 ' + Math.round(30 * U) + 'px ' + FB; ctx.fillStyle = E.coul; ctx.fillText('➜', W / 2, yR);
+        if (mo > 0) { ctx.save(); ctx.globalAlpha = v * mo; ctx.translate(W / 2 + gap, yR); ctx.scale(pz, pz); ctx.font = fs + 'px ' + FT; ctx.strokeText(RO[a1.st] || 'II', 0, 0); const g = ctx.createLinearGradient(0, -fs / 2, 0, fs / 2); g.addColorStop(0, '#fff3c0'); g.addColorStop(1, '#ffb73a'); ctx.fillStyle = g; ctx.fillText(RO[a1.st] || 'II', 0, 0); ctx.restore(); }
+        ctx.restore(); }
+      [[0.5, 1], [0.68, 1.26], [0.86, 1.5]].forEach(([d, r], i) => { if (u >= d && !E.etapes['f' + i]) { E.etapes['f' + i] = 1; son('ok', 0.6, null, null, r); } });
+      if (u > 1.7) { ctx.save(); ctx.globalAlpha = 0.6 + 0.4 * Math.sin(T * 4); ctx.font = '700 ' + Math.round(14 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = '#dfe6ff'; ctx.fillText(auDoigt ? 'Touche pour continuer' : 'Clic ou A pour continuer', W / 2, H - 22 * U); ctx.restore(); }
+    }
+    if (T > F.fin) finirEvolution();
+  };
+
 
   // =================================================================== LA BOUCLE
   function update(dt) {
@@ -11911,7 +12035,16 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     _test: {
       /* V28 : la planche de la série (commande 88394ef1) : chaque bête dessinée comme dans le Cosmodex, sur une autre toile */
       chargerToutes: () => Promise.all([...FAM_DESSINEES, 'badges'].map(f => chargerFamille(f))),
+      afficheSeule: v => { AFFICHE_SEULE = !!v; },
+      poster: () => ({ BRAS_PRINC, nomBras, R20, PAS20, lieuEspece, bordZone, brasXY, coteExterieur, largeur20, legendaires: AF_LISTE.filter(id => AF[id].legende && AF[id].num <= 341).sort((a, b) => AF[a].num - AF[b].num), depart: GAL.depart.i, TYPES }),
       fiches20: () => Array.from({ length: 20 }, (_, i) => ficheRegion20(i + 1)),
+      /* V28 (l'admin, 12 h 05 : « tous regarder à droite ») : pour la planche et les posters seulement — chaque bête tournée vers la DROITE :
+         son dessin de profil, retourné s'il regarde à gauche ; les pantins en pièces (Renard, Roi-mâchoire) dessinés de profil par le jeu lui-même */
+      miniDroite: (g, id, x, y, s) => { beteDroite(g, id, x, y, s); },
+      evoDemo: (de, vers) => { EVO = { b: { e: de, n: 20, demo: true }, de, vers: vers || AF[de].vers || de, t: 0, reste: [], demo: true }; chargerFamille(AF[EVO.vers].fam); state = 'evolution'; },
+      evoEtat: () => EVO && { t: EVO.t, spV: !!EVO.spV, part: EVO.part && EVO.part.length },
+      evoVraie: id => { const A = AFX(), b = nouvelleBete(id, 30); A.equipe[0] = b; lancerEvolution([b]); return b; },
+      etat: () => state,
       miniSur: (g, id, x, y, s) => { const vrai = ctx; ctx = g; try { miniBete(id, x, y, s, true, true); } finally { ctx = vrai; } },
       v28: () => ({ FAUNE_E: () => FAUNE_E, tirs: () => VS.tirs, entrerEva, ARENE_REG, region20, regionOuverte, verrouRegion, sautBloque, prochaineRegionSansBadge, REG20, objectif, chapitre, CHAPITRES, GAL, entrerArene, gagnerBadge: () => gagnerBadge(), AR: () => AR }),
       state: () => state, J: () => J, PL: () => PL, look: () => look, cine: () => cine,
