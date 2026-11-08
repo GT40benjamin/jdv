@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 💎 Gagner des crédits (borne 2.1.40)
+[borne] 💎 Un menu tout simple, en tuiles : tu vois d'un coup d'œil ce que tu peux gagner.
+[borne] 🤝 Invite un ami : +100 💎 chacun dès que son compte est vérifié !
 [pegase] ## 🌿 Pégase 0.9.9.48 : plus fluide, oiseaux réparés, vraies conversations (borne 2.1.39)
 [pegase] 🌿 Le jeu est plus fluide : moins de calculs inutiles à chaque image et de nombreux petits à-coups en moins.
 [pegase] 🐦 Les petits oiseaux qui sautillent ne reculent plus d'un coup après chaque saut.
