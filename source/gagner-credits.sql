@@ -25,7 +25,7 @@ insert into public.at_reglages (k, v) values
   ('gc_filleul_credits', 100),          -- pour le filleul, en même temps
   ('gc_parrain_achat_credits', 100),    -- en plus pour le parrain, au premier pack acheté par le filleul
   ('gc_parrain_max', 10),               -- filleuls récompensés au plus, par compte
-  ('gc_parrain_depense_min', 50),       -- « a vraiment joué » : une création, ou ce nombre de 💎 dépensés
+  ('gc_parrain_depense_min', 50),       -- plus utilisé : la condition « a vraiment joué » a été retirée (décision de l'admin, 8 nov.)
   ('gc_parrain_compte_jours', 30),      -- un code ne s'entre que sur un compte créé depuis moins de N jours (sinon les anciens joueurs se parrainent entre eux)
   ('gc_record_credits', 20),            -- record mondial d'un jeu
   ('gc_course_credits', 10),            -- record mondial d'une course
@@ -113,9 +113,9 @@ create or replace function pegase_int.gc_meme_famille(a uuid, b uuid) returns bo
        or (k.parent = b and (k.child = a or exists (select 1 from public.players p where p.name = k.name and p.user_id = a)))) $$;
 
 -- ---------- 4. parrainage : la règle, au même endroit pour tous les chemins ----------
--- Le filleul est récompensé quand son compte est vérifié ET qu'il a vraiment joué ; idempotent (appelé à chaque dépense, à chaque achat, à l'ouverture du menu).
+-- L'ami invité et celui qui l'invite sont récompensés dès que le compte de l'ami est vérifié ; idempotent (appelé au lien, à chaque visite, à chaque achat, à l'ouverture du menu).
 create or replace function pegase_int.gc_parrain_maj(u uuid) returns void language plpgsql security definer set search_path = public as $$
-declare f pegase_int.gc_filleuls; verifie boolean; joue boolean; dep int; n int; gain_p int; gain_f int; gain_a int;
+declare f pegase_int.gc_filleuls; verifie boolean; n int; gain_p int; gain_f int; gain_a int;
 begin
   if u is null or not pegase_int.gc_ouvert() then return; end if;
   select * into f from pegase_int.gc_filleuls x where x.user_id = u for update;
@@ -123,20 +123,14 @@ begin
   if f.recompense_at is null then
     select x.email_confirmed_at is not null into verifie from auth.users x where x.id = u;   -- e-mail confirmé, ou connexion Google (qui le remplit)
     if coalesce(verifie, false) then
-      dep := coalesce((select -sum(j.delta) from public.at_credit_journal j where j.delta < 0 and j.name in (select p.name from public.players p where p.user_id = u)), 0);
-      joue := dep >= pegase_int.gc_reglage('gc_parrain_depense_min', 50)
-        or exists (select 1 from public.at_fiches x where x.name in (select p.name from public.players p where p.user_id = u) and x.etat in ('alpha', 'publie_salle', 'publie_monde'))
-        or exists (select 1 from public.at_creations x where x.name in (select p.name from public.players p where p.user_id = u) and x.actuelle is not null);
-      if joue then
-        perform 1 from pegase_int.gc_codes c where c.name = f.parrain for update;   -- deux filleuls en même temps : le plafond tient
-        select count(*) into n from pegase_int.gc_filleuls x where x.parrain_user = f.parrain_user and x.recompense_at is not null;
-        if n < pegase_int.gc_reglage('gc_parrain_max', 10) then
-          update pegase_int.gc_filleuls x set recompense_at = now() where x.user_id = u;
-          f.recompense_at := now();
-          gain_p := pegase_int.gc_reglage('gc_parrain_credits', 100); gain_f := pegase_int.gc_reglage('gc_filleul_credits', 100);
-          perform pegase_int.gc_payer(f.parrain, gain_p, 'gc_parrain');
-          perform pegase_int.gc_payer(f.filleul, gain_f, 'gc_filleul');
-        end if;
+      perform 1 from pegase_int.gc_codes c where c.name = f.parrain for update;   -- deux amis en même temps : le plafond tient
+      select count(*) into n from pegase_int.gc_filleuls x where x.parrain_user = f.parrain_user and x.recompense_at is not null;
+      if n < pegase_int.gc_reglage('gc_parrain_max', 10) then
+        update pegase_int.gc_filleuls x set recompense_at = now() where x.user_id = u;
+        f.recompense_at := now();
+        gain_p := pegase_int.gc_reglage('gc_parrain_credits', 100); gain_f := pegase_int.gc_reglage('gc_filleul_credits', 100);
+        perform pegase_int.gc_payer(f.parrain, gain_p, 'gc_parrain');
+        perform pegase_int.gc_payer(f.filleul, gain_f, 'gc_filleul');
       end if;
     end if;
   end if;
@@ -148,16 +142,8 @@ begin
   end if;
 end $$;
 
--- une dépense : le filleul a peut-être atteint les 50 💎 (ne bloque jamais la dépense)
-create or replace function pegase_int.gc_journal_trg() returns trigger language plpgsql security definer set search_path = public as $$
-begin
-  if new.delta < 0 and pegase_int.gc_ouvert() then
-    begin perform pegase_int.gc_parrain_maj(pegase_int.gc_compte(new.name)); exception when others then null; end;
-  end if;
-  return new;
-end $$;
 drop trigger if exists gc_journal on public.at_credit_journal;
-create trigger gc_journal after insert on public.at_credit_journal for each row execute function pegase_int.gc_journal_trg();
+drop function if exists pegase_int.gc_journal_trg();
 
 -- un pack payé : +100 💎 au parrain (ne bloque jamais le paiement)
 create or replace function pegase_int.gc_achat_trg() returns trigger language plpgsql security definer set search_path = public as $$
@@ -254,6 +240,7 @@ declare n text := public.pg_n(p_name); r jsonb;
 begin
   perform public.acct_check(n);
   if not pegase_int.gc_ouvert() then return '[]'::jsonb; end if;
+  begin perform pegase_int.gc_parrain_maj(pegase_int.gc_compte(n)); exception when others then null; end;   -- compte vérifié depuis la dernière visite : le cadeau part ici
   with a as (update pegase_int.gc_records x set vu_at = now() where x.name = n and x.vu_at is null and x.etat in ('paye', 'attente') returning x.*)
   select coalesce(jsonb_agg(jsonb_build_object('id', a.id, 'sorte', a.sorte, 'jeu', a.jeu, 'niveau', nullif(a.niveau, ''), 'credits', a.credits, 'etat', a.etat, 'score', a.score, 'ancien', a.ancien, 'ancien_nom', a.ancien_nom) order by a.id), '[]'::jsonb) into r from a;
   return r;
@@ -348,6 +335,15 @@ begin
       if essai > 8 then raise; end if;
     end;
   end loop;
+end $$;
+
+-- le jeton du joueur, ajouté au lien quand il invite un ami
+create or replace function public.gc_mon_code(p_name text) returns text language plpgsql security definer set search_path = public as $$
+declare n text := public.pg_n(p_name);
+begin
+  perform public.acct_check(n);
+  if pegase_int.gc_reglage('gc_actif', 1) <> 1 or (not pegase_int.gc_ouvert() and not pegase_int.at_patron(n)) then return null; end if;
+  return pegase_int.gc_code_de(n);
 end $$;
 
 -- entrer un code ou arriver par un lien ; réponses simples pour le menu
@@ -451,9 +447,11 @@ end $$;
 
 -- ---------- 8. droits ----------
 revoke all on function pegase_int.gc_reglage(text, int), pegase_int.gc_ouvert(), pegase_int.gc_jour(), pegase_int.gc_payer(text, int, text), pegase_int.gc_compte(text), pegase_int.gc_meme_famille(uuid, uuid), pegase_int.gc_parrain_maj(uuid),
-  pegase_int.gc_journal_trg(), pegase_int.gc_achat_trg(), pegase_int.gc_record_noter(text, text, text, text, int, int, text, int, text, text), pegase_int.gc_score_trg(), pegase_int.gc_course_trg(), pegase_int.gc_code_de(text) from public, anon, authenticated;
+  pegase_int.gc_achat_trg(), pegase_int.gc_record_noter(text, text, text, text, int, int, text, int, text, text), pegase_int.gc_score_trg(), pegase_int.gc_course_trg(), pegase_int.gc_code_de(text) from public, anon, authenticated;
 revoke all on function public.gc_partie_debut(text, text), public.gc_mes_gains(text), public.gc_records_carte(text), public.gc_pub_debut(text, text), public.gc_pub_annuler(text, uuid), public.gc_pub_fin(text, uuid),
   public.gc_parrain_lier(text, text), public.gc_etat(text), public.gc_admin_etat(text), public.gc_admin_record(text, bigint, boolean), public.gc_admin_regie(text, text, text, text) from public, anon;
 grant execute on function public.gc_partie_debut(text, text), public.gc_mes_gains(text), public.gc_records_carte(text), public.gc_pub_debut(text, text), public.gc_pub_annuler(text, uuid), public.gc_pub_fin(text, uuid),
   public.gc_parrain_lier(text, text), public.gc_etat(text), public.gc_admin_etat(text), public.gc_admin_record(text, bigint, boolean), public.gc_admin_regie(text, text, text, text) to authenticated;
 grant execute on function public.gc_records_carte(text) to anon;
+revoke all on function public.gc_mon_code(text) from public, anon;
+grant execute on function public.gc_mon_code(text) to authenticated;

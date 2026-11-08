@@ -27,6 +27,17 @@ const gcMount0 = mountGame;
 mountGame = function (g) { GC.jeu = g ? g.id : null; GC.course = null; gcPartie(g && g.id); return gcMount0.apply(this, arguments); };
 const gcOpen0 = openGame;
 openGame = function (g) { GC.jeu = g ? g.id : null; GC.course = null; const r = gcOpen0.apply(this, arguments); setTimeout(gcJauge, 60); return r; };   // la jauge se voit dès l'ouverture du jeu, écran-titre compris
+// le lien de la salle (bouton « Inviter ») et le partage de la borne partent avec le jeton du joueur
+const gcInv0 = invMake;
+invMake = async function () { if (INV.link) INV.link = INV.link.replace(/&parrain=[^&]*$/, ''); const r = await gcInv0.apply(this, arguments); gcLienSalle(); return r; };
+function gcLienSalle() { if (GC.code && INV.link && !/[?&]parrain=/.test(INV.link)) { INV.link += '&parrain=' + GC.code; invShareLink(INV.link); } }
+const GC_SHARE0 = SHARE.borne.path;
+async function gcMonCode() {
+  const nom = gcNom();
+  if (!GC.carte || gcPasCompte()) { GC.code = null; GC.codeNom = null; SHARE.borne.path = GC_SHARE0; return; }
+  if (GC.code && GC.codeNom === nom) return;
+  try { const c = await rpc('gc_mon_code', { p_name: nom }, { quiet: true, quiet404: true }); if (c && nom === gcNom()) { GC.code = c; GC.codeNom = nom; SHARE.borne.path = GC_SHARE0 + '&parrain=' + c; gcLienSalle(); } } catch (e) {}
+}
 const gcBack0 = jdwBack;
 jdwBack = function () { if (gcFermerHaut()) return true; return gcBack0.apply(this, arguments); };
 
@@ -60,10 +71,11 @@ async function gcOuvrir() {
   const B = gcEl('div', 'gc-boite'), H = gcEl('div', 'gc-tete'), Ti = gcEl('div', 'gc-titre');
   Ti.append(gcEl('h2', '', '💎 Gagner des crédits'));
   const so = gcEl('b', 'gc-solde'); so.hidden = true; Ti.append(so);
+  const es = gcEl('span', 'gc-essai', '🧪 Essai'); es.hidden = true; es.title = 'Visible seulement par les admins : aucun crédit réel'; Ti.append(es); GC.essai = es;
   const X = gcBt('gc-x', '✕', gcFermer); X.setAttribute('aria-label', 'Fermer');
   H.append(Ti, X); const C = gcEl('div', 'gc-corps'); C.tabIndex = -1; B.append(H, C); V.append(B); document.body.appendChild(V);
   V.addEventListener('click', e => { if (e.target === V) gcFermer(); });
-  V._esc = e => { if (e.key === 'Escape' && !GC.video) gcFermer(); }; document.addEventListener('keydown', V._esc);
+  V._esc = e => { if (e.key === 'Escape' && !GC.video) gcFermerHaut(); }; document.addEventListener('keydown', V._esc);
   GC.corps = C; GC.solde = so; X.focus({ preventScroll: true });
   C.appendChild(gcEl('p', 'gc-charge', 'Chargement…'));
   gcRecharger();
@@ -78,6 +90,7 @@ function gcFermerHaut() {
   const G = document.querySelector('.gc-grand'); if (G) { G._fin(); return true; }
   if (GC.video) { GC.video(); return true; }
   if (GC.bulle) { gcBulleFerme(); return true; }
+  if (GC.vue && GC.corps) { gcRendu(GC.corps); return true; }
   if (document.getElementById('jdw-gc')) return gcFermer();
   return false;
 }
@@ -103,71 +116,68 @@ function gcRenduInvite(C) {
   C.appendChild(s);
 }
 function gcRendu(C) {
-  const st = GC.st; C.textContent = '';
+  const st = GC.st; C.textContent = ''; GC.vue = null;
   if (GC.solde) { GC.solde.hidden = false; GC.solde.textContent = gcNb(st.solde) + ' 💎'; }
+  if (GC.essai) GC.essai.hidden = !(st.admin && (gcTest() || st.pub.test));   // un seul petit badge, jamais pour un joueur
   GC.etat = gcEl('p', 'gc-etat'); GC.etat.setAttribute('role', 'status'); GC.etat.hidden = true; C.appendChild(GC.etat);
-  if (gcTest()) C.appendChild(gcEl('p', 'gc-test gc-test-haut', '🧪 Mode test, visible seulement par toi : gains et compteurs simulés, aucun crédit réel n’est versé.'));
-  GC.secRecap = gcSectionRecap(st); GC.secRec = gcSectionRecords(st);
-  C.append(GC.secRecap, gcSectionPub(st), gcSectionParrain(st), GC.secRec);
-  if (GC.adm) C.appendChild(gcSectionAdmin());
+  GC.cartes = gcTuiles(st); C.appendChild(GC.cartes);
+  if (GC.adm) {
+    const t = gcBt('gc-admin-t', '🛡️ Admin', () => { GC.adminOuvert = !GC.adminOuvert; b.hidden = !GC.adminOuvert; }), b = gcSectionAdmin();
+    b.hidden = !GC.adminOuvert; C.append(t, b);
+  }
 }
 const gcTest = () => !!(GC.st && GC.st.actif && GC.st.ouvert === false);
 const gcDeja = (k, r) => !!(r && r.deja) || GC.sim.has(k);   // gagné aujourd'hui : vrai, ou simulé en mode test
-// ce qui reste à gagner aujourd'hui sur les records
-function gcReste() {
-  const ca = GC.carte || {}, R = (GC.st && GC.st.records) || {}, gj = R.gain_jeu || ca.gain_jeu || 0, gc = R.gain_course || ca.gain_course || 0;
-  const js = Object.entries(ca.jeux || {}), cs = Object.entries(ca.courses || {});
-  const rj = js.filter(([id, r]) => !gcDeja(id, r)).length, rc = cs.filter(([id, r]) => !gcDeja('c:' + id, r)).length;
-  return { gj, gc, nj: js.length, nc: cs.length, rj, rc };
-}
-// 4. le récapitulatif : le gain, la limite et ce qui reste aujourd'hui, ligne par ligne (tout vient du serveur : les réglages changent, le texte suit)
-function gcSectionRecap(st) {
-  const s = gcEl('section', 'gc-sec'), P = st.pub, Pa = st.parrain, Re = gcReste(), test = gcTest() ? ' (test)' : '';
-  s.appendChild(gcEl('h3', '', '✨ Ce que tu peux gagner'));
-  const t = gcEl('div', 'gc-recap'); t.setAttribute('role', 'table');
-  const ligne = (a, g, l, r, cls) => { const d = gcEl('div', 'gc-ligne' + (cls ? ' ' + cls : '')); d.setAttribute('role', 'row'); for (const [c, x] of [['q', a], ['g', g], ['l', l], ['r', r]]) { const e = gcEl('span', 'gc-r' + c, x); e.setAttribute('role', 'cell'); d.appendChild(e); } t.appendChild(d); };
-  const h = gcEl('div', 'gc-ligne gc-rh'); h.setAttribute('role', 'row'); for (const x of ['', 'Gain', 'Limite', 'Reste aujourd’hui']) { const e = gcEl('span', '', x); e.setAttribute('role', 'columnheader'); h.appendChild(e); } t.appendChild(h);
-  const left = Math.max(0, P.max - P.faites), libres = Math.max(0, Pa.max - Pa.recompenses), sansPack = (Pa.liste || []).filter(f => f.ok && !f.achat).length;
-  ligne('🎬 Une pub', P.courte.credits + ' ou ' + P.longue.credits + ' 💎', P.max + ' par jour', left + ' pub' + (left > 1 ? 's' : '') + test);
-  ligne('🤝 Parrainer un ami', Pa.gain + ' 💎 chacun', Pa.max + ' filleuls au total', libres + ' filleul' + (libres > 1 ? 's' : '') + ' possible' + (libres > 1 ? 's' : ''));
-  ligne('🛍️ Pack acheté par ton filleul', '+' + Pa.gain_achat + ' 💎', '1 fois par filleul', sansPack ? sansPack + ' filleul' + (sansPack > 1 ? 's' : '') + ' sans pack' : 'aucun pour l’instant');
-  ligne('🏆 Record d’un jeu', Re.gj + ' 💎', 'par jeu et par jour', Re.nj ? Re.rj + ' jeu' + (Re.rj > 1 ? 'x' : '') + ' · ' + gcNb(Re.rj * Re.gj) + ' 💎' + test : 'aucun jeu ouvert');
-  ligne('🏁 Record d’une course', Re.gc + ' 💎', 'par course et par jour', Re.nc ? Re.rc + ' course' + (Re.rc > 1 ? 's' : '') + ' · ' + gcNb(Re.rc * Re.gc) + ' 💎' + test : 'aucune course ouverte');
-  s.appendChild(t); return s;
-}
 // la mise à jour toute seule : le récapitulatif et les records seulement, sans perdre ce qu'on est en train de taper ou de toucher
 async function gcMajMenu() {
-  if (!GC.corps || !document.getElementById('jdw-gc') || gcPasCompte() || GC.busy) return;
+  if (!GC.corps || !document.getElementById('jdw-gc') || gcPasCompte() || GC.busy || GC.vue) return;
   try {
     const [st] = await Promise.all([rpc('gc_etat', { p_name: gcNom() }, { quiet: true }), gcCarte()]);
-    if (!st || !st.actif || !GC.st || !GC.secRecap || !GC.secRecap.isConnected) return;
+    if (!st || !st.actif || !GC.cartes || !GC.cartes.isConnected || GC.bulle || GC.cartes.contains(document.activeElement)) return;
     GC.st = st; if (GC.solde) GC.solde.textContent = gcNb(st.solde) + ' 💎';
-    const a = gcSectionRecap(st); GC.secRecap.replaceWith(a); GC.secRecap = a;
-    if (!GC.secRec.contains(document.activeElement)) { const b = gcSectionRecords(st); GC.secRec.replaceWith(b); GC.secRec = b; }
+    const c = gcTuiles(st); GC.cartes.replaceWith(c); GC.cartes = c;
   } catch (e) {}
+}
+// les tuiles : en gros le gain, le nom de l'action ; grisée, elle dit pourquoi en quelques mots
+function gcTuile(o) {
+  const b = gcBt('gc-tuile' + (o.non ? ' off' : '') + (o.large ? ' large' : ''), '', o.action); b.disabled = !!o.non;
+  b.append(gcEl('span', 'gc-t-ic', o.ic), gcEl('span', 'gc-t-gain', '+' + o.gain + ' 💎'), gcEl('span', 'gc-t-nom', o.nom));
+  if (o.non) b.appendChild(gcEl('span', 'gc-t-non', o.non));
+  return b;
+}
+function gcTuiles(st) {
+  const g = gcEl('div', 'gc-tuiles'), P = st.pub, Pa = st.parrain, R = st.records, ca = GC.carte || {};
+  const ouvertes = P.dispo && !(gcAppli() && !P.test), pubNon = !ouvertes ? 'Bientôt' : P.faites >= P.max ? 'Reviens demain' : '';
+  const rec = (l, cle) => { const k = Object.entries(l || {}); return !k.length ? 'Bientôt' : k.every(([i, r]) => gcDeja(cle(i), r)) ? 'Reviens demain' : ''; };
+  g.append(gcTuile({ ic: '🎬', gain: P.courte.credits, nom: 'Pub courte', non: pubNon, action: () => gcRegarder('courte') }),
+    gcTuile({ ic: '🎬', gain: P.longue.credits, nom: 'Pub longue', non: pubNon, action: () => gcRegarder('longue') }),
+    gcTuile({ ic: '🤝', gain: Pa.gain, nom: 'Inviter un ami', large: true, non: Pa.recompenses >= Pa.max ? Pa.max + ' amis déjà invités' : '', action: () => gcPartager(Pa) }),
+    gcTuile({ ic: '🏆', gain: R.gain_jeu, nom: 'Record', non: rec(ca.jeux, i => i), action: () => gcVueRecords('jeux') }),
+    gcTuile({ ic: '🏁', gain: R.gain_course, nom: 'Course', non: rec(ca.courses, i => 'c:' + i), action: () => gcVueRecords('courses') }));
+  return g;
+}
+async function gcPartager(Pa) {
+  const lien = gcLien(Pa.code), texte = 'Viens jouer à la Borne d’arcade avec moi ! Inscris-toi avec ce lien : on gagne ' + Pa.gain_filleul + ' 💎 chacun.';
+  if (navigator.share && TOUCH) { try { await navigator.share({ title: 'Borne d’arcade', text: texte, url: lien }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  const ok = await gcCopier(lien); gcDire(ok ? 'Lien copié : envoie-le à ton ami !' : lien, ok ? 'ok' : '');
+}
+function gcVueRecords(sorte) {
+  const C = GC.corps, ca = GC.carte || {}; gcBulleFerme(); GC.vue = 'records'; C.textContent = '';
+  const L = [], ul = gcEl('ul', 'gc-liste gc-rec');
+  if (sorte === 'jeux') for (const [id, x] of Object.entries(ca.jeux || {})) L.push({ titre: gcTitre(id), v: gcNb(x.record), nom: x.nom, gain: ca.gain_jeu, deja: gcDeja(id, x), g: gcJeu(id) });
+  if (sorte === 'courses') for (const [t, x] of Object.entries(ca.courses || {})) L.push({ titre: gcCircuit(t), v: chronoMs(x.record), nom: x.nom, gain: ca.gain_course, deja: gcDeja('c:' + t, x), g: gcJeu('chrono') });
+  L.sort((a, b) => a.titre.localeCompare(b.titre, 'fr'));
+  for (const x of L) {
+    const li = gcEl('li'), b = gcBt('gc-rec-b', '', () => { if (x.g) { gcFermer(); openGame(x.g); } });
+    const t = gcEl('span', 'gc-rec-t'); t.append(gcEl('b', '', x.titre), gcEl('small', '', 'Record : ' + x.v + ' · ' + dispName(x.nom)));
+    b.append(t, gcEl('span', x.deja ? 'gc-rec-d' : 'gc-gain', x.deja ? '✓ aujourd’hui' : '+' + x.gain + ' 💎')); li.appendChild(b); ul.appendChild(li);
+  }
+  const ret = gcBt('gc-retour', '‹ Retour', () => gcRendu(C)); C.append(ret, ul); ret.focus({ preventScroll: true }); C.scrollTop = 0;
 }
 function gcDire(t, kind) { const e = GC.etat; if (!e) return; e.hidden = !t; e.textContent = t || ''; e.className = 'gc-etat' + (kind ? ' ' + kind : ''); if (t) e.scrollIntoView({ block: 'nearest' }); }
 
 // ---------- 1. les pubs ----------
 const gcAppli = () => !!window.BorneApp;   // l'appli Android : la régie du site n'y marche pas (AdMob à brancher dans une version de l'appli)
-function gcSectionPub(st) {
-  const P = st.pub, s = gcEl('section', 'gc-sec'), left = Math.max(0, P.max - P.faites);
-  const h = gcEl('div', 'gc-sech'); h.append(gcEl('h3', '', '🎬 Regarde une pub'), gcEl('span', 'gc-pastille', P.faites + ' / ' + P.max + ' aujourd’hui')); s.appendChild(h);
-  s.appendChild(gcEl('p', 'gc-p', 'Tu choisis de regarder une pub : le gain arrive à la fin.'));
-  const appli = gcAppli() && !P.test;
-  if (P.test && P.dispo && !gcTest()) s.appendChild(gcEl('p', 'gc-test', '🧪 Mode test, visible seulement par les admins : ce ne sont pas de vraies pubs et aucun crédit n’est versé.'));
-  const g = gcEl('div', 'gc-pubs');
-  for (const [so, nom] of [['courte', 'Pub courte'], ['longue', 'Pub longue']]) {
-    const v = P[so], b = gcBt('gc-pub', '', () => gcRegarder(so)); b.disabled = !P.dispo || !left || appli;
-    const tx = gcEl('span', 'gc-pub-t'); tx.append(gcEl('b', '', nom), gcEl('small', '', '≈ ' + v.duree + ' s'));
-    b.append(tx, gcEl('span', 'gc-gain', '+' + v.credits + ' 💎' + (P.test ? ' test' : ''))); g.appendChild(b);
-  }
-  s.appendChild(g);
-  if (appli) s.appendChild(gcEl('p', 'gc-p gc-petit', 'Bientôt dans l’appli. En attendant, les pubs se regardent sur le site.'));
-  else if (!P.dispo) s.appendChild(gcEl('p', 'gc-p gc-petit', 'Bientôt disponible.'));
-  else if (!left) s.appendChild(gcEl('p', 'gc-p gc-petit', 'C’est tout pour aujourd’hui. Reviens demain !'));
-  return s;
-}
 function gcChargerRegie(client, test) {
   if (GC.regie && GC.regie.client === client) return GC.regie.p;
   window.adsbygoogle = window.adsbygoogle || [];
@@ -237,37 +247,6 @@ function gcMajSolde(s) {   // le compteur de la borne suit tout de suite
 
 // ---------- 2. le parrainage ----------
 const gcLien = code => location.origin + location.pathname + '?parrain=' + code;
-function gcSectionParrain(st) {
-  const P = st.parrain, s = gcEl('section', 'gc-sec');
-  const h = gcEl('div', 'gc-sech'); h.append(gcEl('h3', '', '🤝 Parraine tes amis'), gcEl('span', 'gc-pastille', P.recompenses + ' / ' + P.max + ' filleuls')); s.appendChild(h);
-  s.appendChild(gcEl('p', 'gc-p', '+' + P.gain + ' 💎 pour toi et +' + P.gain_filleul + ' 💎 pour ton ami, quand il a vérifié son compte et créé quelque chose (ou dépensé ' + P.depense_min + ' 💎). +' + P.gain_achat + ' 💎 pour toi s’il achète un pack.'));
-  const box = gcEl('div', 'gc-code'), lab = gcEl('div', 'gc-code-t'); lab.append(gcEl('small', '', 'Ton code'), gcEl('b', '', P.code));
-  const copie = gcBt('gc-bt gc-bt2', 'Copier', async () => { const ok = await gcCopier(gcLien(P.code)); gcDire(ok ? 'Lien copié !' : gcLien(P.code), ok ? 'ok' : ''); });
-  const part = gcBt('gc-bt', 'Partager', async () => {
-    const texte = 'Viens jouer à la Borne d’arcade avec moi ! Avec mon code ' + P.code + ', on gagne ' + P.gain_filleul + ' 💎 chacun.';
-    if (navigator.share && TOUCH) { try { await navigator.share({ title: 'Borne d’arcade', text: texte, url: gcLien(P.code) }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
-    const ok = await gcCopier(gcLien(P.code)); gcDire(ok ? 'Lien copié : envoie-le à ton ami !' : gcLien(P.code), ok ? 'ok' : '');
-  });
-  const bs = gcEl('div', 'gc-code-b'); bs.append(copie, part); box.append(lab, bs); s.appendChild(box);
-  if (P.liste && P.liste.length) {
-    const ul = gcEl('ul', 'gc-liste');
-    for (const f of P.liste.slice(0, 10)) { const li = gcEl('li'); li.append(gcEl('span', '', dispName(f.nom)), gcEl('small', f.ok ? 'gc-vert' : '', f.achat ? '✓ récompensé + pack' : f.ok ? '✓ récompensé' : 'en attente')); ul.appendChild(li); }
-    s.appendChild(ul);
-  }
-  if (P.mon_parrain) s.appendChild(gcEl('p', 'gc-p gc-petit', 'Ton parrain : ' + dispName(P.mon_parrain) + (P.mon_parrain_ok ? ' ✓' : ' (ton cadeau arrive quand ton compte est vérifié et que tu as créé quelque chose)')));
-  else {
-    const f = gcEl('form', 'gc-form'), i = gcEl('input', 'gc-input'); i.type = 'text'; i.maxLength = 12; i.placeholder = 'Un ami t’a donné un code ?'; i.autocomplete = 'off'; i.spellcheck = false; i.setAttribute('aria-label', 'Code de parrainage');
-    const ok = gcBt('gc-bt gc-bt2', 'Valider'); ok.type = 'submit'; f.append(i, ok);
-    f.addEventListener('submit', async e => {
-      e.preventDefault(); const v = i.value.trim(); if (!v) return; ok.disabled = true;
-      try { const r = await rpc('gc_parrain_lier', { p_name: gcNom(), p_code: v }); if (r && r.ok) { store.set('jdw.gc.parrain', null); gcDire('Code accepté, parrain : ' + dispName(r.parrain) + ' !', 'ok'); gcRecharger(); } else gcDire(gcTexteErreur(r && r.why), 'non'); }
-      catch (x) { gcDire('Le serveur ne répond pas.', 'non'); }
-      ok.disabled = false;
-    });
-    s.appendChild(f);
-  }
-  return s;
-}
 async function gcCopier(t) {
   try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
   try { const a = document.createElement('textarea'); a.value = t; a.style.position = 'fixed'; a.style.opacity = '0'; document.body.appendChild(a); a.select(); const ok = document.execCommand('copy'); a.remove(); return ok; } catch (e) { return false; }
@@ -287,30 +266,11 @@ async function gcLienEnvoyer() {
 }
 
 // ---------- 3. les records ----------
-function gcSectionRecords(st) {
-  const R = st.records, s = gcEl('section', 'gc-sec'), ca = GC.carte || {};
-  s.appendChild(gcEl('h3', '', '🏆 Bats les records du monde'));
-  s.appendChild(gcEl('p', 'gc-p', '+' + R.gain_jeu + ' 💎 par jeu d’arcade, une fois par jour. +' + R.gain_course + ' 💎 par course, une fois par jour. Il faut au moins ' + R.min + ' joueurs sur le jeu ou la course. Cherche le sigle 🏆 !'));
-  if (!R.auto && !gcTest()) s.appendChild(gcEl('p', 'gc-p gc-petit', 'Sur les jeux à score, le gain arrive une fois le record vérifié par l’équipe. Les courses sont vérifiées tout de suite.'));
-  const L = [], ul = gcEl('ul', 'gc-liste gc-rec');
-  for (const [id, x] of Object.entries(ca.jeux || {})) L.push({ k: id, titre: gcTitre(id), v: gcNb(x.record), nom: x.nom, gain: ca.gain_jeu, deja: gcDeja(id, x), g: gcJeu(id) });
-  for (const [t, x] of Object.entries(ca.courses || {})) L.push({ k: 'c' + t, titre: gcCircuit(t), v: chronoMs(x.record), nom: x.nom, gain: ca.gain_course, deja: gcDeja('c:' + t, x), g: gcJeu('chrono') });
-  L.sort((a, b) => a.titre.localeCompare(b.titre, 'fr'));
-  if (!L.length) { s.appendChild(gcEl('p', 'gc-p gc-petit', 'Aucun jeu n’a encore assez de joueurs.')); return s; }
-  for (const x of L) {
-    const li = gcEl('li'), b = gcBt('gc-rec-b', '', () => { if (x.g) { gcFermer(); openGame(x.g); } });
-    const t = gcEl('span', 'gc-rec-t'); t.append(gcEl('b', '', x.titre), gcEl('small', '', 'Record : ' + x.v + ' · ' + dispName(x.nom)));
-    b.append(t, gcEl('span', x.deja ? 'gc-rec-d' : 'gc-gain', x.deja ? '✓ aujourd’hui' : '+' + x.gain + ' 💎')); li.appendChild(b); ul.appendChild(li);
-  }
-  s.appendChild(ul);
-  return s;
-}
-
 // ---------- 4. l'admin (le seul endroit avec des euros) ----------
 function gcSectionAdmin() {
   const A = GC.adm, s = gcEl('section', 'gc-sec gc-admin');
   s.appendChild(gcEl('h3', '', '🛡️ Admin'));
-  const M = A.par_motif || {}, nom = { gc_pub: 'Vidéos', gc_parrain: 'Parrains', gc_filleul: 'Filleuls', gc_parrain_achat: 'Bonus packs', gc_record: 'Records', gc_course: 'Courses' };
+  const M = A.par_motif || {}, nom = { gc_pub: 'Pubs', gc_parrain: 'Invitations', gc_filleul: 'Amis invités', gc_parrain_achat: 'Bonus packs', gc_record: 'Records', gc_course: 'Courses' };
   s.appendChild(gcEl('p', 'gc-p', '💎 donnés ce mois : ' + gcNb(A.donnes_mois) + ' · coût maximum si tout est dépensé en images : ' + (A.cout_max_centimes / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'));
   const det = Object.keys(M).map(k => (nom[k] || k) + ' ' + gcNb(M[k])).join(' · '); if (det) s.appendChild(gcEl('p', 'gc-p gc-petit', det));
   s.appendChild(gcEl('p', 'gc-p gc-petit', 'Revenus publicitaires : aucun (régie pas encore branchée).'));
@@ -390,7 +350,7 @@ async function gcCarte1() {
   try {
     const c = await rpc('gc_records_carte', { p_name: gcPasCompte() ? '' : gcNom() }, { quiet: true, quiet404: true });
     GC.carte = c && c.actif ? c : null; GC.carteVue = true;
-    gcBouton(); gcSigles(); gcJauge(); return c;
+    gcBouton(); gcSigles(); gcJauge(); gcMonCode(); return c;
   } catch (e) { return null; }
 }
 function gcBulleFerme() { if (GC.bulle) { GC.bulle.remove(); GC.bulle = null; } }
@@ -398,6 +358,9 @@ function gcBulle(a, x) {
   gcBulleFerme();
   const B = gcEl('div', 'gc-bulle'); B.setAttribute('role', 'tooltip');
   B.append(gcEl('b', '', '🏆 Record mondial : +' + x.gain + ' 💎'), gcEl('span', '', x.sans ? x.v : 'Record actuel : ' + x.v)); if (!x.sans) B.append(gcEl('span', '', 'Détenteur : ' + dispName(x.nom))); B.append(gcEl('small', '', x.deja ? '✓ Déjà gagné aujourd’hui' : x.course ? 'Une fois par jour et par course' : 'Une fois par jour'));
+  gcBullePose(B, a);
+}
+function gcBullePose(B, a) {
   document.body.appendChild(B);
   const r = a.getBoundingClientRect(), w = B.offsetWidth, h = B.offsetHeight;
   B.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
@@ -501,6 +464,6 @@ function gcJaugePlace(J) {
   document.addEventListener('click', e => { const c = e.target.closest && e.target.closest('#jdw-play .tc-veil *'); if (!c || c.closest('.gc-sigle')) return; let n = c; while (n && n !== document.body && !n.querySelector('h3')) n = n.parentElement; const h = n && n.querySelector && n.querySelector('h3'), tr = h && CHRONO_TRACKS.find(x => gcNormeTitre(x[1]) === gcNormeTitre(h.childNodes[0].textContent)); if (tr) GC.course = tr[0]; }, true);
   setTimeout(async () => { await gcCarte(); gcLienEnvoyer(); gcApresScore(); }, 3500);   // après la carte : c'est elle qui dit si la section est ouverte
   setInterval(() => { if (GC.carte && !GC.carte.test) gcLienEnvoyer(); }, 45000);
-  setInterval(() => { if (gcNom() !== GC.nomCarte) gcCarte(); if (GC.jeu) gcJauge(); }, 1500);   // changement de joueur ; la jauge suit le jeu ouvert
+  setInterval(() => { if (gcNom() !== GC.nomCarte) gcCarte().then(() => { gcLienEnvoyer(); gcApresScore(); }); if (GC.jeu) gcJauge(); }, 1500);   // changement de joueur ; la jauge suit le jeu ouvert
   setInterval(() => { if (GC.carte && !document.hidden) gcCarte(); }, 60000);                   // reste à jour tout seul
 })();
