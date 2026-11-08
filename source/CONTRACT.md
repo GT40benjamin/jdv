@@ -653,3 +653,9 @@ maintenant l'ouvrir depuis un de ses boutons :
   et de la hauteur de l'écran du jeu, 0 à 100 ; facultatifs). « ▶ Reprendre » (ou B, Échap) = la partie repart (`resume`). Rend une
   promesse : `true` si la demande est envoyée, `false` sinon (fermée sans envoyer, ou impossible maintenant).
 Exemple : `if (api.arret) bouton.onclick = () => api.arret.ouvrir({ texte: 'Cosmodex, ligne « Lumifoule » : ', x: 50, y: 40 });`
+
+## Ajout 32 : « 🐞 Signaler un bug » (api.signalerBug, 8 nov. 2026 ; demande de l'admin, tous les jeux publiés de l'Atelier)
+Le menu de pause standard de la borne a un bouton « 🐞 Signaler un bug » pour les jeux publiés de l'Atelier : le joueur écrit, la photo du moment est jointe, et le message
+arrive au créateur du jeu dans sa conversation avec {g}. Rien à faire pour un jeu qui utilise ce menu.
+Un jeu qui garde SA pause (`pauseJeu: true`) ajoute lui-même un bouton : `if (api.signalerBug) bouton.onclick = () => api.signalerBug();`. `api.signalerBug` est absent quand
+le signalement n'est pas possible (jeu pas publié, invité, hors ligne, essai depuis l'Atelier). Il rend une promesse : `true` si envoyé, `false` sinon. Le jeu reste en pause pendant ce temps.
