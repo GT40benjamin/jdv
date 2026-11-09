@@ -21,7 +21,7 @@ cd "$(dirname "$0")"
 # reste ; s'il y en a un, la publication s'arrête avec le nom et les lignes. En urgence : DOUBLONS_SKIP=1 ./publier.sh
 if [ "${DOUBLONS_SKIP:-0}" = 1 ]; then echo "⚠ DOUBLONS_SKIP=1 : contrôle des noms déclarés deux fois SAUTÉ"
 else node doublons.js || { echo "Publication arrêtée : un nom déclaré deux fois (le nom et les lignes ci-dessus). En urgence : DOUBLONS_SKIP=1 ./publier.sh"; exit 1; }; fi
-SUPABASE_URL=${SUPABASE_URL:-https://wplictorvvtkfikpfdnl.supabase.co}
+SUPABASE_URL=${SUPABASE_URL:-https://api.elixirgamestudio.com}
 SUPABASE_KEY=${SUPABASE_KEY:-$(cat "$HOME/jdv-tools/supabase-key.txt" 2>/dev/null)}
 : "${SUPABASE_KEY:?définis SUPABASE_KEY=sb_publishable_…}"
 APK=${APK:-$HOME/jdv-tools/borne-arcade.apk}

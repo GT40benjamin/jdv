@@ -340,7 +340,7 @@
     { k: 'gomme', e: '🧽', t: 'Gomme', bg: '#fde8f0', ateliers: ['images'], libelle: 'Gommé', ouvrir: ctx => outilGomme(ctx) },
     { k: 'dessin', e: '🖌️', t: 'Dessiner', bg: '#e3f7e9', ateliers: ['images'], libelle: 'Dessin', ouvrir: ctx => outilDessin(ctx) },
     { k: 'fond', e: '✂️', t: 'Enlever le fond', bg: '#dff3ff', ateliers: ['images'], libelle: 'Sans fond', ouvrir: ctx => outilFond(ctx), grise: (ctx, a) => (a && a.vide ? MOT_SANS_FOND : '') },
-    { k: 'elements', e: '🧩', t: 'Modifier les éléments', bg: '#e9e4ff', ateliers: ['images'], libelle: 'Éléments déplacés', demander: true, ouvrir: ctx => outilElements(ctx),
+    { k: 'elements', e: '🧩', t: 'Déplacer les éléments', bg: '#e9e4ff', ateliers: ['images'], libelle: 'Éléments déplacés', demander: true, ouvrir: ctx => outilElements(ctx),
       grise: (ctx, a) => (a && !a.elements ? MOT_ELEMENTS : '') },
     { k: 'ajout', e: '🖼️', t: 'Ajouter une image', bg: '#fff0dc', ateliers: ['images'], libelle: 'Image ajoutée', ouvrir: ctx => outilAjout(ctx) }
   ];
@@ -1273,7 +1273,7 @@
   }
 
   // ======================================================================================================================
-  // 🧩 MODIFIER LES ÉLÉMENTS (rectangle ou lasso → l'élément se détache, le trou est bouché avec le fond uni)
+  // 🧩 DÉPLACER LES ÉLÉMENTS (rectangle ou lasso → l'élément se détache, le trou est bouché avec le fond uni)
   // ======================================================================================================================
   function dansPoly(x, y, P) { let ins = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if (((a.y > y) !== (b.y > y)) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) ins = !ins; } return ins; }
   // détacher l'élément entouré : fond local = médiane du tour de la sélection (uni, ou TRANSPARENT sur une image détourée) ;
@@ -1326,7 +1326,7 @@
   }
   async function outilElements(ctx) {
     if (!ctx.version || !ctx.version.path) return;
-    const ED = editeur('🧩 Modifier les éléments', 'Entoure un texte ou un dessin, puis déplace-le, agrandis-le ou tourne-le.');
+    const ED = editeur('🧩 Déplacer les éléments', 'Entoure un texte ou un dessin, puis déplace-le, agrandis-le ou tourne-le.');
     const w = attenteEd(ED, 'J’ouvre ta photo…');
     let d; try { d = await charger(ctx); } catch (e) { fermerEd(); toastO(ctx, 'Oups, ta photo ne s’ouvre pas. Réessaie 🙏'); return; }
     if (ED_ACTIF !== ED) return; w.remove();

@@ -571,7 +571,7 @@ footer a:hover{color:var(--gold2)}
 // onglets, les jetons se rafraîchissent un onglet à la fois (verrou « jdw-acct-<uid> », relecture de jdw.accts). Relecture toutes les 20 s
 // (2 s pendant que ça sonne), seulement quand la page est à l'écran.
 (function () {
-  var SB = 'https://wplictorvvtkfikpfdnl.supabase.co', KEY = 'sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa';
+  var SB = 'https://api.elixirgamestudio.com', KEY = 'sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa';
   if (!/^https:\/\//.test(SB) || KEY.indexOf('SUPABASE') >= 0 || !KEY) return;   // page pas encore publiée (essais sans clé)
   var ls = function (k, d) { try { var v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
   var pr = ls('jdw.profile', null), uid = pr && pr.acct && pr.acct.uid, me = String((pr && pr.name) || '').trim().toUpperCase();
