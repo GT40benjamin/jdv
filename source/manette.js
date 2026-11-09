@@ -452,6 +452,7 @@
     focusOn(pickDefault(layer, cands));
   }
   function adjust(dir) {   // curseur (input range) sous le focus : gauche / droite changent la valeur
+    if (dir !== 'left' && dir !== 'right') return false;   // haut / bas : on quitte le curseur (avant : ils baissaient la valeur et on restait coincé dessus)
     const el = S.nav.el; if (!el || !el.matches || !el.matches('input[type=range]')) return false;
     const st = +el.step || ((+el.max - +el.min) / 20) || 1, v = Math.max(+el.min, Math.min(+el.max, +el.value + (dir === 'right' ? 1 : -1) * st * 5));
     el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return true;
