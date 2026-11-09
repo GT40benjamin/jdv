@@ -1,35 +1,50 @@
 {
-  "version": "0.9.9.49",
-  "build": 100,
-  "size": 1672739588,
-  "sha256": "f6e300bf5ea11d00d48c4258a13492400568b10caf3261dd09cb686c414d390c",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v100/Pegase-PC-2026-11-09-0.9.9.49.zip",
-  "manifest": "73a70f60db1281ab955dab3eacaeee4c3a8e5ddfcd6f58aadbf12cb20bcbe9a5",
+  "version": "0.9.9.50",
+  "build": 101,
+  "size": 1674669474,
+  "sha256": "3fd9a536e9f1acf919ee69a7b96bdacbb5f680f3aeea876e170c3c57de929e82",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v101/Pegase-PC-2026-11-09-0.9.9.50.zip",
+  "manifest": "baf3a4bee4aeb282d57945d6ffdbf7971ca08c1c6e434ff34af10958aafd7a61",
   "patchs": [
     {
+      "de": "0.9.9.49",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v101/Pegase-PC-patch-0.9.9.49.zip",
+      "taille": 5922508,
+      "sha256": "935412a8f8b96669428ec687ac6e4a02e5be7190722951a82efc8ba7f7a528e1"
+    },
+    {
       "de": "0.9.9.48",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v100/Pegase-PC-patch-0.9.9.48.zip",
-      "taille": 2753805,
-      "sha256": "ab4249fbb0a39a6f3075f061c418fee851758316e6888d97e19cd24d20ce2a50"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v101/Pegase-PC-patch-0.9.9.48.zip",
+      "taille": 6638396,
+      "sha256": "e9c9e8b4f62c2e79b076b508aa7d4f07e44d3c77d7843bf19ad5607013fe23ee"
     },
     {
       "de": "0.9.9.47",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v100/Pegase-PC-patch-0.9.9.47.zip",
-      "taille": 9704687,
-      "sha256": "23445bc616eec3fa4993eec95fed67176cc8d50c199fe75a074180db5d4f8681"
-    },
-    {
-      "de": "0.9.9.46",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v100/Pegase-PC-patch-0.9.9.46.zip",
-      "taille": 10264662,
-      "sha256": "723ffd005c0af86bc8c5ddc72e78d7aa0a0063b8f853e2cf14a994a0959c7add"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v101/Pegase-PC-patch-0.9.9.47.zip",
+      "taille": 12396681,
+      "sha256": "5ba21a6cfcd86d13d19ca138a9cd956723859ffebe7ee335e21b4400435dc84f"
     }
   ],
   "notes": [
-    "Pégase parle au nouveau serveur de la borne : avec cette version, ta partie se sauvegarde de nouveau en ligne et tu retrouves les autres joueurs.",
-    "Les objets de ta boîte aux lettres se posent aussi dehors : « Construire », étape Jardin, onglet « Mes objets »."
+    "Papi Auguste et Mlle Iris ont enfin leur voix quand ils te vouvoient, dès ta première visite.",
+    "Vélo libre : tu passes presque partout, au pire une gamelle !",
+    "Quand tu caresses un chien, ta main se pose sur sa tête. Appuie encore : il se met sur le dos pour des gratouilles.",
+    "Les chiens du village ne restent plus plantés : ils se baladent et rentrent à leur panier.",
+    "Le chat ne flotte plus à côté des toits.",
+    "La montagne reste visible derrière la cascade, dès l'arrivée en avion et au loin."
   ],
   "historique": [
+    {
+      "version": "0.9.9.50",
+      "notes": [
+        "Papi Auguste et Mlle Iris ont enfin leur voix quand ils te vouvoient, dès ta première visite.",
+        "Vélo libre : tu passes presque partout, au pire une gamelle !",
+        "Quand tu caresses un chien, ta main se pose sur sa tête. Appuie encore : il se met sur le dos pour des gratouilles.",
+        "Les chiens du village ne restent plus plantés : ils se baladent et rentrent à leur panier.",
+        "Le chat ne flotte plus à côté des toits.",
+        "La montagne reste visible derrière la cascade, dès l'arrivée en avion et au loin."
+      ]
+    },
     {
       "version": "0.9.9.49",
       "notes": [
@@ -75,22 +90,6 @@
         "Sur une paroi trop raide, tu glisses doucement jusqu'en bas au lieu de rester perchée, et jamais dans l'eau profonde sous l'arche.",
         "Le bout de la rivière du haut descend en pente douce jusqu'aux galets : plus de mur d'eau.",
         "Les bancs de poissons des criques ne nagent plus dans le sable."
-      ]
-    },
-    {
-      "version": "0.9.9.44",
-      "notes": [
-        "La caméra se baisse enfin librement dans les prairies et sur les pentes, et elle ne flotte plus de haut en bas pendant la marche. Elle se relève seulement près des vraies hautes herbes.",
-        "Désiré, derrière son comptoir, a des gestes calmes : il ne glisse plus de côté et sa révérence ne lui plonge plus la tête dans le comptoir.",
-        "Papi Auguste ne se cache plus dans l'escalier de la mairie quand tu arrives.",
-        "Une inscription des géants porte son vrai nom dans le Grand livre (« Inscription des géants n° 1 »), et un message te confirme la photo juste après l'avoir prise.",
-        "Les petits oiseaux des bosquets et du jardin sautillent vraiment au lieu de glisser sur le sol.",
-        "La biche et le cerf ne restent plus collés l'un dans l'autre quand ils se reposent.",
-        "Plus de taches mouchetées sur les bras et les mains du personnage.",
-        "À la petite cascade de la longue rivière, l'eau est au bon niveau : la pêche y marche comme ailleurs.",
-        "Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.",
-        "Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.",
-        "Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr."
       ]
     }
   ]

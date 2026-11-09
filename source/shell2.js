@@ -43,7 +43,7 @@ const TILE_NEWS = {
   smoothie: { kind: 'maj', at: '2026-11-06 05:22' },   // nouvel écran-titre (image de menu, logo, musique de menu)
   tirsaubut: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
   kombat: { kind: 'maj', at: '2026-11-06 04:09' },   // borne 2.0.154 : nouvel écran-titre (image de menu, logo, musique de menu)
-  pegase: { kind: 'maj', at: '2026-11-09 03:40' }   // Pégase 0.9.9.49 : nouveau serveur, objets dehors (borne 2.1.51)
+  pegase: { kind: 'maj', at: '2026-11-09 23:50' }   // Pégase 0.9.9.50 : voix du maire et d'Iris, vélo libre (borne 2.1.60)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));

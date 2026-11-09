@@ -1,19 +1,34 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 97,
-  "versionName": "0.9.9.49",
-  "size": 1237749106,
-  "sha256": "afdc73fa5928bbe33383a372378f80e8fc52dd6a6658b29fc8979a2d608b85f7",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v97/pegase-0.9.9.49.apk",
+  "versionCode": 98,
+  "versionName": "0.9.9.50",
+  "size": 1239685066,
+  "sha256": "6b1e1fb5e8c961b436d60c11f1a84f9ed47cd2b0ae55e95cc67b23823f38e616",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v98/pegase-0.9.9.50.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Pégase parle au nouveau serveur de la borne : avec cette version, ta partie se sauvegarde de nouveau en ligne et tu retrouves les autres joueurs.",
-    "Les objets de ta boîte aux lettres se posent aussi dehors : « Construire », étape Jardin, onglet « Mes objets »."
+    "Papi Auguste et Mlle Iris ont enfin leur voix quand ils te vouvoient, dès ta première visite.",
+    "Vélo libre : tu passes presque partout, au pire une gamelle !",
+    "Quand tu caresses un chien, ta main se pose sur sa tête. Appuie encore : il se met sur le dos pour des gratouilles.",
+    "Les chiens du village ne restent plus plantés : ils se baladent et rentrent à leur panier.",
+    "Le chat ne flotte plus à côté des toits.",
+    "La montagne reste visible derrière la cascade, dès l'arrivée en avion et au loin."
   ],
   "historique": [
+    {
+      "version": "0.9.9.50",
+      "notes": [
+        "Papi Auguste et Mlle Iris ont enfin leur voix quand ils te vouvoient, dès ta première visite.",
+        "Vélo libre : tu passes presque partout, au pire une gamelle !",
+        "Quand tu caresses un chien, ta main se pose sur sa tête. Appuie encore : il se met sur le dos pour des gratouilles.",
+        "Les chiens du village ne restent plus plantés : ils se baladent et rentrent à leur panier.",
+        "Le chat ne flotte plus à côté des toits.",
+        "La montagne reste visible derrière la cascade, dès l'arrivée en avion et au loin."
+      ]
+    },
     {
       "version": "0.9.9.49",
       "notes": [
@@ -59,22 +74,6 @@
         "Sur une paroi trop raide, tu glisses doucement jusqu'en bas au lieu de rester perchée, et jamais dans l'eau profonde sous l'arche.",
         "Le bout de la rivière du haut descend en pente douce jusqu'aux galets : plus de mur d'eau.",
         "Les bancs de poissons des criques ne nagent plus dans le sable."
-      ]
-    },
-    {
-      "version": "0.9.9.44",
-      "notes": [
-        "La caméra se baisse enfin librement dans les prairies et sur les pentes, et elle ne flotte plus de haut en bas pendant la marche. Elle se relève seulement près des vraies hautes herbes.",
-        "Désiré, derrière son comptoir, a des gestes calmes : il ne glisse plus de côté et sa révérence ne lui plonge plus la tête dans le comptoir.",
-        "Papi Auguste ne se cache plus dans l'escalier de la mairie quand tu arrives.",
-        "Une inscription des géants porte son vrai nom dans le Grand livre (« Inscription des géants n° 1 »), et un message te confirme la photo juste après l'avoir prise.",
-        "Les petits oiseaux des bosquets et du jardin sautillent vraiment au lieu de glisser sur le sol.",
-        "La biche et le cerf ne restent plus collés l'un dans l'autre quand ils se reposent.",
-        "Plus de taches mouchetées sur les bras et les mains du personnage.",
-        "À la petite cascade de la longue rivière, l'eau est au bon niveau : la pêche y marche comme ailleurs.",
-        "Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.",
-        "Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.",
-        "Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr."
       ]
     }
   ]
