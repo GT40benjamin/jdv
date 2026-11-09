@@ -19155,7 +19155,7 @@ function atlCtOuvrir(d, titre, accent) {
     const barre = atlEl('s', 'ct-barre', ''); barre.hidden = true; de.hidden = true; s._prix = pr; s._de = de; s._fmt = fmt; s._barre = barre; pz.append(barre, de, pr);
     for (const t of ['Imprimé rien que pour toi, à l’unité', 'Deux papiers au choix', 'Envoyé roulé, livré à ta porte']) ul.appendChild(atlEl('li', '', t));
     fi.append(atlEl('h2', 'ct-n', atlCtNom(pst.nom)), fmt, ul, pz);
-    const go = atlEl('button', 'btn btn-play ct-go', d.commande ? '📦 Le recevoir chez moi' : '🔒 Bientôt'); go.type = 'button'; go.disabled = !d.commande; s._go = go;
+    const go = atlEl('button', 'btn btn-play ct-go', d.commande ? '📦 Le recevoir chez moi' : d.apercu ? '⏳ En attente de l’accord du créateur' : '🔒 Bientôt'); go.type = 'button'; go.disabled = !d.commande; s._go = go;
     go.addEventListener('click', () => { if (d.commande) atlImpressionOuvrir({ image: pst.poster }, { id: pst.fiche }, atlCtNom(pst.nom)); });
     fi.appendChild(go); s.append(mur, fi); rail.appendChild(s);
     if (P.length > 1) { for (const [c, t, di] of [['g', '‹', -1], ['d', '›', 1]]) { const b = atlEl('button', 'ct-nav ' + c, t); b.type = 'button'; b.setAttribute('aria-label', di < 0 ? 'Poster précédent' : 'Poster suivant'); b.disabled = i + di < 0 || i + di >= P.length; b.addEventListener('click', () => allerA(i + di)); mur.appendChild(b); } }
@@ -19189,6 +19189,7 @@ async function atlCtPane(host, f) {
     const t = atlEl('span', 'ct-catt'); t.append(atlEl('b', '', c.ic + ' ' + c.nom), atlEl('small', '', c.sous), atlEl('span', 'ct-catl', c.l.length > 1 ? 'Voir les ' + c.l.length + ' ›' : 'Voir en grand ›'));
     v.append(mur, t); v.addEventListener('click', () => atlCtOuvrir(Object.assign({}, d, { posters: c.l }), f.titre)); g.appendChild(v); }
     host.appendChild(g); }
+  if (d.apercu) host.appendChild(atlEl('p', 'ct-ap', '👀 Aperçu : la vente attend l’accord du créateur de ce jeu.'));
   if (d.proprio) { const b = atlEl('button', 'btn btn-ghost ct-dem', '💬 Demande ' + gA() + ' d’en rajouter'); b.type = 'button'; b.addEventListener('click', () => atlCtDemander()); host.appendChild(b); }
   if (!d.proprio) return;
   const ac = atlEl('section', 'atl-escard ct-ac'), gain = (+d.gain | 0).toLocaleString('fr-FR');

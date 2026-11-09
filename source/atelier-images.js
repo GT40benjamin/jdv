@@ -909,7 +909,7 @@
     const choix = AIM.cmp && AIM.cmp.c === c.id ? AIM.cmp : null;
     const act = (AIM.mode !== 'image' && choix && verDe(c, choix.apres) && verDe(c, choix.apres).etat === 'prete') ? verDe(c, choix.apres) : act0;
     const avant = (choix && verDe(c, choix.avant) && verDe(c, choix.avant).etat === 'prete' && choix.avant !== (act && act.id)) ? verDe(c, choix.avant)
-      : act && (verDe(c, act.parent) || (act.n > 1 ? c.versions.find(v => v.n === 1 && v.etat === 'prete') : null) || pretes.find(v => v.id !== act.id));
+      : act && (verDe(c, act.parent) || (act.n > 1 ? (c.versions.find(v => v.outil === 'import' && v.etat === 'prete') || c.versions.find(v => v.n === 1 && v.etat === 'prete')) : null) || pretes.find(v => v.id !== act.id));
     const G = E('div', 'crea-oimg' + (atelierOuvert(AIM.fiche) ? ' at' : ''));
     // la scène
     const S = E('div', 'crea-carte crea-scene'), L = E('div', 'crea-lh');
@@ -1512,7 +1512,7 @@
   async function telecharger(c, a) {
     if (!a || !a.path) return;
     const u = urlImg(a.path), ext = (a.path.match(/\.(png|jpg|webp)$/) || [, 'jpg'])[1];
-    const nomf = (String(c.titre || 'image').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'image') + '-v' + a.n + '.' + ext;
+    const nomf = (String(c.titre || 'image').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'image') + (a.outil === 'import' ? '-originale' : '-v' + a.n) + '.' + ext;
     try {
       const r = await fetch(u); if (!r.ok) throw new Error('http ' + r.status);
       const b = await r.blob();
