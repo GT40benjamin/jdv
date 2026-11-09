@@ -90,7 +90,7 @@
     ctx.page.classList.add('imp-mode');
     // Tout / Aucun
     const r = E('div', 'imp-tout');
-    r.append(B('imp-lien', 'Tout', () => { for (const t of ctx.tuiles) ST.sel.add(t.c.id); ST.info = ''; ST.pretPartage = null; prefetch(); dessiner(); }),
+    r.append(B('imp-lien', 'Tout', () => { for (const t of ctx.tuiles) if (!t.el.hidden) ST.sel.add(t.c.id); ST.info = ''; ST.pretPartage = null; prefetch(); dessiner(); }),
       B('imp-lien', 'Aucun', () => { ST.sel.clear(); ST.info = ''; ST.pretPartage = null; dessiner(); }),
       E('span', 'imp-astuce', 'Touche une photo pour la choisir. La version prise est celle de sa liste.'));
     ctx.grille.before(r);

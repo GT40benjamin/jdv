@@ -4180,6 +4180,7 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 button.atl-cred{cursor:pointer;font:inherit}
 button.atl-cred:hover{filter:brightness(1.15)}
 .atl-packs>.atl-chv,.atl-packs>.atl-panneb{grid-column:1/-1;justify-self:center}.atl-panneb{min-height:44px}
+.atl-libq{display:grid;gap:4px;margin:0 0 10px}.atl-libq .atl-ongq{width:100%;box-sizing:border-box;min-height:46px;font-size:16px}.atl-libqn{min-height:18px;font-size:14px;color:#fff;text-shadow:0 1px 3px #0009}.atl-lib[hidden],.atl-libres[hidden]{display:none}.atl-libresg{margin:0 0 12px}
 .atl-packs{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .atl-pack{display:grid;justify-items:center;gap:4px;padding:16px 10px;border-radius:16px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;transition:transform .15s,border-color .15s}
 .atl-pack:hover,.atl-pack:focus-visible{transform:translateY(-3px);border-color:#ffd34d}

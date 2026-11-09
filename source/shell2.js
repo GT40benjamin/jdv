@@ -18577,6 +18577,9 @@ function atlFormeSvg(forme, couleur) {
 }
 // ---- l'étape « Le design » : chaque élément de la fiche, avec son dessin (découpé), sa forme, ou « à dessiner »
 const atlNorm = s => String(s || '').trim().toLowerCase();
+// 9 nov. 2026 (l'admin) : chercher sans tenir compte des accents ni des majuscules ; tous les mots tapés doivent se trouver
+const atlSansAccent = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const atlMotsTrouves = (mots, tx) => mots.every(m => tx.includes(m)), atlMotsDe = q => atlSansAccent(q).split(/\s+/).filter(Boolean);
 function atlElemsFiche(fi) { const out = []; for (const k of ['personnages', 'objets', 'decor']) for (const x of atlListeDe(fi[k])) if (!out.some(o => atlNorm(o.nom) === atlNorm(x))) out.push({ nom: x, k }); return out; }
 function atlDessinDe(f, fi, nom) {
   const n = atlNorm(nom), as = Array.isArray(f.assets) ? f.assets : [];
@@ -19231,6 +19234,31 @@ function atlPosterMenu(a, f, nom) {
     setTimeout(() => { if (M.isConnected) document.addEventListener('pointerdown', dehors, true); }, 0);
   };
 }
+// 9 nov. 2026 (l'admin) : « 🔎 » en haut des Éléments : toutes les catégories d'un coup ; chaque résultat garde sa vraie carte et ses boutons. Le texte cherché reste si la page se redessine.
+function atlLibChercheur(host, lib, f, fi, libre, lecture, items, ongs, coll) {
+  const tout = [];
+  for (const [k, ic, lab] of ATL_CATS) for (const it of items[k] || []) tout.push({ g: ic + ' ' + lab, it, tx: atlSansAccent([it.nom, it.pose, it.parent, lab].join(' ')) });
+  for (const [k, l] of ongs) for (const a of l) tout.push({ g: k, a, tx: atlSansAccent([atlOngTitre(a), a.nom, (Array.isArray(a.infos) ? a.infos.flat().join(' ') : ''), k].join(' ')) });
+  for (const l of coll.lignees) tout.push({ g: '📖 ' + coll.nom, l, tx: atlSansAccent([l.nom, ...l.stades.map(s => s.nom), coll.nom].join(' ')) });
+  if (tout.length < 2) return;
+  const W = atlEl('div', 'atl-libq'), q = atlEl('input', 'atl-archq atl-ongq'), cpt = atlEl('small', 'atl-libqn', ''), res = atlEl('div', 'atl-libres'); res.hidden = true;
+  q.type = 'search'; q.placeholder = '🔎 Chercher un élément…'; q.setAttribute('aria-label', 'Chercher dans tous les éléments'); ATL.libQ = ATL.libQ || {}; q.value = ATL.libQ[f.id] || '';
+  W.append(q, cpt); host.append(W, res);
+  const tel = atlPetit(), rendre = () => {
+    const mots = atlMotsDe(q.value); ATL.libQ[f.id] = q.value; res.textContent = '';
+    if (!mots.length) { res.hidden = true; lib.hidden = false; cpt.textContent = ''; return; }
+    const ok = tout.filter(x => atlMotsTrouves(mots, x.tx)); lib.hidden = true; res.hidden = false; cpt.textContent = ok.length + ' résultat' + (ok.length > 1 ? 's' : '');
+    if (!ok.length) { res.appendChild(atlEl('p', 'atl-libvide', 'Rien ne correspond à « ' + q.value.trim() + ' ».')); return; }
+    const G = new Map(); for (const x of ok) { if (!G.has(x.g)) G.set(x.g, []); G.get(x.g).push(x); }
+    for (const [g, l] of G) { const b = atlEl('div', 'atl-libresg'); b.appendChild(atlEl('h5', 'atl-libsub', g + ' · ' + l.length)); res.appendChild(b);
+      if (l[0].a) { atlOngletRendre(b, l.map(x => x.a), f); continue; }
+      if (l[0].l) { atlCollRendre(b, Object.assign({}, coll, { lignees: l.map(x => x.l), n: l.reduce((t, x) => t + x.l.stades.length, 0) })); continue; }
+      const sec = atlEl('section', 'atl-libc'), gr = atlEl('div', 'atl-libg'); sec.appendChild(gr); b.appendChild(sec); atlPager(sec, l, tel ? 24 : 48, x => { gr.appendChild(atlEncart(x.it, f, fi, libre, lecture)); return null; }, n => n + ' élément' + (n > 1 ? 's' : '')); }
+  };
+  let t = 0; q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(rendre, 180); });
+  q.addEventListener('keydown', e => { if (e.key === 'Escape' && q.value) { e.stopPropagation(); q.value = ''; rendre(); } });
+  if (q.value) queueMicrotask(rendre);
+}
 function atlBiblio(host, f, fi, lecture) {
   lecture = true;   // 2.0.123 / 2.0.124 (admin = même écran) (l'admin : « le bouton créer mes éléments, ça les embrouille ») : le joueur regarde ; un nouvel élément, il le demande à la mascotte
   const et = String(f.etat || ''), libre = !lecture && ['brouillon', 'en_discussion', 'complete'].includes(et), items = atlBiblioItems(f, fi);
@@ -19240,7 +19268,7 @@ function atlBiblio(host, f, fi, lecture) {
   }
   const lib = atlEl('div', 'atl-lib' + (lecture ? ' lecture' : ''));
   let cat = store.get('jdw.atl.libcat', 'personnage'); const ongs = atlOngletsDe(f), ongCle = k => 'o:' + k, ongCat = String(cat).startsWith('o:') && ongs.has(String(cat).slice(2)); if (!ATL_CATS.some(c => c[0] === cat) && cat !== 'collection' && !ongCat) cat = 'personnage';
-  const coll = atlCollection(f);   // 2.0.129 : « 📖 Cosmodex » (ou « Collection ») = les familles à stades, une ligne par lignée
+  const coll = atlCollection(f); try { atlLibChercheur(host, lib, f, fi, libre, lecture, items, ongs, coll); } catch (e) {}   // 2.0.129 : « 📖 Cosmodex » (ou « Collection ») = les familles à stades, une ligne par lignée
   const pleines = ATL_CATS.filter(([c]) => items[c].length);   // 2.0.125 (chef) : pas d'onglet vide
   if (coll.lignees.length) pleines.push(['collection']);
   for (const k of ongs.keys()) pleines.push([ongCle(k)]);

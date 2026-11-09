@@ -919,6 +919,11 @@
       for (const x of toutes) { const o = E('option'); o.value = x.id; o.textContent = x.titre || 'Mon image'; if (x.id === c.id) o.selected = true; sl.appendChild(o); }
       sl.setAttribute('aria-label', 'Choisir l’image'); sl.addEventListener('change', () => { AIM.cur = sl.value; AIM.cmp = null; AIM.pos = 0.5; render(); });
       w.appendChild(sl); L.appendChild(w);
+      if (toutes.length >= 8) {   // beaucoup d'images : le choix se filtre en tapant (celle qui est ouverte reste dans la liste)
+        const q = E('input', 'crea-isq'); q.type = 'search'; q.placeholder = '🔎'; q.setAttribute('aria-label', 'Chercher une image dans la liste');
+        q.addEventListener('input', () => { const mots = atlMotsDe(q.value); sl.textContent = ''; for (const x of toutes) { if (x.id !== c.id && !atlMotsTrouves(mots, atlSansAccent(x.titre || 'Mon image'))) continue; const o = E('option'); o.value = x.id; o.textContent = x.titre || 'Mon image'; if (x.id === c.id) o.selected = true; sl.appendChild(o); } });
+        L.appendChild(q);
+      }
     } else { const tb = B('crea-titreimg', '🖼️ ' + (c.titre || 'Mon image').toUpperCase(), () => renommerImage(c)); tb.title = 'Renommer cette image'; L.appendChild(tb); } if (!adm()) { const rn = B('crea-renom', '✏️', () => renommerImage(c)); rn.title = 'Renommer (gratuit)'; rn.setAttribute('aria-label', 'Renommer cette image'); L.appendChild(rn); }
     if (att && att.etat === 'en_cours') { const p = E('span', 'crea-prix', '⏳ V' + att.n + ' en cours…'); L.appendChild(p); }
     const seg = E('div', 'crea-seg');
@@ -1077,7 +1082,7 @@
   const resultats = () => { const L = []; for (const c of (AIM.d && AIM.d.creations) || []) for (const v of c.versions) if (v.etat === 'prete' && v.outil !== 'import' && v.path) L.push({ c, v }); return L.sort((a, b) => String(b.v.at || '').localeCompare(String(a.v.at || ''))); };
   function renderResultats(O) {
     const cfg = atelierDe(AIM.fiche), L = resultats(), p = E('div', 'crea-carte crea-page');
-    const h = E('div', 'crea-h', '✨ ' + cfg.resultat.toUpperCase()); { const n = nResultats(); h.appendChild(E('small', '', n ? n + ' photo' + (n > 1 ? 's' : '') + ' prête' + (n > 1 ? 's' : '') + ' à télécharger' : '')); } p.appendChild(h);
+    const h = E('div', 'crea-h', '✨ ' + cfg.resultat.toUpperCase()); const baseN = (() => { const n = nResultats(); return n ? n + ' photo' + (n > 1 ? 's' : '') + ' prête' + (n > 1 ? 's' : '') + ' à télécharger' : ''; })(), cptN = E('small', '', baseN); h.appendChild(cptN); p.appendChild(h);
     if (!L.length) { p.append(E('p', 'crea-vide-t', cfg.videResultat), B('crea-bt', '🖼️ Aller dans mon atelier', () => { AIM.vue = 'atelier'; render(); })); p.lastChild.style.alignSelf = 'flex-start'; O.appendChild(p); return; }
     const g = E('div', 'crea-res'), vus = [];   // vus : les tuiles affichées, pour « ☑️ Sélectionner » (atelier-impression.js)
     for (const c of (AIM.d && AIM.d.creations) || []) {
@@ -1093,9 +1098,14 @@
         const o = E('option'); o.value = x.id; o.textContent = numAff(c, x) + etatLib(x); o.disabled = !(x.etat === 'prete' && x.path); if (x.id === v.id) o.selected = true; sel.appendChild(o); }
       sel.addEventListener('change', () => { AIM.resSel[c.id] = sel.value; render(); });
       const t = E('div', 't'), tt = E('div', 'tt'); tt.append(E('b', '', c.titre || 'Mon image'), sel); t.append(tt, E('small', '', resume(v)));
-      d.append(i, t, B('crea-bt violet', '⬇️ Télécharger ' + numAff(c, v), () => telecharger(c, v))); g.appendChild(d); vus.push({ c, v, el: d });
+      d.append(i, t, B('crea-bt violet', '⬇️ Télécharger ' + numAff(c, v), () => telecharger(c, v))); g.appendChild(d); vus.push({ c, v, el: d, tx: atlSansAccent([c.titre, ...ok.map(x => [resume(x), x.consigne, x.texte].filter(Boolean).join(' '))].join(' ')) });
     }
-    p.appendChild(g); O.appendChild(p);
+    if (vus.length > 1) {   // l'admin (9 nov.) : chercher dans ses photos, par nom et par texte ; sans accents ni majuscules ; le texte reste si la page se redessine
+      const zq = E('div', 'crea-q'), q = E('input'), vide = E('p', 'crea-vide-t'); vide.hidden = true; q.type = 'search'; q.placeholder = '🔎 Chercher une photo…'; q.setAttribute('aria-label', 'Chercher une photo'); q.value = AIM.qRes || ''; zq.appendChild(q); p.appendChild(zq);
+      const appliquer = () => { AIM.qRes = q.value; const mots = atlMotsDe(q.value); let n = 0; for (const x of vus) { const on = atlMotsTrouves(mots, x.tx); x.el.hidden = !on; if (on) n++; } cptN.textContent = mots.length ? n + ' photo' + (n > 1 ? 's' : '') + ' sur ' + vus.length : baseN; vide.hidden = n > 0; vide.textContent = n ? '' : 'Aucune photo ne correspond à « ' + q.value.trim() + ' ».'; };
+      q.addEventListener('input', appliquer); q.addEventListener('focus', () => { AIM.qResF = true; }); q.addEventListener('blur', () => { AIM.qResF = false; }); q.addEventListener('keydown', e => { if (e.key === 'Escape' && q.value) { e.stopPropagation(); q.value = ''; appliquer(); } });
+      p.append(g, vide); O.appendChild(p); appliquer(); if (AIM.qResF) setTimeout(() => { try { q.focus({ preventScroll: true }); q.setSelectionRange(q.value.length, q.value.length); } catch (e) {} }, 0);
+    } else { p.appendChild(g); O.appendChild(p); }
     try { const X = window.jdwImpression; if (X) X.brancher({ page: p, tete: h, grille: g, tuiles: vus, url: urlImg, numAff, toast, adm: adm() }); } catch (e) { try { console.error('[atelier-impression]', e); } catch (x) {} }
   }
   // 🗺️ la feuille de route du projet (la fiche que {g} remplit, comme pour un jeu)
