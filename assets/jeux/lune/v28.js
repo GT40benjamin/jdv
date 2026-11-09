@@ -90,11 +90,11 @@ const PANTIN = (() => {
       if (m === 'joie') { const j = Math.abs(Math.sin(t * TAU * 1.4)); H.bob = j * 5; arms[0].u = 70 + j * 6; arms[1].u = 70 + j * 6; arms[0].r = 19; arms[1].r = -19; arms[0].bend = -0.2; arms[1].bend = -0.2; }
       if (m === 'touche') { H.lean = -4; H.bob = -2; arms[0].u = 46; arms[1].u = 46; arms[0].f = -5; arms[1].f = -5; }
     } else if (m === 'marche' || m === 'course') {
-      const run = m === 'course', S = P.foulee || (run ? 44 : 36);
+      const run = m === 'course', S = (P.foulee || (run ? 44 : 36)) * (pret() ? 0.74 : 1);   /* V28 (ticket cde0434e, « quand il marche c'est bizarre ») : des pas plus courts */
       for (let i = 0; i < 2; i++) {
         const q = (ph + i * 0.5) % 1;
         if (q < 0.5) { legs[i].f = S / 2 - (q / 0.5) * S; legs[i].lift = 0; }
-        else { const w = (q - 0.5) / 0.5, e = 0.5 - Math.cos(w * Math.PI) / 2; legs[i].f = -S / 2 + e * S; legs[i].lift = Math.pow(Math.sin(w * Math.PI), 0.8) * (run ? 12 : 8.5); legs[i].swing = Math.sin(w * Math.PI); }
+        else { const w = (q - 0.5) / 0.5, e = 0.5 - Math.cos(w * Math.PI) / 2; legs[i].f = -S / 2 + e * S; legs[i].lift = Math.pow(Math.sin(w * Math.PI), 0.8) * (run ? 12 : 8.5) * (pret() ? 0.68 : 1); legs[i].swing = Math.sin(w * Math.PI); }
         arms[i].f = -legs[i].f * (run ? 0.55 : 0.45); arms[i].bend = run ? 0.9 : 0.3; arms[i].u = run ? 40 : 34;
       }
       const c2 = Math.cos(ph * TAU * 2);
@@ -182,8 +182,8 @@ const PANTIN = (() => {
     // jambes + bottes
     S.legs.forEach((g, i) => {
       const side = i === 0 ? 1 : -1;
-      const lf = 1 + (pret() ? 0.7 : 1.25) * Math.abs(T.c); const hip = proj(T, pret() ? Math.sign(g.r) * 7.5 * cr : g.r * 0.9 * cr, up(H.hip) - 1, lean * 0.1), ft = proj(T, g.r * cr, g.lift * lf + 5 + Math.max(0, bob - 0) * (S.m === 'saut' || S.m === 'jetpack' ? 1 : 0), g.f);
-      parts.push({ z: ft.z - 30 + side * 0.01, d: () => jambe(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS) });
+      const lf = 1 + (pret() ? 0.7 : 1.25) * Math.abs(T.c); const hip = proj(T, pret() ? Math.sign(g.r) * 7.5 * cr : g.r * 0.9 * cr, up(H.hip) + (pret() ? 3 : -1), lean * 0.1), ft = proj(T, g.r * cr, g.lift * lf + 5 + Math.max(0, bob - 0) * (S.m === 'saut' || S.m === 'jetpack' ? 1 : 0), g.f);
+      parts.push({ z: (pret() ? hip.z * 3 : ft.z) - 30 + side * 0.01, d: () => jambe(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS) });   /* V28 (ticket cde0434e) : la jambe du côté du joueur reste toujours devant l'autre */
     });
     // sac à dos (derrière lui)
     const sacZ = proj(T, 0, up(48), -11 + lean * 0.3).z;
@@ -193,9 +193,10 @@ const PANTIN = (() => {
     // bras
     S.arms.forEach((a, i) => {
       const side = i === 0 ? 1 : -1;
-      const sh0 = proj(T, side * (pret() ? 13.8 : 13.5) * cr, up(H.sh), lean * 0.5);
-      const hand = proj(T, a.r * cr, up(a.u) + Math.max(-2, a.f) * 0.4 * Math.abs(T.c), a.f + lean * 0.4);
-      parts.push({ z: sh0.z * 1.2 + a.f * c * 0.3 + 0.5, d: () => bras(ctx, T, sh0, hand, a, k, ow, blanc, ombre, acc, gant, side) });
+      const vA = pret() ? vueDe(T) : '', deFace = (vA === 'face' || vA === 'dos') && a.u < 50 && Math.abs(a.f) < 9;   /* V28 (l'admin, « regarde bien les images ») : de face et de dos, le bras sort de sous l'épaule et s'écarte du corps */
+      const sh0 = proj(T, side * (deFace ? 10.2 : vA === 'tq' ? 10.6 : pret() ? 13.1 : 13.5) * cr, up(H.sh) - (deFace ? 2.5 : vA === 'tq' ? 6 : pret() ? 4 : 0), lean * 0.5);   /* V28 (l'admin, tickets cde0434e et 0c91f1fe) : l'épaule rentre dans le buste */
+      const hand = proj(T, (a.r + (deFace ? side * 3 : 0)) * cr, up(a.u + (deFace ? 3.2 : 0)) + Math.max(-2, a.f) * 0.4 * Math.abs(T.c), a.f + lean * 0.4);
+      parts.push({ z: deFace ? -1.6 : sh0.z * 1.2 + a.f * c * 0.3 + 0.5, d: () => bras(ctx, T, sh0, hand, a, k, ow, blanc, ombre, acc, gant, side) });
     });
     // V17 : l'outil en main (multi-outil pour miner, laser pour attaquer) : tenu par la main droite, il pointe devant lui dans toutes les directions
     if (P.outil && (S.m === 'mine' || S.m === 'construit')) {
@@ -764,7 +765,7 @@ const PANTIN = (() => {
   function jambe(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS) {
     if (!pret()) return jambeCode(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS);
     const v = vueDe(T), P = piecesVue(v, LC), K1 = T.k, Lg = 41, d = Math.hypot(ft.x - hip.x, ft.y - hip.y) / K1, bend = Math.sqrt(Math.max(0, (Lg / 2) ** 2 - (Math.min(d, Lg) / 2) ** 2));
-    const kn = { x: (hip.x + ft.x) / 2 + T.s * bend * K1 * 0.9, y: (hip.y + ft.y) / 2 + T.c * K * bend * K1 * 0.9 - bend * 0.15 * K1 }, sol = { x: ft.x, y: ft.y + 5 * K1 };
+    const kn = { x: (hip.x + ft.x) / 2 + T.s * bend * K1 * 0.62, y: (hip.y + ft.y) / 2 + T.c * K * bend * K1 * 0.62 - bend * 0.15 * K1 }, sol = { x: ft.x, y: ft.y + 5 * K1 };
     const cote = side * T.s, deCote = v === 'tq' || v === 'profil', C = v === 'face' ? (side > 0 ? 'G' : 'D') : v === 'dos' ? (side > 0 ? 'D' : 'G') : (cote > 0 ? 'G' : 'D'), flip = deCote && T.s < 0, loin = deCote && cote < 0, U = UP * K1, J = 'jambe' + C, Q = 'cuisse' + C;
     seg(ctx, loin ? loinDe(P, J) : P[J], kn, sol, U, 0.138, 0, flip);
     seg(ctx, loin ? loinDe(P, Q) : P[Q], hip, kn, U, 0.05, 0.138, flip);
@@ -790,8 +791,11 @@ const PANTIN = (() => {
     if (S.m === 'joie' || S.m === 'touche') { const x = -w / 2 + V.bouche[0] * w, y = y0 + V.bouche[1] * h, r = V.rx * w; ctx.fillStyle = '#7a2a2a'; ctx.beginPath(); if (S.m === 'joie') { ctx.moveTo(x - r, y - r * 0.2); ctx.quadraticCurveTo(x, y + r * 1.5, x + r, y - r * 0.2); ctx.closePath(); } else ctx.ellipse(x, y + r * 0.1, r * 0.45, r * 0.55, 0, 0, TAU); ctx.fill(); }
   }
   function teteImage(ctx, T, L, S, up, lean, nue) {
-    const v = vueDe(T), P = piecesVue(v, L), im = nue ? P.sanscasque : P.tete, C = proj(T, 0, up(S.H.head), lean * 0.9), U = UP * T.k, w = im.width * U, h = im.height * U, y0 = 16.5 * T.k - h, tourne = (v === 'profil' || v === 'tq') && T.s < 0;
-    ctx.save(); ctx.translate(C.x, C.y); ctx.rotate(S.headTilt * 0.02); if (tourne) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, y0, w, h);
+    const v = vueDe(T), P = piecesVue(v, L), im = nue ? P.sanscasque : P.tete, C = proj(T, 0, up(S.H.head - (v === 'dos' && !nue ? 3 : 0)), lean * 0.9), U = UP * T.k, w = im.width * U, h = im.height * U, y0 = 16.5 * T.k - h, tourne = (v === 'profil' || v === 'tq') && T.s < 0;
+    ctx.save(); ctx.translate(C.x, C.y); ctx.rotate(S.headTilt * 0.02); if (tourne) ctx.scale(-1, 1); const dosC = v === 'dos' && !nue, cy = y0 + h * 0.8;   /* V28 (l'admin) : de dos, le casque se termine rond sur le sac, sans l'anneau du cou que le dessin laissait voir */
+    if (dosC) { ctx.save(); ctx.beginPath(); ctx.rect(-w / 2, y0, w, h * 0.8); ctx.ellipse(0, cy, w * 0.345, h * 0.112, 0, 0, Math.PI); ctx.clip(); }
+    ctx.drawImage(im, -w / 2, y0, w, h);
+    if (dosC) { ctx.restore(); ctx.beginPath(); ctx.ellipse(0, cy, w * 0.345, h * 0.112, 0, 0, Math.PI); ctx.lineWidth = w / 90; ctx.strokeStyle = '#2a2a33'; ctx.stroke(); }
     visagePose(ctx, im, nue ? (v === 'dos' ? null : (v === 'tq' ? 'face' : v) + '_sc') : (v === 'dos' ? null : v), S, L, w, h, y0); ctx.restore();
   }
   function casque(ctx, T, L, S, up, lean, k, ow, blanc, ombre, acc, accS) { if (!pret()) return casqueCode(ctx, T, L, S, up, lean, k, ow, blanc, ombre, acc, accS); teteImage(ctx, T, L, S, up, lean, false); }
@@ -1614,6 +1618,7 @@ function mount(root, api) {
       const n = b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24);
       const idx = JSON.parse(new TextDecoder().decode(b.subarray(8, 8 + n))), base = 8 + n;
       for (const [nom, o, l] of idx) { if (dead) return; try { SONS[nom] = await S.decode(b.slice(base + o, base + o + l).buffer); } catch (e) { /* un son illisible : muet */ } }
+      try { SONS.victoire = await S.decode(wavVictoire()); } catch (e) { /* rien */ }   /* V28 (l'admin, ticket a23fb181, « on dirait un avion ») : une petite fanfare, fabriquée ici */
     } catch (e) { /* pas de son : le jeu marche quand même */ }
     try {   // V17 : un cri par type d'Astrofaune (ElevenLabs, tour/cris_v17.js)
       const b = await lirePaquet(ROOT() + 'assets/jeux/lune/v17/cris.bin'); if (!b) return;
@@ -1628,6 +1633,12 @@ function mount(root, api) {
     son('cri_' + a.t[0], (vol == null ? 1 : vol) * 0.9, x, y, rate);
   }
   // un bruitage ; (x, y) donné : plus faible avec la distance à l'explorateur ; rate : hauteur variée pour ne pas lasser
+  function wavVictoire() {   // quatre notes qui montent, comme une clochette
+    const sr = 44100, n = Math.round(sr * 1.25), F = new Float32Array(n), N = [[523.25, 0, 0.42], [659.25, 0.12, 0.42], [783.99, 0.24, 0.46], [1046.5, 0.38, 0.8]];
+    for (const [f, d, du] of N) { const i0 = Math.round(d * sr), m = Math.min(n - i0, Math.round(du * sr)); for (let i = 0; i < m; i++) { const t = i / sr, e = Math.min(1, t / 0.006) * Math.exp(-t * 5.2); F[i0 + i] += e * (Math.sin(2 * Math.PI * f * t) * 0.62 + Math.sin(4 * Math.PI * f * t) * 0.2 + Math.sin(6 * Math.PI * f * t) * 0.06); } }
+    const b = new ArrayBuffer(44 + n * 2), v = new DataView(b), w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }; w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, F[i] * 0.7)) * 32767, true); return b;
+  }
   function son(nom, vol, x, y, rate) {
     if (!SONS[nom] || paused) return;
     let v = vol == null ? 1 : vol;
@@ -3735,7 +3746,7 @@ function mount(root, api) {
   async function chargerBases() {
     BASES.clear();
     if (!MONDEX || !MONDEX.lire || !PL) return;
-    try { const r = await MONDEX.lire('base:'); if (!Array.isArray(r)) return; for (const d of r) { const m = /^base:([^:]+):(\d+)$/.exec(d.cle || ''); if (m && +m[2] === PL.key && d.valeur && d.valeur.p) BASES.set(m[1], nettoyerBase(d.valeur)); } } catch (e) { /* hors ligne */ }
+    try { const r = await MONDEX.lire('base:'); if (!Array.isArray(r)) return; for (const d of r) { const m = /^base:([^:]+):(\d+)$/.exec(d.cle || ''); if (m && +m[2] === PL.key && d.valeur && d.valeur.p) BASES.set(m[1], nettoyerBase(d.valeur)); } try { eloignerEpave(); } catch (e) { /* rien */ } } catch (e) { /* hors ligne */ }
   }
   function nettoyerBase(v) { const b = { ax: +v.ax || 0, ay: +v.ay || 0, p: {}, t: {}, amis: Array.isArray(v.amis) ? v.amis.slice(0, 20).map(String) : [] }; let n = 0; for (const k in v.p) { if (++n > 900) break; const q = v.p[k]; if (q && PB[q.t] && MATS[q.m] && /^-?\d+,-?\d+$/.test(k)) b.p[k] = { t: q.t, m: q.m, c: (+q.c || 0) % COULEURS.length, o: q.o ? 1 : 0, sous: COUCHE_SOL[q.sous] ? q.sous : null }; }
     n = 0; for (const k in (v.t || {})) { if (++n > 600) break; const q = v.t[k]; if (q && (q.t === 'toit' || q.t === 'dome') && MATS[q.m] && /^-?\d+,-?\d+$/.test(k)) b.t[k] = { t: q.t, m: q.m, c: (+q.c || 0) % COULEURS.length }; } return b; }
@@ -6973,7 +6984,7 @@ function mount(root, api) {
       gagnerXpHeros(xp); gagnerXpRobot(xp);
       { const p = gagnerPoussiere(CB.ennemis.filter(F => !F.fuit && F.sorte === 'bete').reduce((s, G) => s + poussiereCombat(G), 0)); if (p) CB.gain.push('✨ +' + p + ' poussière d’étoiles (tu en as ' + poussiereEt() + ')'); }   /* V25 */
       for (const b of A.equipe) gagnerXpBete(b, participants.has(b) ? xp : Math.round(xp / 2));
-      CB.msg = (CB.net && CB.net.mode === 'pvp' ? '🏆 Tu as gagné le duel contre ' + CB.net.autre + ' ! ' : '🏆 Victoire ! ') + '+' + xp + ' points d’expérience'; if (CB.net && CB.net.mode === 'pvp') { AFX().duels = (AFX().duels || 0) + 1; E0().astros += 200; CB.gain.push('🪙 +200 astros'); } son('ok', 1); flash = 0.3;
+      CB.msg = (CB.net && CB.net.mode === 'pvp' ? '🏆 Tu as gagné le duel contre ' + CB.net.autre + ' ! ' : '🏆 Victoire ! ') + '+' + xp + ' points d’expérience'; if (CB.net && CB.net.mode === 'pvp') { AFX().duels = (AFX().duels || 0) + 1; E0().astros += 200; CB.gain.push('🪙 +200 astros'); } son(SONS.victoire ? 'victoire' : 'ok', 0.85, null, null, 1); flash = 0.3;
       if (CB.opt.surVictoire) try { CB.opt.surVictoire(); } catch (e) { /* rien */ }
       if (!CB.net && rnd() < 0.03) { A.objets.oeuf = (A.objets.oeuf || 0) + 1; CB.gain.push('🥚 Tu trouves un Œuf d’Astrofaune ! (il éclot dans un incubateur)'); }   // V17
     } else if (issue === 'defaite') {
@@ -7396,7 +7407,7 @@ function mount(root, api) {
   function pageFaune(px, y0, pw, h0, t) {
     const A = AFX(), fiche = selC && !portrait, gw = fiche ? pw * 0.56 : pw, cs = (portrait ? 62 : 70) * U, cols = Math.max(3, Math.floor((gw - 20 * U) / cs)), rows = Math.max(2, Math.floor((h0 - 40 * U) / cs)), par = cols * rows, pages = Math.ceil(AF_LISTE.length / par);
     pageC = clamp(pageC, 0, pages - 1);
-    AF_LISTE.slice(pageC * par, pageC * par + par).forEach((id, i) => {
+    ORDRE_COSMO.slice(pageC * par, pageC * par + par).forEach((id, i) => {
       const x = px + 10 * U + (i % cols) * cs, y = y0 + Math.floor(i / cols) * cs, d = A.dex[id] || 0, a = AF[id];
       ctx.save(); ctx.fillStyle = selC === id ? 'rgba(122,255,208,0.25)' : d === 2 ? 'rgba(60,70,130,0.6)' : 'rgba(255,255,255,0.06)'; ctx.beginPath(); ctx.roundRect(x + 2, y + 2, cs - 4, cs - 4, 9 * U); ctx.fill();
       if (d === 2) { ctx.strokeStyle = TYPES[a.t[0]].c; ctx.lineWidth = 1.5; ctx.stroke(); }
@@ -8244,20 +8255,13 @@ function mount(root, api) {
     cosmoOuvert = false; lancerCombat(null, { rival: 'Équipe de ' + S.nom + ', jouée par l’ordinateur', defi: true, cachees: L, niv: L.map(c => c.bete.n), surVictoire: () => { E0().astros += 150; CB.gain.push('🪙 +150 astros'); } });
   }
   // ---------------------------------------------------------------- les 20 MUSIQUES DE COMBAT (selon la planète, les bêtes féroces et les grands combats)
-  const MUS_BIOME = { foret: 'c01', geante: 'c01', tropicale: 'c01', champignons: 'c01', volcan: 'c02', mer_lave: 'c02', desert: 'c02', ocean: 'c03', toxique: 'c03', glace: 'c04', tempete: 'c05', flottante: 'c05',
-    cristaux: 'c06', obscure: 'c07', souterraine: 'c07', etrange: 'c07', ruines: 'c08', metal: 'c08', lunaire: 'c09', lunes: 'c09' };
+  /* V28 (l'admin, 9 nov. : « pas des musiques qui se répètent, des musiques sympas ») : 8 morceaux longs, jamais deux fois le même de suite */
+  const MUS_COMBAT = ['m07', 'm09', 'm10', 'm11', 'm12'], MUS_AMB = ['m01', 'm02', 'm03', 'm04', 'm05', 'm06'], MUS_SAC = new Map(); let musDer = '', ambCle = null, ambAct = null, ambFin = 0;   /* V28 (l'admin) : m07 et les 4 batailles (m09 à m12) en combat, un autre à chaque combat ; les six autres sont les ambiances des planètes et de l'espace, m08 pour les stations et les arènes */
+  function morceauSuivant(L) { let s = MUS_SAC.get(L); if (!s || !s.length) { s = L.slice().sort(() => Math.random() - 0.5); if (s[0] === musDer && s.length > 1) s.push(s.shift()); MUS_SAC.set(L, s); } musDer = s.shift(); return musDer; }
+  function ambianceLieu(cle) { if (cle !== ambCle || !ambAct || tG > ambFin) { ambCle = cle; ambAct = morceauSuivant(MUS_AMB); ambFin = tG + 150; } return ambAct; }   // un autre morceau en changeant de lieu, et toutes les 2 min 30
   function musiqueCombat() {
-    if (!CB) return 'boss'; const o = CB.opt, E = CB.ennemis;
-    if (CB.net) return CB.net.mode === 'pvp' ? 'c13' : 'c19';
-    if (o.champion) return E.filter(F => !F.ko).length <= 1 ? 'c16' : 'c15';
-    if (o.arene) return 'c14';
-    if (o.rival || o.defi) return 'c12';
-    if (E.some(F => F.e === 'gardien')) return 'c18';
-    if (E.some(F => F.c && F.c.legendaire)) return 'c11';
-    if (E.some(F => F.boss)) return 'c17';
-    if (E.some(F => F.feroce)) return 'c10';
-    if (o.cache) return 'c20';
-    return MUS_BIOME[PL && PL.bid] || 'c01';
+    if (!CB) return 'boss'; if (CB.musique) return CB.musique;
+    return CB.musique = morceauSuivant(MUS_COMBAT);
   }
   // =================================================================== V16 : LES 8 CINÉMATIQUES (crash, archives, début de combat, capture, évolution, rivaux, boss, fin)
   // Les grandes images (archives, rivaux, boss, fin) : la caméra glisse lentement, des poussières de lumière, les mots arrivent un par un. Toucher : la suite.
@@ -8834,6 +8838,28 @@ function mount(root, api) {
     const X = E0(), n = X.pieces.length + X.posees.length; dire('🔧 Tu as trouvé ' + p.nom + ' ! (' + n + ' / 6)', 3.5);
     if (!X.posees.length && X.pieces.length === 1) robotDit('Rapportons-la à l’épave ! Pour l’installer, il faudra aussi des minerais : mine les filons brillants.', 6);
     else if (!piecesSol.length) robotDit('C’est tout ce qu’il y a par ici. Retournons à l’épave pour tout installer !', 5);
+  }
+  /* V28 (l'admin, tickets b2f7d3bd et cde0434e : « on a atterri sur SAMBA ») : tout le monde tombe au même endroit ; si une base d'un autre joueur y est construite, l'épave, le vaisseau et les pièces partent plus loin.
+     Une seule fois par arrivée, et toujours au même endroit pour un même joueur (l'angle dépend de son nom). */
+  const LOIN_BASE = 1150;
+  function eloignerEpave() {
+    if (!PL || PL.key !== CLE_CRASH() || !epave || !NAV || epave.verif) return; epave.verif = true;
+    const autres = []; for (const [n, o] of BASES) if (n !== moiNom) autres.push(o);
+    const libre = (x, y) => autres.every(o => Math.hypot(o.ax - x, o.ay - y) > LOIN_BASE);
+    if (libre(epave.x, epave.y)) return;
+    let h = 7; for (const ch of String(moiNom)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const a0 = (h % 360) * Math.PI / 180, ax = epave.x, ay = epave.y, T0 = MONDE.TAILLE;
+    for (let r = 1300; r <= 3900; r += 260) for (let k = 0; k < 16; k++) {
+      const a = a0 + k * TAU / 16, q = placeSure(ax + Math.cos(a) * r, ay + Math.sin(a) * r);
+      if (q.x < 700 || q.y < 700 || q.x > T0 - 700 || q.y > T0 - 700 || !libre(q.x, q.y) || TER.info(q.x, q.y).liq) continue;
+      const X = E0(), nx = q.x + 40, ny = q.y - 30, dx = nx - ax, dy = ny - ay, pres = J && Math.hypot(J.x - ax, J.y - ay) < 1500;
+      epave.x = nx; epave.y = ny;
+      if (crashV17()) { if (X.navette) { NAV.x = nx; NAV.y = ny + 2; } else { const b0 = NAV.brume; preparerCrashV17(); if (b0) NAV.brume = b0; } }
+      else { NAV.x += dx; NAV.y += dy; for (const p of piecesSol) { p.x += dx; p.y += dy; } }
+      if (pres) { const s0 = placeSure(J.x + dx, J.y + dy); J.x = s0.x; J.y = s0.y; if (robot) { robot.x = J.x + 70; robot.y = J.y + 30; } camX = J.x; camY = J.y - 40; flash = Math.max(flash, 0.35); }
+      if (state !== 'combat') { try { peuplerPlanete(); placerArchive(); } catch (e) { /* rien */ } }
+      return;
+    }
   }
   function preparerCrashV17() {
     const X = E0(); NAV = { x: epave.x, y: epave.y + 2, cassee: true, epave: true }; epave.fume = Math.max(0.15, 1 - X.posees.length / 6);
@@ -10658,7 +10684,7 @@ function mount(root, api) {
   const attVue = id => { const A = AFX(); return !!(A.vuAtt && A.vuAtt[id]); };
   // ce que le robot explique, au bon moment (après le combat, une seule fois chacun)
   const TUTO25 = {
-    cadeau: n => 'Bip ! Nouveau : la POUSSIÈRE D’ÉTOILES ✨. Pour ce que tu as déjà fait, je t’en donne ' + n + '. Ouvre un Astrofaune dans l’Équipe → « Attaques » pour lui apprendre de nouvelles attaques !',
+    cadeau: n => 'Bip ! Regarde ce que j’ai trouvé : de la POUSSIÈRE D’ÉTOILES ✨ ! Il y en a ' + n + '. Ouvre un Astrofaune dans l’Équipe → « Attaques » pour lui apprendre de nouvelles attaques !',
     pous: () => 'Bip ! Tu as gagné de la POUSSIÈRE D’ÉTOILES ✨ ! Ouvre un Astrofaune dans l’Équipe → « Attaques » : elle sert à lui apprendre de nouvelles attaques.',
     pal3: () => 'Une attaque de palier III ! Les plus fortes demandent un stade d’évolution plus grand : un bébé ne peut pas les lancer.',
     fam: () => 'WOW… son ATTAQUE DE FAMILLE ★ ! Aucune autre famille ne sait la faire.',
@@ -11855,6 +11881,10 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
     ESPECES[id] = { nom, taille: tl, role: 'chasseur', vie: 40, degats: 8, butin: ['cuivre', 'fer'], af: true, gros: tl > 170 ? 1 : 0 };
     PANTINS[id] = { auto: true, amp: 0, bipede: false, sansPattes: true, ailes: false, vole: true, gauche: PROFIL_GAUCHE.has(id) }; PANT_DE[id] = id;
   }
+  /* V28 (l'admin, 9 nov.) : les numéros du Cosmodex : les 3 lignées de départ en tête (1 à 9), puis toutes les autres, et les Anciennes à la fin, au-delà de la série.
+     Seuls le numéro affiché et l'ordre des pages changent : les ids et AF_LISTE ne bougent pas (sauvegardes, équipes, captures, tirages au sort). */
+  const ORDRE_COSMO = (() => { const tete = ['braise', 'clapot', 'mousse'].flatMap(f => [1, 2, 3].map(i => f + i)), dt = new Set(tete); return [...tete, ...AF_LISTE.filter(id => !dt.has(id) && !AF[id].ancienne), ...AF_LISTE.filter(id => AF[id].ancienne)]; })();
+  ORDRE_COSMO.forEach((id, i) => { AF[id].num = i + 1; });
   FAM_DESSINEES.add('espace');
   const ESPECE_REG = n => 'esp' + n;
   // ---------------------------------------------------------------- dans l'espace : une rencontre RARE en arrivant dans un système d'une région
@@ -12087,14 +12117,14 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   let ambiance = '', ambT = 0;
   function majAmbiance(dt) {
     if ((ambT -= dt) > 0) return; ambT = 0.5;
-    let a = 'planete';
+    let a = ambianceLieu('p' + (PL ? PL.key : ''));
     if (state === 'prologue' || state === 'cine') a = 'histoire';   // V17 : l'histoire a sa propre musique (lunehistoire-1)
-    else if (state === 'espace' || state === 'transi' || state === 'carte') a = EN.some(e => !e.mort && ENNEMIS[e.t].boss && ship && Math.hypot(e.x - ship.x, e.y - ship.y) < 2600) ? 'boss' : 'espace';
-    else if (state === 'station') a = 'station';
+    else if (state === 'espace' || state === 'transi' || state === 'carte') a = EN.some(e => !e.mort && ENNEMIS[e.t].boss && ship && Math.hypot(e.x - ship.x, e.y - ship.y) < 2600) ? 'boss' : ambianceLieu('espace');
+    else if (state === 'station') a = 'm08';
     else if (state === 'jeu' && J && CR.some(c => c.boss && !c.mort && Math.hypot(c.x - J.x, c.y - J.y) < 1100)) a = 'boss';
     else if (state === 'combat') a = musiqueCombat();
-    else if (state === 'evolution') a = 'c11';
-    else if (state === 'arene') a = 'c14';
+    else if (state === 'evolution') a = 'm07';
+    else if (state === 'arene') a = 'm08';
     if (/^c\d\d$/.test(a)) a += 'd';   // V17 : les musiques de combat, plus douces
     if (a === ambiance) return; ambiance = a;
     try { if (api.music) api.music('lune' + a); } catch (e) { /* pas de musique : rien */ }
@@ -12137,7 +12167,8 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
          son dessin de profil, retourné s'il regarde à gauche ; les pantins en pièces (Renard, Roi-mâchoire) dessinés de profil par le jeu lui-même */
       miniDroite: (g, id, x, y, s) => { beteDroite(g, id, x, y, s); },
       portraitSur: (g, F, x, y, r) => { const vrai = ctx; ctx = g; try { portrait1(F, x, y, r); } finally { ctx = vrai; } },
-      enJeuSur: (g, id, x, y, h, th) => { const v0 = { ctx, W, H, Z, camX, camY }; try { ctx = g; W = 0; H = 0; Z = 1; camX = 0; camY = 0; dessinerPantinCreature({ esp: id, x, y, th, ph: 0, clip: 'repos', id: 1, echelle: h / ESPECES[id].taille, flash: 0, prep: 0, tm: 0, tc: 0, sansOmbre: true }, 0); } finally { ctx = v0.ctx; W = v0.W; H = v0.H; Z = v0.Z; camX = v0.camX; camY = v0.camY; } },
+      enJeuSur: (g, id, x, y, h, th, clip, ph) => { const v0 = { ctx, W, H, Z, camX, camY }; try { ctx = g; W = 0; H = 0; Z = 1; camX = 0; camY = 0; dessinerPantinCreature({ esp: id, x, y, th, ph: ph || 0, clip: clip || 'repos', id: 1, echelle: h / ESPECES[id].taille, flash: 0, prep: 0, tm: 0, tc: 0, sansOmbre: true }, 0); } finally { ctx = v0.ctx; W = v0.W; H = v0.H; Z = v0.Z; camX = v0.camX; camY = v0.camY; } },
+      eloignerEpave, BASES, SONS, epave: () => epave, NAV: () => NAV, wavVictoire, musiqueCombat,
       hero: { pret: () => EXPL_PANTIN.pret() }, pieceImg: id => IMG['p-pv_' + id + '-0'], gauches: () => Array.from(PROFIL_GAUCHE), nonAuto: () => AF_LISTE.filter(id => PANTINS[PANT_DE[id]] && !PANTINS[PANT_DE[id]].auto),
       evoDemo: (de, vers) => { EVO = { b: { e: de, n: 20, demo: true }, de, vers: vers || AF[de].vers || de, t: 0, reste: [], demo: true }; chargerFamille(AF[EVO.vers].fam); state = 'evolution'; },
       evoEtat: () => EVO && { t: EVO.t, spV: !!EVO.spV, part: EVO.part && EVO.part.length },
