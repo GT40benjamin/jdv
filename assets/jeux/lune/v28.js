@@ -1461,6 +1461,7 @@ function loadImages() {
         await Promise.all(idx2.map(([nom, o, l]) => new Promise(res => { const im = new Image(); im.onload = () => { IMG[nom] = im; res(); }; im.onerror = () => res(); im.src = URL.createObjectURL(new Blob([b2.subarray(base2 + o, base2 + o + l)], { type: 'image/webp' })); }))); }
     } catch (e) { /* sans elles : les planètes d'ILO */ }
     LOADED = true;
+    try { chargerVues2(); } catch (e) { /* les anciens dessins restent */ }
   })();
   LOAD.catch(() => { LOAD = null; });
   return LOAD;
@@ -5376,6 +5377,7 @@ function mount(root, api) {
   function rig(nom, im) {
     if (RIG.has(nom)) return RIG.get(nom);
     const H0 = hanches(im), { A, w, h, cv } = H0, sans = (PANTINS[nom.split(':')[0]] || {}).sansPattes;
+    { const uj = (PANTINS[nom.split(':')[0]] || {}).uneJambe; if (uj && nom.endsWith(':0')) { const R = rigUneJambe(H0, uj, w, h, cv, A); if (R) { RIG.set(nom, R); return R; } } }
     const PB = !sans && nom.endsWith(':0') ? pattesParLeBas(A, w, h) : null;
     if (PB) { const R = rigParLeBas(PB, w, h, cv); RIG.set(nom, R); return R; }   // V16.1 : la méthode par le bas a trouvé au moins 2 pattes
     const R0 = rigHanches(H0, sans, w, h, cv, A);
@@ -5386,6 +5388,16 @@ function mount(root, api) {
   /* V28 (ticket e1fec04f, « leurs pattes sont coupées ») : une patte large et courte (l'ours) pivotait autour de son milieu : son bord descendait sous la coupe du ventre et laissait une encoche.
      k : une patte large pivote moins ; ov : le haut de la patte (caché derrière le corps) monte assez pour fermer l'encoche au plus grand angle. */
   function jeuPatte(haut, large) { const k = Math.max(0.45, Math.min(1, (haut + 1) / (0.72 * large))); return { k, ov: Math.max(4, Math.round(haut * 0.12), Math.ceil((large / 2) * Math.sin(0.625 * k)) + 3) }; }
+  /* V28 (Griffe-vive, signalement de PATOU) : les dessins de profil montrent ses deux jambes l'une derrière l'autre : la méthode par le bas n'en trouve aucune et la bête glissait sans marcher.
+     La jambe sous la hanche (yh = uj × hauteur) est découpée et posée deux fois, en opposition ; celle de derrière plus sombre. */
+  function rigUneJambe(H0, uj, w, h, cv, A) {
+    const yb = H0.yb, yh = Math.round(yb * uj), lab = new Int32Array(w * h), pile = [], info = { 1: { x0: w, x1: 0, n: 0 } };
+    for (let x = 0; x < w; x++) if (A[yb * w + x]) pile.push(yb * w + x);
+    while (pile.length) { const i = pile.pop(); if (lab[i] || !A[i]) continue; const y = Math.floor(i / w), x = i - y * w; if (y < yh || y > yb) continue; lab[i] = 1; const q = info[1]; q.n++; if (x < q.x0) q.x0 = x; if (x > q.x1) q.x1 = x; if (x > 0) pile.push(i - 1); if (x < w - 1) pile.push(i + 1); pile.push(i - w); if (y < yb) pile.push(i + w); }
+    if (info[1].n < 40) return null;
+    const R = rigParLeBas({ yh, yb, lab, ids: [1], info }, w, h, cv), L = R.legs[0], c2 = document.createElement('canvas'); c2.width = L.cv.width; c2.height = L.cv.height; const g = c2.getContext('2d'); g.drawImage(L.cv, 0, 0); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(0,20,10,0.28)'; g.fillRect(0, 0, c2.width, c2.height);
+    R.legs = [Object.assign({}, L, { cv: c2 }), L]; return R;
+  }
   function rigParLeBas(PB, w, h, cv) {
     {
       const { yh, yb, lab, ids, info } = PB;
@@ -7281,7 +7293,11 @@ function mount(root, api) {
   }
   // l'Astrobal : elle vole en cloche, s'ouvre, avale la bête, tremble (1 à 3 fois), puis capture ou s'ouvre
   // les paquets des objets dessinés (Astrobal et soins, objets d'évolution, objets anciens)
-  function chargerObjets() { chargerFamille('objets'); chargerFamille('evo'); chargerFamille('anciens'); chargerFamille('fruits'); }
+  function chargerObjets() { chargerFamille('objets'); chargerFamille('evo'); chargerFamille('anciens'); chargerFamille('fruits'); chargerVues2(); }
+  /* V28 (signalement de PATOU du 8 nov.) : Droïde ancien et Gardien de la Couronne ont enfin un vrai profil et un dos, Griffe-vive une queue d'un seul trait : paquet a-anciens2. Tant qu'il n'est pas arrivé, les anciens dessins restent (jamais de bête invisible). */
+  const VUES2 = { droide: 'droide2', gardien: 'gardien2', velociraptor: 'raptor2' };
+  PANTINS.droide2 = { auto: true, amp: 0.3, bipede: true }; PANTINS.gardien2 = { auto: true, amp: 0.3, bipede: true }; PANTINS.raptor2 = Object.assign({}, PANTINS.raptor, { uneJambe: 0.74, amp: 0.42 });
+  function chargerVues2() { return chargerFamille('anciens2').then(ok => { if (ok) for (const k in VUES2) PANT_DE[k] = VUES2[k]; }); }
   // l'image d'un objet, centrée dans un carré de côté s ; false s'il n'est pas (encore) dessiné : l'appelant met son icône
   function iconeObjet(id, x, y, s) { const im = IMG['p-' + id + '-0']; if (!im) { chargerObjets(); return false; }
     const k = s / Math.max(im.width, im.height); ctx.drawImage(im, x - im.width * k / 2, y - im.height * k / 2, im.width * k, im.height * k); return true; }
