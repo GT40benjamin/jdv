@@ -19,6 +19,8 @@
 .gc-x:hover{background:rgba(255,255,255,.14)}
 .gc-corps{overflow-y:auto;overscroll-behavior:contain;padding:14px 22px 22px;outline:0}
 .gc-charge,.gc-vide{margin:24px 0;text-align:center;color:#aab6c9}
+.gc-charge-z{text-align:center}.gc-charge-z .gc-charge{margin:12px 0 8px}
+.gc-tuiles.gc-apercu .gc-tuile:disabled{opacity:.66;cursor:progress}
 .gc-etat{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.07);font-size:14px}
 .gc-etat.ok{background:rgba(82,214,128,.16);color:#a6f0be}
 .gc-etat.non{background:rgba(255,106,106,.14);color:#ffc2c2}

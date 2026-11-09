@@ -5355,6 +5355,15 @@ async function oaStart(where, btn) {
       url = j.url;
     } catch (e) { if (btn) btn.disabled = false; try { localStorage.removeItem('jdw.oauth'); } catch (x) {} oaSetMsg(oaErrMsg({ err: e.message, errCode: e.code || '' }, true, e), 'err'); return; }
   }
+  // Serveur déplacé (VPS, nov. 2026) : les applis Android déjà installées n'ouvrent Google que pour *.supabase.co ou accounts.google.com.
+  // On leur donne donc directement l'adresse de Google. Si le serveur ne connaît pas google-url, on garde l'adresse habituelle.
+  if (app && ctx.mode !== 'link') {
+    try {
+      const r = await fetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/google-url?' + q, { headers: { apikey: CFG.key } });
+      const j = r.ok ? await r.json() : null;
+      if (j && /^https:\/\/accounts\.google\.com\//.test(j.url || '')) url = j.url;
+    } catch (e) {}
+  }
   OA.busy = Date.now();
   try { sessionStorage.setItem('jdw.mode', MODE); } catch (e) {}   // au retour, la borne rouvre du même côté (arcade ou Pégase)
   if (btn) { btn.disabled = true; setTimeout(() => { btn.disabled = false; }, 4000); }
