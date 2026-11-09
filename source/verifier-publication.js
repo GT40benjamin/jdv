@@ -12,6 +12,8 @@ if (!pw && process.platform === 'win32') {
 const files = execSync('git ls-files -co --exclude-standard', { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
   .filter(f => fs.existsSync(path.join(ROOT, f)));
 const bad = [];
+// 9 nov. 2026 : le serveur a déménagé. L'ancien est figé en lecture seule : une page qui le vise paraît marcher, mais rien ne s'y enregistre.
+const ANCIEN_SERVEUR = ['wplictor', 'vvtkfikpfdnl', '.supabase.co'].join('');
 // le module de l'espace privé est servi par la base, JAMAIS publié : ses marques (et le nom de sa mascotte) ne doivent être dans aucun fichier
 const PRIV_MARQUES = [['jdw', 'pk', 'win'].join('-'), ['pk', 'ov'].join('-') + '{', ['pk', 'billet', 'lire'].join('_')], PRIV_NOM = new RegExp(['po', 'oky'].join(''), 'i');
 const IMG_OK = [/^icon-(maskable-)?\d+\.png$/, /^icon-badge-96\.png$/,   // 2.1.21 : pastille des notifications (silhouette blanche d'une seule couleur, aucune photo ; vérifiée par le chef le 7 nov. 2026)
@@ -37,6 +39,7 @@ for (const f of files) {
     const t = buf.toString('utf8');
     for (const m of t.matchAll(/data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]{20000,})/g)) bad.push(f + ' : grosse image ' + m[1] + ' en base64 (' + Math.round(m[2].length / 1365) + ' Ko) : photo ?');
     if (PRIV_MARQUES.some(m => t.includes(m)) || PRIV_NOM.test(t)) bad.push(f + ' : contient le module de l\'espace privé (ou le nom de sa mascotte)');
+    if (t.includes(ANCIEN_SERVEUR)) bad.push(f + ' : contient l\'adresse de l\'ancien serveur, figé en lecture seule. Mets https://api.elixirgamestudio.com (copie trop vieille ? git rebase origin/main, puis republie)');
     if (/__IMG_(PILOT|HEAD|FACE)__/.test(t) && !/pleingaz-src\.html$/.test(f) && !/build2\.py$/.test(f)) bad.push(f + ' : emplacement de photo de Plein Gaz non remplacé');
   }
 }
