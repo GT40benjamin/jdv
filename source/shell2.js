@@ -693,6 +693,7 @@ function menuMontrer(g, o) {
       if (howtoOf(g, !!o.duo)) L.appendChild(it('❓ COMMANDES', () => howtoShow(g, $('jdw-play'), { duo: !!o.duo, then: () => { const b = M.querySelector('.tm-it'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} } })));
       L.appendChild(it('🔊 SON', () => vue('son')));
       if (boutique) { petit('🛍️ BOUTIQUE', 'Boutique', () => { try { boutiqueOuvrir(g); } catch (e) {} }); const bb = [...M.querySelectorAll('.tm-it')].pop(); if (bb) bb.dataset.k = 'boutique'; }   // 2.0.168 (l'admin) : la vitrine par-dessus le titre, sans monter le jeu
+      if (M._ct) petit('📦 CHEZ TOI', 'Chez toi', () => { try { atlCtOuvrir(M._ct, atlTitre(g) || g.title, g.accent); } catch (e) {} });
       if (!o.duo && !g.noScore && !isGuest()) petit('🏆 RECORDS', 'Records', () => { try { openBoardFor(g.id); } catch (e) {} });
       petit('⚙️ OPTIONS', 'Options', () => vue('param'));
     } else if (quoi === 'son') {
@@ -739,6 +740,7 @@ function menuMontrer(g, o) {
   document.addEventListener('keydown', M._esc, true);
   M.addEventListener('pointerdown', e => { if (M.dataset.vue === 'touche' && !e.target.closest('.tm-it')) { e.preventDefault(); vue(''); } });
   // la boutique : seulement si le jeu en a une (jeux de l'Atelier)
+  if (ATL_NES.has(g.id) && ONLINE && !netOff() && !isGuest() && profile.name) atlCtLire({ jeu: g.id }).then(d => { if (d && d.posters.length && document.getElementById('jdw-gmenu') === M) { M._ct = d; boutique = boutique || 1; if (M.dataset.vue === 'liste') vue(''); } }).catch(() => {});
   if (ATL_NES.has(g.id) && ONLINE && !netOff() && !isGuest() && profile.name) rpc('at_boutique_liste', { p_name: profile.name, p_jeu: g.id }, { quiet: true, quiet404: true })
     .then(r => { if (r && Array.isArray(r.articles) && r.articles.length && document.getElementById('jdw-gmenu') === M) { boutique = r.articles.length; if (M.dataset.vue === 'liste') vue(''); } }).catch(() => {});
 }
@@ -11069,6 +11071,7 @@ async function boutiqueOuvrir(g0) {
   const cr = atlCred(), sol = el('p', 'bout-vsol', cr ? 'Tu as ' + Math.max(0, cr.solde | 0).toLocaleString('fr-FR') + ' 💎' : '');
   C.append(hd, sol); const corps = el('div', 'bout-vb'); C.appendChild(corps);
   const piedV = el('p', 'bout-vn', ''); C.appendChild(piedV);
+  if (ATL_NES.has(g.id) && !isGuest() && profile.name) atlCtLire({ jeu: g.id }).then(d => { if (!d || !d.posters.length || !V.isConnected) return; V._ct = d; const b = el('button', 'ct-ban'); b.type = 'button'; const i = el('img'); i.alt = ''; i.src = atlIaUrl(d.posters[0].vignette || d.posters[0].image); const t = el('span', 'ct-bant'); t.append(el('b', '', '📦 Chez toi, en vrai'), el('small', '', 'Imprimé et livré à ta porte')); b.append(i, t, el('span', 'ct-banf', '›')); b.addEventListener('click', () => atlCtOuvrir(d, atlTitre(g) || g.title, g.accent)); C.insertBefore(b, corps); const v = corps.querySelector('.vide0'); if (v) v.remove(); }).catch(() => {});
   V.appendChild(C);
   const fermerTout = () => { V.remove(); document.removeEventListener('keydown', esc, true);
     if (surTitre) { const gm = document.getElementById('jdw-gmenu'), bb = gm && gm.querySelector('[data-k="boutique"]'); if (bb) setTimeout(() => { try { bb.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 30); return; }
@@ -11114,7 +11117,7 @@ async function boutiqueOuvrir(g0) {
   const rendre = r => {
     corps.textContent = ''; if (!r) { corps.appendChild(el('p', 'bout-vvide', 'J’ouvre la boutique…')); return; } const L = (r && Array.isArray(r.articles) ? r.articles : []).slice();
     piedV.textContent = L.some(a => a.conso) ? 'Les articles 🔁 se rachètent quand tu veux, les autres sont à toi pour toujours. Tout revient au créateur du jeu.' : 'Tout ce que tu achètes est à toi pour toujours, et tout revient au créateur du jeu.';
-    if (!L.length) { corps.appendChild(el('p', 'bout-vvide', 'La boutique est vide pour l’instant.')); return; }
+    if (!L.length) { piedV.textContent = ''; if (!V._ct) corps.appendChild(el('p', 'bout-vvide vide0', 'La boutique est vide pour l’instant.')); return; }
     const sp = L.filter(boutSpecial), au = L.filter(a => !boutSpecial(a));
     const rang = (titre, l) => { if (!l.length) return; corps.appendChild(el('h3', 'bout-vr', titre)); const gr = el('div', 'bout-vg'); for (const a of l) gr.appendChild(carte(a, r)); corps.appendChild(gr); };
     rang('⭐ Niveaux bonus et objets spéciaux', sp); rang(sp.length ? '🛍️ Et aussi' : '🛍️ Les articles', au);
@@ -15596,6 +15599,7 @@ function jdwBack() {
   { const tk = document.querySelector('.atl-tk'); if (tk && tk._fermer) { if (document.querySelector('.atl-ofmod')) { const m = document.querySelector('.atl-ofmod'); if (m._fermer) m._fermer(); else m.remove(); return true; } tk._fermer(); return true; } }   // 2.1.10 : « Mes demandes » de l'arrêt sur image (B = revenir à l'image)
   { const ar = document.querySelector('.atl-arret'); if (ar && ar._fin) { ar._fin(); return true; } }   // 2.0.170 : l'arrêt sur image (B = reprendre)
   { const bm = document.getElementById('jdw-boutmod'); if (bm) { if (bm._fermer) bm._fermer(); else bm.remove(); return true; } }   // 2.0.130 : la fenêtre d'achat
+  { const ip = document.querySelector('.atl-imp'); if (ip && ip._fermer) { ip._fermer(); return true; } const ct = document.getElementById('jdw-chez-toi'); if (ct && ct._fermer) { ct._fermer(); return true; } }
   { const bv = document.getElementById('jdw-vitrine'); if (bv) { if (bv._fermer) bv._fermer(); else bv.remove(); return true; } }   // 2.0.134 : la vitrine (2.0.168 : sa page détail d'abord ; elle passe AVANT l'écran-titre)
   { const gm = document.getElementById('jdw-gmenu'); if (gm && gm._recul) { gm._recul(); return true; } }   // espace privé (fenêtre ouverte par-dessus tout)
   { const lm = document.getElementById('jdw-livmod'), li = document.getElementById('jdw-liveinv');   // 2.0.127 : « Inviter mes copains » et l'invitation reçue (B de la manette, retour d'Android)
@@ -17556,6 +17560,9 @@ function atlEspace(W, box, f, g, pane) {
   const aide = () => { const b = atlEl('button', 'atl-esaide', '?'); b.type = 'button'; b.title = 'Comment ça marche ?'; b.setAttribute('aria-label', 'Comment ça marche ?'); b.addEventListener('click', atlEspAide); return b; };
   const nArt = () => { try { return (BOUT && BOUT.r && Array.isArray(BOUT.r.articles) && BOUT.r.articles.length) || (W._nArt | 0); } catch (e) { return W._nArt | 0; } };
   const SECT = [['jeu', '🎮', 'Mon jeu'], ['demandes', '💬', gNM()], ['route', '🗺️', 'Feuille de route & versions'], ['elements', '🧩', 'Éléments'], ['boutique', '🛍️', 'Boutique'], ['stats', '📊', 'Stats'], ['params', '⚙️', 'Paramètres']];   // 2.1.13 : 🗺️ + 🗂️ = un seul menu (même libellé dans les ateliers)
+  { const k = 'f:' + f.id, c = ATL_CT.get(k);   // 9 nov. : « 📦 Chez toi, en vrai » : seulement si le serveur a un poster à montrer pour ce jeu
+    if (c && c.d && c.d.posters.length) SECT.splice(SECT.findIndex(x => x[0] === 'boutique') + 1, 0, ['vrai', '📦', 'Chez toi, en vrai']);
+    else if (!c && !isGuest()) { ATL_CT.set(k, { at: 0, d: null }); atlCtLire({ fiche: f.id }, true).then(d => { const f2 = atlFiche(); if (d.posters.length && f2 && f2.id === f.id) { ATL.pSig = ''; try { atlRender(); } catch (e) {} } }).catch(() => { ATL_CT.delete(k); }); } }
   if (atlRegAdmin() && atlRegModule(f)) SECT.push(['reglages', '🎚️', 'Réglages du jeu']);   // 7 nov. 2026 : admins seulement, module avec réglages
   else if (atlRegAdmin() && f.jeu && atlNe(f.jeu)) { const k = f.jeu + '@' + ((f.version | 0) || 1), E = ATL.regEssai || (ATL.regEssai = {});   // le module de cette version pas encore chargé
     if (!ATL_MODS_OK.has(k) && !E[k]) { E[k] = 1; atlModule(f.jeu, (f.version | 0) || 1).then(m => { const f2 = atlFiche(); if (atlRegOk(m) && f2 && f2.id === f.id) { ATL.pSig = ''; try { atlRender(); } catch (e) {} } }).catch(() => {}); } }
@@ -17573,7 +17580,7 @@ function atlEspace(W, box, f, g, pane) {
   const top = atlEl('div', 'atl-estop'), pk2 = pk('mini'); top.append(pk2, aide()); W.prepend(top);
   { for (const o of R0.querySelectorAll('.atl-esflot, .atl-estabs')) o.remove();
     const T = atlEl('nav', 'atl-estabs'); T.setAttribute('aria-label', 'Menu de ton jeu');
-    for (const [k, ic, lab] of SECT) T.appendChild(bouton(k, ic, k === 'route' ? 'Feuille & versions' : k === 'params' ? 'Réglages' : k === 'reglages' ? 'Réglages du jeu' : lab, 'atl-est' + (k === 'admin' || k === 'reglages' ? ' rouge' : '') + (k === 'route' || k === 'reglages' ? ' deux' : '')));   // 2.1.13 : les versions aussi au téléphone
+    for (const [k, ic, lab] of SECT) T.appendChild(bouton(k, ic, k === 'route' ? 'Feuille & versions' : k === 'params' ? 'Réglages' : k === 'vrai' ? 'En vrai' : k === 'reglages' ? 'Réglages du jeu' : lab, 'atl-est' + (k === 'admin' || k === 'reglages' ? ' rouge' : '') + (k === 'route' || k === 'reglages' ? ' deux' : '')));   // 2.1.13 : les versions aussi au téléphone
     R0.appendChild(T); }
   W._pk = [pk1, pk2];
   setTimeout(() => { try { atlJeuVnMaj(); } catch (e) {} }, 0);   // 7 nov. 2026 : la pastille « Vn » qui arrive, à côté de « Mon jeu »
@@ -17599,6 +17606,7 @@ function atlEspace(W, box, f, g, pane) {
       p.appendChild(r); } }
   // 🛍️, 📊, ⚙️ : les sections
   { const p = pane('boutique'); p.appendChild(atlEl('h3', 'atl-ph3', '🛍️ La boutique de ton jeu')); const st = atlEl('div', 'atl-esnums atl-esbnums'); st.dataset.esp = 'boutique'; p.appendChild(st); const c = atlEl('div', 'atl-esbout'); p.appendChild(c); atlEspBoutique(c, f); }
+  if (SECT.some(x => x[0] === 'vrai')) { const p = pane('vrai'); p.appendChild(atlEl('h3', 'atl-ph3', '📦 Chez toi, en vrai')); const c = atlEl('div', 'ct-box'); p.appendChild(c); atlCtPane(c, f); }
   { const p = pane('stats'); p.appendChild(atlEl('h3', 'atl-ph3', '📊 Les statistiques de ton jeu')); const s = atlEl('div', 'atl-esstats atl-escard'); s.dataset.esp = 'stats'; s.appendChild(atlEl('p', 'atl-chv', 'Un instant…')); p.appendChild(s); }
   { const p = pane('params'); p.appendChild(atlEl('h3', 'atl-ph3', '⚙️ Paramètres'));
     const vb = atlEl('button', 'btn btn-ghost', '🖼️ Modifier l’image de ta tuile'); vb.type = 'button'; vb.addEventListener('click', () => { try { atlVignetteDem(f, atlVignetteUrl(f) || ''); } catch (e) {} });
@@ -17869,7 +17877,7 @@ function atlRenderProjet(W, f) {
   if (jouable && !atlAdminIci()) { const hp = atlEl('div', 'atl-phpub'); atlBoutonsJeu(hp, f, true); const pv = atlEl('div', 'atl-pubv'); hp.appendChild(pv); atlPubV(pv, f); hd.appendChild(hp); }
   // 20 h 35 (Benjamin) : la fiche et les dessins sont dans la feuille de route (à droite) ; ici : Jouer + Discussion, ou la V1 en construction
   const T = jouable ? [['jeu', '🎮 Jouer'], ['demandes', '💬 Discussion avec ' + gN()], ['elements', '🧩 Éléments']] : [];   // 2.0.137 (l'admin : « on voit tout dans le chat ») : plus d'onglet « Mes demandes »   // 2.0.10 (Benjamin) : après la feuille de route, tout passe par les demandes
-  if (jouable && !T.some(x => x[0] === ATL.tab) && !['boutique', 'route', 'versions', 'stats', 'params', 'admin', 'reglages'].includes(ATL.tab)) ATL.tab = 'jeu';   // 2.1.13 (testeur) : la page lue reste ouverte quand une donnee change   // 2.0.142 : les sections de l'espace du jeu
+  if (jouable && !T.some(x => x[0] === ATL.tab) && !['boutique', 'vrai', 'route', 'versions', 'stats', 'params', 'admin', 'reglages'].includes(ATL.tab)) ATL.tab = 'jeu';   // 2.1.13 (testeur) : la page lue reste ouverte quand une donnee change   // 2.0.142 : les sections de l'espace du jeu
   if (jouable) {
     const nav = atlEl('div', 'atl-ptabs'); nav.setAttribute('role', 'tablist');
     for (const [k, lab] of T) { const b = atlEl('button', 'atl-ptab', k === 'elements' && atlElNeufs(f) ? lab + ' ✨' + atlElNeufs(f) : lab); b.type = 'button'; b.dataset.k = k; b.setAttribute('role', 'tab'); b.addEventListener('click', () => atlProjTab(k)); nav.appendChild(b); }
@@ -19022,7 +19030,7 @@ function atlImpressionOuvrir(a, f, nom) {
   const ad = {}; for (const c of CH) ad[c[0]] = '';
   const adOk = () => !!(ad.firstname.trim() && ad.lastname.trim() && ad.street1.trim() && /^[0-9]{5}$/.test(ad.zip.trim()) && ad.city.trim() && /^[+0-9 .()-]{6,20}$/.test(ad.phone.trim()) && /^[^@\s]+@[^@\s]+[.][^@\s]+$/.test(ad.email.trim()));
   const fermer = () => { if (occupe) return; W.remove(); document.removeEventListener('keydown', cle, true); }, cle = e => { if (e.key === 'Escape') { e.stopPropagation(); fermer(); } };
-  x.addEventListener('click', fermer); W.addEventListener('pointerdown', e => { if (e.target === W) fermer(); }); document.addEventListener('keydown', cle, true);
+  W._fermer = fermer; x.addEventListener('click', fermer); W.addEventListener('pointerdown', e => { if (e.target === W) fermer(); }); document.addEventListener('keydown', cle, true);
   const vide = () => { corps.textContent = ''; if (msg) { corps.appendChild(atlEl('p', 'atl-impm', msg)); msg = ''; } };
   const lignes = (h, l) => { const t = atlEl('dl', 'atl-impf'); for (const [k, v, c] of l) { const dt = atlEl('dt', c || '', k), dd = atlEl('dd', c || '', v); t.append(dt, dd); } h.appendChild(t); };
   const prix = (h, d) => lignes(h, [[d.produit || 'Poster', d.qualite || ''], ['Livraison' + (d.service ? ' (' + d.service + ')' : ''), 'comprise'], ['Total TTC', atlImpEuros(d.prix_ttc), 'tot']]);
@@ -19079,6 +19087,59 @@ function atlImpressionOuvrir(a, f, nom) {
   }
   corps.appendChild(atlEl('p', 'atl-impw', '⏳ …'));
   atlImpApi({ action: 'etat' }).then(r => { if (!W.isConnected) return; if (r && r.commande) suivi(r.commande); else montrerForm(); }).catch(() => { if (W.isConnected) panne(); });
+}
+// 9 nov. 2026 (l'admin) : « 📦 Chez toi, en vrai » : les posters d'un jeu, imprimés et livrés. On ne parle que d'impression livrée. Le serveur décide de ce qui s'affiche (at_chez_toi) : poster prêt, créateur d'accord, jeu publié ; un jeu sans poster n'a pas ce menu.
+const ATL_CT = new Map();
+async function atlCtLire(o, frais) {
+  const k = o.fiche ? 'f:' + o.fiche : 'j:' + o.jeu, c = ATL_CT.get(k); if (!frais && c && c.d && Date.now() - c.at < 60000) return c.d;
+  const d = await rpc('at_chez_toi', { p_name: profile.name, p_jeu: o.jeu || null, p_fiche: o.fiche || null }, { quiet: true, quiet404: true, ms: ATL_ATT_MS });
+  const v = d && Array.isArray(d.posters) ? d : { posters: [] }; ATL_CT.set(k, { at: Date.now(), d: v }); return v;
+}
+const atlCtNom = n => String(n || 'Poster').replace(/^Poster\s*[·:-]\s*/i, '');
+function atlCtOuvrir(d, titre, accent) {
+  if (document.getElementById('jdw-chez-toi') || !d || !d.posters || !d.posters.length) return;
+  const W = atlEl('div', 'ct'); W.id = 'jdw-chez-toi'; W.setAttribute('role', 'dialog'); W.setAttribute('aria-modal', 'true'); W.setAttribute('aria-label', 'Chez toi, en vrai'); if (accent) W.style.setProperty('--ct-acc', accent);
+  const h = atlEl('div', 'ct-h'), ti = atlEl('div', 'ct-ti'), x = atlEl('button', 'ct-x', '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Fermer');
+  ti.append(atlEl('b', '', '📦 Chez toi, en vrai'), atlEl('small', '', 'Imprimé et livré à ta porte')); h.append(ti, x);
+  const rail = atlEl('div', 'ct-rail'); W.append(h, rail);
+  const P = d.posters, charger = (s, pst) => { if (s._lu || !d.commande) return; s._lu = true; atlImpApi({ action: 'devis', fiche: pst.fiche, poster: pst.poster, qualite: 'normale' }).then(r => { if (!r || r.etat !== 'ok' || !(+r.prix_ttc > 0)) { s._lu = false; return; } s._prix.textContent = atlImpEuros(r.prix_ttc); s._de.hidden = false; if (r.produit) s._fmt.textContent = r.produit; }).catch(() => { s._lu = false; }); };
+  const allerA = i => { const s = rail.children[Math.max(0, Math.min(P.length - 1, i))]; if (s) s.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); };
+  const ici = () => Math.round(rail.scrollLeft / Math.max(1, rail.clientWidth));
+  P.forEach((pst, i) => {
+    const s = atlEl('article', 'ct-s'), mur = atlEl('div', 'ct-mur'), cadre = atlEl('div', 'ct-cadre'), im = atlEl('img'), lum = atlEl('i', 'ct-lum');
+    im.alt = atlCtNom(pst.nom); im.src = atlIaUrl(pst.image); cadre.append(im, lum); mur.append(cadre, atlEl('i', 'ct-sol'));
+    const fi = atlEl('div', 'ct-f'), fmt = atlEl('span', 'ct-fmt', 'Grand format'), de = atlEl('small', 'ct-de', 'À partir de'), pr = atlEl('b', 'ct-prix', ''), pz = atlEl('div', 'ct-pz'), ul = atlEl('ul', 'ct-l');
+    de.hidden = true; s._prix = pr; s._de = de; s._fmt = fmt; pz.append(de, pr);
+    for (const t of ['Imprimé rien que pour toi, à l’unité', 'Deux papiers au choix', 'Envoyé roulé, livré à ta porte']) ul.appendChild(atlEl('li', '', t));
+    fi.append(atlEl('h2', 'ct-n', atlCtNom(pst.nom)), fmt, ul, pz);
+    const go = atlEl('button', 'btn btn-play ct-go', d.commande ? '📦 Le recevoir chez moi' : '🔒 Bientôt'); go.type = 'button'; go.disabled = !d.commande;
+    go.addEventListener('click', () => { if (d.commande) atlImpressionOuvrir({ image: pst.poster }, { id: pst.fiche }, atlCtNom(pst.nom)); });
+    fi.appendChild(go); s.append(mur, fi); rail.appendChild(s);
+    if (P.length > 1) { for (const [c, t, di] of [['g', '‹', -1], ['d', '›', 1]]) { const b = atlEl('button', 'ct-nav ' + c, t); b.type = 'button'; b.setAttribute('aria-label', di < 0 ? 'Poster précédent' : 'Poster suivant'); b.disabled = i + di < 0 || i + di >= P.length; b.addEventListener('click', () => allerA(i + di)); mur.appendChild(b); } }
+  });
+  document.body.appendChild(W);
+  const vu = new IntersectionObserver(l => { for (const e of l) if (e.isIntersecting) charger(e.target, P[[...rail.children].indexOf(e.target)]); }, { root: rail, threshold: 0.55 });
+  for (const s of rail.children) vu.observe(s);
+  const fermer = () => { vu.disconnect(); W.remove(); document.removeEventListener('keydown', cle, true); }, cle = e => { if (document.querySelector('.atl-imp')) return; if (e.key === 'Escape') { e.stopImmediatePropagation(); fermer(); } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); allerA(ici() + (e.key === 'ArrowRight' ? 1 : -1)); } };
+  W._fermer = fermer; x.addEventListener('click', fermer); document.addEventListener('keydown', cle, true);
+  setTimeout(() => { try { const g = W.querySelector('.ct-go:not(:disabled)') || x; g.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 60);
+}
+async function atlCtPane(host, f) {
+  host.textContent = ''; host.appendChild(atlEl('p', 'atl-chv', '⏳ Chargement…'));
+  let d = null; try { d = await atlLireSur(() => atlCtLire({ fiche: f.id }, true)); } catch (e) { if (host.isConnected) atlPanne(host, () => atlCtPane(host, f)); return; }
+  if (!host.isConnected) return; host.textContent = '';
+  if (!d.posters.length) { host.appendChild(atlEl('p', 'atl-chv', 'Le poster de ton jeu arrive bientôt.')); return; }
+  const v = atlEl('button', 'ct-pv'), mur = atlEl('span', 'ct-pm'); v.type = 'button'; v.setAttribute('aria-label', 'Voir les posters en grand');
+  for (const pst of d.posters.slice(0, 3)) { const c = atlEl('span', 'ct-pc'), i = atlEl('img'); i.alt = ''; i.loading = 'lazy'; i.src = atlIaUrl(pst.vignette || pst.image); c.appendChild(i); mur.appendChild(c); }
+  const t = atlEl('span', 'ct-pt'); t.append(atlEl('b', '', d.posters.length > 1 ? d.posters.length + ' posters de ton jeu' : 'Le poster de ton jeu'), atlEl('small', '', 'Imprimé et livré à ta porte'), atlEl('span', 'ct-pl', 'Voir en grand ›'));
+  v.append(mur, t); v.addEventListener('click', () => atlCtOuvrir(d, f.titre)); host.appendChild(v);
+  if (!d.proprio) return;
+  const ac = atlEl('section', 'atl-escard ct-ac'), gain = (+d.gain | 0).toLocaleString('fr-FR');
+  const dire = () => { ac.textContent = ''; ac.appendChild(atlEl('h4', '', '💰 Vends ton poster'));
+    ac.appendChild(atlEl('p', '', 'Les joueurs pourront le recevoir chez eux. Chaque poster acheté te rapporte ' + gain + ' 💎. Tu peux changer d’avis à tout moment.'));
+    const r = atlEl('div', 'ct-acb'), mk = (val, txt) => { const b = atlEl('button', 'btn btn-sm ' + (d.accord === val ? 'btn-play' : 'btn-ghost'), txt); b.type = 'button'; b.setAttribute('aria-pressed', String(d.accord === val)); b.addEventListener('click', async () => { if (d.accord === val) return; for (const y of r.children) y.disabled = true; er.textContent = ''; try { const z = await rpc('at_poster_accord_poser', { p_name: profile.name, p_fiche: f.id, p_oui: val }, { quiet: true, ms: ATL_ATT_MS }); d.accord = !!(z && z.accord); dire(); } catch (e) { for (const y of r.children) y.disabled = false; er.textContent = 'Le serveur ne répond pas, réessaie.'; } }); return b; }, er = atlEl('small', 'atl-viserr', '');
+    r.append(mk(true, 'Oui, je le vends'), mk(false, 'Non')); ac.append(r, er); };
+  dire(); host.appendChild(ac);
 }
 function atlPosterMenu(a, f, nom) {
   return ({ bar, dl, enregistre, dlEtat, V }) => {
