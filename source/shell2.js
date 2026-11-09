@@ -523,7 +523,7 @@ function pauseDepuisDebut() {
 // ---------- 2.0.139 (CONTRACT.md Ajout 27, l'admin : « les boutons de la borne couvrent la jauge » + « un même menu pour tous les jeux ») ----------
 // (1) son par jeu ; (2) ZONE SÛRE (ce que la borne couvre dans le cadre du jeu) ; (3) boutons flottants discrets qui s'endorment ; (4) MENU PRINCIPAL
 function sonJeuLire(id) { const d = (id && store.get('jdw.son.' + id, null)) || {}, v = x => Number.isFinite(+x) ? Math.min(1, Math.max(0, +x)) : 1; return { m: d.m !== false, mv: v(d.mv), b: d.b !== false, bv: v(d.bv) }; }
-function sonJeuEtat() { const c = sonCoupeJeu(); return { musique: { on: !!(SON_JEU.m && MUS.on && !c), volume: SON_JEU.mv }, bruitages: { on: !!(SON_JEU.b && !muted && !c), volume: SON_JEU.bv } }; }
+function sonJeuEtat() { const c = sonCoupeJeu(); return { musique: { on: !!(SON_JEU.m && !c), volume: SON_JEU.mv }, bruitages: { on: !!(SON_JEU.b && !muted && !c), volume: SON_JEU.bv } }; }
 function sonJeuAppliquer() {
   musicApplyLevel(0.25);
   try { if (Audio.master && Audio.ctx) { const now = Audio.ctx.currentTime; Audio.master.gain.cancelScheduledValues(now); Audio.master.gain.setTargetAtTime(sfxLevel(), now, 0.05); } } catch (e) {}
@@ -2116,6 +2116,8 @@ addEventListener('error', e => { if (!foreignError(e)) reportError(e.message, (e
 addEventListener('unhandledrejection', e => { const r = e.reason; reportError('Promesse : ' + ((r && r.message) || r), r && r.stack, { quiet: true }); });
 
 /* ================= Musique (assets/music/<morceau>.mp3) ================= */
+// 8 nov. 2026 (l'admin) : le 🎵 des paramètres ne coupe que la musique de la borne ; celle des jeux reste, avec son propre réglage dans chaque jeu (SON_JEU, jdw.son.<jeu>). Le choix déjà enregistré dans jdw.music garde son sens pour la borne.
+const MUS_BORNE = new Set(['accueil', 'pegase', 'atelier']), musPermise = id => MUS.on || (!!id && !MUS_BORNE.has(id));
 const MUS = { on: store.get('jdw.music', true) !== false, gain: null, buf: {}, order: [], cur: null, id: '', want: '', loopT: 0, seq: 0 };
 const MUSIC_VOL = 0.42, XFADE = 1.6;
 // 2.0.139 (CONTRACT.md Ajout 27) : musique et bruitages réglés À PART pour chaque jeu (oui / non + volume), retenus (jdw.son.<jeu>) ;
@@ -2317,7 +2319,7 @@ async function setMusic(id, mode, level) {
   if (id && window.JDW_ATL_MUS_OFF && current && current.game && current.game.id === window.JDW_ATL_MUS_OFF && !$('jdw-play').hidden) id = '';   // musique retirée par l'équipe de l'Atelier
   mode = mode || 'calm'; MUS.queue = null; MUS.level = !!level;
   MUS.want = id || ''; MUS.wantMode = mode;
-  if (!MUS.on || !id || !Audio.ctx || document.hidden) { musicOut(0.6); return; }
+  if (!musPermise(id) || !id || !Audio.ctx || document.hidden) { musicOut(0.6); return; }
   if (MUS.id === id && MUS.mode === mode && MUS.cur) return;
   MUS.mode = mode;
   const seq = ++MUS.seq;
@@ -2330,13 +2332,13 @@ async function setMusic(id, mode, level) {
   MUS.charge = seq;
   for (let k = 0; k < list.length && !b; k++) { const j = (idx + k) % list.length; try { b = await musicBuffer(list[j]); idx = j; } catch (e) {} if (seq !== MUS.seq) return; }
   if (MUS.charge === seq) MUS.charge = 0;
-  if (!b || seq !== MUS.seq || MUS.want !== id || !MUS.on) return;
+  if (!b || seq !== MUS.seq || MUS.want !== id || !musPermise(id)) return;
   musicOut(0.9);
   musicLoop(id, b, Audio.ctx.currentTime + 0.05, 0.9, seq, list, idx);
 }
 function setMusicOn(on) {
-  MUS.on = !!on; store.set('jdw.music', MUS.on);
-  if (!MUS.on) musicOut(0.4); else { Audio.ensure(); MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); audioWake(); }
+  const avant = musPermise(MUS.want); MUS.on = !!on; store.set('jdw.music', MUS.on);
+  if (!musPermise(MUS.want)) musicOut(0.4); else if (!avant) { Audio.ensure(); MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); audioWake(); }
 }
 /* ---- musique calée d'un jeu de rythme (api.rhythm, Néon Rush) : le jeu joue lui-même SON morceau et lit son temps ---- */
 const RHY = { src: null, g: null, t0: null, seq: 0, an: null };
@@ -2358,7 +2360,7 @@ function rhythmApi(mine) {
       Audio.ensure(); const A = Audio.ctx; if (!A) return false;
       rhythmStop(0.05); const my = RHY.seq;
       MUS.override = true; MUS.want = ''; MUS.seq++; musicOut(0.25);
-      let b = null; if (MUS.on && !sonCoupeJeu()) { try { b = await musicBuffer(id); } catch (e) {} }
+      let b = null; if (SON_JEU.m && !sonCoupeJeu()) { try { b = await musicBuffer(id); } catch (e) {} }
       if (my !== RHY.seq || !mine()) return false;
       // son bloqué (pas encore touché l'écran, lancé à la manette) : on n'attend pas, le jeu garde sa propre horloge
       try { if (A.state === 'suspended') await Promise.race([A.resume(), new Promise(r => setTimeout(r, 400))]); } catch (e) {}
@@ -2390,7 +2392,7 @@ function audioWake() {
   const A = Audio.ctx; if (!A || A.state === 'running' || A.state === 'closed') return;
   let p = null; try { p = A.resume(); } catch (e) { return; }
   // (2 nov.) pas pendant qu'un morceau arrive (MUS.charge) : la relance en tirait un autre au hasard, un 2e téléchargement de 2 Mo en même temps que le jeu
-  if (p && p.then) p.then(() => { if (A.state === 'running' && MUS.on && !MUS.cur && !MUS.charge && !document.hidden) { MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); } }).catch(() => {});
+  if (p && p.then) p.then(() => { if (A.state === 'running' && musPermise(MUS.want || screenMusic()) && !MUS.cur && !MUS.charge && !document.hidden) { MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); } }).catch(() => {});
 }
 for (const ev of ['pointerdown', 'touchend', 'keydown']) addEventListener(ev, audioWake, { capture: true, passive: true });
 // la musique démarre au premier geste (règle des navigateurs)
@@ -8948,7 +8950,7 @@ function coopMount() {
   api.pad = padApi({ slots: p => p === COOP.me && PADJ ? PADJ.pads() : [], intro: () => { if (current && current.seq === seq) padIntro(coopHelpG, null, true); } });   // manettes : toutes pour mon joueur (Ajout 10)
   current = { game: m, root, seq, over: false, inst: null, coop: e, pad: api.pad };
   recReset(); setTimeout(recLine, 50);
-  musicBaseLevel(0.8); MUS.override = false; coopMusic();
+  sonJeuActiver(m.id); musicBaseLevel(0.8); MUS.override = false; coopMusic();
   try { current.inst = m.mount(root, api) || {}; } catch (x) { current.inst = {}; reportError('Lancement de coop-' + e.id + ' : ' + x.message, x.stack); }
   if (COOP.mode === 'net' && NET.handlers.length && NET.queue.length) for (const q of NET.queue.splice(0)) netDeliver(q);
   setWhere('coop-' + e.id);
@@ -11291,7 +11293,7 @@ function mountGame(g) {
     music: (track, o) => {
       if (!current || current.seq !== seq) return;
       // { after: true } (30 oct., Sens Interdit) : le morceau en cours se finit en entier, puis ce morceau-là commence
-      if (o && o.after && track && MUS.on && MUS.cur && MUS.id && MUS.id !== track) { MUS.override = true; MUS.queue = { id: track, mode: 'calm', level: !!o.level }; return; }
+      if (o && o.after && track && musPermise(track) && MUS.cur && MUS.id && MUS.id !== track) { MUS.override = true; MUS.queue = { id: track, mode: 'calm', level: !!o.level }; return; }
       if (track && track !== g.id) { MUS.override = true; setMusic(track, 'calm', !!(o && o.level)); return; }
       MUS.override = false;
       let lvl = 0; try { lvl = current.inst && current.inst.currentLevel ? +current.inst.currentLevel() : 0; } catch (e) {}
@@ -11448,7 +11450,7 @@ function backToLibrary() {
   unmountGame();
   try { coopReset(); } catch (e) {}
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
-  sonJeuActiver(''); setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic(menuMusic());   // sorti d'un jeu ou de son menu : ses réglages ne s'appliquent plus à la borne
+  sonJeuActiver(''); setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic(menuMusic());   // sorti d'un jeu (ou de son menu) : le réglage de ce jeu ne s'applique plus à la borne
   fsLeave();
   if ($('jdw-back').dataset.atl) { const qb = $('jdw-back'); delete qb.dataset.atl; qb.innerHTML = '✕<span class="tb-word"> Quitter</span>'; qb.setAttribute('aria-label', 'Quitter la partie'); window.JDW_ATL_OFF = []; window.JDW_ATL_MUS_OFF = ''; }
   if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; window.JDW_ATL_JEU = false; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); const t = ATL.retourTab; ATL.retourTab = ''; setTimeout(() => atlRevenir(id, t), 30); }   // jeu lancé depuis l'Atelier : retour au projet (onglet choisi)
@@ -11546,8 +11548,9 @@ $('jdw-tolib').addEventListener('click', backToLibrary);
 { const mb = document.createElement('button'); mb.className = 'btn btn-ghost'; mb.id = 'jdw-tomenu'; mb.type = 'button'; mb.textContent = '☰ Menu'; mb.hidden = true; $('jdw-again').insertAdjacentElement('afterend', mb);   // 2.0.142 (l'admin)
   mb.addEventListener('click', () => { flushPending(); if (!current || current.coop) return; const g = current.game; unmountGame(); $('jdw-end').hidden = true; menuMontrer(g, { direct: true }); }); }
 $('jdw-again').addEventListener('click', () => { flushPending(); if (!current || current.coop) return; const g = current.game; unmountGame(); $('jdw-end').hidden = true; Audio.ensure(); mountGame(g); });
+const musiqueIci = () => SON_JEU.id ? !!SON_JEU.m : MUS.on;   // dans un jeu : la musique de CE jeu
 function syncMute() {
-  const silent = sonCoupeJeu() || (muted && !MUS.on && !criOn);
+  const silent = sonCoupeJeu() || (muted && !musiqueIci() && !criOn);
   $('jdw-mute').textContent = silent ? '🔇' : '🔊';
   $('jdw-mute').setAttribute('aria-label', 'Réglages du son : musique, bruitages, cris');
   if (Audio.master) Audio.master.gain.value = sfxLevel();
@@ -11555,7 +11558,7 @@ function syncMute() {
 }
 // bouton de la partie : un petit menu pour couper séparément la musique, les bruitages et les cris
 function syncSoundMenu() {
-  const c0 = sonCoupeJeu(); $('jdw-sm-music').disabled = $('jdw-sm-sfx').disabled = c0; $('jdw-sm-music').checked = MUS.on && !c0; $('jdw-sm-sfx').checked = !muted && !c0; $('jdw-sm-cris').checked = criOn;
+  const c0 = sonCoupeJeu(); $('jdw-sm-music').disabled = $('jdw-sm-sfx').disabled = c0; $('jdw-sm-music').checked = musiqueIci() && !c0; $('jdw-sm-sfx').checked = !muted && !c0; $('jdw-sm-cris').checked = criOn;
 }
 $('jdw-howto-b').addEventListener('click', e => { e.stopPropagation(); howtoEnJeu(); });   // 2.0.112 : « ? » = comment jouer (la partie attend)
 $('jdw-sm-howto').addEventListener('click', e => { e.stopPropagation(); $('jdw-soundmenu').hidden = true; $('jdw-mute').setAttribute('aria-expanded', 'false'); howtoEnJeu(); });   // téléphone couché : dans le menu du son
@@ -11564,7 +11567,7 @@ $('jdw-mute').addEventListener('click', e => {
   const m = $('jdw-soundmenu'); m.hidden = !m.hidden; $('jdw-mute').setAttribute('aria-expanded', String(!m.hidden));
 });
 document.addEventListener('pointerdown', e => { const m = $('jdw-soundmenu'); if (!m.hidden && !m.contains(e.target) && e.target !== $('jdw-mute')) { m.hidden = true; $('jdw-mute').setAttribute('aria-expanded', 'false'); } }, true);
-$('jdw-sm-music').addEventListener('change', () => { setMusicOn($('jdw-sm-music').checked); syncMute(); });
+$('jdw-sm-music').addEventListener('change', () => { const on = $('jdw-sm-music').checked; if (SON_JEU.id) sonJeuEcrire(SON_JEU.id, { m: on }); else setMusicOn(on); syncMute(); });
 $('jdw-sm-sfx').addEventListener('change', () => { muted = !$('jdw-sm-sfx').checked; store.set('jdw.muted', muted); syncMute(); if (!muted) Audio.tone(660, 0.08, 'square', 0.05); });
 $('jdw-sm-cris').addEventListener('change', () => { criOn = $('jdw-sm-cris').checked; store.set('jdw.cris', criOn); if (!criOn && criAudio) { try { criAudio.pause(); } catch (e) {} } });
 
