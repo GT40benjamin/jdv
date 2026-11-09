@@ -4179,6 +4179,7 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 /* recharger mes crédits (Stripe, borne 1.63.97) */
 button.atl-cred{cursor:pointer;font:inherit}
 button.atl-cred:hover{filter:brightness(1.15)}
+.atl-packs>.atl-chv,.atl-packs>.atl-panneb{grid-column:1/-1;justify-self:center}.atl-panneb{min-height:44px}
 .atl-packs{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .atl-pack{display:grid;justify-items:center;gap:4px;padding:16px 10px;border-radius:16px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;transition:transform .15s,border-color .15s}
 .atl-pack:hover,.atl-pack:focus-visible{transform:translateY(-3px);border-color:#ffd34d}

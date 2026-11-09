@@ -1092,7 +1092,7 @@ async function rpc(fn, args, opts) {
   }
   if (tok) h.Authorization = 'Bearer ' + tok;
   let r;
-  try { r = await netFetch(CFG.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, { method: 'POST', headers: h, body: JSON.stringify(args) }); }
+  try { r = await netFetch(CFG.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, { method: 'POST', headers: h, body: JSON.stringify(args) }, opts.ms); }
   catch (e) { const er = new Error(fn + ' : pas de réseau'); er.offline = true; throw er; }   // netFetch : hors ligne noté (bandeau, sonde)
   if (!r.ok) {
     const t = await r.text().catch(() => '');
@@ -11170,7 +11170,8 @@ async function atlEspBoutique(box, f) {
   let l = null; try { l = await rpc('at_boutique_ventes_fiche', { p_name: profile.name, p_fiche: f.id }, { quiet: true, quiet404: true }); } catch (e) { l = null; }
   if (!Array.isArray(l) && !atlAdminIci()) { try { l = await rpc('at_boutique_mes_ventes', { p_name: profile.name }, { quiet: true, quiet404: true }); } catch (e) { l = null; } }
   if (!box.isConnected) return; box.textContent = '';
-  const mine = Array.isArray(l) ? l.filter(x => x && x.fiche === f.id) : [];
+  if (!Array.isArray(l)) { atlPanne(box, () => atlEspBoutique(box, f)); return; }   // 8 nov. : une lecture ratée n'est pas « pas encore de boutique »
+  const mine = l.filter(x => x && x.fiche === f.id);
   if (!mine.length) {
     const v = atlEl('div', 'atl-escard atl-esbvide');
     v.append(atlEl('span', 'ic', '🛍️'), atlEl('p', '', atlAdminIci() ? 'Ce jeu n’a pas encore de boutique.' : 'Ton jeu n’a pas encore de boutique. Demande ' + gA() + ' d’en avoir une : tes joueurs pourront acheter des tenues ou des objets, et chaque vente te revient en crédits !'));
@@ -15763,6 +15764,14 @@ const atlFiche = () => (ATL.cur && ATL.data && ATL.data.fiche && ATL.data.fiche.
 const atlTousMsgs = () => (atlFiche() && Array.isArray(ATL.data.messages) ? ATL.data.messages : []);
 const atlMsgs = () => atlTousMsgs().filter(m => !m.discussion);   // 2.0.93 : la discussion gratuite (m.discussion) a son propre fil (atlDiscMsgs)
 const atlProjets = () => (ATL.data && Array.isArray(ATL.data.projets) ? ATL.data.projets : []);
+// 8 nov. 2026 (l'admin : « 0 / 5 » quand le serveur est lent, alors que ses projets existent) : tant que la liste n'est pas lue, on ne compte RIEN.
+// 'pret' : la liste est lue ; 'charge' : « Chargement… » et on réessaie tout seul ; 'panne' : « Le serveur ne répond pas », un bouton, et on continue d'essayer doucement.
+const ATL_ESSAIS = 2, ATL_ATT_MS = 25000, atlPause = ms => new Promise(ok => setTimeout(ok, ms));
+const atlProjetsEtat = () => (ATL.data && Array.isArray(ATL.data.projets) ? 'pret' : (ATL.err | 0) >= ATL_ESSAIS ? 'panne' : 'charge');
+const atlRecharge = () => { ATL.err = 0; atlRender(); atlLoad(true); };
+function atlDelai(p, ms) { let t = 0; return Promise.race([p, new Promise((_, non) => { t = setTimeout(() => non(new Error('delai')), ms); })]).finally(() => clearTimeout(t)); }
+async function atlLireSur(lire) { for (let k = 1; ; k++) { try { return await atlDelai(lire(), ATL_ATT_MS + 2000); } catch (e) { if (k >= ATL_ESSAIS) throw e; await atlPause(1500); } } }   // une lecture qui ne reste jamais pendue : un 2e essai tout seul, puis l'erreur
+function atlPanne(zone, encore) { zone.textContent = ''; const b = atlEl('button', 'btn btn-ghost btn-sm atl-panneb', '↻ Réessayer'); b.type = 'button'; b.addEventListener('click', e => { e.stopPropagation(); encore(); }); zone.append(atlEl('p', 'atl-chv', 'Le serveur ne répond pas, réessaie.'), b); }
 const atlSeenKey = id => ATL.name + '|' + id;
 const atlProjNouv = pj => String((pj && (pj.nouveau_at || pj.reponse_at)) || '');   // 2.0.106 : un message de la mascotte (offres comprises) ou une étape (SQL v116)
 const atlProjNew = pj => !!atlProjNouv(pj) && atlProjNouv(pj) > String(pj.lu_at || '') && atlProjNouv(pj) > String(ATL.seen[atlSeenKey(pj.id)] || '');   // 2.0.105/2.0.106 : UNE règle — plus récent que la lecture (serveur : at_fil_lu)   // 2.0.105 : la lecture est aussi gardée par le serveur (at_fil_lu, SQL v115)
@@ -16088,6 +16097,7 @@ function atlOpen() {
   atlBuild(); ATL.open = true; ATL.root.hidden = false; document.body.classList.add('atl-on');
   if (where === 'menu') try { setWhere('atelier'); } catch (e) {}   // 2.0.134 : la présence (le serveur aussi) dit « dans l'Atelier »
   if (store.get('jdw.atl.mus', true) !== false) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic('');   // 22 h 45 : la musique de l'Atelier, douce (🔇 retenu sur l'appareil)
+  if (!ATL.data) ATL.err = 0;   // 8 nov. : des essais ratés avant l'ouverture ne comptent pas : « Chargement… » d'abord
   atlRender(); atlLoad(true); setTimeout(atlBienvenue, 1200); atlDemCharger(true);
   setTimeout(() => { pushRafraichir().catch(() => {}); }, 600);   // 7 nov. 2026 : 🔔 / 🔕 de la barre, carte « Me prévenir »
   setTimeout(() => { const i = ATL.root.querySelector('.atl-in'); if (i && !TOUCH) i.focus({ preventScroll: true }); }, 60);
@@ -16127,12 +16137,12 @@ function atlRenderProjets() {
   const R = ATL.root, box = R.querySelector('.atl-projets'); box.textContent = '';
   if (!ATL.data) {   // 3 nov. 1 h 35 (Benjamin : « ça m'a fait peur !!! ») : tant que rien n'est chargé, pas de « 0 / 5 »
     const w = atlEl('div', 'atl-charge');
-    if (ATL.err) {
+    if (atlProjetsEtat() === 'panne') {
       const compte = /compte requis|jwt|401/i.test(String(ATL.errMsg || ''));
-      w.append(atlGuideAv('atl-wav'), atlEl('b', '', 'Je n’arrive pas à charger tes projets'), atlEl('p', '', compte ? 'Ton compte doit se reconnecter.' : 'La connexion a un souci : on réessaie ?'));
-      const re = atlEl('button', 'btn btn-play', '↻ Réessayer'); re.type = 'button'; re.addEventListener('click', () => { ATL.err = 0; atlRender(); atlLoad(true); }); w.appendChild(re);
+      w.append(atlGuideAv('atl-wav'), atlEl('b', '', compte ? 'Je n’arrive pas à charger tes projets' : 'Le serveur ne répond pas'), atlEl('p', '', compte ? 'Ton compte doit se reconnecter.' : 'Tes projets sont bien là : réessaie dans un moment.'));
+      const re = atlEl('button', 'btn btn-play', '↻ Réessayer'); re.type = 'button'; re.addEventListener('click', atlRecharge); w.appendChild(re);
       if (compte) { const rc = atlEl('button', 'btn btn-ghost', '🔑 Reconnecte-toi'); rc.type = 'button'; rc.addEventListener('click', () => { try { atlClose(); openAcct(); } catch (e) { location.reload(); } }); w.appendChild(rc); }
-    } else w.append(atlGuideScene(['Je prépare ton Atelier…', 'Je range tes projets…', 'J’arrive !'], 'construction'), atlEl('b', '', 'Je prépare ton Atelier…'));
+    } else w.append(atlGuideScene(['Je prépare ton Atelier…', 'Je range tes projets…', 'J’arrive !'], 'construction'), atlEl('b', '', 'Chargement…'));
     box.appendChild(w); R.querySelector('.atl-hs').textContent = '';
     for (const q of ['.atl-cred', '.atl-suivib', '.atl-sendh']) { const e = R.querySelector(q); if (e) e.hidden = true; }
     return;
@@ -16625,6 +16635,11 @@ function atlDemFeuille() {
   c.append(hd, atlEl('p', 'atl-dfp', 'Touche une demande : elle s’ouvre dans ta discussion avec ' + gN() + ', là où tout se passe.'), atlEl('div', 'atl-dlist'));
   M.textContent = ''; M.appendChild(c); M.hidden = false;
   M.onclick = e => { if (e.target === M) atlDemFeuilleFermer(); };
+  if (!ATL.dem && !atlAdminIci()) {   // 8 nov. : pas encore lues : jamais une liste vide
+    const lb = c.querySelector('.atl-dlist'); lb.appendChild(atlEl('p', 'atl-chv', '⏳ Chargement…'));
+    (async () => { let dm = await atlDemCharger(true); if (!dm) { await atlPause(1500); dm = await atlDemCharger(true); } if (!c.isConnected) return; if (!dm) { atlPanne(lb, atlDemFeuille); return; } lb.textContent = ''; try { atlProjDemListe(ATL.root.querySelector('.atl-wiz')); atlDemVues(); } catch (e) {} })();
+    return;
+  }
   try { atlProjDemListe(ATL.root.querySelector('.atl-wiz')); atlDemVues(); } catch (e) {}
   setTimeout(() => { try { const l = c.querySelector('.atl-dligne'); if (l) l.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 60);   // manette : la 1re demande
 }
@@ -17731,7 +17746,7 @@ function atlEspResume(c, f, st) {
   const doux = (d, ic, t) => { const x = atlEl('div', 'atl-esdoux'); x.append(atlEl('span', '', ic), atlEl('p', '', t)); d.appendChild(x); };
   const T = (st && st.total) || {}, S = (st && st.scores) || {}, A = (st && st.achats) || {}, J = st && Array.isArray(st.jours) ? st.jours : [];
   { const d = card('📊 Ton jeu ce mois-ci', 'stats');
-    if (!st) d.appendChild(atlEl('p', 'atl-chv', 'Un instant…'));
+    if (!st) d.appendChild(atlEl('p', 'atl-chv', st === false ? 'Le serveur ne répond pas, réessaie dans un moment.' : 'Un instant…'));
     else if (!((st.periode || {}).parties | 0)) doux(d, '🌱', 'Personne n’a encore joué ce mois-ci. Lance une partie et invite tes copains : les chiffres arrivent dès la première partie !');
     else {
       const P = st.periode || {}; nums(d, [[S.record != null ? atlNb0(S.record) : '—', '🏆 record', S.record == null], [atlNb0(P.parties), '▶ parties', false], [atlNb0(P.joueurs), '👥 joueurs', false]]);
@@ -17739,7 +17754,7 @@ function atlEspResume(c, f, st) {
       if ((st.periode || {}).temps | 0) d.appendChild(atlEl('p', 'atl-estemps', '⏱️ ' + atlDuree(st.periode.temps) + ' de jeu sur les 30 derniers jours'));
     } }
   { const d = card('🛍️ Ta boutique', 'boutique');
-    if (!st) d.appendChild(atlEl('p', 'atl-chv', 'Un instant…'));
+    if (!st) d.appendChild(atlEl('p', 'atl-chv', st === false ? 'Le serveur ne répond pas, réessaie dans un moment.' : 'Un instant…'));
     else if (!(st.articles | 0)) doux(d, '🎁', 'Pas encore d’article. Demande ' + gA() + ' d’en créer : 100 crédits offerts pour ta boutique !');
     else { nums(d, [[atlNb0(st.articles), 'articles', false], [atlNb0(A.credits) + ' 💎', 'gagnés', !(A.credits | 0)]]); if (!(A.nombre | 0)) doux(d, '🌱', 'Pas encore de vente : ça viendra ! Partage ton jeu à tes copains.'); } }
   { const d = card('💬 ' + gNM(), null, 'atl-esconv'); d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-label', 'Parler ' + gA());
@@ -17815,7 +17830,7 @@ async function atlEspStats(W, f) {
   if (!W.isConnected) return;
   const st = s30;
   if (st) { W._nArt = st.articles | 0; atlEspGris(W); }
-  const rs = W.querySelector('[data-esp="resume"]'); if (rs) atlEspResume(rs, f, st || { total: {}, scores: {}, achats: {}, articles: 0, periode: {} });
+  const rs = W.querySelector('[data-esp="resume"]'); if (rs) atlEspResume(rs, f, st || false);
   const bt = W.querySelector('[data-esp="boutique"]'); if (bt && st) { bt.textContent = ''; const A = st.achats || {}, P = st.periode || {};
     for (const [v, l] of [[atlNb0(st.articles), '🏷️ articles en vente'], [atlNb0(A.nombre), '🧾 ventes'], [atlNb0(A.credits) + ' 💎', '💰 crédits gagnés'], [atlNb0(P.boutique), '👀 visites (30 jours)']]) { const x = atlEl('div', 'atl-esnum'); x.append(atlEl('b', '', v), atlEl('small', '', l)); bt.appendChild(x); } }
   const sp = W.querySelector('[data-esp="stats"]'); if (!sp) return; sp.textContent = '';
@@ -19940,7 +19955,7 @@ async function atlRecharger() {
     const g = atlEl('button', 'btn btn-ghost btn-sm', 'Gérer mon abonnement'); g.type = 'button'; g.addEventListener('click', () => atlStripe({ p_portail: true }, g, er0)); ab.appendChild(g);
   } else {
     let fos = cr && Array.isArray(cr.abo_formules) ? cr.abo_formules : null;
-    if (!fos) { try { fos = await rpc('at_abo_formules_lire', {}, { quiet: true }); } catch (e) { fos = null; } }
+    if (!fos) { try { fos = await atlDelai(rpc('at_abo_formules_lire', {}, { quiet: true, ms: 8000 }), 9000); } catch (e) { fos = null; } }
     if (!Array.isArray(fos) || !fos.length) fos = [{ id: 1, prix: (cr && cr.abo_prix) | 0 || 300, credits: (cr && cr.abo_credits) | 0 || 400 }];
     ab.appendChild(atlEl('b', 'atl-abot', '⭐ Atelier+ : des crédits chaque mois'));
     const gf = atlEl('div', 'atl-abof');
@@ -19956,21 +19971,24 @@ async function atlRecharger() {
   }
   ab.appendChild(atlEl('small', 'atl-noremb', 'Sans engagement, résiliable à tout moment · Les crédits ne sont pas remboursés'));
   c.append(ren, rappel, ab, er0, atlEl('p', 'atl-aide', 'Ou choisis un pack :'));
-  const gr = atlEl('div', 'atl-packs'); gr.appendChild(atlEl('p', 'atl-chv', 'Un instant…')); c.appendChild(gr);
+  const gr = atlEl('div', 'atl-packs'); c.appendChild(gr);
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
   c.appendChild(atlEl('p', 'atl-noremb', '🔒 Paiement sécurisé par Stripe · Les crédits ne sont pas remboursés · Les crédits servent dans l’Atelier et dans les boutiques des jeux.'));
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Fermer'); no.type = 'button'; no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
   row.append(no); c.appendChild(row); M.appendChild(c); etat();
-  let packs = [];
-  try { packs = await rpc('at_packs_lire', {}, { quiet: true }); } catch (e) { packs = []; }
-  gr.textContent = '';
+  const chargerPacks = async () => {   // 8 nov. : jamais « Un instant… » sans fin : un 2e essai tout seul, puis un bouton
+    gr.textContent = ''; gr.appendChild(atlEl('p', 'atl-chv', '⏳ Chargement…'));
+    let packs = null; try { packs = await atlLireSur(() => rpc('at_packs_lire', {}, { quiet: true, ms: ATL_ATT_MS })); } catch (e) { if (gr.isConnected) atlPanne(gr, chargerPacks); return; }
+    if (!gr.isConnected) return; gr.textContent = '';
   if (!Array.isArray(packs) || !packs.length) { gr.appendChild(atlEl('p', 'atl-chv', 'Les packs arrivent bientôt.')); return; }
   for (const k of packs) {
     const b = atlEl('button', 'atl-pack'); b.type = 'button';
     b.append(atlEl('span', 'atl-packc', '💎 ' + (k.credits | 0)), atlEl('small', '', 'crédits'), atlEl('b', 'atl-packp', ((k.prix | 0) / 100).toFixed(2).replace('.', ',') + ' €'));
     b.addEventListener('click', () => atlPayerConf('💎 ' + (k.credits | 0) + ' crédits · ' + ((k.prix | 0) / 100).toFixed(2).replace('.', ',') + ' €', 'Tes crédits arrivent dès que Stripe confirme le paiement.', 'Payer sur Stripe', () => atlAcheter(k, b, er))); payer.push(b); gr.appendChild(b);
   }
-  etat();
+    etat();
+  };
+  await chargerPacks();
 }
 // 2.0.21 : la confirmation AVANT Stripe, avec la case de renonciation (non cochée, obligatoire) ; le texte accepté part avec le paiement
 function atlPayerConf(titre, phrase, oui, go) {
@@ -20666,7 +20684,8 @@ async function atlMesDemandes() {
   const P = atlEl('div', 'atl-suivi atl-dems'); P.addEventListener('click', e => e.stopPropagation()); z.appendChild(P);
   const close = atlEl('button', 'btn btn-ghost btn-sm', 'Fermer'); close.type = 'button'; close.addEventListener('click', () => { z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
   P.append(atlEl('b', 'atl-cq', '📋 Mes demandes'), atlEl('p', '', 'Un instant…'));
-  const d = await atlDemCharger(true); P.lastChild.remove();
+  let d = await atlDemCharger(true); if (!d || !Array.isArray(d.demandes)) { await atlPause(1500); d = await atlDemCharger(true); } P.lastChild.remove();
+  if (!P.isConnected) return; if (!d || !Array.isArray(d.demandes)) { const zp = atlEl('div'); P.append(zp, close); atlPanne(zp, atlMesDemandes); return; }
   if ((ATL.aValider || []).length && !atlAdminIci()) P.appendChild(atlValiderBloc());   // 2.0.33 : « 🛡️ À valider par l'admin », en haut
   const tout = d && Array.isArray(d.demandes) ? d.demandes : [], fini = x => ['faite', 'impossible', 'regroupee'].includes(x.etat);
   const ong = ATL.demOng === 'faites' ? 'faites' : 'encours', nEn = tout.filter(x => !fini(x)).length, nFa = tout.length - nEn;
@@ -21205,18 +21224,20 @@ function atlDouxReprise() {
 const atlSigVue = () => { try { return JSON.stringify([ATL.cur, ATL.nouveau, ATL.tab, ATL.demOngP, ATL.data, (ATL.dem || {}).demandes, ATL.aValider]); } catch (e) { return String(Math.random()); } };
 async function atlLoad(force) {
   if (!ATL || !ATL_ON() || !ONLINE || ATL.off) return;
-  if (isGuest() || !profile.name || netOff()) { ATL.data = null; ATL.name = ''; atlTileState(); return; }
+  if (isGuest() || !profile.name) { ATL.data = null; ATL.name = ''; atlTileState(); return; }
+  if (netOff()) { if (!ATL.data && ATL.open) { ATL.err = Math.max(ATL.err | 0, ATL_ESSAIS); try { atlRender(); } catch (e) {} } atlTileState(); atlSchedule(); return; }   // un coup de lenteur peut passer pour une coupure : la liste déjà lue reste
   if (!force && document.hidden) { atlSchedule(); return; }
   const me = cleanName(profile.name);
   if (ATL.name !== me) { ATL.name = me; ATL.data = null; ATL.pend = []; }
   if (ATL.busy) return; ATL.busy = true;
   const vise = ATL.cur || null;
   try {
-    const r = await rpc('at_lire', { p_name: profile.name, p_fiche: vise }, { quiet404: true, quiet: true });
+    const r = await atlDelai(rpc('at_lire', { p_name: profile.name, p_fiche: vise }, { quiet404: true, quiet: true, ms: ATL_ATT_MS }), ATL_ATT_MS + 2000);
+    if (!r || typeof r !== 'object' || !Array.isArray(r.projets)) throw new Error('reponse incomplete');   // jamais une liste vide à la place d'une réponse manquante
     if (cleanName(profile.name) !== me) return;
     const lastAll = () => atlProjets().reduce((m, x) => (x.reponse_at && String(x.reponse_at) > m ? String(x.reponse_at) : m), '');
     const before = lastAll();
-    ATL.data = r && typeof r === 'object' ? r : { fiche: null, messages: [], projets: [] }; ATL.err = 0;
+    ATL.data = r; ATL.err = 0;
     if (ATL.ouvre && ATL.ouvre === vise) { ATL.ouvre = ''; ATL.ouvreErr = ''; clearTimeout(ATL.ouvreT); }   // 2.1.12 : la fiche de ce projet est lue
     atlGuideMaj(ATL.data.guide);
     const after = lastAll();
@@ -21231,6 +21252,7 @@ async function atlLoad(force) {
 function atlSchedule() {
   if (!ATL) return; clearTimeout(ATL.pollT);
   if (!ATL_ON() || ATL.off || !ONLINE) return;
+  if (ATL.open && atlProjetsEtat() !== 'pret') { ATL.pollT = setTimeout(() => atlLoad(true), atlProjetsEtat() === 'charge' ? 1500 : 15000); return; }
   const live = atlProjets().length > 0;
   const ms = ATL.open ? (atlDemEnCours().length ? 10000 : 20000) : live ? 120000 : 0;   // 2.0.9 : une demande en cours, son avancement en direct
   if (ms) ATL.pollT = setTimeout(() => atlLoad(false), ms * Math.min(4, 1 + ATL.err));

@@ -134,7 +134,7 @@
   atlRenderProjets = function () {   // eslint-disable-line no-global-assign
     _renderProjets.apply(this, arguments);
     try { decorer(); } catch (e) {}
-    setTimeout(() => { try { if (lireCartes() && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} }, 0);
+    setTimeout(() => { try { const chg = lireCartes(); if ((chg || AIM.etatPj !== atlProjetsEtat()) && (AIM.open || AIM.cadre)) renderArbre(); } catch (e) {} }, 0);
     if (Date.now() - AIM.typesAt > 15000) chargerTypes().then(() => { try { decorer(); } catch (e) {} });
   };
   // l'admin (6 nov., 2.1) : TOUT le monde arrive sur l'écran « Nouveau projet » sous les nuages dès qu'il ouvre « Crée avec {g} » ;
@@ -775,6 +775,13 @@
     A.classList.toggle('menu-at', !!(AIM.open && AIM.fiche && AIM.vue !== 'nouveau' && atelierOuvert(AIM.fiche)));
     if (A.classList.contains('menu-at')) { renderMenuAtelier(A); A.scrollTop = sy; return; }
     try { lireCartes(); } catch (e) {}
+    AIM.etatPj = atlProjetsEtat();
+    if (AIM.etatPj !== 'pret') {   // l'admin (8 nov.) : la liste pas encore lue n'est pas une liste vide : jamais « 0 / 5 »
+      const h0 = E('div', 'crea-tarb'); h0.append(E('b', '', '📁 MES PROJETS')); A.appendChild(h0);
+      const z = E('div', 'crea-att'); A.appendChild(z);
+      if (AIM.etatPj === 'panne') atlPanne(z, atlRecharge); else z.appendChild(E('p', 'atl-chv', '⏳ Chargement…'));
+      A.scrollTop = sy; return;
+    }
     const ps = atlProjets(), cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
     const h = E('div', 'crea-tarb'); h.append(E('b', '', '📁 MES PROJETS'), E('span', '', ps.length + ' / ' + max)); A.appendChild(h);
     // l'admin (6 nov., 23 h 50) : plus de bouton « ＋ Nouveau projet » dans l'arbre (« pas besoin ») : la tuile et ← ramènent à l'écran sous les nuages
