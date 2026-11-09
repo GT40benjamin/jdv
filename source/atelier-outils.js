@@ -1472,16 +1472,27 @@
     const l = document.createElement('div'), r = document.createElement('input'), o = document.createElement('output');
     l.className = 'atl-lect'; l.__u = u; l.__r = r; l.__o = o; l.__b = btn; l.__t = 0; l.__tire = false;
     r.type = 'range'; r.min = '0'; r.max = '1'; r.step = '1'; r.value = '0'; r.setAttribute('aria-label', 'Avancer dans ' + nom);
-    r.addEventListener('pointerdown', () => {
-      l.__tire = true;
-      const fin = () => { l.__tire = false; window.removeEventListener('pointerup', fin); window.removeEventListener('pointercancel', fin); };
+    r.addEventListener('pointerdown', e => {
+      // au doigt, le son ne bouge qu'au moment où on lâche : poser le doigt ici pour faire défiler la page ne doit jamais déplacer la musique
+      const doigt = e.pointerType !== 'mouse', v0 = +r.value, a0 = enCours(u), p0 = a0 ? a0.currentTime : POS.get(u) || 0;
+      l.__tire = true; l.__doigt = doigt; l.__ignore = false; clearTimeout(l.__it);
+      const fin = ev => {
+        window.removeEventListener('pointerup', fin); window.removeEventListener('pointercancel', fin);
+        l.__tire = false; l.__doigt = false;
+        const annule = ev.type === 'pointercancel';
+        if (annule || doigt) { l.__ignore = true; l.__it = setTimeout(() => { l.__ignore = false; }, 500); }   // le « change » qui suit est déjà traité ici
+        if (annule && !doigt) aller(u, p0);
+        else if (!annule && doigt && +r.value !== v0) aller(u, +r.value);
+        else if (doigt) peindreL(l);
+      };
       window.addEventListener('pointerup', fin); window.addEventListener('pointercancel', fin);
     });
-    r.addEventListener('input', () => {   // pendant qu'on tire : le temps suit tout de suite, le son au plus toutes les 150 ms
+    r.addEventListener('input', () => {   // pendant qu'on tire : le temps suit tout de suite ; à la souris, le son au plus toutes les 150 ms
+      if (l.__doigt) { peindreL(l); return; }
       const n = performance.now();
       if (!l.__tire || n - l.__t > 150) { l.__t = n; aller(u, +r.value); } else { POS.set(u, +r.value); peindre(u); }
     });
-    r.addEventListener('change', () => aller(u, +r.value));
+    r.addEventListener('change', () => { if (l.__ignore) { l.__ignore = false; peindreL(l); return; } aller(u, +r.value); });
     l.append(r, o); peindreL(l);
     if (!DUREE.has(u) && !DEMANDES.has(u)) { DEMANDES.add(u); FILE.push(u); suivante(); }
     return l;

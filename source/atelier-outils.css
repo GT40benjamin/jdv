@@ -127,3 +127,4 @@ body > .ao-conf{position:fixed;z-index:2147482500;--cv:#3b1d6e;--cv2:#6a3fc2;--c
 .atl-lect output{text-align:center;white-space:nowrap;font:600 12px/1.2 var(--body);font-variant-numeric:tabular-nums}
 .atl-fel .atl-lect{max-width:320px;margin:-4px auto 12px}
 @media (pointer:coarse){.atl-lect input::-webkit-slider-thumb{width:24px;height:24px;margin-top:-9px}.atl-lect input::-moz-range-thumb{width:24px;height:24px}}
+@media (max-width:359px){.atl-encv.a-lect .atl-encplay{width:44px;height:44px;font-size:18px}.atl-lect{padding:0}.atl-lect output{font-size:10.5px}}
