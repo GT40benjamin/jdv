@@ -127,7 +127,7 @@ create or replace view public.at_en_attente with (security_invoker = true) as
   select f.id as fiche, f.name as joueur, f.titre, f.etat, f.fiche as contenu,
     (select max(m.at) from public.at_messages m where m.fiche = f.id and not m.de_atelier) as dernier_message_at,
     (select jsonb_agg(jsonb_build_object('texte', m.texte, 'micro', m.micro,
-        'image', case when m.image then 'https://wplictorvvtkfikpfdnl.supabase.co/storage/v1/object/public/atelier/a/' || m.id || '.jpg' end, 'at', m.at) order by m.at)
+        'image', case when m.image then 'https://api.elixirgamestudio.com/storage/v1/object/public/atelier/a/' || m.id || '.jpg' end, 'at', m.at) order by m.at)
        from public.at_messages m where m.fiche = f.id and not m.de_atelier
          and m.at > coalesce((select max(a.at) from public.at_messages a where a.fiche = f.id and a.de_atelier), '-infinity'::timestamptz)) as messages_sans_reponse
   from public.at_fiches f
@@ -260,7 +260,7 @@ create or replace view public.at_en_attente with (security_invoker = true) as
   select f.id as fiche, f.name as joueur, f.titre, f.etat, f.fiche as contenu,
     (select max(m.at) from public.at_messages m where m.fiche = f.id and not m.de_atelier) as dernier_message_at,
     (select jsonb_agg(jsonb_build_object('texte', m.texte, 'micro', m.micro,
-        'image', case when m.image then 'https://wplictorvvtkfikpfdnl.supabase.co/storage/v1/object/public/atelier/a/' || m.id || '.jpg' end, 'at', m.at) order by m.at)
+        'image', case when m.image then 'https://api.elixirgamestudio.com/storage/v1/object/public/atelier/a/' || m.id || '.jpg' end, 'at', m.at) order by m.at)
        from public.at_messages m where m.fiche = f.id and not m.de_atelier
          and m.at > coalesce((select max(a.at) from public.at_messages a where a.fiche = f.id and a.de_atelier), '-infinity'::timestamptz)) as messages_sans_reponse
   from public.at_fiches f
@@ -1508,7 +1508,7 @@ end $$;
 -- réveiller la fonction tout de suite (sinon la tâche planifiée passe dans la minute)
 create or replace function pegase_int.at_gen_reveil() returns void language plpgsql security definer set search_path = public, extensions as $$
 begin
-  perform net.http_post(url := 'https://wplictorvvtkfikpfdnl.supabase.co/functions/v1/atelier-image',
+  perform net.http_post(url := 'https://api.elixirgamestudio.com/functions/v1/atelier-image',
     headers := jsonb_build_object('Content-Type', 'application/json',
       'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwbGljdG9ydnZ0a2Zpa3BmZG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3Mjg0NzEsImV4cCI6MjEwNzMwNDQ3MX0.A3QCbA1Mti3tL7fMZwgYrqcgRTvOjlTpIKIL2ALm3kM',
       'x-atelier-file', (select decrypted_secret from vault.decrypted_secrets where name = 'atelier_file')),
@@ -1630,7 +1630,7 @@ create or replace function pegase_int.at_ia_utilisees() returns int language sql
 -- (v15c) at_gen_suivi : + id (pour at_gen_refaire), fiche et url publique du fichier
 create or replace view public.at_gen_suivi with (security_invoker = true) as
   select g.at, g.sorte, g.titre, f.titre as projet, g.etat, g.essais, g.erreur, g.resultat ->> 'path' as fichier, round(coalesce(g.cents, 0) / 100.0, 2) as euros,
-    g.id, g.fiche, case when g.resultat ->> 'path' is not null then 'https://wplictorvvtkfikpfdnl.supabase.co/storage/v1/object/public/atelier-ia/' || (g.resultat ->> 'path') end as url
+    g.id, g.fiche, case when g.resultat ->> 'path' is not null then 'https://api.elixirgamestudio.com/storage/v1/object/public/atelier-ia/' || (g.resultat ->> 'path') end as url
   from public.at_gen_file g left join public.at_fiches f on f.id = g.fiche order by g.at desc;
 revoke all on public.at_gen_suivi from anon, authenticated;
 

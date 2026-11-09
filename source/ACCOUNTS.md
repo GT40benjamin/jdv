@@ -40,7 +40,7 @@ aucun mot de passe à personne : tu copies seulement deux codes de Google dans S
 3. Menu ☰ › **API et services** › **Écran de consentement OAuth** (parfois appelé **Google Auth Platform** › **Branding**) :
    - Type d'utilisateurs : **Externe** › Créer.
    - Nom de l'application : `Borne d'arcade entre amis` ; e-mail d'assistance : ton e-mail ; logo : facultatif (sans logo, pas de vérification).
-   - **Domaines autorisés** : ajoute `elixirgamestudio.com` et `wplictorvvtkfikpfdnl.supabase.co`.
+   - **Domaines autorisés** : ajoute `elixirgamestudio.com` et `api.elixirgamestudio.com`.
    - Coordonnées du développeur : ton e-mail › Enregistrer.
    - Accès aux données (scopes) : ne rien ajouter (e-mail, profil et openid suffisent).
    - **Audience / Utilisateurs test** : clique sur **Publier l'application** (« En production »). Sinon, seuls les comptes ajoutés comme
@@ -48,7 +48,7 @@ aucun mot de passe à personne : tu copies seulement deux codes de Google dans S
 4. Menu ☰ › **API et services** › **Identifiants** › **+ Créer des identifiants** › **ID client OAuth** :
    - Type d'application : **Application Web** ; nom : `Borne (Supabase)`.
    - **Origines JavaScript autorisées** : `https://elixirgamestudio.com`
-   - **URI de redirection autorisés** : `https://wplictorvvtkfikpfdnl.supabase.co/auth/v1/callback` (exactement, sans espace).
+   - **URI de redirection autorisés** : `https://api.elixirgamestudio.com/auth/v1/callback` (exactement, sans espace).
    - **Créer**. Une fenêtre montre l'**ID client** (se termine par `.apps.googleusercontent.com`) et le **Code secret du client** : garde-la
      ouverte (ou télécharge le JSON) pour l'étape 2. Le code secret ne va QUE dans Supabase, jamais dans le dépôt ni dans un message.
 
