@@ -1430,3 +1430,93 @@
   window.jdwOutilsPhoto = OUT;
   try { if (navigator.webdriver) window.JDW_ESSAI_OUTILS = Object.assign(OUT, { _detourer: detourerTout, _detacher: detacher, _analyser: analyser, _actif: () => ED_ACTIF }); } catch (e) {}
 })();
+
+// ================= 🎵 Écouter une musique (écran Éléments d'un projet) : durée totale, temps écoulé, curseur =================
+// 9 nov. 2026, demande de l'admin. Tout est ici, shell2.js n'est pas touché : on enveloppe atlEncart (la carte), atlFicheElem (sa fiche)
+// et atlEcouter (le lecteur). Musiques seulement (un bruitage dure une seconde). Le curseur est un vrai <input type=range> :
+// souris, doigt et clavier d'origine ; manette par source/manette.js (croix ou stick sur le curseur : ± 5 s).
+(() => {
+  'use strict';
+  if (typeof atlEncart !== 'function' || typeof atlFicheElem !== 'function' || typeof atlEcouter !== 'function') return;
+  const DUREE = new Map(), POS = new Map(), DEMANDES = new Set(), FILE = [];
+  let charge = false;
+  const mmss = s => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const enCours = u => (ATL_SON && ATL_SON_U === u ? ATL_SON : null);
+  const duree = u => { const a = enCours(u), d = a ? a.duration : 0; return d > 0 && isFinite(d) ? d : DUREE.get(u) || 0; };
+  function peindreL(l) {
+    const u = l.__u, a = enCours(u), d = duree(u), r = l.__r;
+    let t = a ? a.currentTime : POS.get(u) || 0; if (d) t = Math.min(t, d);
+    r.max = String(Math.max(1, Math.round(d))); r.disabled = !d;
+    if (l.__tire) t = +r.value; else r.value = String(Math.round(t));
+    r.style.setProperty('--p', (d ? Math.min(100, t / d * 100) : 0) + '%');
+    l.__o.textContent = mmss(t) + ' / ' + (d ? mmss(d) : '…');
+    r.setAttribute('aria-valuetext', mmss(t) + ' sur ' + mmss(d));
+    if (l.__b) l.__b.textContent = a ? '⏸' : '▶';
+  }
+  const peindre = u => { for (const l of document.querySelectorAll('.atl-lect')) if (l.__u === u) peindreL(l); };
+  // la durée totale se voit AVANT d'écouter : une seule lecture des en-têtes du fichier à la fois, une fois par musique
+  function suivante() {
+    if (charge || !FILE.length) return;
+    const u = FILE.shift(), a = new window.Audio(); charge = true; a.preload = 'metadata';
+    let fini = false, t = 0;
+    const fin = d => { if (fini) return; fini = true; clearTimeout(t); if (d > 0 && isFinite(d)) DUREE.set(u, d); a.onloadedmetadata = a.onerror = null; a.removeAttribute('src'); try { a.load(); } catch (e) {} charge = false; peindre(u); suivante(); };
+    t = setTimeout(() => fin(0), 15000);
+    a.onloadedmetadata = () => fin(a.duration); a.onerror = () => fin(0); a.src = u;
+  }
+  function aller(u, v) {
+    const d = duree(u); v = Math.max(0, Math.min(v, d > 1 ? d - 0.5 : d));
+    POS.set(u, v); const a = enCours(u); if (a) try { a.currentTime = v; } catch (e) {}
+    peindre(u);
+  }
+  function lecteur(u, nom, btn) {
+    const l = document.createElement('div'), r = document.createElement('input'), o = document.createElement('output');
+    l.className = 'atl-lect'; l.__u = u; l.__r = r; l.__o = o; l.__b = btn; l.__t = 0; l.__tire = false;
+    r.type = 'range'; r.min = '0'; r.max = '1'; r.step = '1'; r.value = '0'; r.setAttribute('aria-label', 'Avancer dans ' + nom);
+    r.addEventListener('pointerdown', () => {
+      l.__tire = true;
+      const fin = () => { l.__tire = false; window.removeEventListener('pointerup', fin); window.removeEventListener('pointercancel', fin); };
+      window.addEventListener('pointerup', fin); window.addEventListener('pointercancel', fin);
+    });
+    r.addEventListener('input', () => {   // pendant qu'on tire : le temps suit tout de suite, le son au plus toutes les 150 ms
+      const n = performance.now();
+      if (!l.__tire || n - l.__t > 150) { l.__t = n; aller(u, +r.value); } else { POS.set(u, +r.value); peindre(u); }
+    });
+    r.addEventListener('change', () => aller(u, +r.value));
+    l.append(r, o); peindreL(l);
+    if (!DUREE.has(u) && !DEMANDES.has(u)) { DEMANDES.add(u); FILE.push(u); suivante(); }
+    return l;
+  }
+  const estMusique = it => !!(it && it.son && it.url && it.cat === 'musique');
+  const ecouter0 = atlEcouter, encart0 = atlEncart, fiche0 = atlFicheElem;
+  atlEcouter = function (u, btn) {
+    const av = ATL_SON_U;
+    try { if (ATL_SON && av) POS.set(av, ATL_SON.currentTime); } catch (e) {}   // ⏸ puis ▶ reprend au même endroit
+    ecouter0(u, btn);
+    if (av && av !== u) peindre(av);
+    const a = enCours(u);
+    if (a) {
+      const p = POS.get(u) || 0;
+      if (p > 0) { try { a.currentTime = p; } catch (e) {} a.addEventListener('loadedmetadata', () => { if (Math.abs(a.currentTime - p) > 1) try { a.currentTime = p; } catch (e) {} }, { once: true }); }
+      a.addEventListener('loadedmetadata', () => { if (a.duration > 0 && isFinite(a.duration)) DUREE.set(u, a.duration); peindre(u); });
+      a.addEventListener('timeupdate', () => peindre(u));
+      a.addEventListener('ended', () => { POS.delete(u); setTimeout(() => peindre(u), 0); });
+      a.addEventListener('error', () => setTimeout(() => peindre(u), 0));
+    }
+    peindre(u);
+  };
+  atlEncart = function (it) {
+    const c = encart0.apply(this, arguments);
+    try {
+      if (estMusique(it)) { const b = c.querySelector('.atl-encplay'), v = c.querySelector('.atl-encv'); if (b && v) { v.classList.add('a-lect'); v.appendChild(lecteur(it.url, it.nom, b)); } }
+    } catch (e) { try { console.error('[ecoute]', e); } catch (x) {} }
+    return c;
+  };
+  atlFicheElem = function (it) {
+    const r = fiche0.apply(this, arguments);
+    try {
+      if (estMusique(it)) { const b = ATL.root.querySelector('.atl-mod .atl-felplay'); if (b) b.after(lecteur(it.url, it.nom, b)); }
+    } catch (e) { try { console.error('[ecoute]', e); } catch (x) {} }
+    return r;
+  };
+  try { if (navigator.webdriver) window.JDW_ESSAI_ECOUTE = { DUREE, POS, son: () => ATL_SON, fiche: (...a) => atlFicheElem(...a) }; } catch (e) {}
+})();
