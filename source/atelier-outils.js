@@ -20,6 +20,7 @@
   const E = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const B = (cls, txt, fn) => { const b = E('button', cls, txt); b.type = 'button'; if (fn) b.addEventListener('click', fn); return b; };
   const D = '💎';
+  const numV = v => (v && v.outil === 'import' ? 'Originale' : 'V' + (v ? v.n : ''));   // la base s'appelle « Originale », comme numAff de atelier-images.js
   const TOUCH_ = () => { try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } };
   const PKN = () => { try { return gNM() || 'ton guide'; } catch (e) { return 'ton guide'; } };
   const pourquoi = e => String((e && e.message) || e || '');
@@ -1134,11 +1135,11 @@
         if (!ctx.retoucher) { toastO(ctx, 'Oups, réessaie 🙏'); return; }
         fermerEd();
         // la copie épinglée part aussi dans la discussion (gratuit), pour que la retouche se fasse et se vérifie au bon endroit
-        envoyerImage(ctx, d, L, '📍 Mes épingles pour la retouche de « ' + (ctx.creation.titre || 'Mon image') + ' » (V' + ctx.version.n + ')').catch(() => {});
+        envoyerImage(ctx, d, L, '📍 Mes épingles pour la retouche de « ' + (ctx.creation.titre || 'Mon image') + ' » (' + numV(ctx.version) + ')').catch(() => {});
         try { await ctx.retoucher(txt.slice(0, 1800)); } catch (e) {}
         return;
       }
-      const t = '📍 ' + txt + ' (V' + ctx.version.n + ' de « ' + (ctx.creation.titre || 'Mon image') + ' »)';
+      const t = '📍 ' + txt + ' (' + numV(ctx.version) + ' de « ' + (ctx.creation.titre || 'Mon image') + ' »)';
       ED.busy = true; const w2 = attenteEd(ED, 'J’envoie tes épingles…');
       try { await envoyerImage(ctx, d, L, t); fermerEd(); toastO(ctx, '💬 Envoyé à ' + PKN() + ' : il te répond dans la discussion'); try { if (ctx.recharger) ctx.recharger(); } catch (e) {} }
       catch (e) { w2.remove(); ED.busy = false; toastO(ctx, 'Oups, ton message n’est pas parti. Réessaie 🙏'); }
