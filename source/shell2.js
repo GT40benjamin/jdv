@@ -4164,6 +4164,7 @@ function openSettings() {
   $('jdw-settings').classList.toggle('is-guest', isGuest());
   $('jdw-set-guest').hidden = !isGuest();
   $('jdw-set-name').value = profile.name;
+  try { atlPresentationRangee(); } catch (e) {}
   $('jdw-set-sfx').checked = !muted; $('jdw-set-music').checked = MUS.on; $('jdw-set-cris').checked = criOn; syncSoundMenu();
   $('jdw-set-status').textContent = !ONLINE ? 'Mode local (pas de serveur).' : isGuest() ? '' : netDown ? 'Pas de connexion pour le moment.' : '';
   $('jdw-set-version').textContent = versionText();
@@ -4323,6 +4324,14 @@ $('jdw-open-settings').addEventListener('click', openSettings);
 $('jdw-me').addEventListener('click', openProfiles);
 $('jdw-set-close').addEventListener('click', () => closeSheet('jdw-settings'));
 $('jdw-set-sfx').addEventListener('change', () => { muted = !$('jdw-set-sfx').checked; store.set('jdw.muted', muted); Audio.ensure(); syncMute(); if (!muted) Audio.tone(660, 0.08, 'square', 0.05); });
+// « Mode présentation » : l'interrupteur, seulement si le serveur dit que ce compte a un prix à part
+function atlPresentationRangee() {
+  const m = document.getElementById('jdw-set-tabs'); if (!m) return; let r = document.getElementById('jdw-set-pres-l');
+  if (!r) { r = document.createElement('label'); r.className = 'switch-row'; r.id = 'jdw-set-pres-l'; r.hidden = true; const s = document.createElement('span'), i = document.createElement('input'); s.textContent = '🎭 Mode présentation'; i.type = 'checkbox'; i.id = 'jdw-set-pres'; i.addEventListener('change', () => { store.set('jdw.atl.presentation', i.checked); try { ATL_CT.clear(); } catch (e) {} }); r.append(s, i); m.parentNode.insertBefore(r, m); }
+  r.querySelector('input').checked = store.get('jdw.atl.presentation', false) === true;
+  if (isGuest() || !profile.name || !ONLINE) { r.hidden = true; return; } const nom = profile.name;
+  rpc('at_prix_admin', { p_name: nom }, { quiet: true, quiet404: true }).then(x => { r.hidden = !(x && x.oui === true && profile.name === nom); }).catch(() => { r.hidden = true; });
+}
 $('jdw-set-music').addEventListener('change', () => { setMusicOn($('jdw-set-music').checked); syncMute(); });
 $('jdw-set-cris').addEventListener('change', () => { criOn = $('jdw-set-cris').checked; syncMute(); store.set('jdw.cris', criOn); if (!criOn && criAudio) { try { criAudio.pause(); } catch (e) {} } else playCri(profile.name); });
 $('jdw-set-head').addEventListener('click', () => menuOpen($('jdw-set-head'), $('jdw-set-headmenu')));
@@ -19043,6 +19052,8 @@ async function atlImpFond(image) {
     const p = g.getImageData(0, 0, 24, 24).data, t = [0, 0, 0]; let n = 0; for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) { if (x && y && x < 23 && y < 23) continue; const i = (y * 24 + x) * 4; t[0] += p[i]; t[1] += p[i + 1]; t[2] += p[i + 2]; n++; } v = '#' + t.map(z => Math.round(z / n).toString(16).padStart(2, '0')).join(''); } catch (e) {}
   ATL_FONDS.set(image, v); return v;
 }
+// 9 nov. (l'admin) : « Mode présentation » : sur cet appareil, la page d'un client normal. Le serveur décide du prix : ce choix ne peut que le remonter.
+const atlPresentation = () => (store.get('jdw.atl.presentation', false) === true ? { presentation: true } : {});
 function atlImpressionOuvrir(a, f, nom) {
   try { atlVisioFermer(); } catch (e) {}
   const W = atlEl('div', 'atl-imp'), P = atlEl('div', 'atl-impb'), tete = atlEl('div', 'atl-impt'), corps = atlEl('div', 'atl-impc'), x = atlEl('button', 'atl-impx', '✕');
@@ -19056,7 +19067,7 @@ function atlImpressionOuvrir(a, f, nom) {
   W._fermer = fermer; x.addEventListener('click', fermer); W.addEventListener('pointerdown', e => { if (e.target === W) fermer(); }); document.addEventListener('keydown', cle, true);
   const vide = () => { corps.textContent = ''; if (msg) { corps.appendChild(atlEl('p', 'atl-impm', msg)); msg = ''; } };
   const lignes = (h, l) => { const t = atlEl('dl', 'atl-impf'); for (const [k, v, c] of l) { const dt = atlEl('dt', c || '', k), dd = atlEl('dd', c || '', v); t.append(dt, dd); } h.appendChild(t); };
-  const prix = (h, d) => lignes(h, [[d.produit || 'Poster', d.qualite || ''], ...(d.net === false ? [['⚠️ Image un peu douce de près', 'belle à distance']] : []), ['Livraison' + (d.service ? ' (' + d.service + ')' : ''), 'comprise'], ['Total TTC', atlImpEuros(d.prix_ttc), 'tot']]);
+  const prix = (h, d) => lignes(h, [[d.produit || 'Poster', d.qualite || ''], ...(d.net === false ? [['⚠️ Image un peu douce de près', 'belle à distance']] : []), ['Livraison' + (d.service ? ' (' + d.service + ')' : ''), 'comprise'], ...(d.prix_normal ? [['Prix normal', atlImpEuros(d.prix_normal), 'barre'], ['Prix admin', atlImpEuros(d.prix_ttc), 'tot']] : [['Total TTC', atlImpEuros(d.prix_ttc), 'tot']])]);
   const bouton = (h, t, c, fn) => { const b = atlEl('button', 'btn btn-sm ' + c, t); b.type = 'button'; b.addEventListener('click', fn); h.appendChild(b); return b; };
   const panne = () => { vide(); corps.appendChild(atlEl('p', 'atl-impm', 'Ce n’est pas encore prêt. Rien n’a été commandé.')); };
   async function verifier(b, c) {
@@ -19078,7 +19089,7 @@ function atlImpressionOuvrir(a, f, nom) {
   }
   async function charger(zone, apres) {
     zone.textContent = ''; zone.appendChild(atlEl('p', 'atl-impw', '⏳ Calcul du prix…')); dv = null; apres();
-    let r = null; try { r = await atlImpApi({ action: 'devis', fiche: f.id, poster: a.image, qualite, produit }); } catch (e) {}
+    let r = null; try { r = await atlImpApi(Object.assign({ action: 'devis', fiche: f.id, poster: a.image, qualite, produit }, atlPresentation())); } catch (e) {}
     if (!W.isConnected) return; zone.textContent = '';
     if (r && r.etat === 'ok' && r.produit_k) produit = r.produit_k;
     if (!r || r.etat !== 'ok' || !(+r.prix_ttc > 0)) { zone.appendChild(atlEl('p', 'atl-impm', r && r.etat === 'trop_petite' ? 'Cette image est trop petite pour une belle impression : choisis-en une autre.' : r && (r.etat === 'bientot' || r.etat === 'cle_absente') ? 'Ce n’est pas encore prêt. Rien n’a été commandé.' : 'Le prix n’a pas pu être calculé. Rien n’a été commandé : réessaie dans un moment.')); apres(); return; }
@@ -19102,11 +19113,11 @@ function atlImpressionOuvrir(a, f, nom) {
     const oui = bouton(row, 'Payer ' + atlImpEuros(d.prix_ttc), 'btn-play', async () => {
       if (occupe) return; occupe = true; oui.disabled = non.disabled = true; x.disabled = true; oui.textContent = '⏳ …';
       const corpsAd = {}; for (const c of CH) corpsAd[c[0]] = ad[c[0]].trim();
-      let r = null; try { r = await atlImpApi({ action: 'payer', fiche: f.id, poster: a.image, qualite, produit, fond, adresse: corpsAd, total_vu: d.prix_ttc, confirme: 'oui' }, 90000); } catch (e) {}
+      let r = null; try { r = await atlImpApi(Object.assign({ action: 'payer', fiche: f.id, poster: a.image, qualite, produit, fond, adresse: corpsAd, total_vu: d.prix_ttc, confirme: 'oui' }, atlPresentation()), 90000); } catch (e) {}
       if (r && r.etat === 'ok' && typeof r.url === 'string' && /^https:\/\/checkout\.stripe\.com\//.test(r.url)) { try { atlBrFlush(); } catch (e) {} location.href = r.url; return; }   // la page de paiement
       occupe = false; x.disabled = false; if (!W.isConnected) return;
       if (r && r.etat === 'deja' && r.commande) { suivi(r.commande); return; }
-      if (r && r.etat === 'prix_change' && +r.prix_ttc > 0) { dv = Object.assign({}, dv, { prix_ttc: r.prix_ttc, service: r.service }); msg = 'Le prix vient de changer. Regarde le nouveau total : rien n’a été payé.'; montrerForm(); return; }
+      if (r && r.etat === 'prix_change' && +r.prix_ttc > 0) { dv = Object.assign({}, dv, { prix_ttc: r.prix_ttc, prix_normal: r.prix_normal, service: r.service }); msg = 'Le prix vient de changer. Regarde le nouveau total : rien n’a été payé.'; montrerForm(); return; }
       msg = r && r.etat === 'trop_lourd' ? 'Cette image est trop lourde pour être imprimée : rien n’a été payé. Choisis-en une autre.' : 'Le paiement n’a pas pu démarrer : rien n’a été payé. Réessaie dans un moment.'; montrerForm();
     }), non = bouton(row, 'Retour', 'btn-ghost', () => montrerForm());
   }
@@ -19127,14 +19138,14 @@ function atlCtOuvrir(d, titre, accent) {
   const h = atlEl('div', 'ct-h'), ti = atlEl('div', 'ct-ti'), x = atlEl('button', 'ct-x', '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Fermer');
   ti.append(atlEl('b', '', '📦 Chez toi, en vrai'), atlEl('small', '', 'Imprimé et livré à ta porte')); h.append(ti, x);
   const rail = atlEl('div', 'ct-rail'); W.append(h, rail);
-  const P = d.posters, charger = (s, pst) => { if (s._lu || !d.commande) return; s._lu = true; atlImpApi({ action: 'devis', fiche: pst.fiche, poster: pst.poster, qualite: 'normale' }).then(r => { if (r && r.etat === 'trop_petite') { s._fmt.textContent = 'Image trop petite pour une belle impression'; s._go.disabled = true; s._go.textContent = '🔒 Trop petite'; return; } if (!r || r.etat !== 'ok' || !(+r.prix_ttc > 0)) { s._lu = false; return; } s._prix.textContent = atlImpEuros(r.prix_ttc); s._de.hidden = false; if (r.produit) s._fmt.textContent = r.formats && r.formats.length > 1 ? r.formats.length + ' formats, jusqu’à ' + r.produit.replace(/^Poster\s*/, '') : r.produit; }).catch(() => { s._lu = false; }); };
+  const P = d.posters, charger = (s, pst) => { if (s._lu || !d.commande) return; s._lu = true; atlImpApi(Object.assign({ action: 'devis', fiche: pst.fiche, poster: pst.poster, qualite: 'normale' }, atlPresentation())).then(r => { if (r && r.etat === 'trop_petite') { s._fmt.textContent = 'Image trop petite pour une belle impression'; s._go.disabled = true; s._go.textContent = '🔒 Trop petite'; return; } if (!r || r.etat !== 'ok' || !(+r.prix_ttc > 0)) { s._lu = false; return; } s._prix.textContent = atlImpEuros(r.prix_ttc); s._de.hidden = false; if (r.prix_normal) { s._de.textContent = 'Prix admin'; s._barre.textContent = atlImpEuros(r.prix_normal); s._barre.hidden = false; } if (r.produit) s._fmt.textContent = r.formats && r.formats.length > 1 ? r.formats.length + ' formats, jusqu’à ' + r.produit.replace(/^Poster\s*/, '') : r.produit; }).catch(() => { s._lu = false; }); };
   const allerA = i => { const s = rail.children[Math.max(0, Math.min(P.length - 1, i))]; if (s) s.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); };
   const ici = () => Math.round(rail.scrollLeft / Math.max(1, rail.clientWidth));
   P.forEach((pst, i) => {
     const s = atlEl('article', 'ct-s'), mur = atlEl('div', 'ct-mur'), cadre = atlEl('div', 'ct-cadre'), im = atlEl('img'), lum = atlEl('i', 'ct-lum');
     im.alt = atlCtNom(pst.nom); im.loading = 'lazy'; im.src = atlIaUrl(pst.image); cadre.append(im, lum); mur.append(cadre, atlEl('i', 'ct-sol'));
     const fi = atlEl('div', 'ct-f'), fmt = atlEl('span', 'ct-fmt', 'Grand format'), de = atlEl('small', 'ct-de', 'À partir de'), pr = atlEl('b', 'ct-prix', ''), pz = atlEl('div', 'ct-pz'), ul = atlEl('ul', 'ct-l');
-    de.hidden = true; s._prix = pr; s._de = de; s._fmt = fmt; pz.append(de, pr);
+    const barre = atlEl('s', 'ct-barre', ''); barre.hidden = true; de.hidden = true; s._prix = pr; s._de = de; s._fmt = fmt; s._barre = barre; pz.append(barre, de, pr);
     for (const t of ['Imprimé rien que pour toi, à l’unité', 'Deux papiers au choix', 'Envoyé roulé, livré à ta porte']) ul.appendChild(atlEl('li', '', t));
     fi.append(atlEl('h2', 'ct-n', atlCtNom(pst.nom)), fmt, ul, pz);
     const go = atlEl('button', 'btn btn-play ct-go', d.commande ? '📦 Le recevoir chez moi' : '🔒 Bientôt'); go.type = 'button'; go.disabled = !d.commande; s._go = go;
@@ -19149,21 +19160,35 @@ function atlCtOuvrir(d, titre, accent) {
   W._fermer = fermer; x.addEventListener('click', fermer); document.addEventListener('keydown', cle, true);
   setTimeout(() => { try { const g = W.querySelector('.ct-go:not(:disabled)') || x; g.focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); } catch (e) {} }, 60);
 }
+// 9 nov. (l'admin) : une tuile par sorte d'objet réel ; une sorte sans objet n'a pas de tuile (les statuettes et les cartes arriveront dans at_chez_toi sous ces noms)
+const ATL_CT_CATS = [{ k: 'posters', nom: 'Posters', ic: '🖼️', sous: 'Imprimés et livrés à ta porte' }, { k: 'statuettes', nom: 'Statuettes', ic: '🗿', sous: 'Fabriquées et livrées à ta porte' }, { k: 'cartes', nom: 'Cartes', ic: '🃏', sous: 'Imprimées et livrées à ta porte' }];
+// la discussion du projet, avec la demande déjà écrite : le créateur la complète et l'envoie lui-même
+function atlCtDemander() {
+  const texte = 'Je voudrais ajouter un objet réel à vendre pour mon jeu (un autre poster, une statuette, des cartes…) : ';
+  try { atlEspFermer(); } catch (e) {} atlProjTab('demandes'); try { atlDiscOuvrir(true, true); } catch (e) {}
+  let n = 0; const poser = () => { const W = ATL.root && ATL.root.querySelector('.atl-wiz'), ta = W && W.querySelector('.atl-disc textarea'); if (!ta || !ta.checkVisibility()) { if (++n < 20) setTimeout(poser, 150); return; }
+    if (!ta.value.trim()) { ta.value = texte; ta.dispatchEvent(new Event('input', { bubbles: true })); } try { ta.focus({ preventScroll: false }); ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {} };
+  setTimeout(poser, 120);
+}
 async function atlCtPane(host, f) {
   host.textContent = ''; host.appendChild(atlEl('p', 'atl-chv', '⏳ Chargement…'));
   let d = null; try { d = await atlLireSur(() => atlCtLire({ fiche: f.id }, true)); } catch (e) { if (host.isConnected) atlPanne(host, () => atlCtPane(host, f)); return; }
   if (!host.isConnected) return; host.textContent = '';
-  if (!d.posters.length) { host.appendChild(atlEl('p', 'atl-chv', 'Ton jeu n’a pas encore de grande image à imprimer.')); return; }
-  const v = atlEl('button', 'ct-pv'), mur = atlEl('span', 'ct-pm'); v.type = 'button'; v.setAttribute('aria-label', 'Voir les posters en grand');
-  for (const pst of d.posters.slice(0, 3)) { const c = atlEl('span', 'ct-pc'), i = atlEl('img'); i.alt = ''; i.loading = 'lazy'; i.src = atlIaUrl(pst.vignette || pst.image); c.appendChild(i); mur.appendChild(c); }
-  const t = atlEl('span', 'ct-pt'); t.append(atlEl('b', '', 'Choisis une image de ton jeu'), atlEl('small', '', 'Imprimée en poster et livrée à ta porte'), atlEl('span', 'ct-pl', d.posters.length > 1 ? 'Voir les ' + d.posters.length + ' images ›' : 'Voir en grand ›'));
-  v.append(mur, t); v.addEventListener('click', () => atlCtOuvrir(d, f.titre)); host.appendChild(v);
+  const cats = ATL_CT_CATS.map(c => Object.assign({}, c, { l: Array.isArray(d[c.k]) ? d[c.k] : [] })).filter(c => c.l.length);
+  if (!cats.length) host.appendChild(atlEl('p', 'atl-chv', 'Ton jeu n’a pas encore de grande image à imprimer.'));
+  else { const g = atlEl('div', 'ct-cats'); for (const c of cats) {
+    const v = atlEl('button', 'ct-cat'), mur = atlEl('span', 'ct-catm'); v.type = 'button'; v.setAttribute('aria-label', c.nom + ', voir en grand');
+    for (const pst of c.l.slice(0, 3)) { const k = atlEl('span', 'ct-catp'), i = atlEl('img'); i.alt = ''; i.loading = 'lazy'; i.src = atlIaUrl(pst.vignette || pst.image); k.appendChild(i); mur.appendChild(k); }
+    const t = atlEl('span', 'ct-catt'); t.append(atlEl('b', '', c.ic + ' ' + c.nom), atlEl('small', '', c.sous), atlEl('span', 'ct-catl', c.l.length > 1 ? 'Voir les ' + c.l.length + ' ›' : 'Voir en grand ›'));
+    v.append(mur, t); v.addEventListener('click', () => atlCtOuvrir(Object.assign({}, d, { posters: c.l }), f.titre)); g.appendChild(v); }
+    host.appendChild(g); }
+  if (d.proprio) { const b = atlEl('button', 'btn btn-ghost ct-dem', '💬 Demande ' + gA() + ' d’en rajouter'); b.type = 'button'; b.addEventListener('click', () => atlCtDemander()); host.appendChild(b); }
   if (!d.proprio) return;
   const ac = atlEl('section', 'atl-escard ct-ac'), gain = (+d.gain | 0).toLocaleString('fr-FR');
-  const dire = () => { ac.textContent = ''; ac.appendChild(atlEl('h4', '', '💰 Vends ton poster'));
-    ac.appendChild(atlEl('p', '', 'Les joueurs pourront le recevoir chez eux. Chaque poster acheté te rapporte ' + gain + ' 💎. Tu peux changer d’avis à tout moment.'));
+  const dire = () => { ac.textContent = ''; ac.appendChild(atlEl('h4', '', '💰 Vends tes objets réels'));
+    ac.appendChild(atlEl('p', '', 'Les joueurs pourront les recevoir chez eux. Chaque élément physique vendu te rapporte ' + gain + ' 💎. Tu peux changer d’avis à tout moment.'));
     const r = atlEl('div', 'ct-acb'), mk = (val, txt) => { const b = atlEl('button', 'btn btn-sm ' + (d.accord === val ? 'btn-play' : 'btn-ghost'), txt); b.type = 'button'; b.setAttribute('aria-pressed', String(d.accord === val)); b.addEventListener('click', async () => { if (d.accord === val) return; for (const y of r.children) y.disabled = true; er.textContent = ''; try { const z = await rpc('at_poster_accord_poser', { p_name: profile.name, p_fiche: f.id, p_oui: val }, { quiet: true, ms: ATL_ATT_MS }); d.accord = !!(z && z.accord); dire(); } catch (e) { for (const y of r.children) y.disabled = false; er.textContent = 'Le serveur ne répond pas, réessaie.'; } }); return b; }, er = atlEl('small', 'atl-viserr', '');
-    r.append(mk(true, 'Oui, je le vends'), mk(false, 'Non')); ac.append(r, er); };
+    r.append(mk(true, 'Oui, je les vends'), mk(false, 'Non')); ac.append(r, er); };
   dire(); host.appendChild(ac);
 }
 function atlPosterMenu(a, f, nom) {
