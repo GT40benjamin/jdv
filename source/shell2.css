@@ -6310,7 +6310,8 @@ body:has(#jdw-liveinv:not([hidden])) .fs-tip{display:none!important}
 .ct-rail{flex:1;min-height:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none}.ct-rail::-webkit-scrollbar{display:none}
 .ct-s{flex:0 0 100%;min-width:0;height:100%;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr);scroll-snap-align:center;scroll-snap-stop:always}
 .ct-mur{position:relative;min-height:0;overflow:hidden;background:radial-gradient(70% 62% at 50% 34%,#fff4df 0,#e8d6bb 44%,#b89f80 100%)}
-.ct-sol{position:absolute;inset:auto 0 0;height:15%;background:linear-gradient(#0003,#0000 16%),repeating-linear-gradient(90deg,#6e4a2d 0 14%,#7b5434 14% 28%,#65432a 28% 42%);border-top:9px solid #f5ecdf;box-shadow:0 -7px 16px #0002}
+.ct-mur::before{content:'';position:absolute;inset:0;background:radial-gradient(46% 62% at 50% 2%,#fffbef 0,#fff5de99 42%,#fff0 75%),linear-gradient(90deg,#3a22101f,#0000 22% 78%,#3a22101f);pointer-events:none}
+.ct-sol{position:absolute;inset:auto 0 0;height:15%;background:linear-gradient(#0003,#0000 16%),repeating-linear-gradient(90deg,#7c5434 0 3.1%,#71492c 3.1% 3.3%,#86603d 3.3% 6.6%,#6d4629 6.6% 6.8%,#7a5233 6.8% 10%,#6b4528 10% 10.2%);border-top:9px solid #f5ecdf;box-shadow:0 -7px 16px #0002}
 .ct-cadre{position:absolute;left:50%;top:clamp(62px,10.5%,120px);bottom:21%;display:block;transform:translateX(-50%);padding:clamp(5px,.7vw,11px);overflow:hidden;background:linear-gradient(135deg,#2c2118,#14100b 55%,#332619);box-shadow:0 2px 3px #0007,0 18px 26px #0006,0 46px 70px #0005;animation:ct-entre .7s cubic-bezier(.2,.9,.3,1.1) both}
 .ct-cadre img{display:block;height:100%;width:auto;max-width:none}
 .ct-lum{position:absolute;inset:0;background:linear-gradient(112deg,#fff0 38%,#fff5 50%,#fff0 62%);transform:translateX(-110%);animation:ct-lum 1.5s .55s ease-out both;pointer-events:none}
