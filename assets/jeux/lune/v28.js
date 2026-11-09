@@ -2206,25 +2206,53 @@ function mount(root, api) {
     const grd = (yy, h) => { const g = ctx.createLinearGradient(0, yy - h, 0, yy); g.addColorStop(0, '#fff6c8'); g.addColorStop(0.5, '#ffc24a'); g.addColorStop(1, '#f06a1a'); return g; };
     ctx.font = fs + 'px ' + FT; ctx.lineJoin = 'round';
     ctx.lineWidth = fs * 0.16; ctx.strokeStyle = '#2a1030'; ctx.strokeText(l1, W / 2, y); ctx.fillStyle = grd(y, fs); ctx.fillText(l1, W / 2, y);
-    const fs2 = fs * 0.62; ctx.font = fs2 + 'px ' + FT; ctx.lineWidth = fs2 * 0.18; ctx.strokeText(l2, W / 2, y + fs2 * 1.15); ctx.fillStyle = '#bfe6ff'; ctx.fillText(l2, W / 2, y + fs2 * 1.15);
+    let fs2 = fs * 0.62; ctx.font = fs2 + 'px ' + FT; while (ctx.measureText(l2).width > W * 0.94 && fs2 > 8) { fs2 *= 0.97; ctx.font = fs2 + 'px ' + FT; }   /* V28 : au téléphone debout, le sous-titre sortait des deux côtés */ ctx.lineWidth = fs2 * 0.18; ctx.strokeText(l2, W / 2, y + fs2 * 1.15); ctx.fillStyle = '#bfe6ff'; ctx.fillText(l2, W / 2, y + fs2 * 1.15);
     ctx.restore();
     return fs + fs2 * 1.3;
   }
   let AFFICHE_SEULE = false;
+  /* V28 (demande de l'admin) : en bas à droite de l'écran-titre, les vrais boosters à acheter. L'adresse de la boutique tient dans cette SEULE constante : tant qu'elle est vide, le bloc n'existe pas pour les joueurs. */
+  const BOOSTERS_URL = '';
+  let boostersEssai = '';   /* bancs seulement (_test.boostersEssai) */
+  function blocBoosters(t) {
+    const url = BOOSTERS_URL || boostersEssai; if (!url) return;
+    const im = IMG['p-boosters-0']; if (!im) { chargerFamille('boosters'); return; }
+    /* la place laissée par les boutons : le bloc rétrécit pour tenir (du plus grand téléphone au plus petit), et ne disparaît que s'il deviendrait illisible */
+    const couche = !portrait && H < 500, m = (portrait ? 10 : 14) * U, BW = (portrait || couche ? 230 : 318) * U, BH = (portrait ? 92 : couche ? 160 : 150) * U, jeu = 6 * U, droite = Math.max(0, ...tapBtns.map(b => b.x + b.w)), bas = Math.max(0, ...tapBtns.map(b => b.y + b.h));
+    const dessous = Math.min(1, (H - m - bas - jeu) / BH, (W - m * 2) / BW), aCote = Math.min(1, (W - m - droite - jeu) / BW, (H - m * 2) / BH); let s = portrait ? dessous : Math.max(dessous, aCote);
+    if (s < 0.58) return;
+    const V = U * s, bw = BW * s, bh = BH * s, x = W - bw - m, y = H - bh - m;
+    if (tapBtns.some(b => x < b.x + b.w + 3 * U && x + bw > b.x - 3 * U && y < b.y + b.h + 3 * U && y + bh > b.y - 3 * U)) return;   /* jamais par-dessus Jouer ni les menus */
+    ctx.save();
+    ctx.save(); ctx.shadowColor = 'rgba(120,170,255,0.55)'; ctx.shadowBlur = 18 * V; const fond = ctx.createLinearGradient(x, y, x + bw, y + bh); fond.addColorStop(0, '#2a1a63'); fond.addColorStop(1, '#10143e'); ctx.fillStyle = fond; ctx.beginPath(); ctx.roundRect(x, y, bw, bh, 16 * V); ctx.fill(); ctx.restore();
+    const bord = ctx.createLinearGradient(x, y, x + bw, y + bh); bord.addColorStop(0, '#ffd65a'); bord.addColorStop(0.5, '#7fd8ff'); bord.addColorStop(1, '#c58cff'); ctx.strokeStyle = bord; ctx.lineWidth = 2 * V; ctx.beginPath(); ctx.roundRect(x, y, bw, bh, 16 * V); ctx.stroke();
+    const k = portrait ? 0.4 : couche ? 0.5 : 0.52, sw = bw * k, sh = sw * im.height / im.width, sx = x + bw * 0.27, sy = y + bh * (portrait ? 0.5 : couche ? 0.5 : 0.44) + Math.sin(t * 1.3) * 1.5 * V;
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 12 * V; ctx.shadowOffsetY = 5 * V; ctx.drawImage(im, sx - sw / 2, sy - sh / 2, sw, sh); ctx.restore();
+    const tx = x + bw * (portrait ? 0.54 : couche ? 0.55 : 0.56), tw = x + bw - tx - 8 * V; let ty = y + bh * (portrait ? 0.14 : 0.13), fs = (portrait || couche ? 18 : 24) * V;
+    ctx.font = fs + 'px ' + FT; while (fs > 7 && ctx.measureText('BOOSTERS').width > tw) { fs *= 0.96; ctx.font = fs + 'px ' + FT; }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 4; ctx.fillStyle = '#ffe07a'; ctx.fillText('BOOSTERS', tx, ty); ty += fs * 1.2;
+    ctx.font = '700 ' + Math.round(fs * 0.85) + 'px ' + FB; ctx.fillStyle = '#fff'; ctx.fillText('à acheter', tx, ty); ty += fs * 1.1;
+    if (!portrait) { ctx.font = '600 ' + Math.round(fs * 0.62) + 'px ' + FB; ctx.fillStyle = '#bcd0ff'; ctx.fillText('Vraies cartes', tx, ty); }
+    ctx.shadowBlur = 0;
+    const ph = (portrait ? 22 : couche ? 26 : 30) * V, py = y + bh - ph - (portrait ? 6 : couche ? 8 : 10) * V, pg = ctx.createLinearGradient(tx, py, tx, py + ph); pg.addColorStop(0, '#ffc93f'); pg.addColorStop(1, '#ff9426'); ctx.fillStyle = pg; ctx.beginPath(); ctx.roundRect(tx, py, tw, ph, ph / 2); ctx.fill();
+    ctx.fillStyle = '#3a1a00'; ctx.font = '800 ' + Math.round(ph * 0.5) + 'px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Boutique ↗', tx + tw / 2, py + ph / 2 + 1, tw - 6 * V);
+    ctx.restore();
+    tapBtns.push({ x, y, w: bw, h: bh, f: () => { try { window.open(url, '_blank', 'noopener'); } catch (e) { /* rien */ } }, t: 'Boosters à acheter', r: 16 * V });
+  }
   function drawTitre(t) {
     tapBtns = [];
     ciel(ctx, W, H, t, t * 18, 0, 1);
     const pr = Math.min(Math.min(W, H) * 0.42, 300 * Math.max(1, dpr) / dpr * 1.25);
     planeteOrbite(ctx, 20, W * (portrait ? 0.74 : 0.82), H * (portrait ? 0.9 : 0.8), pr, t, 0, 'titre'); planeteOrbite(ctx, 23, W * (portrait ? 0.84 : 0.9), H * (portrait ? 0.34 : 0.16), pr * 0.22, t, 0);
     // la navette qui passe au loin (V12 : plus haut en paysage, elle frôlait le casque sur un téléphone couché)
-    const nv = IMG['navette-neuve'];
-    if (nv) { const h = Math.min(W, H) * 0.1, w = nv.width * h / nv.height, x = W * (portrait ? 0.03 : 0.01) + (0.5 + 0.5 * Math.sin(t * 0.22)) * (portrait ? W * 0.3 : W * 0.04), y = H * (portrait ? 0.3 : 0.17) + Math.sin(t * 0.8) * 8; ctx.save(); ctx.globalAlpha = 0.9; ctx.translate(x + w, y); ctx.scale(-1, 1); ctx.drawImage(nv, 0, 0, w, h); ctx.restore(); flamme(x, y + h * 0.48, h * 0.35, t, -1); }
     const th = titreTexte(portrait ? H * 0.16 : H * 0.2, (portrait ? 54 : 86) * U);
     ctx.save(); ctx.fillStyle = '#d8e4ff'; ctx.font = '600 ' + Math.round(16 * U) + 'px ' + FB; ctx.textAlign = 'center';
-    ctx.fillText('Un univers immense à explorer avec toute ta salle', W / 2, (portrait ? H * 0.16 : H * 0.2) + th * 0.74); ctx.restore();
+    ctx.fillText('Un univers immense à explorer avec toute ta salle', W / 2, (portrait ? H * 0.16 : H * 0.2) + th * 0.74, W * 0.94); ctx.restore();
     // l'explorateur sur son rocher
-    const ex = portrait ? W * 0.5 : W * 0.24, ey = portrait ? H * 0.64 : H * 0.84, k = (portrait ? 2.1 : 2.4) * U;
-    rocherLunaire(ex, ey + 4 * U, 120 * U);
+    const titreBas = (portrait ? H * 0.16 : H * 0.2) + th * 0.74 + 8 * U, ex = portrait ? W * 0.5 : W * 0.24, ey = portrait ? H * 0.64 : H * 0.84, k0 = (portrait ? 2.1 : 2.4) * U, k = portrait ? k0 : Math.min(k0, (ey - titreBas - 4 * U) / 99), heroHaut = ey - 99 * k;   /* V28 : sur un téléphone couché, le héros et la navette ne chevauchent plus le titre */
+    rocherLunaire(ex, ey + 4 * U, 120 * U * k / k0);
+    const nv = IMG['navette-neuve'];
+    if (nv) { const h = Math.min(W, H) * 0.1, w = nv.width * h / nv.height, x = W * (portrait ? 0.03 : 0.01) + (0.5 + 0.5 * Math.sin(t * 0.22)) * (portrait ? W * 0.3 : W * 0.04), y = (portrait ? Math.min(H * 0.3, heroHaut - h - 14 * U) : (H < 500 ? Math.max(H * 0.17, titreBas + 4 * U) : H * 0.17)) + Math.sin(t * 0.8) * (portrait ? 8 : 4); ctx.save(); ctx.globalAlpha = 0.9; ctx.translate(x + w, y); ctx.scale(-1, 1); ctx.drawImage(nv, 0, 0, w, h); ctx.restore(); flamme(x, y + h * 0.48, h * 0.35, t, -1); }
     EXPL_PANTIN.draw(ctx, ex, ey, k, look, { th: 0.35 + Math.sin(t * 0.5) * 0.25, mode: 'repos', t });
     if (AFFICHE_SEULE) return;   /* V28 : l'affiche (poster de l'atelier) = l'écran-titre sans ses boutons */
     // les boutons
@@ -2233,6 +2261,7 @@ function mount(root, api) {
     if (!LOADED) { ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(16 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.fillText('Chargement…', bx + bw / 2, by + bh / 2); return; }
     bouton(bx, by, bw, bh, SAVE.look && SAVE.cine ? 'Continuer l’aventure' : 'Commencer l’aventure', jouer, true, '▶'); by += bh + 14 * U;
     bouton(bx, by, bw, bh * 0.86, SAVE.cine ? 'Revoir le crash' : 'Voir le crash', () => { if (!SAVE.look) SAVE.look = {}; look = Object.assign({}, EXPL_PANTIN.DEF, SAVE.look); lancerCine(); }, false, '🎬');
+    blocBoosters(t);
   }
   // le rocher lunaire du titre : relief ombré, bord éclairé, cratères
   function rocherLunaire(x, y, R) {
@@ -8451,7 +8480,7 @@ function mount(root, api) {
     if (!padF.b.pin && !tapBtns.some(q => Math.abs(q.x + q.w / 2 - padF[0]) < 6 && Math.abs(q.y + q.h / 2 - padF[1]) < 6)) return;   // le bouton n'est plus à l'écran : pas de cadre vide
     const B = padF.b, p = 4 * U + Math.sin(t * 6) * 1.5 * U;
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.strokeStyle = '#ffd23a'; ctx.lineWidth = 3.5 * U; ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 12 * U;
-    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(B.x - p, B.y - p, B.w + p * 2, B.h + p * 2, Math.min(B.h, B.w) / 2 + p) : ctx.rect(B.x - p, B.y - p, B.w + p * 2, B.h + p * 2); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(B.x - p, B.y - p, B.w + p * 2, B.h + p * 2, B.r != null ? B.r + p : Math.min(B.h, B.w) / 2 + p) : ctx.rect(B.x - p, B.y - p, B.w + p * 2, B.h + p * 2); ctx.stroke(); ctx.restore();
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     padGlyphe('a', Math.min(W - 14 * U, B.x + B.w + p + 4 * U), B.y - p + 2 * U, 10 * U);
     ctx.restore();
@@ -12187,6 +12216,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
          son dessin de profil, retourné s'il regarde à gauche ; les pantins en pièces (Renard, Roi-mâchoire) dessinés de profil par le jeu lui-même */
       miniDroite: (g, id, x, y, s) => { beteDroite(g, id, x, y, s); },
       portraitSur: (g, F, x, y, r) => { const vrai = ctx; ctx = g; try { portrait1(F, x, y, r); } finally { ctx = vrai; } },
+      boostersEssai: u => { boostersEssai = u || ''; },
       enJeuSur: (g, id, x, y, h, th, clip, ph) => { const v0 = { ctx, W, H, Z, camX, camY }; try { ctx = g; W = 0; H = 0; Z = 1; camX = 0; camY = 0; dessinerPantinCreature({ esp: id, x, y, th, ph: ph || 0, clip: clip || 'repos', id: 1, echelle: h / ESPECES[id].taille, flash: 0, prep: 0, tm: 0, tc: 0, sansOmbre: true }, 0); } finally { ctx = v0.ctx; W = v0.W; H = v0.H; Z = v0.Z; camX = v0.camX; camY = v0.camY; } },
       eloignerEpave, BASES, SONS, epave: () => epave, NAV: () => NAV, wavVictoire, musiqueCombat,
       hero: { pret: () => EXPL_PANTIN.pret() }, pieceImg: id => IMG['p-pv_' + id + '-0'], gauches: () => Array.from(PROFIL_GAUCHE), nonAuto: () => AF_LISTE.filter(id => PANTINS[PANT_DE[id]] && !PANTINS[PANT_DE[id]].auto),
