@@ -1610,7 +1610,7 @@ function mount(root, api) {
     const a = Math.min(1, msg.t * 5, (3 - msg.t) * 2), y = portrait ? MY - 30 : V.y + (state === 'play' && P && P.N.pluie ? 186 : 150);
     // V11 (testeur) : debout, 680 de large au plus ; en paysage, toute la largeur utile ; retour à la ligne si besoin
     ctx.globalAlpha = a; ctx.font = 'bold 24px ' + RF; const mw = msgLarg(), Ls = lignesDe(msg.s, mw - 44), lh = 31;
-    const tw = Math.min(mw, Math.max(...Ls.map(l => ctx.measureText(l).width)) + 44), hh = 52 + (Ls.length - 1) * lh, y0 = portrait ? y - 26 - (Ls.length - 1) * lh : y - 26; msg.haut = y0; msg.bas = y0 + hh;   // (debout vers le haut ; en paysage vers le BAS : jamais sur la pastille de l'averse)
+    const tw = Math.min(mw, Math.max(...Ls.map(l => ctx.measureText(l).width)) + 44), hh = 52 + (Ls.length - 1) * lh, yb = portrait ? y - 26 - (Ls.length - 1) * lh : y - 26, K = state === 'play' ? kitRect() : null, y0 = K && yb < K.y + K.h / 2 + 8 && yb + hh > K.y - K.h / 2 - 8 ? K.y + K.h / 2 + 8 : yb; msg.haut = y0; msg.bas = y0 + hh;   // (debout vers le haut ; en paysage vers le BAS : jamais sur la pastille de l'averse)
     ctx.fillStyle = 'rgba(255,255,255,0.95)'; pill(ctx, LW / 2 - tw / 2, y0, tw, hh, 26); ctx.fill(); ctx.strokeStyle = 'rgba(60,120,60,0.5)'; ctx.lineWidth = 3; ctx.stroke();
     ctx.fillStyle = '#244a22'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; Ls.forEach((l, i) => ctx.fillText(l, LW / 2, y0 + 27 + i * lh, mw - 30)); ctx.globalAlpha = 1;
   }
@@ -1881,7 +1881,7 @@ function mount(root, api) {
     pause() { if (state !== 'play') return; if (paused) { if (startTenu() && performance.now() - PM.t0 > 300) setPaused(false); return; } setPaused(true); },
     resume() { setPaused(false); },
     _test: {
-      kit: () => { const K = kitRect(); return K && { x: ox + K.x * sc, y: oy + K.y * sc }; },
+      kit: () => { const K = kitRect(); return K && { x: ox + K.x * sc, y: oy + K.y * sc, bas: K.y + K.h / 2, haut: K.y - K.h / 2, g: K.x - K.w / 2, d: K.x + K.w / 2 }; },
       state: () => state, niveau: () => niv, paused: () => paused, pmBoutons: () => PM.boutons.map(b => ({ x: ox + b.x * sc, y: oy + b.y * sc, id: b.id })), fast(k) { FAST = k; }, lancer(n) { lancer(n || 0); }, carte: allerCarte, fiche: ouvrirFiche,
       P: () => P && { x: Math.round(P.x), face: P.face, temps: +P.temps.toFixed(1), essence: +P.essence.toFixed(3), bouillie: +P.bouillie.toFixed(3), jet: P.jet, fuite: P.fuite, pluie: P.pluie, vent: +(P.vent + P.rafale).toFixed(2), recharge: P.recharge, cam: Math.round(P.cam), vise: +P.vise.toFixed(2), vx: Math.round(P.vx), court: !!P.court, courseT: +P.courseT.toFixed(2), renverse: +(P.renverse || 0).toFixed(3), arrivee: !!P.arrivee, flaques: P.flaquesB.length },
       mesure: () => P && mesure(), bilan: () => bilan, progres: () => progres, total: () => total,
