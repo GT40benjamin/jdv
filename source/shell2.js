@@ -506,7 +506,7 @@ function pauseStdMaj() {
     b.addEventListener('click', () => { const f = a.fn; padPauseClose(true); setTimeout(() => { try { f(); } catch (e) { reportError('Pause (' + a.id + ') : ' + e.message, e.stack); } }, 60); });
     ext.appendChild(b); } ext.hidden = !ext.children.length; }
   if (deb) deb.hidden = !(P.jeu || (g && !g.saves));   // une partie gardée sans onRecommencerJeu : la borne ne sait pas l'effacer proprement
-  const m = $('jdw-sm-music'), x = $('jdw-sm-sfx');
+  syncSoundMenu(); const m = $('jdw-sm-music'), x = $('jdw-sm-sfx');
   const sw = (id, ic, nom, on) => { const b = $(id); if (!b) return; b.textContent = ''; b.setAttribute('role', 'switch'); b.setAttribute('aria-checked', String(!!on)); b.classList.toggle('on', !!on);
     b.append(ic + ' ' + nom + ' : ' + (on ? 'activée' : 'coupée'), Object.assign(document.createElement('span'), { className: 'pp-sw' })); };   // 2.0.131 (chef) : un vrai interrupteur, « activée / coupée »
   sw('jdw-padpause-mus', '🎵', 'Musique', m && m.checked); sw('jdw-padpause-sfx', '🔊', 'Bruitages', x && x.checked);
@@ -523,7 +523,7 @@ function pauseDepuisDebut() {
 // ---------- 2.0.139 (CONTRACT.md Ajout 27, l'admin : « les boutons de la borne couvrent la jauge » + « un même menu pour tous les jeux ») ----------
 // (1) son par jeu ; (2) ZONE SÛRE (ce que la borne couvre dans le cadre du jeu) ; (3) boutons flottants discrets qui s'endorment ; (4) MENU PRINCIPAL
 function sonJeuLire(id) { const d = (id && store.get('jdw.son.' + id, null)) || {}, v = x => Number.isFinite(+x) ? Math.min(1, Math.max(0, +x)) : 1; return { m: d.m !== false, mv: v(d.mv), b: d.b !== false, bv: v(d.bv) }; }
-function sonJeuEtat() { return { musique: { on: !!(SON_JEU.m && MUS.on), volume: SON_JEU.mv }, bruitages: { on: !!(SON_JEU.b && !muted), volume: SON_JEU.bv } }; }
+function sonJeuEtat() { const c = sonCoupeJeu(); return { musique: { on: !!(SON_JEU.m && MUS.on && !c), volume: SON_JEU.mv }, bruitages: { on: !!(SON_JEU.b && !muted && !c), volume: SON_JEU.bv } }; }
 function sonJeuAppliquer() {
   musicApplyLevel(0.25);
   try { if (Audio.master && Audio.ctx) { const now = Audio.ctx.currentTime; Audio.master.gain.cancelScheduledValues(now); Audio.master.gain.setTargetAtTime(sfxLevel(), now, 0.05); } } catch (e) {}
@@ -697,7 +697,7 @@ function menuMontrer(g, o) {
       if (!o.duo && !g.noScore && !isGuest()) petit('🏆 RECORDS', 'Records', () => { try { openBoardFor(g.id); } catch (e) {} });
       petit('⚙️ OPTIONS', 'Options', () => vue('param'));
     } else if (quoi === 'son') {
-      L.appendChild(el('p', 'tm-k', '🔊 Le son de ce jeu'));
+      L.appendChild(el('p', 'tm-k', '🔊 Le son de ce jeu')); if (sonCoupeJeu()) L.appendChild(el('p', 'tm-k', '🔇 Le son est coupé dans l’Atelier : remets-le avec le bouton 🔇 en haut.'));
       const ligne = (k, kv, ic, nom) => {
         const r = el('div', 'tm-son'), sl = el('input', 'tm-vol'), s0 = sonJeuLire(g.id);
         const t = it('', () => { sonJeuEcrire(g.id, { [k]: !sonJeuLire(g.id)[k] }); maj(); }, 'tm-tog'); t.setAttribute('role', 'switch');
@@ -2121,6 +2121,9 @@ const MUSIC_VOL = 0.42, XFADE = 1.6;
 // 2.0.139 (CONTRACT.md Ajout 27) : musique et bruitages réglés À PART pour chaque jeu (oui / non + volume), retenus (jdw.son.<jeu>) ;
 // ils s'ajoutent aux réglages généraux de la borne (menu 🔊)
 const SON_JEU = { id: '', m: true, mv: 1, b: true, bv: 1, fns: new Set() };
+// 9 nov. 2026 (l'admin : « le son coupé dans la borne ne coupe pas le son du jeu ! ») : le 🔇 du haut de l'Atelier (jdw.atl.mus) fait taire le jeu lancé, musique, bruitages et cris ; le réglage propre à un jeu ne peut pas remettre le son.
+// Seulement pendant un jeu (son écran-titre, une partie, un duel, une coopération) : l'accueil de la borne garde ses propres réglages.
+function sonCoupeJeu() { try { return store.get('jdw.atl.mus', true) === false && !!(SON_JEU.id || current || /^(duel|coop)-/.test(where)); } catch (e) { return false; } }
 // 2.0.142 (CONTRACT.md Ajout 27 bis) : l'appareil du joueur — 'toucher' | 'clavier' | 'manette' — d'après le DERNIER appui (dès le menu)
 const APPAREIL = { v: (navigator.maxTouchPoints > 0 || matchMedia('(pointer:coarse)').matches) ? 'toucher' : 'clavier', fns: new Set() };
 function appareilMettre(v) { if (APPAREIL.v === v) return; APPAREIL.v = v; for (const f of APPAREIL.fns) { try { f(v); } catch (e) {} } }
@@ -2129,12 +2132,12 @@ addEventListener('keydown', e => { if (!e.isTrusted) return; appareilMettre('cla
 const appareilApi = () => Object.assign(() => (typeof PADJ !== 'undefined' && PADJ && PADJ.active && PADJ.active() && APPAREIL.v !== 'toucher') ? 'manette' : APPAREIL.v, { suivre: fn => { if (typeof fn !== 'function') return () => {}; APPAREIL.fns.add(fn); return () => APPAREIL.fns.delete(fn); } });
 // niveau de la musique selon l'écran (accueil 1, en jeu 0.8, fin de partie 0.5) et baisse momentanée pendant un cri
 let musBase = 1, duckLvl = 1, duckUntil = 0, duckTimer = 0, musHush = false;   // musHush : fenêtre des cris ouverte = musique coupée
-function musicLevel() { return musHush ? 0 : MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1) * (micQ ? MIC_QUIET : 1) * (SON_JEU.m ? SON_JEU.mv : 0); }
+function musicLevel() { return musHush || sonCoupeJeu() ? 0 : MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1) * (micQ ? MIC_QUIET : 1) * (SON_JEU.m ? SON_JEU.mv : 0); }
 // 2 nov. 2026, Benjamin : « quand on utilise le micro pour parler, il faut couper le son ou le réduire énormément » : pendant que la borne
 // écoute au micro (l'Atelier des jeux), musique ET bruitages à 5 %, puis retour en douceur (api.duck d'un jeu : la musique seule, à 5 %)
 const MIC_QUIET = 0.05;
 let micQ = false;
-function sfxLevel() { return muted ? 0 : 0.6 * (micQ ? MIC_QUIET : 1) * (SON_JEU.b ? SON_JEU.bv : 0); }
+function sfxLevel() { return muted || sonCoupeJeu() ? 0 : 0.6 * (micQ ? MIC_QUIET : 1) * (SON_JEU.b ? SON_JEU.bv : 0); }
 function micQuiet(on) {
   if (micQ === !!on) return; micQ = !!on; musicApplyLevel(on ? 0.25 : 1.4);
   const A = Audio.ctx, m = Audio.master; if (!A || !m) return;
@@ -2355,7 +2358,7 @@ function rhythmApi(mine) {
       Audio.ensure(); const A = Audio.ctx; if (!A) return false;
       rhythmStop(0.05); const my = RHY.seq;
       MUS.override = true; MUS.want = ''; MUS.seq++; musicOut(0.25);
-      let b = null; if (MUS.on) { try { b = await musicBuffer(id); } catch (e) {} }
+      let b = null; if (MUS.on && !sonCoupeJeu()) { try { b = await musicBuffer(id); } catch (e) {} }
       if (my !== RHY.seq || !mine()) return false;
       // son bloqué (pas encore touché l'écran, lancé à la manette) : on n'attend pas, le jeu garde sa propre horloge
       try { if (A.state === 'suspended') await Promise.race([A.resume(), new Promise(r => setTimeout(r, 400))]); } catch (e) {}
@@ -2427,6 +2430,7 @@ function playCri(name, el) {
   return !!(p && p.sound) && playCriSrc(p.sound, el);
 }
 function playCriSrc(src, el) {
+  if (sonCoupeJeu()) return false;
   if (!src || !criOn) return false;
   try { if (criAudio) { criAudio.pause(); criAudio = null; } } catch (e) {}
   try {
@@ -3319,7 +3323,7 @@ async function heartbeat() {
   refreshOnline(); if (chat.open) refreshChatOnline();
   refreshPresence();
 }
-function setWhere(w) { if (/^duel-/.test(where) && !/^duel-/.test(w)) castEndAll(); where = w; rtTrack(); heartbeat().then(() => poke('presence')); }
+function setWhere(w) { if (/^duel-/.test(where) && !/^duel-/.test(w)) castEndAll(); where = w; try { sonJeuAppliquer(); } catch (e) {} rtTrack(); heartbeat().then(() => poke('presence')); }
 setInterval(() => { if (!document.hidden) heartbeat(); }, 15000);
 setInterval(() => { if (!document.hidden && !$('jdw-lib').hidden) loadScores(); }, 20000);
 setInterval(() => { if (!document.hidden && $('jdw-lib').hidden) loadScores(); }, 30000);   // pendant une partie (le direct fait le reste)
@@ -11444,7 +11448,7 @@ function backToLibrary() {
   unmountGame();
   try { coopReset(); } catch (e) {}
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
-  setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic(menuMusic());
+  sonJeuActiver(''); setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic(menuMusic());   // sorti d'un jeu ou de son menu : ses réglages ne s'appliquent plus à la borne
   fsLeave();
   if ($('jdw-back').dataset.atl) { const qb = $('jdw-back'); delete qb.dataset.atl; qb.innerHTML = '✕<span class="tb-word"> Quitter</span>'; qb.setAttribute('aria-label', 'Quitter la partie'); window.JDW_ATL_OFF = []; window.JDW_ATL_MUS_OFF = ''; }
   if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; window.JDW_ATL_JEU = false; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); const t = ATL.retourTab; ATL.retourTab = ''; setTimeout(() => atlRevenir(id, t), 30); }   // jeu lancé depuis l'Atelier : retour au projet (onglet choisi)
@@ -11543,7 +11547,7 @@ $('jdw-tolib').addEventListener('click', backToLibrary);
   mb.addEventListener('click', () => { flushPending(); if (!current || current.coop) return; const g = current.game; unmountGame(); $('jdw-end').hidden = true; menuMontrer(g, { direct: true }); }); }
 $('jdw-again').addEventListener('click', () => { flushPending(); if (!current || current.coop) return; const g = current.game; unmountGame(); $('jdw-end').hidden = true; Audio.ensure(); mountGame(g); });
 function syncMute() {
-  const silent = muted && !MUS.on && !criOn;
+  const silent = sonCoupeJeu() || (muted && !MUS.on && !criOn);
   $('jdw-mute').textContent = silent ? '🔇' : '🔊';
   $('jdw-mute').setAttribute('aria-label', 'Réglages du son : musique, bruitages, cris');
   if (Audio.master) Audio.master.gain.value = sfxLevel();
@@ -11551,7 +11555,7 @@ function syncMute() {
 }
 // bouton de la partie : un petit menu pour couper séparément la musique, les bruitages et les cris
 function syncSoundMenu() {
-  $('jdw-sm-music').checked = MUS.on; $('jdw-sm-sfx').checked = !muted; $('jdw-sm-cris').checked = criOn;
+  const c0 = sonCoupeJeu(); $('jdw-sm-music').disabled = $('jdw-sm-sfx').disabled = c0; $('jdw-sm-music').checked = MUS.on && !c0; $('jdw-sm-sfx').checked = !muted && !c0; $('jdw-sm-cris').checked = criOn;
 }
 $('jdw-howto-b').addEventListener('click', e => { e.stopPropagation(); howtoEnJeu(); });   // 2.0.112 : « ? » = comment jouer (la partie attend)
 $('jdw-sm-howto').addEventListener('click', e => { e.stopPropagation(); $('jdw-soundmenu').hidden = true; $('jdw-mute').setAttribute('aria-expanded', 'false'); howtoEnJeu(); });   // téléphone couché : dans le menu du son
@@ -16089,7 +16093,7 @@ function atlBuild() {
   q('.atl-cred').addEventListener('click', atlRecharger);
   q('.atl-abob').addEventListener('click', atlRecharger);
   const musMaj = () => { const on = store.get('jdw.atl.mus', true) !== false; q('.atl-musb').textContent = on ? '🔊' : '🔇'; q('.atl-musb').title = on ? 'Couper la musique de l’Atelier' : 'Remettre la musique de l’Atelier'; };
-  q('.atl-musb').addEventListener('click', () => { const on = store.get('jdw.atl.mus', true) === false; store.set('jdw.atl.mus', on); musMaj(); if (ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic(''); } });   // 2.0.137 : 🔇 = aucune musique (jamais celle de la borne)
+  q('.atl-musb').addEventListener('click', () => { const on = store.get('jdw.atl.mus', true) === false; store.set('jdw.atl.mus', on); musMaj(); try { sonJeuAppliquer(); syncMute(); } catch (e) {} if (ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic(''); } });   // 2.0.137 : 🔇 = aucune musique (jamais celle de la borne)
   musMaj();
   q('.atl-notb').addEventListener('click', () => { pushFenetre(); });   // 7 nov. 2026 : le réglage des notifications
   q('.atl-demb').addEventListener('click', () => { if (ATL.cur && ATL.root.querySelector('.atl-wiz .atl-ptab[data-k="demandes"]')) atlDemFeuille(); else if (ATL.adminVoir && ATL.cur === ATL.adminVoir.id) atlAdminDemandes(); else atlMesDemandes(); });   // 2.0.137 : la liste des tickets dans une fenêtre   // 21 h 50 : toucher son solde → « Recharger mes crédits »
@@ -22881,7 +22885,7 @@ setTimeout(async () => {
 setTimeout(checkSiteVersion, 4000);
 // les images des jeux se préparent en douce (aperçu de la tuile + démarrage instantané)
 setTimeout(() => { for (const id of ASSET_GAMES) if (gameById(id)) window.JDW_ASSETS.load(id).catch(() => {}); }, 3500);
-window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer, game: () => current && current.inst, duo: () => DUO.inst, duoApi: () => DUO.api, coop: () => COOP, noFps: () => !!(current && current.game && current.game.fps === false && !$('jdw-play').hidden) };   // diagnostic (tests) ; noFps : compteur d'images coupé pour ce jeu
+window.JDW_SHELL = { niveaux: () => ({ musique: musicLevel(), bruitages: sfxLevel(), coupe: sonCoupeJeu(), etat: sonJeuEtat() }), players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer, game: () => current && current.inst, duo: () => DUO.inst, duoApi: () => DUO.api, coop: () => COOP, noFps: () => !!(current && current.game && current.game.fps === false && !$('jdw-play').hidden) };   // diagnostic (tests) ; noFps : compteur d'images coupé pour ce jeu
 })();
 
 // ---------- Compteur d'images par seconde (essai) : réglage « 📈 Images/s (essai) » du menu du son, retenu sur l'appareil (jdw.fps).

@@ -187,7 +187,7 @@
     q('.crea-cred').addEventListener('click', () => { try { atlRecharger(); } catch (e) {} });
     // l'admin (7 nov.) : le bouton 🔊 / 🔇 des autres écrans (l'Atelier des jeux, à côté de « Mes demandes ») — le MÊME réglage partagé
     // (jdw.atl.mus) : couper ici coupe partout, la musique de l'Atelier comme le petit son « paillettes » d'une retouche prête
-    q('.crea-son').addEventListener('click', () => { const on = !sonOn(); try { store.set('jdw.atl.mus', on); } catch (e) {}
+    q('.crea-son').addEventListener('click', () => { const on = !sonOn(); try { store.set('jdw.atl.mus', on); sonJeuAppliquer(); syncMute(); } catch (e) {}
       try { if (typeof ATL !== 'undefined' && ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else setMusic(''); } } catch (e) {}
       sonMaj(); });
     q('.crea-monde').addEventListener('click', () => { const n = !R.classList.contains('nuit'); try { store.set('jdw.crea.monde', n ? 'nuit' : 'jour'); } catch (e) {} monde(); });
