@@ -19035,12 +19035,20 @@ async function atlImpApi(corps, ms) {
   if (!r.ok) throw Object.assign(new Error((j && j.error) || 'serveur'), { status: r.status });
   return j || {};
 }
+// la couleur du bord de l'image : elle remplit la marge autour si l'image n'a pas tout à fait la forme du poster (le serveur la vérifie, et prend du blanc sinon)
+const ATL_FONDS = new Map();
+async function atlImpFond(image) {
+  if (ATL_FONDS.has(image)) return ATL_FONDS.get(image); let v = '#ffffff';
+  try { const r = await fetch(atlIaUrl(image), { mode: 'cors', cache: 'force-cache' }), bm = await createImageBitmap(await r.blob()), c = document.createElement('canvas'); c.width = c.height = 24; const g = c.getContext('2d', { willReadFrequently: true }); g.fillStyle = '#fff'; g.fillRect(0, 0, 24, 24); g.drawImage(bm, 0, 0, 24, 24); try { bm.close(); } catch (e) {}
+    const p = g.getImageData(0, 0, 24, 24).data, t = [0, 0, 0]; let n = 0; for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) { if (x && y && x < 23 && y < 23) continue; const i = (y * 24 + x) * 4; t[0] += p[i]; t[1] += p[i + 1]; t[2] += p[i + 2]; n++; } v = '#' + t.map(z => Math.round(z / n).toString(16).padStart(2, '0')).join(''); } catch (e) {}
+  ATL_FONDS.set(image, v); return v;
+}
 function atlImpressionOuvrir(a, f, nom) {
   try { atlVisioFermer(); } catch (e) {}
   const W = atlEl('div', 'atl-imp'), P = atlEl('div', 'atl-impb'), tete = atlEl('div', 'atl-impt'), corps = atlEl('div', 'atl-impc'), x = atlEl('button', 'atl-impx', '✕');
   W.setAttribute('role', 'dialog'); W.setAttribute('aria-modal', 'true'); W.setAttribute('aria-label', 'Recevoir chez moi'); x.type = 'button'; x.setAttribute('aria-label', 'Fermer');
   tete.append(atlEl('h3', '', '📦 Recevoir chez moi'), x); P.append(tete, atlEl('p', 'atl-impn', nom), corps); W.appendChild(P); document.body.appendChild(W);
-  let occupe = false, qualite = 'normale', dv = null, msg = '';
+  let occupe = false, qualite = 'normale', dv = null, msg = '', produit = '', fond = '#ffffff'; atlImpFond(a.image).then(v => { fond = v; });
   const CH = [['firstname', 'Prénom', 'given-name', 40], ['lastname', 'Nom', 'family-name', 40], ['street1', 'Adresse', 'address-line1', 80], ['street2', 'Complément (facultatif)', 'address-line2', 80], ['zip', 'Code postal', 'postal-code', 5], ['city', 'Ville', 'address-level2', 60], ['phone', 'Téléphone', 'tel', 20], ['email', 'E-mail', 'email', 120]];
   const ad = {}; for (const c of CH) ad[c[0]] = '';
   const adOk = () => !!(ad.firstname.trim() && ad.lastname.trim() && ad.street1.trim() && /^[0-9]{5}$/.test(ad.zip.trim()) && ad.city.trim() && /^[+0-9 .()-]{6,20}$/.test(ad.phone.trim()) && /^[^@\s]+@[^@\s]+[.][^@\s]+$/.test(ad.email.trim()));
@@ -19048,7 +19056,7 @@ function atlImpressionOuvrir(a, f, nom) {
   W._fermer = fermer; x.addEventListener('click', fermer); W.addEventListener('pointerdown', e => { if (e.target === W) fermer(); }); document.addEventListener('keydown', cle, true);
   const vide = () => { corps.textContent = ''; if (msg) { corps.appendChild(atlEl('p', 'atl-impm', msg)); msg = ''; } };
   const lignes = (h, l) => { const t = atlEl('dl', 'atl-impf'); for (const [k, v, c] of l) { const dt = atlEl('dt', c || '', k), dd = atlEl('dd', c || '', v); t.append(dt, dd); } h.appendChild(t); };
-  const prix = (h, d) => lignes(h, [[d.produit || 'Poster', d.qualite || ''], ['Livraison' + (d.service ? ' (' + d.service + ')' : ''), 'comprise'], ['Total TTC', atlImpEuros(d.prix_ttc), 'tot']]);
+  const prix = (h, d) => lignes(h, [[d.produit || 'Poster', d.qualite || ''], ...(d.net === false ? [['⚠️ Image un peu douce de près', 'belle à distance']] : []), ['Livraison' + (d.service ? ' (' + d.service + ')' : ''), 'comprise'], ['Total TTC', atlImpEuros(d.prix_ttc), 'tot']]);
   const bouton = (h, t, c, fn) => { const b = atlEl('button', 'btn btn-sm ' + c, t); b.type = 'button'; b.addEventListener('click', fn); h.appendChild(b); return b; };
   const panne = () => { vide(); corps.appendChild(atlEl('p', 'atl-impm', 'Ce n’est pas encore prêt. Rien n’a été commandé.')); };
   async function verifier(b, c) {
@@ -19070,20 +19078,22 @@ function atlImpressionOuvrir(a, f, nom) {
   }
   async function charger(zone, apres) {
     zone.textContent = ''; zone.appendChild(atlEl('p', 'atl-impw', '⏳ Calcul du prix…')); dv = null; apres();
-    let r = null; try { r = await atlImpApi({ action: 'devis', fiche: f.id, poster: a.image, qualite }); } catch (e) {}
+    let r = null; try { r = await atlImpApi({ action: 'devis', fiche: f.id, poster: a.image, qualite, produit }); } catch (e) {}
     if (!W.isConnected) return; zone.textContent = '';
-    if (!r || r.etat !== 'ok' || !(+r.prix_ttc > 0)) { zone.appendChild(atlEl('p', 'atl-impm', r && (r.etat === 'bientot' || r.etat === 'cle_absente') ? 'Ce n’est pas encore prêt. Rien n’a été commandé.' : 'Le prix n’a pas pu être calculé. Rien n’a été commandé : réessaie dans un moment.')); apres(); return; }
+    if (r && r.etat === 'ok' && r.produit_k) produit = r.produit_k;
+    if (!r || r.etat !== 'ok' || !(+r.prix_ttc > 0)) { zone.appendChild(atlEl('p', 'atl-impm', r && r.etat === 'trop_petite' ? 'Cette image est trop petite pour une belle impression : choisis-en une autre.' : r && (r.etat === 'bientot' || r.etat === 'cle_absente') ? 'Ce n’est pas encore prêt. Rien n’a été commandé.' : 'Le prix n’a pas pu être calculé. Rien n’a été commandé : réessaie dans un moment.')); apres(); return; }
     dv = r; prix(zone, r); if (r.delai) zone.appendChild(atlEl('small', 'atl-impd', String(r.delai))); apres();
   }
   function montrerForm() {
     vide();
-    const qz = atlEl('div', 'atl-impq'), fz = atlEl('div', 'atl-impz'), form = atlEl('div', 'atl-impg'), row = atlEl('div', 'atl-impa'); corps.append(qz, fz, form, row);
+    const fmz = atlEl('div', 'atl-impq atl-impfm'), qz = atlEl('div', 'atl-impq'), fz = atlEl('div', 'atl-impz'), form = atlEl('div', 'atl-impg'), row = atlEl('div', 'atl-impa'); corps.append(fmz, qz, fz, form, row);
     const suite = bouton(row, 'Continuer', 'btn-play', () => { if (dv && adOk()) recap(); }), maj = () => { suite.disabled = !(dv && adOk()); };
     const qual = () => { qz.textContent = ''; if (!dv || !dv.qualites) return; for (const q of dv.qualites) { const b = atlEl('button', 'atl-impqb' + (q.k === qualite ? ' on' : ''), q.nom); b.type = 'button'; b.setAttribute('aria-pressed', String(q.k === qualite)); b.addEventListener('click', () => { if (q.k === qualite) return; qualite = q.k; recalc(); }); qz.appendChild(b); } };
-    const recalc = () => charger(fz, () => { qual(); maj(); });
+    const fmts = () => { fmz.textContent = ''; if (!dv || !Array.isArray(dv.formats)) return; for (const z of dv.formats) { const b = atlEl('button', 'atl-impqb' + (z.k === produit ? ' on' : ''), String(z.nom).replace(/^Poster\s*/, '')); b.type = 'button'; b.setAttribute('aria-pressed', String(z.k === produit)); b.addEventListener('click', () => { if (z.k === produit) return; produit = z.k; recalc(); }); fmz.appendChild(b); } };
+    const recalc = () => charger(fz, () => { fmts(); qual(); maj(); });
     form.appendChild(atlEl('p', 'atl-impl', 'Livraison en France'));
     for (const [k, lib, auto, mx] of CH) { const l = atlEl('label', 'atl-impi atl-impi-' + k), s = atlEl('span', '', lib), i = document.createElement('input'); i.autocomplete = auto; i.maxLength = mx; i.value = ad[k]; if (k === 'zip') i.inputMode = 'numeric'; if (k === 'phone') i.type = 'tel'; if (k === 'email') i.type = 'email'; i.addEventListener('input', () => { ad[k] = i.value; maj(); }); l.append(s, i); form.appendChild(l); }
-    maj(); if (dv) { prix(fz, dv); if (dv.delai) fz.appendChild(atlEl('small', 'atl-impd', String(dv.delai))); qual(); maj(); } else recalc();
+    maj(); if (dv) { prix(fz, dv); if (dv.delai) fz.appendChild(atlEl('small', 'atl-impd', String(dv.delai))); fmts(); qual(); maj(); } else recalc();
   }
   function recap() {
     vide(); const d = dv; corps.appendChild(atlEl('p', 'atl-impr', 'Vérifie bien : c’est un vrai paiement, sur la page sécurisée Stripe. La commande part chez l’imprimeur dès que le paiement est confirmé.')); prix(corps, d);
@@ -19092,12 +19102,12 @@ function atlImpressionOuvrir(a, f, nom) {
     const oui = bouton(row, 'Payer ' + atlImpEuros(d.prix_ttc), 'btn-play', async () => {
       if (occupe) return; occupe = true; oui.disabled = non.disabled = true; x.disabled = true; oui.textContent = '⏳ …';
       const corpsAd = {}; for (const c of CH) corpsAd[c[0]] = ad[c[0]].trim();
-      let r = null; try { r = await atlImpApi({ action: 'payer', fiche: f.id, poster: a.image, qualite, adresse: corpsAd, total_vu: d.prix_ttc, confirme: 'oui' }, 45000); } catch (e) {}
+      let r = null; try { r = await atlImpApi({ action: 'payer', fiche: f.id, poster: a.image, qualite, produit, fond, adresse: corpsAd, total_vu: d.prix_ttc, confirme: 'oui' }, 90000); } catch (e) {}
       if (r && r.etat === 'ok' && typeof r.url === 'string' && /^https:\/\/checkout\.stripe\.com\//.test(r.url)) { try { atlBrFlush(); } catch (e) {} location.href = r.url; return; }   // la page de paiement
       occupe = false; x.disabled = false; if (!W.isConnected) return;
       if (r && r.etat === 'deja' && r.commande) { suivi(r.commande); return; }
       if (r && r.etat === 'prix_change' && +r.prix_ttc > 0) { dv = Object.assign({}, dv, { prix_ttc: r.prix_ttc, service: r.service }); msg = 'Le prix vient de changer. Regarde le nouveau total : rien n’a été payé.'; montrerForm(); return; }
-      msg = 'Le paiement n’a pas pu démarrer : rien n’a été payé. Réessaie dans un moment.'; montrerForm();
+      msg = r && r.etat === 'trop_lourd' ? 'Cette image est trop lourde pour être imprimée : rien n’a été payé. Choisis-en une autre.' : 'Le paiement n’a pas pu démarrer : rien n’a été payé. Réessaie dans un moment.'; montrerForm();
     }), non = bouton(row, 'Retour', 'btn-ghost', () => montrerForm());
   }
   corps.appendChild(atlEl('p', 'atl-impw', '⏳ …'));
@@ -19117,17 +19127,17 @@ function atlCtOuvrir(d, titre, accent) {
   const h = atlEl('div', 'ct-h'), ti = atlEl('div', 'ct-ti'), x = atlEl('button', 'ct-x', '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Fermer');
   ti.append(atlEl('b', '', '📦 Chez toi, en vrai'), atlEl('small', '', 'Imprimé et livré à ta porte')); h.append(ti, x);
   const rail = atlEl('div', 'ct-rail'); W.append(h, rail);
-  const P = d.posters, charger = (s, pst) => { if (s._lu || !d.commande) return; s._lu = true; atlImpApi({ action: 'devis', fiche: pst.fiche, poster: pst.poster, qualite: 'normale' }).then(r => { if (!r || r.etat !== 'ok' || !(+r.prix_ttc > 0)) { s._lu = false; return; } s._prix.textContent = atlImpEuros(r.prix_ttc); s._de.hidden = false; if (r.produit) s._fmt.textContent = r.produit; }).catch(() => { s._lu = false; }); };
+  const P = d.posters, charger = (s, pst) => { if (s._lu || !d.commande) return; s._lu = true; atlImpApi({ action: 'devis', fiche: pst.fiche, poster: pst.poster, qualite: 'normale' }).then(r => { if (r && r.etat === 'trop_petite') { s._fmt.textContent = 'Image trop petite pour une belle impression'; s._go.disabled = true; s._go.textContent = '🔒 Trop petite'; return; } if (!r || r.etat !== 'ok' || !(+r.prix_ttc > 0)) { s._lu = false; return; } s._prix.textContent = atlImpEuros(r.prix_ttc); s._de.hidden = false; if (r.produit) s._fmt.textContent = r.formats && r.formats.length > 1 ? r.formats.length + ' formats, jusqu’à ' + r.produit.replace(/^Poster\s*/, '') : r.produit; }).catch(() => { s._lu = false; }); };
   const allerA = i => { const s = rail.children[Math.max(0, Math.min(P.length - 1, i))]; if (s) s.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); };
   const ici = () => Math.round(rail.scrollLeft / Math.max(1, rail.clientWidth));
   P.forEach((pst, i) => {
     const s = atlEl('article', 'ct-s'), mur = atlEl('div', 'ct-mur'), cadre = atlEl('div', 'ct-cadre'), im = atlEl('img'), lum = atlEl('i', 'ct-lum');
-    im.alt = atlCtNom(pst.nom); im.src = atlIaUrl(pst.image); cadre.append(im, lum); mur.append(cadre, atlEl('i', 'ct-sol'));
+    im.alt = atlCtNom(pst.nom); im.loading = 'lazy'; im.src = atlIaUrl(pst.image); cadre.append(im, lum); mur.append(cadre, atlEl('i', 'ct-sol'));
     const fi = atlEl('div', 'ct-f'), fmt = atlEl('span', 'ct-fmt', 'Grand format'), de = atlEl('small', 'ct-de', 'À partir de'), pr = atlEl('b', 'ct-prix', ''), pz = atlEl('div', 'ct-pz'), ul = atlEl('ul', 'ct-l');
     de.hidden = true; s._prix = pr; s._de = de; s._fmt = fmt; pz.append(de, pr);
     for (const t of ['Imprimé rien que pour toi, à l’unité', 'Deux papiers au choix', 'Envoyé roulé, livré à ta porte']) ul.appendChild(atlEl('li', '', t));
     fi.append(atlEl('h2', 'ct-n', atlCtNom(pst.nom)), fmt, ul, pz);
-    const go = atlEl('button', 'btn btn-play ct-go', d.commande ? '📦 Le recevoir chez moi' : '🔒 Bientôt'); go.type = 'button'; go.disabled = !d.commande;
+    const go = atlEl('button', 'btn btn-play ct-go', d.commande ? '📦 Le recevoir chez moi' : '🔒 Bientôt'); go.type = 'button'; go.disabled = !d.commande; s._go = go;
     go.addEventListener('click', () => { if (d.commande) atlImpressionOuvrir({ image: pst.poster }, { id: pst.fiche }, atlCtNom(pst.nom)); });
     fi.appendChild(go); s.append(mur, fi); rail.appendChild(s);
     if (P.length > 1) { for (const [c, t, di] of [['g', '‹', -1], ['d', '›', 1]]) { const b = atlEl('button', 'ct-nav ' + c, t); b.type = 'button'; b.setAttribute('aria-label', di < 0 ? 'Poster précédent' : 'Poster suivant'); b.disabled = i + di < 0 || i + di >= P.length; b.addEventListener('click', () => allerA(i + di)); mur.appendChild(b); } }
@@ -19143,10 +19153,10 @@ async function atlCtPane(host, f) {
   host.textContent = ''; host.appendChild(atlEl('p', 'atl-chv', '⏳ Chargement…'));
   let d = null; try { d = await atlLireSur(() => atlCtLire({ fiche: f.id }, true)); } catch (e) { if (host.isConnected) atlPanne(host, () => atlCtPane(host, f)); return; }
   if (!host.isConnected) return; host.textContent = '';
-  if (!d.posters.length) { host.appendChild(atlEl('p', 'atl-chv', 'Le poster de ton jeu arrive bientôt.')); return; }
+  if (!d.posters.length) { host.appendChild(atlEl('p', 'atl-chv', 'Ton jeu n’a pas encore de grande image à imprimer.')); return; }
   const v = atlEl('button', 'ct-pv'), mur = atlEl('span', 'ct-pm'); v.type = 'button'; v.setAttribute('aria-label', 'Voir les posters en grand');
   for (const pst of d.posters.slice(0, 3)) { const c = atlEl('span', 'ct-pc'), i = atlEl('img'); i.alt = ''; i.loading = 'lazy'; i.src = atlIaUrl(pst.vignette || pst.image); c.appendChild(i); mur.appendChild(c); }
-  const t = atlEl('span', 'ct-pt'); t.append(atlEl('b', '', d.posters.length > 1 ? d.posters.length + ' posters de ton jeu' : 'Le poster de ton jeu'), atlEl('small', '', 'Imprimé et livré à ta porte'), atlEl('span', 'ct-pl', 'Voir en grand ›'));
+  const t = atlEl('span', 'ct-pt'); t.append(atlEl('b', '', 'Choisis une image de ton jeu'), atlEl('small', '', 'Imprimée en poster et livrée à ta porte'), atlEl('span', 'ct-pl', d.posters.length > 1 ? 'Voir les ' + d.posters.length + ' images ›' : 'Voir en grand ›'));
   v.append(mur, t); v.addEventListener('click', () => atlCtOuvrir(d, f.titre)); host.appendChild(v);
   if (!d.proprio) return;
   const ac = atlEl('section', 'atl-escard ct-ac'), gain = (+d.gain | 0).toLocaleString('fr-FR');
