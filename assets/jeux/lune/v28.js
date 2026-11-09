@@ -5383,15 +5383,20 @@ function mount(root, api) {
     if (!sans && nom.endsWith(':0') && R0.legs.length < 2) { const PF = pattesFines(A, w, h); if (PF) { const R = rigParLeBas(PF, w, h, cv); R.fines = true; RIG.set(nom, R); return R; } }
     RIG.set(nom, R0); return R0;
   }
+  /* V28 (ticket e1fec04f, « leurs pattes sont coupées ») : une patte large et courte (l'ours) pivotait autour de son milieu : son bord descendait sous la coupe du ventre et laissait une encoche.
+     k : une patte large pivote moins ; ov : le haut de la patte (caché derrière le corps) monte assez pour fermer l'encoche au plus grand angle. */
+  function jeuPatte(haut, large) { const k = Math.max(0.45, Math.min(1, (haut + 1) / (0.72 * large))); return { k, ov: Math.max(4, Math.round(haut * 0.12), Math.ceil((large / 2) * Math.sin(0.625 * k)) + 3) }; }
   function rigParLeBas(PB, w, h, cv) {
     {
-      const { yh, yb, lab, ids, info } = PB, ov = Math.max(4, Math.round((yb - yh) * 0.12));
+      const { yh, yb, lab, ids, info } = PB;
+      /* V28 (ticket e1fec04f) : un petit éclat sous la coupe (bout de griffe) va avec la patte du dessus : il ne reste plus seul quand elle bouge */
+      for (const l in info) { const q = info[l]; if (!q || !q.n || q.n >= 30 || ids.includes(+l)) continue; const m = (q.x0 + q.x1) / 2, v = ids.find(id => info[id].x0 - 3 <= m && m <= info[id].x1 + 3); if (v) for (let i = yh * w; i < (yb + 1) * w; i++) if (lab[i] === +l) lab[i] = v; }
       const legs = ids.map(id => {
         let sx = 0, sn = 0; for (let x = 0; x < w; x++) for (let y = yh; y <= yh + 2; y++) if (lab[y * w + x] === id) { sx += x; sn++; }
-        const q = info[id], x0 = Math.max(0, q.x0 - 2), x1 = Math.min(w - 1, q.x1 + 2), y0 = Math.max(0, yh - ov), lw = x1 - x0 + 1, lh = yb - y0 + 1;
+        const q = info[id], x0 = Math.max(0, q.x0 - 2), x1 = Math.min(w - 1, q.x1 + 2), lw = x1 - x0 + 1, jeu = jeuPatte(yb - yh, lw), y0 = Math.max(0, yh - jeu.ov), lh = yb - y0 + 1;
         const c2 = document.createElement('canvas'); c2.width = lw; c2.height = lh; const g2 = c2.getContext('2d'); g2.drawImage(cv, x0, y0, lw, lh, 0, 0, lw, lh);
         const id2 = g2.getImageData(0, 0, lw, lh); for (let y = yh; y <= yb; y++) for (let x = x0; x <= x1; x++) if (lab[y * w + x] !== id) id2.data[((y - y0) * lw + (x - x0)) * 4 + 3] = 0;
-        g2.putImageData(id2, 0, 0); return { cv: c2, x0, y0, px: sn ? sx / sn : (q.x0 + q.x1) / 2, py: yh };
+        g2.putImageData(id2, 0, 0); return { cv: c2, x0, y0, px: sn ? sx / sn : (q.x0 + q.x1) / 2, py: yh, k: jeu.k };
       });
       const corps = document.createElement('canvas'); corps.width = w; corps.height = yb + 1; const gc = corps.getContext('2d'); gc.drawImage(cv, 0, 0);
       const idc = gc.getImageData(0, 0, w, yb + 1), garde = new Set(ids);
@@ -5437,12 +5442,11 @@ function mount(root, api) {
     for (const q of pattes) { q.y1 = yh; } for (let i = yh * w; i < (yb + 1) * w; i++) if (lab[i]) { const q = pattes[lab[i] - 1], y = (i / w) | 0; if (y > q.y1) q.y1 = y; }
     // une patte touche presque le sol et n'est pas couchée (une queue posée par terre reste sur le corps)
     const grandes = pattes.filter(q => q.n > 40 && q.y1 > yb - (yb - yh) * 0.5 && (q.x1 - q.x0) < 1.5 * (q.y1 - yh + 1)).sort((a, b) => a.px - b.px);
-    const ov = Math.max(4, Math.round((yb - yh) * 0.12));
     const legs = grandes.map(q => {
-      const x0 = Math.max(0, q.x0 - 2), x1 = Math.min(w - 1, q.x1 + 2), y0 = Math.max(0, yh - ov), lw = x1 - x0 + 1, lh = yb - y0 + 1;
+      const x0 = Math.max(0, q.x0 - 2), x1 = Math.min(w - 1, q.x1 + 2), lw = x1 - x0 + 1, jeu = jeuPatte(yb - yh, lw), y0 = Math.max(0, yh - jeu.ov), lh = yb - y0 + 1;
       const c2 = document.createElement('canvas'); c2.width = lw; c2.height = lh; const g2 = c2.getContext('2d'); g2.drawImage(cv, x0, y0, lw, lh, 0, 0, lw, lh);
       const id2 = g2.getImageData(0, 0, lw, lh); for (let y = yh; y <= yb; y++) for (let x = x0; x <= x1; x++) { if (lab[y * w + x] !== q.id) id2.data[((y - y0) * lw + (x - x0)) * 4 + 3] = 0; }
-      g2.putImageData(id2, 0, 0); return { cv: c2, x0, y0, px: q.px, py: yh };
+      g2.putImageData(id2, 0, 0); return { cv: c2, x0, y0, px: q.px, py: yh, k: jeu.k };
     });
     const corps = document.createElement('canvas'); corps.width = w; corps.height = yb + 1; const gc = corps.getContext('2d'); gc.drawImage(cv, 0, 0);
     const idc = gc.getImageData(0, 0, w, yb + 1), garde = new Set(grandes.map(q => q.id));
@@ -5480,7 +5484,7 @@ function mount(root, api) {
       const lunge = att ? hJeu * 0.07 * k01 : 0;
       ctx.translate(x + sens * lunge, y); if (mx) ctx.scale(-1, 1); ctx.translate(-G.w / 2 * s, -(G.yb + 1) * s);
       G.legs.forEach((l, i) => {
-        const dec = R.bipede ? i * 0.5 : (i % 2) * 0.5 + (i >= G.legs.length / 2 ? 0.5 : 0), A = bouge ? Math.sin((ph + dec) * TAU) * amp : (att ? -0.12 : 0);
+        const dec = R.bipede ? i * 0.5 : (i % 2) * 0.5 + (i >= G.legs.length / 2 ? 0.5 : 0), A = (bouge ? Math.sin((ph + dec) * TAU) * amp : (att ? -0.12 : 0)) * (l.k || 1);
         ctx.save(); ctx.translate(l.px * s, l.py * s - rebond * 0.3); ctx.rotate(A * (R.gauche ? -1 : 1)); ctx.drawImage(l.cv, (l.x0 - l.px) * s, (l.y0 - l.py) * s, l.cv.width * s, l.cv.height * s); ctx.restore();
       });
       // sans pattes (le ver) : il ondule lentement, dressé au-dessus de sa motte
