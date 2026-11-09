@@ -218,7 +218,7 @@ revoke all on function pegase_int.at_push_mettre(text, uuid, text, uuid, int, te
 -- ---- le réveil (chaque minute, seulement s'il y a quelque chose à faire) ----
 create or replace function pegase_int.at_push_reveil() returns void language plpgsql security definer set search_path to 'public', 'extensions' as $$
 begin
-  perform net.http_post(url := 'https://wplictorvvtkfikpfdnl.supabase.co/functions/v1/atelier-push',
+  perform net.http_post(url := 'https://api.elixirgamestudio.com/functions/v1/atelier-push',
     headers := jsonb_build_object('Content-Type', 'application/json'), body := '{"reveil":true}'::jsonb, timeout_milliseconds := 1000);
 end $$;
 revoke all on function pegase_int.at_push_reveil() from public, anon, authenticated;
