@@ -370,7 +370,10 @@ function mount(root, api) {
   function virageDistant(e, i, n, d, x, z) {
     if (n <= (e.ack | 0)) return; e.ack = n;
     if (!e.vivant || M.ph !== 'course') return;
-    if (x === e.x && z === e.z) { if (e.pr < 0.65 || e.bloque) { if (d === e.d || d === (e.d + 2) % 4) return; liberer(M, e, i); tournerA(M, e, d); reserver(M, e, i); } else e.q.push(d); return; }
+    // V4 : un virage ne double jamais ceux qui attendent (un virage qui partait avant le précédent était refusé ou perdu), et deux virages ne se font pas sur la même case
+    if (e.q.length && !e.bloque) { e.q.push(d); if (e.q.length > 2) e.q.shift(); return; }
+    const dejaIci = e.pts.length > 1 && e.pts[e.pts.length - 1][0] === e.x && e.pts[e.pts.length - 1][1] === e.z;
+    if (x === e.x && z === e.z) { if ((e.pr < 0.65 && !dejaIci) || e.bloque) { if (d === e.d || d === (e.d + 2) % 4) return; liberer(M, e, i); tournerA(M, e, d); reserver(M, e, i); } else e.q.push(d); return; }
     // vu quelques cases plus tôt (le réseau) : on rattrape, si rien n'a tourné depuis
     let k = -1; for (let a = e.path.length - 2; a >= 0; a--) if (e.path[a][0] === x && e.path[a][1] === z) { k = e.path.length - 1 - a; break; }
     const lp = e.pts[e.pts.length - 1];
@@ -378,7 +381,7 @@ function mount(root, api) {
     if (k > 0 && k <= 4 && !tourneDepuis && d !== e.d && d !== (e.d + 2) % 4) {
       liberer(M, e, i);
       for (let a = e.path.length - k; a < e.path.length; a++) { const c = e.path[a]; if (M.grid[c[1] * M.N + c[0]] === i + 1) M.grid[c[1] * M.N + c[0]] = 0; }
-      e.path.splice(e.path.length - k, k); e.x = x; e.z = z; e.d = (d + 2) % 4; tournerA(M, e, d);
+      e.path.splice(e.path.length - k, k); e.x = x; e.z = z; e.d = (d + 1) % 4; tournerA(M, e, d);   // (V4 : avant, e.d = le sens opposé : tournerA refusait et la toilette repartait à l'envers)
       for (let s = 0; s < k; s++) {
         const tx = e.x + DX[e.d], tz = e.z + DZ[e.d];
         if (!libreC(M, tx, tz)) { e.tx = tx; e.tz = tz; e.bloque = true; e.pr = 0.42; mourir(M, e, M.ents.filter(q => q.vivant).length, quandMort); return; }
@@ -387,8 +390,10 @@ function mount(root, api) {
       reserver(M, e, i); return;
     }
     // vu un peu plus loin devant : le virage se fera en arrivant dans cette case
+    // V4 : un virage déjà prévu devant : le suivant attend son tour (avant, il partait en file et passait avant lui, ou se perdait)
+    if (e.sched) { const ux = e.sched.x - e.x, uz = e.sched.z - e.z, ud = DX[e.d] ? ux * DX[e.d] : uz * DZ[e.d]; if (!(DX[e.d] ? uz === 0 : ux === 0) || ud <= 0) e.sched = e.sched2 = null; else if (e.sched.x !== x || e.sched.z !== z) { e.sched2 = { x, z, d }; return; } }
     const ax = x - e.x, az = z - e.z, dist = DX[e.d] ? ax * DX[e.d] : az * DZ[e.d];
-    if ((DX[e.d] ? az === 0 : ax === 0) && dist >= 1 && dist <= 3) { if (e.sched && (e.sched.x !== x || e.sched.z !== z)) e.sched2 = { x, z, d }; else e.sched = { x, z, d }; return; }
+    if ((DX[e.d] ? az === 0 : ax === 0) && dist >= 1 && dist <= 3 && d !== e.d && d !== (e.d + 2) % 4) { e.sched = { x, z, d }; return; }
     e.q.push(d); if (e.q.length > 2) e.q.shift();
   }
   function quandMort(e, i) {
@@ -496,7 +501,8 @@ function mount(root, api) {
     const e = M.ents[moiI]; if (!e.vivant) return;
     if (M.hote) {
       if (d === e.d || d === (e.d + 2) % 4) { if (e.q.length && d !== (e.q[e.q.length - 1] + 2) % 4 && d !== e.q[e.q.length - 1]) e.q.push(d); return; }
-      if (e.bloque || (e.pr < 0.3 && !e.q.length)) { if (e.bloque) e.q.length = 0; liberer(M, e, moiI); tournerA(M, e, d); reserver(M, e, moiI); }   // (V4 : le dernier moment devant un mur compte)
+      const dejaIci = e.pts.length > 1 && e.pts[e.pts.length - 1][0] === e.x && e.pts[e.pts.length - 1][1] === e.z;   // (V4 : un seul virage par case : le 2e d'un demi-tour se fait à la case suivante)
+      if (e.bloque || (e.pr < 0.3 && !e.q.length && !dejaIci)) { if (e.bloque) e.q.length = 0; liberer(M, e, moiI); tournerA(M, e, d); reserver(M, e, moiI); }   // (V4 : le dernier moment devant un mur compte)
       else { e.q.push(d); if (e.q.length > 2) e.q.shift(); }
       bip(520, 0.05, 0.035, 660); return;
     }
@@ -508,6 +514,7 @@ function mount(root, api) {
     const dern = pend[pend.length - 1], reste = dern && (DX[p.d] ? (dern[2] - p.x + 0.5) * DX[p.d] : (dern[3] - p.z + 0.5) * DZ[p.d]) > 0.01 && (DX[p.d] ? dern[3] === cz0 : dern[2] === cx0) && dern[1] !== p.d;
     const dBase = reste ? dern[1] : p.d; if (d === dBase || d === (dBase + 2) % 4) return;
     if (reste) { cx = dern[2] + DX[dBase]; cz = dern[3] + DZ[dBase]; }
+    else if (dern && cx === dern[2] && cz === dern[3]) { cx += DX[dern[1]]; cz += DZ[dern[1]]; }   // (jamais deux virages sur la même case)
     pend.push([++inN, d, cx, cz]); if (pend.length > 4) pend.shift();
     envoyerI(); bip(520, 0.05, 0.035, 660);
   }
