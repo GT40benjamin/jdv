@@ -1,33 +1,97 @@
 {
-  "version": "0.9.9.48",
-  "build": 99,
-  "size": 1672739498,
-  "sha256": "fa84136ac8857a58360cac5ec19e9be70e95ee752af2bb9cb019c8a4e9bebf1a",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v99/Pegase-PC-2026-11-08-0.9.9.48.zip",
-  "manifest": "3c7d29d13a5c59eddefe0904c9661647984fbfd1255a36003ba2c8f82bffae43",
+  "version": "0.9.9.49",
+  "build": 100,
+  "size": 1672739588,
+  "sha256": "f6e300bf5ea11d00d48c4258a13492400568b10caf3261dd09cb686c414d390c",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v100/Pegase-PC-2026-11-09-0.9.9.49.zip",
+  "manifest": "73a70f60db1281ab955dab3eacaeee4c3a8e5ddfcd6f58aadbf12cb20bcbe9a5",
   "patchs": [
     {
+      "de": "0.9.9.48",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v100/Pegase-PC-patch-0.9.9.48.zip",
+      "taille": 2753805,
+      "sha256": "ab4249fbb0a39a6f3075f061c418fee851758316e6888d97e19cd24d20ce2a50"
+    },
+    {
       "de": "0.9.9.47",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v99/Pegase-PC-patch-0.9.9.47.zip",
-      "taille": 10173300,
-      "sha256": "8ff2617e6a1e54b44a6d70d868676b96ab5cef28eaa893f212d25ea2ccb860fe"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v100/Pegase-PC-patch-0.9.9.47.zip",
+      "taille": 9704687,
+      "sha256": "23445bc616eec3fa4993eec95fed67176cc8d50c199fe75a074180db5d4f8681"
     },
     {
       "de": "0.9.9.46",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v99/Pegase-PC-patch-0.9.9.46.zip",
-      "taille": 9636666,
-      "sha256": "7142899d3d87f78f5c50c6afe53ebd25ebea885ff1f76a92029e58757aa018d2"
-    },
-    {
-      "de": "0.9.9.45",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v99/Pegase-PC-patch-0.9.9.45.zip",
-      "taille": 10665279,
-      "sha256": "fe77a18e6dfac6ebfd9333411a84818d15bf182b3bad673dd9b17e97da419811"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v100/Pegase-PC-patch-0.9.9.46.zip",
+      "taille": 10264662,
+      "sha256": "723ffd005c0af86bc8c5ddc72e78d7aa0a0063b8f853e2cf14a994a0959c7add"
     }
   ],
   "notes": [
-    "Un jeu plus fluide",
-    "Des oiseaux réparés et de vraies conversations à l'hôtel",
-    "Une boîte aux lettres refaite"
+    "Pégase parle au nouveau serveur de la borne : avec cette version, ta partie se sauvegarde de nouveau en ligne et tu retrouves les autres joueurs.",
+    "Les objets de ta boîte aux lettres se posent aussi dehors : « Construire », étape Jardin, onglet « Mes objets »."
+  ],
+  "historique": [
+    {
+      "version": "0.9.9.49",
+      "notes": [
+        "Pégase parle au nouveau serveur de la borne : avec cette version, ta partie se sauvegarde de nouveau en ligne et tu retrouves les autres joueurs.",
+        "Les objets de ta boîte aux lettres se posent aussi dehors : « Construire », étape Jardin, onglet « Mes objets »."
+      ]
+    },
+    {
+      "version": "0.9.9.47",
+      "notes": [
+        "Nouvelle case « Afficher les FPS » dans Réglages : un petit compteur en haut à droite.",
+        "La caméra ne rentre plus dans ta tête au coin du magasin de Rosalie.",
+        "Le chemin du Clos est maintenant à plat.",
+        "Sous l'arche de la rivière, la caméra se décale : tu restes entière à l'écran, plus cachée derrière la roche."
+      ]
+    },
+    {
+      "version": "0.9.9.46",
+      "notes": [
+        "Les habitants qui passent près de toi font leurs pas sur le sol où ils marchent : herbe, sable, gravier, pierre, bois.",
+        "Les chats miaulent doucement quand tu approches et ronronnent si tu restes tout près d'eux.",
+        "La grande sauterelle verte et la cigale chantent depuis leur buisson.",
+        "S'asseoir sur un banc et se relever fait un doux froissement de vêtements.",
+        "Un petit clic feutré sur les boutons des écrans qui étaient muets : sac, barre d'objets, bar, téléphone…",
+        "Désiré montre ses deux mains, de face comme de trois quarts : plus de main cachée derrière le tablier.",
+        "Au bar, sur PC, le visage de Désiré est enfin éclairé : on voit ses yeux et son sourire.",
+        "Sur téléphone, les personnages dans l'hôtel, les boutiques et les maisons ont une lumière chaude : on voit enfin leurs visages.",
+        "Plus d'herbe qui pousse au fond de la mer ; les algues, elles, restent."
+      ]
+    },
+    {
+      "version": "0.9.9.45",
+      "notes": [
+        "Dehors, tes pas sonnent enfin selon le sol : herbe, terre, sable, gravier, pavés, pontons et ponts en bois.",
+        "À vélo, on entend les pneus rouler, plus fort quand tu vas vite, et le cliquet de la roue libre quand tu ne pédales pas.",
+        "Le parapluie claque en s'ouvrant et se froisse en se fermant ; la boîte aux lettres grince et ses lettres bruissent.",
+        "Les animaux muets ont leur vrai cri : le loup hurle la nuit, le cerf brame à l'aube, moutons et chèvres bêlent, la vipère siffle, la grenouille appelle et la biche donne l'alerte en fuyant.",
+        "La musique de l'écran de chargement et du téléchargement joue même quand la musique d'ambiance est coupée dans les réglages.",
+        "Les mains de Désiré ne rentrent plus dans son ventre ni dans son tablier.",
+        "Les habitants tiennent leur parapluie la main bien fermée autour du manche.",
+        "La nuit sous la pluie, plus de grosses barres blanches devant la caméra : les gouttes toutes proches restent fines.",
+        "La caméra ne saute plus en passant sous le store de Rosalie ni en frôlant son présentoir de biais.",
+        "Sur une paroi trop raide, tu glisses doucement jusqu'en bas au lieu de rester perchée, et jamais dans l'eau profonde sous l'arche.",
+        "Le bout de la rivière du haut descend en pente douce jusqu'aux galets : plus de mur d'eau.",
+        "Les bancs de poissons des criques ne nagent plus dans le sable."
+      ]
+    },
+    {
+      "version": "0.9.9.44",
+      "notes": [
+        "La caméra se baisse enfin librement dans les prairies et sur les pentes, et elle ne flotte plus de haut en bas pendant la marche. Elle se relève seulement près des vraies hautes herbes.",
+        "Désiré, derrière son comptoir, a des gestes calmes : il ne glisse plus de côté et sa révérence ne lui plonge plus la tête dans le comptoir.",
+        "Papi Auguste ne se cache plus dans l'escalier de la mairie quand tu arrives.",
+        "Une inscription des géants porte son vrai nom dans le Grand livre (« Inscription des géants n° 1 »), et un message te confirme la photo juste après l'avoir prise.",
+        "Les petits oiseaux des bosquets et du jardin sautillent vraiment au lieu de glisser sur le sol.",
+        "La biche et le cerf ne restent plus collés l'un dans l'autre quand ils se reposent.",
+        "Plus de taches mouchetées sur les bras et les mains du personnage.",
+        "À la petite cascade de la longue rivière, l'eau est au bon niveau : la pêche y marche comme ailleurs.",
+        "Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.",
+        "Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.",
+        "Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr."
+      ]
+    }
   ]
 }

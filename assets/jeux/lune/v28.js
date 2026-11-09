@@ -130,6 +130,10 @@ const PANTIN = (() => {
       legs[0].lift = 6 + Math.max(0, -Math.sin(w)) * 10; legs[1].lift = 6 + Math.max(0, Math.sin(w)) * 10; legs[0].f = 4; legs[1].f = 4;
       H.bob = 4;
     }
+    if (pret()) {   // V28 : les proportions du héros de l'écran-titre (toutes les poses converties d'un coup)
+      const HAUT = u => u <= 33 ? u * 44.5 / 33 : u <= 56 ? 44.5 + (u - 33) * 21.5 / 23 : u <= 79 ? 66 + (u - 56) * 16 / 23 : 82 + (u - 79), HAUTB = u => u <= 56 ? 35 + (u - 33) * 31 / 23 : HAUT(u);
+      H.hip = HAUT(H.hip); H.sh = HAUT(H.sh); H.head = HAUT(H.head); arms.forEach(a => { a.u = HAUTB(a.u); a.r *= 1.02; }); legs.forEach(l => { l.r *= 1.25; }); if (m === 'repos') { legs[0].r = 9; legs[1].r = -9; }
+    }
     return { H, legs, arms, headTilt, blink, m };
   }
 
@@ -155,9 +159,9 @@ const PANTIN = (() => {
     drawPose(ctx, x, y, k, look, P);
   }
   function drawPose(ctx, x, y, k, look, P) {
-    const L = lk(look);
+    const L = lk(look); LC = L;
     const th = P.th || 0; let c = Math.cos(th), s = Math.sin(th);
-    const tl = L.taille || 1, cr = L.carrure || 1;
+    const tl = pret() ? 1 : L.taille || 1, cr = pret() ? 1 : L.carrure || 1;   // V28 : au début, on ne choisit plus que ses couleurs
     k *= tl;
     const T = { c, s, x, y, k };
     const S = P.mode === 'releve2' ? melange(squelette(L, { mode: 'accroupi', t: P.t }), squelette(L, { mode: 'repos', t: P.t }), P.k2 || 0) : squelette(L, P), H = S.H;
@@ -178,7 +182,7 @@ const PANTIN = (() => {
     // jambes + bottes
     S.legs.forEach((g, i) => {
       const side = i === 0 ? 1 : -1;
-      const lf = 1 + 1.25 * Math.abs(T.c); const hip = proj(T, g.r * 0.9 * cr, up(H.hip) - 1, lean * 0.1), ft = proj(T, g.r * cr, g.lift * lf + 5 + Math.max(0, bob - 0) * (S.m === 'saut' || S.m === 'jetpack' ? 1 : 0), g.f);
+      const lf = 1 + (pret() ? 0.7 : 1.25) * Math.abs(T.c); const hip = proj(T, pret() ? Math.sign(g.r) * 7.5 * cr : g.r * 0.9 * cr, up(H.hip) - 1, lean * 0.1), ft = proj(T, g.r * cr, g.lift * lf + 5 + Math.max(0, bob - 0) * (S.m === 'saut' || S.m === 'jetpack' ? 1 : 0), g.f);
       parts.push({ z: ft.z - 30 + side * 0.01, d: () => jambe(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS) });
     });
     // sac à dos (derrière lui)
@@ -189,7 +193,7 @@ const PANTIN = (() => {
     // bras
     S.arms.forEach((a, i) => {
       const side = i === 0 ? 1 : -1;
-      const sh0 = proj(T, side * 13.5 * cr, up(H.sh), lean * 0.5);
+      const sh0 = proj(T, side * (pret() ? 13.8 : 13.5) * cr, up(H.sh), lean * 0.5);
       const hand = proj(T, a.r * cr, up(a.u) + Math.max(-2, a.f) * 0.4 * Math.abs(T.c), a.f + lean * 0.4);
       parts.push({ z: sh0.z * 1.2 + a.f * c * 0.3 + 0.5, d: () => bras(ctx, T, sh0, hand, a, k, ow, blanc, ombre, acc, gant, side) });
     });
@@ -238,7 +242,7 @@ const PANTIN = (() => {
     const G = { main: P(0, 0), arr: P(-5, 1.4), bout: P(19, 2), crosse: P(-2, -7), v0: P(-1, 5.4), v1: P(7, 5.6) };
     ctx.save(); outilMain(ctx, G, sorte, k, 1.55, 0); ctx.restore();
   }
-  function jambe(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS) {
+  function jambeCode(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS) {
     // genou : à mi-chemin, poussé vers l'avant (la jambe plie quand le pied est plus près que la longueur de la jambe)
     const Lg = 30, dx = ft.x - hip.x, dy = ft.y - hip.y, d = Math.hypot(dx, dy) / T.k;
     const bend = Math.sqrt(Math.max(0, (Lg / 2) ** 2 - (Math.min(d, Lg) / 2) ** 2));
@@ -297,7 +301,7 @@ const PANTIN = (() => {
     ctx.restore();
   }
 
-  function bras(ctx, T, sh, hand, a, k, ow, blanc, ombre, acc, gant, side) {
+  function brasCode(ctx, T, sh, hand, a, k, ow, blanc, ombre, acc, gant, side) {
     const dx = hand.x - sh.x, dy = hand.y - sh.y, d = Math.hypot(dx, dy) || 1;
     const nx = -dy / d, ny = dx / d;
     const sgn = (side * -T.c) >= 0 ? 1 : -1;        // le coude part vers l'extérieur
@@ -320,7 +324,7 @@ const PANTIN = (() => {
     ctx.restore();
   }
 
-  function buste(ctx, T, L, H, up, lean, k, ow, blanc, ombre, acc, accS, cr) {
+  function busteCode(ctx, T, L, H, up, lean, k, ow, blanc, ombre, acc, accS, cr) {
     const wF = 27 * cr, wS = 21;
     const w = Math.sqrt((wF * T.c) ** 2 + (wS * T.s) ** 2) * T.k * (1 + H.breath * 0.008);
     const top = proj(T, 0, up(H.sh + 4), lean * 0.55), bot = proj(T, 0, up(H.hip - 1), lean * 0.05);
@@ -398,7 +402,7 @@ const PANTIN = (() => {
   function star(ctx, x, y, r, col) { ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } ctx.closePath(); ctx.fillStyle = col; ctx.fill(); }
 
   const SACS = ['classique', 'reservoirs', 'jetpack', 'radar', 'caisse', 'ailes', 'bulle', 'panneaux'];
-  function sac(ctx, T, L, H, up, lean, k, ow, blanc, ombre, acc, accS) {
+  function sacCode(ctx, T, L, H, up, lean, k, ow, blanc, ombre, acc, accS) {
     const kind = (L.sac || 0) % SACS.length;
     const c = proj(T, 0, up(H.sh - 13), -11 + lean * 0.2);
     const wF = (kind === 1 || kind === 2 ? 27 : 26), dS = 8;
@@ -458,7 +462,7 @@ const PANTIN = (() => {
   ];
   const CASQUES = ['rond', 'antenne', 'oreilles', 'visière', 'cornes', 'crête'];
 
-  function casque(ctx, T, L, S, up, lean, k, ow, blanc, ombre, acc, accS) {
+  function casqueCode(ctx, T, L, S, up, lean, k, ow, blanc, ombre, acc, accS) {
     const H = S.H;
     const C = proj(T, 0, up(H.head), lean * 0.9);
     const R = 21.5, rx = R * T.k, ry = (R - 0.6) * T.k;
@@ -567,7 +571,7 @@ const PANTIN = (() => {
   }
 
   // la tête sans casque (création du personnage, intérieur des bases) : on voit toute la coiffure
-  function teteNue(ctx, T, L, S, up, lean) {
+  function teteNueCode(ctx, T, L, S, up, lean) {
     const C = proj(T, 0, up(S.H.head - 3), lean * 0.9);
     visage(ctx, T, L, S, C, 21.5, 0, true);
   }
@@ -702,7 +706,99 @@ const PANTIN = (() => {
     }
   }
 
-  return { draw, LOOKS, COIFFURES, CASQUES, SACS, DEF, TENUES, nbVisages: 10, nbMotifs: 7, bout, boutCanon, iconeOutil };
+  // =================================================================== V28 (l'admin, 9 nov.) : LE HÉROS DE L'ÉCRAN-TITRE, dessiné en pièces (paquet a-heros.bin), posé sur ce même squelette.
+  // Quatre vues (face, trois quarts, profil, dos ; retournées quand il va à gauche). Les membres sont des images tendues entre deux articulations : toutes les poses du jeu marchent telles quelles.
+  // Au début, on choisit seulement ses couleurs (peau, cheveux, combinaison) : elles repeignent les pièces, une seule fois par tenue, puis tout est gardé en images.
+  // Tant que le paquet n'est pas arrivé, l'ancien dessin en code sert de roue de secours (Code à la fin des noms).
+  let PIECES = null, LC = null;
+  const VUES_P = ['face', 'tq', 'profil', 'dos'], NOMS_P = ['tete', 'buste', 'bras', 'avantbras', 'cuisseG', 'jambeG', 'cuisseD', 'jambeD'], UP = 100 / 704;
+  function pret() {
+    if (pret.ok) return true; if (!PIECES) return false;
+    for (const v of VUES_P) for (const n of NOMS_P) if (!PIECES(v + '_' + n)) return false;
+    for (const v of ['face', 'profil', 'dos']) if (!PIECES(v + '_sanscasque')) return false;
+    return (pret.ok = true);
+  }
+  function vueDe(T) { return T.c >= 0.9 ? 'face' : T.c > 0.3 ? 'tq' : T.c >= -0.55 ? 'profil' : 'dos'; }
+  // où sont les yeux et la bouche sur les têtes (en part de l'image) : pour cligner des yeux et ouvrir la bouche
+  const VISAGE = {
+    face: { yeux: [[0.358, 0.596], [0.642, 0.596]], ry: 0.077, rx: 0.061, bouche: [0.496, 0.774] }, tq: { yeux: [[0.754, 0.596], [0.516, 0.61]], ry: 0.072, rx: 0.056, bouche: [0.589, 0.767] }, profil: { yeux: [[0.672, 0.612]], ry: 0.062, rx: 0.05, bouche: [0.743, 0.773] },
+    face_sc: { yeux: [[0.313, 0.582], [0.683, 0.582]], ry: 0.075, rx: 0.09, bouche: [0.5, 0.751] }, profil_sc: { yeux: [[0.74, 0.583]], ry: 0.075, rx: 0.05, bouche: [0.768, 0.761] }
+  };
+  const rvb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  function couleursDe(L) {
+    const t = L.tenue != null && L.tenue >= 0 && TENUES[L.tenue] ? TENUES[L.tenue].c : null, c = t || LOOKS.combis[(L.combi || 0) % LOOKS.combis.length];
+    return { acc: (t || (L.combi || 0) % LOOKS.combis.length) ? rvb(c[2]) : null, blanc: c[0].toLowerCase() === '#ffffff' ? null : rvb(c[0]), peau: (L.peau || 0) % LOOKS.peaux.length ? rvb(LOOKS.peaux[L.peau % LOOKS.peaux.length]) : null, chev: (L.cheveux || 0) % LOOKS.cheveux.length ? rvb(LOOKS.cheveux[L.cheveux % LOOKS.cheveux.length]) : null };
+  }
+  // repeint une pièce : l'orange devient l'accent, le blanc de la combinaison sa couleur, et sur la tête la peau et les cheveux
+  function repeint(im, C, tete, zv) {
+    if (!C.acc && !C.blanc && !(tete && (C.peau || C.chev))) return im;
+    const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height; const g = cv.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0); const D = g.getImageData(0, 0, cv.width, cv.height), d = D.data, W = cv.width, H = cv.height;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 8) continue; const r = d[i], gg = d[i + 1], b = d[i + 2], mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), v = mx / 255, s = mx ? (mx - mn) / mx : 0; let cible = null, ref = 1, h = 0;
+      if (mx !== mn) { h = mx === r ? ((gg - b) / (mx - mn)) * 60 : mx === gg ? ((b - r) / (mx - mn) + 2) * 60 : ((r - gg) / (mx - mn) + 4) * 60; if (h < 0) h += 360; }
+      const chaud = h >= 10 && h <= 48;
+      if (chaud && s > 0.56 && v > 0.56) { if (C.acc) { cible = C.acc; ref = 0.9; } }
+      else if (tete && chaud && s > 0.3 && v > 0.22 && v <= 0.62) { if (C.chev) { cible = C.chev; ref = 0.5; } }
+      else if (tete && chaud && s > 0.1 && s <= 0.58 && v > 0.62) { if (C.peau) { cible = C.peau; ref = 0.93; } }
+      else if (s < 0.2 && v > 0.45 && C.blanc) { const p = i / 4, x = p % W, y = (p / W) | 0; if (!(zv && Math.abs(x / W - zv[0]) < zv[2] && Math.abs(y / H - zv[1]) < zv[3])) { d[i] = r * C.blanc[0] / 255; d[i + 1] = gg * C.blanc[1] / 255; d[i + 2] = b * C.blanc[2] / 255; } continue; }
+      if (cible) { const q = Math.min(1.25, v / ref); d[i] = Math.min(255, cible[0] * q); d[i + 1] = Math.min(255, cible[1] * q); d[i + 2] = Math.min(255, cible[2] * q); }
+    }
+    g.putImageData(D, 0, 0); return cv;
+  }
+  function assombri(im) { const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height; const g = cv.getContext('2d'); g.drawImage(im, 0, 0); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(30,26,60,0.14)'; g.fillRect(0, 0, cv.width, cv.height); return cv; }
+  const CACHE_P = new Map();
+  function piecesVue(v, L) {
+    const c = [v, (L.tenue != null && L.tenue >= 0 ? 't' + L.tenue : L.combi || 0), L.peau || 0, L.cheveux || 0].join('|'); let P = CACHE_P.get(c);
+    if (P) { CACHE_P.delete(c); CACHE_P.set(c, P); return P; }
+    const C = couleursDe(L), Z0 = { face: [0.5, 0.62, 0.3, 0.23], tq: [0.62, 0.62, 0.27, 0.23], profil: [0.68, 0.63, 0.2, 0.22] };   // la zone du visage (ses blancs d'yeux restent blancs) ; le col, lui, prend la couleur de la combinaison
+    P = { loin: {} }; for (const n of NOMS_P) P[n] = repeint(PIECES(v + '_' + n), C, n === 'tete', n === 'tete' ? Z0[v] : null);
+    const sc = PIECES((v === 'tq' ? 'face' : v) + '_sanscasque'); P.sanscasque = repeint(sc, C, true, [0.5, 0.5, 1, 1]);
+    CACHE_P.set(c, P); if (CACHE_P.size > 72) CACHE_P.delete(CACHE_P.keys().next().value); return P;
+  }
+  function loinDe(P, n) { return P.loin[n] || (P.loin[n] = assombri(P[n])); }
+  // une image pendue verticalement, tendue de p1 (en haut) à p2 (en bas) ; it, ib = part de l'image au-delà des articulations ; ax = où est l'axe dans sa largeur
+  function seg(ctx, im, p1, p2, sx, it, ib, flip, ax) {
+    const dx = p2.x - p1.x, dy = p2.y - p1.y, d = Math.hypot(dx, dy) || 1, a = Math.atan2(-dx, dy), L = im.height * (1 - it - ib), sy = d / L, A = ax == null ? 0.5 : ax;
+    ctx.save(); ctx.translate(p1.x, p1.y); ctx.rotate(a); ctx.scale((flip ? -1 : 1) * (sx || sy), sy); ctx.drawImage(im, -im.width * A, -im.height * it, im.width, im.height); ctx.restore();
+  }
+  function jambe(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS) {
+    if (!pret()) return jambeCode(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS);
+    const v = vueDe(T), P = piecesVue(v, LC), K1 = T.k, Lg = 41, d = Math.hypot(ft.x - hip.x, ft.y - hip.y) / K1, bend = Math.sqrt(Math.max(0, (Lg / 2) ** 2 - (Math.min(d, Lg) / 2) ** 2));
+    const kn = { x: (hip.x + ft.x) / 2 + T.s * bend * K1 * 0.9, y: (hip.y + ft.y) / 2 + T.c * K * bend * K1 * 0.9 - bend * 0.15 * K1 }, sol = { x: ft.x, y: ft.y + 5 * K1 };
+    const cote = side * T.s, deCote = v === 'tq' || v === 'profil', C = v === 'face' ? (side > 0 ? 'G' : 'D') : v === 'dos' ? (side > 0 ? 'D' : 'G') : (cote > 0 ? 'G' : 'D'), flip = deCote && T.s < 0, loin = deCote && cote < 0, U = UP * K1, J = 'jambe' + C, Q = 'cuisse' + C;
+    seg(ctx, loin ? loinDe(P, J) : P[J], kn, sol, U, 0.138, 0, flip);
+    seg(ctx, loin ? loinDe(P, Q) : P[Q], hip, kn, U, 0.05, 0.138, flip);
+  }
+  function bras(ctx, T, sh, hand, a, k, ow, blanc, ombre, acc, gant, side) {
+    if (!pret()) return brasCode(ctx, T, sh, hand, a, k, ow, blanc, ombre, acc, gant, side);
+    const v = vueDe(T), P = piecesVue(v, LC), K1 = T.k, dx = hand.x - sh.x, dy = hand.y - sh.y, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d, sgn = (side * -T.c) >= 0 ? 1 : -1, b = (a.bend || 0) * 4.5 * K1;
+    const el = { x: (sh.x + hand.x) / 2 + nx * b * sgn + T.s * a.bend * 2 * K1, y: (sh.y + hand.y) / 2 + ny * b * sgn }, ex = hand.x - el.x, ey = hand.y - el.y, e = Math.hypot(ex, ey) || 1, doigts = { x: hand.x + ex / e * 7 * K1, y: hand.y + ey / e * 7 * K1 };
+    const deCote = v === 'tq' || v === 'profil', flip = deCote ? T.s < 0 : v === 'face' ? side > 0 : side < 0, loin = deCote && side * T.s < 0, U = UP * K1;
+    seg(ctx, loin ? loinDe(P, 'avantbras') : P.avantbras, el, doigts, U, 0.138, 0, flip);
+    seg(ctx, loin ? loinDe(P, 'bras') : P.bras, sh, el, U, 0.172, 0.138, flip);
+  }
+  function sac(ctx, T, L, H, up, lean, k, ow, blanc, ombre, acc, accS) { if (!pret()) sacCode(ctx, T, L, H, up, lean, k, ow, blanc, ombre, acc, accS); }   // le sac fait partie du buste
+  function buste(ctx, T, L, H0, up, lean, k, ow, blanc, ombre, acc, accS, cr) {
+    if (!pret()) return busteCode(ctx, T, L, H0, up, lean, k, ow, blanc, ombre, acc, accS, cr);
+    const v = vueDe(T), P = piecesVue(v, LC), haut = proj(T, 0, up(H0.sh + 3), lean * 0.55), bas = proj(T, 0, up(H0.hip - 2), lean * 0.05), profil = v === 'profil';
+    seg(ctx, P.buste, haut, bas, 0, 0, 0, (profil || v === 'tq') && T.s < 0, profil ? 0.585 : 0.5);
+    if (L.tenue != null && L.tenue >= 0 && v === 'face') motif(ctx, T, Object.assign({}, L, { motif: 0 }), (r, u) => proj(T, r * 1.25, up(u) - 2, 10), H0, acc, accS);   // le motif des tenues de la boutique
+  }
+  function visagePose(ctx, im, cle, S, L, w, h, y0) {   // cligner des yeux, ouvrir la bouche, par-dessus la tête dessinée (l'image est déjà tournée et placée par l'appelant)
+    const V = VISAGE[cle]; if (!V || (!S.blink && S.m !== 'joie' && S.m !== 'touche')) return; const pe = (L.peau || 0) % LOOKS.peaux.length ? LOOKS.peaux[L.peau % LOOKS.peaux.length] : '#efc3a0';
+    if (S.blink) for (const e of V.yeux) { const x = -w / 2 + e[0] * w, y = y0 + e[1] * h, rx = V.rx * w, ry = V.ry * h; ctx.fillStyle = pe; ctx.beginPath(); ctx.ellipse(x, y, rx * 1.08, ry * 1.08, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = '#3a2520'; ctx.lineWidth = Math.max(1, ry * 0.26); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - rx, y + ry * 0.1); ctx.quadraticCurveTo(x, y + ry * 0.75, x + rx, y + ry * 0.1); ctx.stroke(); }
+    if (S.m === 'joie' || S.m === 'touche') { const x = -w / 2 + V.bouche[0] * w, y = y0 + V.bouche[1] * h, r = V.rx * w; ctx.fillStyle = '#7a2a2a'; ctx.beginPath(); if (S.m === 'joie') { ctx.moveTo(x - r, y - r * 0.2); ctx.quadraticCurveTo(x, y + r * 1.5, x + r, y - r * 0.2); ctx.closePath(); } else ctx.ellipse(x, y + r * 0.1, r * 0.45, r * 0.55, 0, 0, TAU); ctx.fill(); }
+  }
+  function teteImage(ctx, T, L, S, up, lean, nue) {
+    const v = vueDe(T), P = piecesVue(v, L), im = nue ? P.sanscasque : P.tete, C = proj(T, 0, up(S.H.head), lean * 0.9), U = UP * T.k, w = im.width * U, h = im.height * U, y0 = 16.5 * T.k - h, tourne = (v === 'profil' || v === 'tq') && T.s < 0;
+    ctx.save(); ctx.translate(C.x, C.y); ctx.rotate(S.headTilt * 0.02); if (tourne) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, y0, w, h);
+    visagePose(ctx, im, nue ? (v === 'dos' ? null : (v === 'tq' ? 'face' : v) + '_sc') : (v === 'dos' ? null : v), S, L, w, h, y0); ctx.restore();
+  }
+  function casque(ctx, T, L, S, up, lean, k, ow, blanc, ombre, acc, accS) { if (!pret()) return casqueCode(ctx, T, L, S, up, lean, k, ow, blanc, ombre, acc, accS); teteImage(ctx, T, L, S, up, lean, false); }
+  function teteNue(ctx, T, L, S, up, lean) { if (!pret()) return teteNueCode(ctx, T, L, S, up, lean); teteImage(ctx, T, L, S, up, lean, true); }
+  function brancherPieces(f) { PIECES = f; }
+
+  return { pret, brancherPieces, draw, LOOKS, COIFFURES, CASQUES, SACS, DEF, TENUES, nbVisages: 10, nbMotifs: 7, bout, boutCanon, iconeOutil };
 })();
 const EXPL_PANTIN = PANTIN;
 
@@ -1475,7 +1571,7 @@ function mount(root, api) {
 
   // ---------- état ----------
   let state = 'charge', stT = 0, tG = 0;
-  let look = Object.assign({}, EXPL_PANTIN.DEF);
+  let look = Object.assign({}, EXPL_PANTIN.DEF), heroCharge = 0;
   // le monde où l'on marche
   const GAL = MONDE.galaxie();
   let PL = null, TER = null, DEC = null;
@@ -2167,25 +2263,15 @@ function mount(root, api) {
   // =================================================================== CRÉATION DU PERSONNAGE
   const PX = EXPL_PANTIN.LOOKS;
   const CATS = [
-    { k: 'visage', nom: 'Visage', ico: '🙂', n: EXPL_PANTIN.nbVisages, noms: ['Rond', 'Ovale', 'Large', 'Petit menton', 'Joues roses', 'Taches de rousseur', 'Lunettes', 'Grand sourire', 'Sourcils épais', 'Grain de beauté'] },
     { k: 'peau', nom: 'Peau', ico: '✋', n: PX.peaux.length, col: PX.peaux },
-    { k: 'yeux', nom: 'Yeux', ico: '👁️', n: PX.yeux.length, col: PX.yeux },
-    { k: 'coiffure', nom: 'Coiffure', ico: '💇', n: EXPL_PANTIN.COIFFURES.length, noms: EXPL_PANTIN.COIFFURES.map(c => c.nom) },
     { k: 'cheveux', nom: 'Cheveux', ico: '🎨', n: PX.cheveux.length, col: PX.cheveux },
-    { k: 'taille', nom: 'Taille', ico: '📏', vals: [0.9, 0.96, 1, 1.05, 1.1], noms: ['Tout petit', 'Petit', 'Moyen', 'Grand', 'Très grand'] },
-    { k: 'carrure', nom: 'Carrure', ico: '💪', vals: [0.88, 1, 1.12], noms: ['Fine', 'Normale', 'Costaude'] },
-    { k: 'combi', nom: 'Combinaison', ico: '🧑‍🚀', n: PX.combis.length, col: PX.combis.map(c => c[2]), col2: PX.combis.map(c => c[0]) },
-    { k: 'motif', nom: 'Motif', ico: '⭐', n: EXPL_PANTIN.nbMotifs, noms: ['Aucun', 'Étoile', 'Chevrons', 'Pois', 'Bande', 'Éclair', 'Planète'] },
-    { k: 'casque', nom: 'Casque', ico: '⛑️', n: EXPL_PANTIN.CASQUES.length, noms: ['Rond', 'Antenne', 'Oreilles', 'Visière', 'Cornes', 'Crête'] },
-    { k: 'gants', nom: 'Gants', ico: '🧤', vals: [-1, ...PX.combis.map((_, i) => i)], col: ['#ffffff', ...PX.combis.map(c => c[2])] },
-    { k: 'bottes', nom: 'Bottes', ico: '🥾', vals: [-1, ...PX.combis.map((_, i) => i)], col: ['#ffffff', ...PX.combis.map(c => c[2])] },
-    { k: 'sac', nom: 'Sac à dos', ico: '🎒', n: EXPL_PANTIN.SACS.length, noms: ['Classique', 'Réservoirs', 'Tuyères', 'Radar', 'Caisse', 'Ailerons', 'Bulle', 'Panneaux'] }
+    { k: 'combi', nom: 'Combinaison', ico: '🧑‍🚀', n: PX.combis.length, col: PX.combis.map(c => c[2]), col2: PX.combis.map(c => c[0]) }   /* V28 (l'admin, 9 nov.) : un seul héros, celui de l'écran-titre ; on choisit seulement ses couleurs */
   ];
   let creaCat = 0, creaTh = 0, creaAuto = 1, creaRetour = 'cine', creaOpt = [];
   function valeurs(c) { return c.vals || Array.from({ length: c.n }, (_, i) => i); }
   function changer(d) { const c = CATS[creaCat], v = valeurs(c); let i = v.indexOf(look[c.k]); if (i < 0) i = 0; look[c.k] = v[(i + d + v.length) % v.length]; creaPop = 0.25; }
   let creaPop = 0;
-  function hasard() { const r = Math.random; for (const c of CATS) { const v = valeurs(c); look[c.k] = v[Math.floor(r() * v.length)]; } look.taille = [0.96, 1, 1.05][Math.floor(r() * 3)]; look.carrure = 1; creaPop = 0.3; }
+  function hasard() { const r = Math.random; for (const c of CATS) { const v = valeurs(c); look[c.k] = v[Math.floor(r() * v.length)]; } creaPop = 0.3; }
   function creaFin() {
     SAVE.look = Object.assign({}, look); sauver();
     if (creaRetour === 'cine' && !SAVE.cine) lancerDebut();
@@ -2216,7 +2302,7 @@ function mount(root, api) {
     ctx.save(); ctx.fillStyle = 'rgba(12,16,40,0.78)'; ctx.strokeStyle = 'rgba(160,190,255,0.5)'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.roundRect ? ctx.roundRect(panel.x, panel.y, panel.w, panel.h, 18 * U) : ctx.rect(panel.x, panel.y, panel.w, panel.h); ctx.fill(); ctx.stroke(); ctx.restore();
     // onglets des catégories (grille d'icônes)
-    const pad0 = 12 * U, cols = portrait ? 7 : 7, tw = (panel.w - pad0 * 2) / cols, th = Math.min(52 * U, tw * 0.9);
+    const pad0 = 12 * U, cols = CATS.length, tw = (panel.w - pad0 * 2) / cols, th = Math.min(52 * U, tw * 0.9);
     CATS.forEach((c, i) => {
       const x = panel.x + pad0 + (i % cols) * tw, y = panel.y + pad0 + Math.floor(i / cols) * (th + 6 * U), sel = i === creaCat;
       ctx.save(); ctx.fillStyle = sel ? 'rgba(255,200,90,0.95)' : 'rgba(60,80,140,0.6)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x + 2, y, tw - 4, th, 10 * U) : ctx.rect(x + 2, y, tw - 4, th); ctx.fill();
@@ -2561,7 +2647,7 @@ function mount(root, api) {
     const g = ctx.createRadialGradient(x, y - 20 * Z, 0, x, y - 20 * Z, 60 * Z); g.addColorStop(0, 'rgba(255,220,120,0.55)'); g.addColorStop(1, 'rgba(255,220,120,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 20 * Z, 60 * Z, 0, TAU); ctx.fill();
     // le faisceau de la balise
     ctx.fillStyle = 'rgba(255,230,150,' + (0.18 + 0.1 * Math.sin(t * 4)) + ')'; ctx.beginPath(); ctx.moveTo(x - 6 * Z, y); ctx.lineTo(x - 18 * Z, y - 260 * Z); ctx.lineTo(x + 18 * Z, y - 260 * Z); ctx.lineTo(x + 6 * Z, y); ctx.closePath(); ctx.fill();
-    const im = IMG.piece; if (im) { const h = 64 * Z, w = im.width * h / im.height; ctx.drawImage(im, x - w / 2, y - h + b, w, h); }
+    const im = (p.id && IMG['p-pv_' + p.id + '-0']) || IMG.piece; if (im) { const q = (im === IMG.piece ? 64 : 78) * Z / (im === IMG.piece ? im.height : Math.max(im.width, im.height)), w = im.width * q, h = im.height * q; ctx.drawImage(im, x - w / 2, y - h + b, w, h); }   /* V28 (l'admin, 9 nov.) : chaque pièce du vaisseau a son image */
   }
 
   // ---------------------------------------------------------------- les actions à pied : miner, ramasser, réparer, monter à bord
@@ -11096,7 +11182,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   // d2074e61 : le portrait de MON explorateur, bien centré (casque + épaules) : dialogues, combat (au lieu de l'émoji 🧑‍🚀)
   // mesuré : à l'échelle 1, la silhouette fait ~101 px, le centre du casque est à ~81 px au-dessus des pieds, son rayon ~22 px
   function portraitHeros(x, y, r, t, lk) {
-    const k = r * 0.028; try { EXPL_PANTIN.draw(ctx, x, y + r * 2.15, k, lk || look, { th: 0, mode: 'repos', t: t || 0 }); } catch (e) { /* rien */ }
+    const k = r * 0.028; try { EXPL_PANTIN.draw(ctx, x, y + r * (EXPL_PANTIN.pret() ? 2.32 : 2.15), k, lk || look, { th: 0, mode: 'repos', t: t || 0 }); } catch (e) { /* rien */ }
   }
   // e17c8949 : mon Astrofaune ne bute plus contre le mur et ne le traverse plus : quand un mur est entre nous, il cherche un chemin (par la porte)
   // une grille fine (20 px) autour de lui et de sa cible ; on vérifie aussi le PASSAGE entre deux cases (les murs sont fins)
@@ -11975,6 +12061,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   function draw(t, dt) { draw0(t, dt); if (CREATEUR) creaPasserHistoire(); }   // V17 : mode créateur
   function draw0(t, dt) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!EXPL_PANTIN.pret() && t >= heroCharge) { heroCharge = t + 5; EXPL_PANTIN.brancherPieces(n => IMG['p-heros_' + n + '-0']); chargerFamille('heros'); chargerFamille('vaisseau'); }   /* V28 : le héros et les pièces du vaisseau (nouvel essai toutes les 5 s si le réseau a raté) */
     if (shake > 0) ctx.translate((Math.random() - 0.5) * 16 * shake * U, (Math.random() - 0.5) * 12 * shake * U);
     if (state === 'charge') { ciel(ctx, W, H, t, 0, 0, 0); ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(16 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.fillText('Chargement…', W / 2, H / 2); return; }
     if (state === 'titre') return drawTitre(t);
@@ -12051,7 +12138,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
       miniDroite: (g, id, x, y, s) => { beteDroite(g, id, x, y, s); },
       portraitSur: (g, F, x, y, r) => { const vrai = ctx; ctx = g; try { portrait1(F, x, y, r); } finally { ctx = vrai; } },
       enJeuSur: (g, id, x, y, h, th) => { const v0 = { ctx, W, H, Z, camX, camY }; try { ctx = g; W = 0; H = 0; Z = 1; camX = 0; camY = 0; dessinerPantinCreature({ esp: id, x, y, th, ph: 0, clip: 'repos', id: 1, echelle: h / ESPECES[id].taille, flash: 0, prep: 0, tm: 0, tc: 0, sansOmbre: true }, 0); } finally { ctx = v0.ctx; W = v0.W; H = v0.H; Z = v0.Z; camX = v0.camX; camY = v0.camY; } },
-      gauches: () => Array.from(PROFIL_GAUCHE), nonAuto: () => AF_LISTE.filter(id => PANTINS[PANT_DE[id]] && !PANTINS[PANT_DE[id]].auto),
+      hero: { pret: () => EXPL_PANTIN.pret() }, pieceImg: id => IMG['p-pv_' + id + '-0'], gauches: () => Array.from(PROFIL_GAUCHE), nonAuto: () => AF_LISTE.filter(id => PANTINS[PANT_DE[id]] && !PANTINS[PANT_DE[id]].auto),
       evoDemo: (de, vers) => { EVO = { b: { e: de, n: 20, demo: true }, de, vers: vers || AF[de].vers || de, t: 0, reste: [], demo: true }; chargerFamille(AF[EVO.vers].fam); state = 'evolution'; },
       evoEtat: () => EVO && { t: EVO.t, spV: !!EVO.spV, part: EVO.part && EVO.part.length },
       evoVraie: id => { const A = AFX(), b = nouvelleBete(id, 30); A.equipe[0] = b; lancerEvolution([b]); return b; },
