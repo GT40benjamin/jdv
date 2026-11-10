@@ -14,10 +14,10 @@ function roueArt() {
   return (ROUE.art = Promise.all(['p1', 'p2', 'p5', 'p10', 'p25', 'pJ', 'sachet', 'anneau', 'moyeu', 'fleche'].map(un).concat(pol)).then(() => I));
 }
 async function roueLire() {
-  try { const e = await rpc('roue_etat', { p_name: gcNom() }, { quiet: true, quiet404: true }); ROUE.e = e; return e; } catch (x) { return null; }
+  try { const e = await rpc('roue_etat', { p_name: gcNom() }, { quiet: true, quiet404: true }); ROUE.e = e; roueCadeauxDire(e); return e; } catch (x) { return null; }   // le serveur ne rend un cadeau qu'une fois : chaque lecture l'annonce
 }
 function roueCadeauxDire(e) { for (const c of (e && e.cadeaux) || []) toastCheer('🎰 ' + dispName(c.de) + ' a gagné le jackpot : tu reçois ' + c.credits + ' 💎 !', c.de, true); }
-async function roueCadeaux() { if (!gcPasCompte()) roueCadeauxDire(await roueLire()); }   // signal de la salle : ce qui compte vient du serveur
+async function roueCadeaux() { if (!gcPasCompte()) await roueLire(); }   // signal de la salle : ce qui compte vient du serveur
 const roueSorteProchaine = e => e.gratuit ? 'gratuit' : (e.prochaine || 'pub');
 
 function roueCalques(W, I, cases, or) {
@@ -137,7 +137,7 @@ async function roueOuvrir(o) {
     if (lot === 'B' && R.booster && R.booster.cartes && window.AstroBooster) Act.appendChild(gcBt('roue-bt', 'Ouvrir mon booster', async () => { try { await window.AstroBooster.ouvrir({ base: ROOT + 'assets/astrobooster/', cartes: R.booster.cartes, collection: R.booster.collection || {}, zIndex: 2147483500 }); } catch (y) {} fermer(); }));
     else Act.appendChild(gcBt('roue-bt', 'Super !', () => fermer()));
     if (e2 && e2.pub_dispo) { const n = e2.pubs_max - e2.pubs_faites; Act.appendChild(gcBt('roue-bt b2', (e2.prochaine === 'or' ? '🎬 Une pub pour la roue dorée' : '🎬 Une pub pour relancer') + ' (' + n + ')', () => { fermer(); rouePub(); })); }
-    Fi.appendChild(Bx); V.appendChild(Fi); try { Se.isConnected && e2 && roueSerie(e2, Se); } catch (y) {}
+    Dr.style.visibility = 'hidden'; Fi.appendChild(Bx); V.appendChild(Fi); try { Se.isConnected && e2 && roueSerie(e2, Se); } catch (y) {}
     if (R.solde != null) try { gcMajSolde(R.solde); } catch (y) {}
     if (!muted) try { const n_ = lot === 'J' ? [523, 659, 784, 1047, 1319, 1568] : [659, 880, 1047]; n_.forEach((f, i) => setTimeout(() => Audio.tone(f, .26, 'triangle', .13), i * (lot === 'J' ? 150 : 110))); } catch (y) {}
     try { if (navigator.vibrate) navigator.vibrate(lot === 'J' ? [90, 50, 90, 50, 220] : 40); } catch (y) {}
@@ -189,7 +189,7 @@ async function roueDuJour(n) {
   n = n || 0; if (n > 30 || ROUE.vu || CADRE || !ONLINE || gcPasCompte()) return;
   if (netOff() || roueOccupee()) { setTimeout(() => roueDuJour(n + 1), 3000); return; }
   const e = await roueLire(); if (!e || !e.actif) return;
-  roueCadeauxDire(e); if (!e.gratuit) return;
+  if (!e.gratuit) return;
   const cle = 'jdw.roue.vue.' + gcNom(); if (store.get(cle, '') === e.jour) return;
   await roueArt(); if (roueOccupee()) { setTimeout(() => roueDuJour(n + 1), 3000); return; }
   ROUE.vu = true; store.set(cle, e.jour); roueOuvrir({ popup: true });
