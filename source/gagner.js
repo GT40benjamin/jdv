@@ -560,7 +560,8 @@ function gcCarte() {   // un seul appel à la fois
 async function gcCarte1() {
   GC.nomCarte = gcNom();
   try {
-    const c = await rpc('gc_records_carte', { p_name: gcPasCompte() ? '' : gcNom() }, { quiet: true, quiet404: true });
+    const [c, ex] = await Promise.all([rpc('gc_records_carte', { p_name: gcPasCompte() ? '' : gcNom() }, { quiet: true, quiet404: true }), gcPasCompte() ? null : rpc('gc_exclus', { p_name: gcNom() }, { quiet: true, quiet404: true }).catch(() => null)]);
+    GC.exclus = ex;   // les jeux où le serveur refuserait le gain de ce joueur
     if (!c || typeof c !== 'object') throw new Error('carte vide');
     GC.carte = c.actif ? c : null; GC.carteVue = true; GC.carteRate = 0;
     gcBouton(); gcSigles(); gcJauge(); gcMonCode(); gcTuilesMaj(); return c;
@@ -632,23 +633,24 @@ function gcSigles() {
 }
 // ---------- la jauge pendant le jeu : discrète, jamais sur un bouton, ne capte aucun toucher ----------
 // L'admin : « un indicateur en haut pour montrer les crédits à gagner si on est éligible, un truc clair comme 1er mondial = 10 💎 ». Le montant vient du serveur (carte).
-// Rien pour un invité, un jeu sans gain ouvert, ou le détenteur du record (battre son propre record ne paie pas) ; une fois gagné aujourd'hui : « ✅ N 💎 gagnés ».
+// Rien pour un invité, un jeu sans gain ouvert, le détenteur du record (battre son propre record ne paie pas), ou si le serveur refuserait le gain (créateur du jeu, admin : gc_exclus ; réponse absente = rien) ; une fois gagné aujourd'hui : « ✅ N 💎 gagnés ».
 function gcJaugeDonnees() {
-  const ca = GC.carte, id0 = GC.jeu; if (!ca || !id0 || $('jdw-play').hidden || gcPasCompte()) return null;
-  const moi = gcNom(), peut = (k, r) => !gcDeja(k, r) && r.nom !== moi;
+  const ca = GC.carte, id0 = GC.jeu; if (!ca || !id0 || $('jdw-play').hidden || gcPasCompte() || !Array.isArray(GC.exclus)) return null;
+  const exclu = k => GC.exclus.includes(k), moi = gcNom(), peut = (k, r) => !gcDeja(k, r) && r.nom !== moi;
   const gagnable = (gain, t, c) => ({ gain, t: t || '1er mondial', c: c || '1er' }), gagne = gain => ({ gain, fait: true });
   const un = (k, r, gain) => !r ? null : gcDeja(k, r) ? gagne(gain) : peut(k, r) ? gagnable(gain) : null;
   if (id0 === 'chrono') {
-    const c = ca.courses || {}, ids = Object.keys(c); if (!ids.length) return null;
+    const c = ca.courses || {}, ids = Object.keys(c); if (!ids.length || exclu('chrono')) return null;
     if (GC.course && !document.querySelector('#jdw-play .tc-veil h3')) return un('c:' + GC.course, c[GC.course], ca.gain_course);
     if (ids.some(i => peut('c:' + i, c[i]))) return gagnable(ca.gain_course);
     return ids.every(i => gcDeja('c:' + i, c[i])) ? gagne(ids.length * ca.gain_course) : null;
   }
+  if (exclu(id0)) return null;
   if ((ca.distances || {})[id0]) return un(id0, ca.distances[id0], ca.gain_distance);
   const nv = (ca.niveaux || {})[id0];
   if (nv) { const L = Object.entries(nv.lv || {}); return (nv.nb > L.length || L.some(([k, r]) => peut(id0 + ':' + k, r))) ? gagnable(ca.gain_niveau, '1er d’un niveau', '1 niveau') : null; }
   const id = ca.jeux[GC_ALIAS[id0]] ? GC_ALIAS[id0] : id0;
-  return un(id, ca.jeux[id], ca.gain_jeu);
+  return exclu(id) ? null : un(id, ca.jeux[id], ca.gain_jeu);
 }
 function gcJauge() {
   let J = document.getElementById('jdw-gc-jauge'); const d = gcJaugeDonnees();
