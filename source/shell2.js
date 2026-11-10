@@ -1013,7 +1013,7 @@ function netOk() {
   netDown = false;
   if (!NETS.off) return;
   NETS.off = false; clearTimeout(NETS.t); NETS.t = 0;
-  setTimeout(() => { try { netChanged(true); } catch (e) {} }, 0);
+  setTimeout(() => { try { netChanged(true); SALLE.essais = 0; salleRetrouver(); } catch (e) {} }, 0);
 }
 function netProbeSoon(ms) { clearTimeout(NETS.t); NETS.t = setTimeout(() => { NETS.t = 0; netProbe(); }, ms != null ? ms : NETS.wait); }
 async function netProbe() {
@@ -1102,11 +1102,12 @@ async function rpc(fn, args, opts) {
       return rpc(fn, args, Object.assign({}, opts, { retry: (opts.retry || 0) + 1, anon: !!opts.retry || !(pr && acctLive(pr)) }));
     }
     const er = new Error(fn + ' ' + r.status + ' ' + t.slice(0, 120)); er.status = r.status; er.denied = /acces refuse/.test(t);
-    er.member = /membre requis|connexion requise/.test(t);   // salle dont aucun joueur du compte n'est membre (ou pas connecté)
+    er.member = /membre requis/.test(t);   // salle dont aucun joueur du compte n'est membre
+    er.login = /connexion requise/.test(t);   // pas de jeton valable à cet instant (jeton expiré, réseau) : ça ne dit rien de la salle
     er.acct = /compte requis/.test(t);                    // pseudo protégé : il faut être connecté à son compte
     if (er.acct && !opts.token) { try { acctNeed(rpcActor(fn, args)); } catch (e) {} }
     // les refus du serveur me sont remontés (une fois par session), pour comprendre ce qui bloque chez chacun
-    if (fn !== 'log_error' && !er.acct && !er.member && !opts.quiet && !/trop de messages/.test(t) && !(opts.quiet404 && r.status === 404)) { try { reportError('Serveur : ' + fn + ' ' + r.status, t.slice(0, 300), { quiet: true }); } catch (e) {} }
+    if (fn !== 'log_error' && !er.acct && !er.member && !er.login && !opts.quiet && !/trop de messages/.test(t) && !(opts.quiet404 && r.status === 404)) { try { reportError('Serveur : ' + fn + ' ' + r.status, t.slice(0, 300), { quiet: true }); } catch (e) {} }
     throw er;
   }
   const txt = await r.text();
@@ -2482,7 +2483,7 @@ async function loadWorld() {
 }
 function onRoomError(e) {
   // salle retenue sur l'appareil, mais aucun joueur de ce compte n'en est membre : on la choisit à nouveau
-  if (e && e.member && room && !isGuest()) { const t = roomTopic(); room = null; store.set('jdw.room', null); if (t) rtLeave(t); refreshAll(); setTimeout(() => { if (!room && !invPending() && !INV.busy) openRooms(); }, 300); return; }   // un lien d'invitation en cours choisit la salle
+  if (e && e.member && room && !isGuest()) { const t = roomTopic(); SALLE.refusee = room.id; room = null; store.set('jdw.room', null); if (t) rtLeave(t); refreshAll(); setTimeout(salleRetrouver, 300); return; }   // un lien d'invitation en cours choisit la salle
   if (!e || !e.denied || !room || roomDenied) return;
   roomDenied = true; refreshAll();
   if (room.priv) setTimeout(() => {
@@ -4936,7 +4937,7 @@ $('jdw-wel-cancel').addEventListener('click', () => {
 });
 function afterOnboarding() {
   if (ONLINE && invPending()) { setTimeout(invRun, 250); return; }   // arrivé par un lien d'invitation : on entre dans sa salle
-  if (ONLINE && !room && profile.name) setTimeout(openRooms, 250);
+  if (ONLINE && !room && profile.name) setTimeout(salleRetrouver, 250);
 }
 $('jdw-wel-ok').addEventListener('click', welcomeOk);
 $('jdw-wel-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); welcomeOk(); } });
@@ -6426,6 +6427,41 @@ function renderRooms() {
     b.addEventListener('click', () => chooseRoom(r));
     wrap.appendChild(b);
   }
+}
+/* 2.1.61 (l'admin, pour SAMBA : « à chaque fois qu'elle ouvre la borne, ça lui ouvre les salles, alors qu'on sait très bien dans quelle salle elle est »).
+   La salle ne venait que du stockage de l'appareil (jdw.room) : stockage plein, vidé, ou salle jetée à tort, et le panneau s'ouvrait. Désormais, sans salle
+   sur l'appareil, c'est le SERVEUR qui répond (room_recente : la salle du compte vue le plus récemment). Le panneau ne s'ouvre que si le serveur dit qu'il n'y en a
+   vraiment aucune ; s'il ne peut pas répondre (réseau, jeton), on n'ouvre rien et on redemande. Serveur sans room_recente (404) : list_rooms, AVEC le jeton
+   (sans jeton, list_rooms répond une liste vide : ce serait un faux « aucune salle »). */
+const SALLE = { p: null, essais: 0, t: 0, refusee: null, note: false };
+const salleAttendue = () => ONLINE && !room && !isGuest() && !!profile.name && !invPending() && !INV.bad && !INV.busy && !CADRE;
+async function salleDuCompte() {   // la ligne de la salle ; null : vraiment aucune ; undefined : on ne sait pas
+  const tok = await acctToken(profile).catch(() => '');
+  if (!tok) return undefined;
+  const base = { p_code: CODE(), p_name: profile.name || '' }, o = { token: tok, quiet: true, quiet404: true };
+  try { return ((await rpc('room_recente', base, o)) || [])[0] || null; }
+  catch (e) { if (e.status !== 404) return undefined; }
+  try { const l = (await rpc('list_rooms', base, o)) || []; return l.find(r => r.r_member) || l[0] || null; }
+  catch (e) { return undefined; }
+}
+function salleRetrouver() {
+  if (SALLE.p) return SALLE.p;
+  return (SALLE.p = (async () => {
+    clearTimeout(SALLE.t);
+    if (!salleAttendue()) return;
+    if (netOff()) { salleRedemander(); return; }
+    const r = await salleDuCompte();
+    if (!salleAttendue()) return;                       // entre-temps : salle choisie, invitation, compte parti
+    if (r === undefined) { salleRedemander(); return; }
+    SALLE.essais = 0;
+    if (!r || +r.r_id === SALLE.refusee) { openRooms(); return; }
+    enterRoom({ id: r.r_id, name: r.r_name, priv: !!r.r_private, owner: r.r_owner || null });
+    if (!SALLE.note) { SALLE.note = true; let n = 0; try { for (const k of Object.keys(localStorage)) n += k.length + (localStorage.getItem(k) || '').length; } catch (e) {} try { reportError('Salle retrouvée par le serveur', (store.get('jdw.room', null) ? 'appareil : salle absente au départ, enregistrée maintenant' : "appareil : la salle ne s'enregistre pas (stockage plein ?)") + ' ; stockage ' + Math.round(n / 1024) + ' Ko', { quiet: true }); } catch (e) {} }
+  })().finally(() => { SALLE.p = null; }));
+}
+function salleRedemander() {
+  if (SALLE.essais >= 8) return;                        // le panneau reste accessible (nom de la salle en haut, ou le jeu qui en demande une)
+  clearTimeout(SALLE.t); SALLE.t = setTimeout(salleRetrouver, Math.min(30000, 2000 * Math.pow(1.7, SALLE.essais++)));
 }
 function openRooms() {
   if (!ONLINE) return;
@@ -9218,7 +9254,7 @@ async function coopCommit() {
     COOP.srv = true; pend.done = true; coopResult(String(r || ''), args);
   } catch (x) {
     if (x.status === 404) { COOP.srv = false; coopQueue(args); pend.done = true; coopStatus('Score gardé : il partira dès que les classements à deux seront ouverts.'); }
-    else if (x.member || x.guest) { pend.done = true; coopStatus('Partie pour le plaisir : pas classée (il faut être membre de la salle).'); }
+    else if (x.member || x.login || x.guest) { pend.done = true; coopStatus('Partie pour le plaisir : pas classée (il faut être membre de la salle).'); }
     else if (x.offline || !x.status) { coopQueue(args); pend.done = true; coopStatus('Gardé : il partira au retour du réseau.'); }
     else { pend.done = true; coopStatus('Score non enregistré (le serveur l\'a refusé).'); }
   } finally { saving--; }
@@ -12182,7 +12218,7 @@ $('jdw-inv-ok').addEventListener('click', () => {
   if (k === 'ask' && v) { invJoin(v); return; }
   closeSheet('jdw-inv');
   if (k === 'guest') $('jdw-guest-new').click();           // même chemin que le bandeau : créer un compte (ou se connecter, ajouter au compte…)
-  else if (!isGuest() && !room) openRooms();
+  else if (!isGuest() && !room) salleRetrouver();
 });
 $('jdw-inv-alt').addEventListener('click', () => {
   const k = INV.kind; closeSheet('jdw-inv');
@@ -12191,7 +12227,7 @@ $('jdw-inv-alt').addEventListener('click', () => {
 });
 $('jdw-inv-no').addEventListener('click', () => {
   const k = INV.kind; closeSheet('jdw-inv');
-  if (k === 'ask') { invForget(); if (!room) openRooms(); }   // compte connecté qui ne veut pas : l'invitation est oubliée
+  if (k === 'ask') { invForget(); if (!room) salleRetrouver(); }   // compte connecté qui ne veut pas : l'invitation est oubliée
 });
 $('jdw-inv').addEventListener('click', e => { if (e.target === $('jdw-inv')) invDismiss(); });
 // fermée sans répondre (fond, Échap, retour Android) : l'invitation reste gardée, redemandée au prochain lancement
@@ -22569,6 +22605,7 @@ function guestSync() {
     syncOwnPlayer();
     const saved = store.get('jdw.room', null);
     if (!first && !room && saved && saved.id != null) enterRoom(saved);
+    else if (!first && !room) setTimeout(salleRetrouver, 250);
     RT.topics.add('jdw-all'); if (room) RT.topics.add('jdw-room-' + room.id);
     if (RT.ws && RT.uid && profile.acct && profile.acct.uid !== RT.uid) rtClose();   // autre compte : autre jeton
     rtConnect();
@@ -22809,7 +22846,7 @@ if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').
 for (const a of document.querySelectorAll('[data-root-href]')) a.setAttribute('href', ROOT + a.dataset.rootHref);   // borne publiée dans jouer/
 guestSync();                    // invité : pas de salle, bandeau « Crée ton compte »
 if (netOff()) { document.body.classList.add('net-off'); netBar(); }   // ouverte sans réseau (service worker) : bandeau tout de suite
-if (ONLINE && !isGuest() && !room && !netOff() && !invPending() && !INV.bad && !CADRE) openRooms();
+salleRetrouver();                // sans salle sur l'appareil : le serveur sait laquelle (le panneau seulement s'il n'y en a aucune)
 if (CADRE) {   // le jeu seul, dans la page du projet
   document.body.classList.add('cadre');
   const g0 = (window.JDW_GAMES || {})[CADRE], g = g0 && g0.id === CADRE && (laboOk(CADRE) || atlNe(CADRE)) ? g0 : (!g0 && atlNe(CADRE) ? atlStub({ jeu: CADRE }) : null);   // 2.0.133 : un jeu de l'Atelier en essai (LABO) s'ouvre toujours dans le cadre de sa page   // 2.0.132 : jeu connu par le serveur, sans module embarqué   // un jeu de l'Atelier en alpha n'est pas dans GAMES (pas de tuile)
