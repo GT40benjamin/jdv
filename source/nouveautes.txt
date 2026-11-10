@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🎡 La roue du jour (borne 2.2)
+[borne] 🎡 Nouveau dans « Gagner des crédits » : une grande roue à lancer chaque jour, au doigt ou à la souris. Des diamants à gagner à tous les coups, et un jackpot très rare partagé avec tes copains de salle.
+[borne] 🔥 Lance la roue 5 jours d’affilée pour gagner un bonus. Un jour manqué, et la série repart de zéro !
 [borne] ## 🏆 Ce que tu peux gagner, écrit en haut (borne 2.1.64)
 [borne] 🏆 En partie, un petit indicateur en haut te dit quand tu peux gagner des crédits, par exemple « 1er mondial = 20 💎 ». Une fois gagné, il te le confirme.
 [borne] ## 🕹️ Un bel écran d’ouverture (borne 2.1.63)
