@@ -711,6 +711,8 @@ function menuMontrer(g, o) {
     } else {
       L.appendChild(el('p', 'tm-k', '⚙️ Options'));
       L.appendChild(it('🔊 SON', () => vue('son')));
+      // 2.1.63 (Le Sorcier du Royaume, ticket payé de J2B) : les lignes du JEU dans ⚙️ Options (CONTRACT.md, Ajout 27, 7.) : le jeu démarre et reçoit api.menuOuvrir = id
+      for (const x of (Array.isArray(g.optionsMenu) ? g.optionsMenu : []).slice(0, 3)) if (!o.duo && x && x.id && x.texte) L.appendChild(it(String(x.texte).slice(0, 40), () => { MENU.ouvrir = String(x.id).slice(0, 30); jouer(); }));
       if (g.saves || typeof g.recommencerAventure === 'function' || ATL_NES.has(g.id)) {
         const ask = el('div', 'tm-ask'); ask.hidden = true;
         const rb = it('🔄 RECOMMENCER L’AVENTURE', () => {
@@ -11388,6 +11390,7 @@ function mountGame(g) {
     // 2.0.139 (CONTRACT.md Ajout 27) : la zone sûre (ce que la borne couvre) et le son réglé pour ce jeu
     menuZones: () => menuZones(),   // 2.0.142 : où sont le logo, le héros et les boutons du menu
     appareil: appareilApi(),   // 2.0.142 : 'toucher' | 'clavier' | 'manette' (dernier appui, dès le menu)
+    menuOuvrir: (() => { const x = MENU.ouvrir || ''; MENU.ouvrir = ''; return x; })(),   // 2.1.63 : la ligne du jeu choisie dans ⚙️ Options (g.optionsMenu), sinon ''
     retourMenu: () => { if (!current || current.seq !== seq) return; setTimeout(() => { if (!current || current.seq !== seq) return; try { flushPending(); } catch (e) {} const g0 = current.game, co = !!current.coop; unmountGame(); $('jdw-end').hidden = true; if (!co && menuAvoir(g0)) menuMontrer(g0, { direct: true }); else backToLibrary(); }, 0); },   // 2.0.168 (Noisette) : « ← Menu » du jeu = l'écran-titre de la borne
     zoneSure: Object.assign(() => zoneSure(), { suivre: fn => { if (typeof fn !== 'function' || !current || current.seq !== seq) return () => {}; ZS.fns.add(fn); try { fn(zoneSure()); } catch (e) {} return () => ZS.fns.delete(fn); } }),
     son: { etat: () => sonJeuEtat(), suivre: fn => { if (typeof fn !== 'function' || !current || current.seq !== seq) return () => {}; SON_JEU.fns.add(fn); try { fn(sonJeuEtat()); } catch (e) {} return () => SON_JEU.fns.delete(fn); } },

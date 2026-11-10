@@ -494,6 +494,11 @@ window.JDW_GAMES['monjeu'] = {
 };
 ```
 
+### 5 bis. Une ligne du jeu dans ⚙️ Options (`optionsMenu`, borne 2.1.63 ; demande du Sorcier du Royaume)
+`optionsMenu: [{ id: 'touches', texte: '🎮 MES TOUCHES' }]` dans le module (3 lignes au plus, solo seulement) : la ligne s'ajoute dans ⚙️ Options, sous 🔊 Son. Au choix, la borne
+lance le jeu avec `api.menuOuvrir === 'touches'` (`''` sinon) : le jeu ouvre son écran au lieu de démarrer une partie, puis appelle `api.retourMenu()` pour revenir à l'écran-titre.
+Une vieille borne ignore `optionsMenu` : rien ne casse.
+
 ### 6. Le son par jeu (`api.son`)
 La borne règle elle-même le volume de sa musique (`api.music`) et des bruitages joués par `api.audio`. Un jeu qui joue ses PROPRES sons
 (son AudioContext, `<audio>`, three.js) lit le réglage :
