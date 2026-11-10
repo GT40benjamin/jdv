@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🏆 Ce que tu peux gagner, écrit en haut (borne 2.1.64)
+[borne] 🏆 En partie, un petit indicateur en haut te dit quand tu peux gagner des crédits, par exemple « 1er mondial = 20 💎 ». Une fois gagné, il te le confirme.
 [borne] ## 🕹️ Un bel écran d’ouverture (borne 2.1.63)
 [borne] 🕹️ Quand la borne s’ouvre, plus de page qui se construit sous tes yeux : un bel écran d’ouverture avec un cercle de chargement, puis l’accueil apparaît en douceur, tout prêt.
 [borne] ## 🖥️ Sur PC, la salle monte en haut (borne 2.1.62)
