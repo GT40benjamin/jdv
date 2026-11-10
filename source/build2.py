@@ -179,7 +179,7 @@ def page(config=None):
           '<script>window.JDW_ASSET_KEY = ' + json.dumps(open(J + 'asset-key.txt', encoding='utf-8').read().strip()) + '; window.JDW_ROOT = ' + json.dumps(ROOT) + '; window.JDW_PAGE = ' + json.dumps(PAGE) + ';</script>\n'
     return (('<title>Pégase · Elixir Game Studio</title>\n' if PAGE == 'pegase' else '<title>Borne d\'arcade entre amis</title>\n') +
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
-            '<link rel="stylesheet" href="' + FONT_CSS + '">\n'
+            + ('<link rel="stylesheet" href="' + FONT_CSS + '" media="print" onload="this.media=\'all\'">\n' if PAGE == 'borne' else '<link rel="stylesheet" href="' + FONT_CSS + '">\n') +   # borne : la police ne retient plus l'affichage (l'écran d'ouverture la couvre)
             '<style>\n' + pg_css + '\n' + open(J + 'shell2.css').read() + '\n' + open(J + 'atelier-images.css', encoding='utf-8').read() + '\n' + open(J + 'atelier-outils.css', encoding='utf-8').read() + '\n' + open(J + 'atelier-impression.css', encoding='utf-8').read() + '\n' + open(J + 'gagner.css', encoding='utf-8').read() + '\n' +open(J + 'accessoires.css', encoding='utf-8').read() + '\n' + open(J + 'manette.css', encoding='utf-8').read() + '\n</style>\n' + body + '\n'
             '<script>\n(() => {\n' + script + '\n})();\n</script>\n' + games + cfg +
             # manette (API Gamepad) : glyphes, api.pad des jeux, navigation ; avant la bibliothèque, qui s'en sert
@@ -204,8 +204,19 @@ OG = {
 # (mêmes paramètres) ; ?borne (le site du studio) reste sur la borne
 REDIRECT_PG = ('<script>(function(){try{var s=location.search;if(/[?&](pegase|ile|appel|appeler)(=|&|$)/.test(s)&&!/[?&]borne(=|&|$)/.test(s)){'
                'document.documentElement.style.visibility="hidden";location.replace(' + json.dumps(ROOT + 'pegase/') + '+s+location.hash)}}catch(e){}})();</script>\n')
+# Écran d'ouverture (borne) : avant le CSS, pour s'afficher dès les premiers octets. Entre deux blocs de script, un jalon dit où en est la lecture de la page
+# (la position dans le fichier = le vrai téléchargement) : l'anneau va de 3 à 74 % ; shell2.js fait le reste (ouvFinir).
+def jalons(doc):
+    n = len(doc); dernier = [0]
+    def met(m):
+        v = 3 + round(m.start() / n * 71)
+        if v < dernier[0] + 2: return m.group(0)
+        dernier[0] = v
+        return '</script>\n<script>window.JDW_OUV&&JDW_OUV.p(' + str(v) + ')</script>\n<script>'
+    return re.sub(r'</script>\n<script>', met, doc)
 def full_doc(p):
     i = p.index('<style>'); head = p[:i]; rest = p[i:]; j = rest.index('</style>') + 8
+    ouv = open(J + 'ouverture.html', encoding='utf-8').read() + '\n' if PAGE == 'borne' else ''
     o = OG[PAGE]
     return ('<!doctype html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n'
             # déménagement sur elixirgamestudio.com : dans l'appli 1.11+, les réglages gardés à l'ancienne adresse (profils, connexion…)
@@ -227,7 +238,7 @@ def full_doc(p):
             '<meta property="og:image:alt" content="' + o['alt'] + '">\n'
             '<meta name="twitter:card" content="summary_large_image">\n'
             '<meta name="description" content="' + o['desc'] + '">\n'
-            '<link rel="manifest" href="' + ROOT + 'manifest.webmanifest">\n<link rel="icon" href="' + ROOT + 'favicon.ico" sizes="16x16 32x32 48x48">\n<link rel="apple-touch-icon" href="' + ROOT + 'icon-180.png">\n' + head + rest[:j] + '\n</head>\n<body>\n' + rest[j:] + '\n</body>\n</html>\n')
+            '<link rel="manifest" href="' + ROOT + 'manifest.webmanifest">\n<link rel="icon" href="' + ROOT + 'favicon.ico" sizes="16x16 32x32 48x48">\n<link rel="apple-touch-icon" href="' + ROOT + 'icon-180.png">\n' + head + ('' if ouv else rest[:j]) + '\n</head>\n<body>\n' + ouv + (rest[:j] + '\n' if ouv else '') + (jalons(rest[j:]) if ouv else rest[j:]) + '\n</body>\n</html>\n')
 
 art = page()
 open(sys.argv[1], 'w').write(art)

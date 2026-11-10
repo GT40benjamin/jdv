@@ -3913,6 +3913,25 @@ function refreshAll() {
 }
 let prevT = 0, prevDefile = 0; const PREV_TEL = matchMedia('(pointer:coarse)').matches;
 try { addEventListener('scroll', () => { prevDefile = performance.now(); }, { passive: true, capture: true }); } catch (e) {}
+/* L'admin : « la borne s'ouvre et on voit toute la construction ». L'écran d'ouverture (source/ouverture.html, tout au début de la page) reste jusqu'ici :
+   il part quand les polices, le dessin des tuiles visibles, leurs images et la grille sont prêts. Pas d'attente minimale ; au plus 6 s après le démarrage,
+   quoi qu'il arrive (ouverture.html a aussi ses propres garde-fous, si ce code ne tourne jamais). */
+let OUV_DESSINS = 0;
+const ouvApres = f => { const O = window.JDW_OUV; if (O && O.actif()) O.apres(f); else f(); };
+async function ouvFinir() {
+  const O = window.JDW_OUV; if (!O) return;
+  O.p(78);
+  const etape = (pr, pc) => Promise.resolve(pr).catch(() => {}).then(() => O.p(pc));
+  const attend = ms => new Promise(ok => setTimeout(ok, ms));
+  const polices = () => document.fonts ? Promise.all([document.fonts.load('20px Bungee'), document.fonts.load('600 14px "Chakra Petch"')]).then(() => document.fonts.ready) : null;
+  const dessins = async () => { const fin = Date.now() + 2500; while (OUV_DESSINS < 8 && Date.now() < fin && !$('jdw-lib').hidden) await attend(40); };
+  const grille = () => new Promise(ok => { const g = $('jdw-grid'); if (!g || !window.MutationObserver) return ok(); let t = setTimeout(fini, 160); const m = new MutationObserver(() => { clearTimeout(t); t = setTimeout(fini, 160); }); function fini() { m.disconnect(); ok(); } m.observe(g, { childList: true, subtree: false }); });
+  const images = () => { const haut = innerHeight, L = [];
+    for (const i of document.querySelectorAll('#jdw-lib img')) { const r = i.getBoundingClientRect(); if (r.width && r.top < haut && r.bottom > 0 && !(i.complete && i.naturalWidth)) L.push(new Promise(ok => { i.addEventListener('load', ok, { once: true }); i.addEventListener('error', ok, { once: true }); })); }
+    return Promise.all(L); };
+  await Promise.race([Promise.all([etape(polices(), 85), etape(dessins(), 90), etape(grille(), 94)]).then(() => etape(images(), 98)), attend(6000)]);
+  requestAnimationFrame(() => requestAnimationFrame(() => O.fin()));
+}
 function previewLoop(ts) {
   requestAnimationFrame(previewLoop);
   if ($('jdw-lib').hidden || ts - prevT < (PREV_TEL ? 66 : 32) || ts - prevDefile < 180 || document.body.classList.contains('atl-on')) return;   // 2.0.160 (lenteurs) : 15 i/s au téléphone, en pause pendant le défilement et sous l'Atelier
@@ -3925,6 +3944,7 @@ function previewLoop(ts) {
     if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
     const ctx = c.getContext('2d');
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    OUV_DESSINS++;
     try { atlPrevG(tl.g).preview(ctx, w, h, t); } catch (e) { ctx.fillStyle = COLORS.night; ctx.fillRect(0, 0, w, h); reportError('Aperçu ' + tl.g.id + ' : ' + e.message, e.stack, { quiet: true }); }
     ctx.restore();
   }
@@ -6455,7 +6475,7 @@ function salleRetrouver() {
     if (!salleAttendue()) return;                       // entre-temps : salle choisie, invitation, compte parti
     if (r === undefined) { salleRedemander(); return; }
     SALLE.essais = 0; SALLE.attend = false;
-    if (!r || +r.r_id === SALLE.refusee) { openRooms(); return; }
+    if (!r || +r.r_id === SALLE.refusee) { ouvApres(openRooms); return; }
     enterRoom({ id: r.r_id, name: r.r_name, priv: !!r.r_private, owner: r.r_owner || null });
     if (!SALLE.note) { SALLE.note = true; let n = 0; try { for (const k of Object.keys(localStorage)) n += k.length + (localStorage.getItem(k) || '').length; } catch (e) {} try { reportError('Salle retrouvée par le serveur', (store.get('jdw.room', null) ? 'appareil : salle absente au départ, enregistrée maintenant' : "appareil : la salle ne s'enregistre pas (stockage plein ?)") + ' ; stockage ' + Math.round(n / 1024) + ' Ko', { quiet: true }); } catch (e) {} }
   })().finally(() => { SALLE.p = null; }));
@@ -22875,7 +22895,8 @@ if (CADRE) {   // le jeu seul, dans la page du projet
 acctBar(); acctStart();         // comptes : bannière « Protège ton compte », lien reçu par e-mail, jetons rafraîchis
 if (ONLINE && (invPending() || INV.bad)) setTimeout(invRun, 900);   // lien d'invitation (?salle=…) ouvert, ou gardé d'une visite précédente
 loadPlayers(); loadScores(); heartbeat(); loadChat(); setTimeout(progLoad, 1500);
-setTimeout(pushRoomLook, 2500);    // une tête / un cri de salle pas encore envoyé (serveur pas à jour, pas de réseau…)
+setTimeout(pushRoomLook, 2500);
+ouvFinir();    // une tête / un cri de salle pas encore envoyé (serveur pas à jour, pas de réseau…)
 if (ONLINE && !isGuest()) { RT.topics.add('jdw-all'); if (room) RT.topics.add('jdw-room-' + room.id); rtConnect(); }   // joints à l'ouverture (jeton prêt)
 // 2.0.34 : « vu » par compte (voir VUS_CLES)
 const vusCompte = () => ONLINE && !isGuest() && !!profile.name && !!(profile.acct && profile.acct.uid);
