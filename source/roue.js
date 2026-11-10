@@ -9,7 +9,7 @@ const ROUE_TAILLE = { 1: .25, 2: .3, 5: .34, 10: .37, 25: .41, J: .46, B: .29 };
 const ROUE_FICHE = { 1: 'p1', 2: 'p2', 5: 'p5', 10: 'p10', 25: 'p25', J: 'pJ', B: 'sachet' };
 function roueArt() {
   if (ROUE.art) return ROUE.art;
-  const I = {}, un = n => new Promise(ok => { const i = new Image(); i.decoding = 'async'; i.onload = () => { I[n] = i; ok(); }; i.onerror = () => ok(); i.src = ROOT + 'accueil/roue/' + n + '.webp'; });
+  const I = {}, un = n => new Promise(ok => { const i = new Image(); i.decoding = 'async'; i.onload = () => { I[n] = i; ok(); }; i.onerror = () => ok(); i.src = ROOT + 'accueil/roue-' + n.toLowerCase() + '.webp'; });
   const pol = document.fonts ? document.fonts.load('40px Bungee').catch(() => {}) : null;
   return (ROUE.art = Promise.all(['p1', 'p2', 'p5', 'p10', 'p25', 'pJ', 'sachet', 'anneau', 'moyeu', 'fleche'].map(un).concat(pol)).then(() => I));
 }
