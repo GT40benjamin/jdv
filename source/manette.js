@@ -182,7 +182,8 @@
       P.gp = gp; readPad(gp, P);
     }
     for (const [i, P] of [...S.pads]) if (!alive.has(i)) { S.pads.delete(i); left(P); }
-    if (S.hooks && !document.hidden) { try { navTick(); } catch (e) { if (S.hooks.error) S.hooks.error(e); } }
+    if (window.JDW_OUV && window.JDW_OUV.actif()) { for (const b of BTN) navPressed(b); }   // écran d'ouverture : la manette n'agit pas sur ce qui se construit dessous, et rien n'est gardé pour après
+    else if (S.hooks && !document.hidden) { try { navTick(); } catch (e) { if (S.hooks.error) S.hooks.error(e); } }
     if (S.pads.size) S.raf = requestAnimationFrame(poll);
   }
   function wake() { if (!S.raf && hasApi()) S.raf = requestAnimationFrame(poll); }
