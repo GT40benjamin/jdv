@@ -3902,6 +3902,7 @@ function refreshAll() {
   $('jdw-roomrow').hidden = !ONLINE || isGuest();
   $('jdw-invite').hidden = !room;
   $('jdw-roomname').textContent = room ? room.name : 'Choisis une salle';
+  $('jdw-roombar').title = room ? room.name : '';   // nom long coupé dans la barre du haut (PC)
   { const L = room ? room.name.length : 0; $('jdw-roomname').style.fontSize = L > 30 ? '13px' : L > 22 ? '14.5px' : L > 14 ? '16px' : ''; }   // nom toujours en entier
   $('jdw-note').textContent = !ONLINE ? 'Mode local : le classement est gardé sur cet appareil.'
     : isGuest() ? 'En invité, les scores ne sont pas enregistrés : crée ton compte pour entrer au classement.'
@@ -6559,6 +6560,15 @@ const MODES = {
 let MODE = 'classique';
 try { const m = sessionStorage.getItem('jdw.mode'); if (m && m in MODES) MODE = m; } catch (e) {}
 let PG_WING = null;   // l'aile du logo Pégase (déplacée sur le É en mode Pégase)
+/* L'admin : « sur pc il faut que la salle aille en haut en header contre le nombre en ligne ». À partir de 1024 px, le bloc de la salle et l'invitation
+   montent dans la barre du haut ; téléphone (même couché) et page Pégase : ils restent où ils étaient. */
+const SALLE_PC = window.matchMedia ? window.matchMedia('(min-width:1024px)') : null;
+function sallePlace() {
+  const rr = $('jdw-roomrow'), on = $('jdw-online'), wrap = document.querySelector('#jdw-lib .lib-wrap'); if (!rr || !on || !wrap) return;
+  if (SALLE_PC && SALLE_PC.matches && $('jdw-lib').dataset.mode !== 'pegase') { if (rr.parentElement !== on.parentElement) on.after(rr); }
+  else if (rr.parentElement !== wrap) wrap.prepend(rr);
+}
+if (SALLE_PC && SALLE_PC.addEventListener) SALLE_PC.addEventListener('change', sallePlace);
 function setMode(m, user) {
   if (PAGE === 'pegase') { if (m === 'arcade' && user) { siteGo(ROOT + 'jouer/?borne'); return; } m = 'pegase'; }   // pegase/ : Pégase seul
   if (m === 'arcade') m = (typeof PG !== 'undefined' && PG.last) || 'classique';   // « Nos autres jeux » : le dernier mode de la borne
@@ -6570,6 +6580,7 @@ function setMode(m, user) {
   const changed = m !== MODE; MODE = m;
   try { sessionStorage.setItem('jdw.mode', m); } catch (e) {}
   $('jdw-lib').dataset.mode = m;
+  sallePlace();
   for (const b of document.querySelectorAll('#jdw-modes button')) { if (b.dataset.mode === m) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
   const md = MODES[m];
   if (md) { $('jdw-mh-ic').textContent = md.ic; $('jdw-mh-title').textContent = md.t; $('jdw-mh-sub').textContent = md.sub; }

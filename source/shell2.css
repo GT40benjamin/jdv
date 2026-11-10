@@ -6360,3 +6360,24 @@ body:has(#jdw-liveinv:not([hidden])) .fs-tip{display:none!important}
 @media (hover:hover){.atl-tapoig:hover i{background:#7b55d6}}
 .atl-tapoig:focus-visible{outline:2px solid #7b55d6;outline-offset:1px;border-radius:6px}
 @media (max-width:900px),(pointer:coarse){.atl-tapoig{display:none}}
+/* Accueil PC (l'admin : la salle en haut, contre le nombre en ligne ; le titre sur une ligne) : sallePlace() de shell2.js déplace le bloc à partir de 1024 px */
+@media (min-width:1024px){
+  .home-bar{min-height:62px;box-sizing:border-box}
+  .home-bar .room-row{display:flex;align-items:center;gap:8px;flex:0 1 auto;min-width:0;margin-left:2px}
+  .home-bar .room-bar{height:44px;box-sizing:border-box;width:auto;flex:0 1 auto;min-width:170px;max-width:clamp(230px,27vw,430px);padding:0 6px 0 11px;gap:9px;border-radius:13px;
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border-color:rgba(255,190,90,.3)}
+  .home-bar .room-bar svg{width:20px;height:20px}
+  .home-bar .rb-txt{gap:0;line-height:1.1;min-width:0;overflow:hidden}
+  .home-bar .rb-txt small{font-size:9.5px;letter-spacing:.14em}
+  .home-bar .rb-txt b{font-size:15px!important;display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .home-bar .rb-go{height:30px;display:grid;place-items:center;padding:0 10px;border-radius:9px;font-size:12px;background:rgba(255,190,90,.13)}
+  .home-bar .room-bar:hover .rb-go{background:rgba(255,190,90,.26)}
+  .home-bar .invite-btn{width:44px;height:44px;min-width:0;padding:0;border-radius:50%;box-shadow:0 2px 0 rgba(0,0,0,.45),0 0 16px rgba(255,170,60,.25)}
+  .home-bar .invite-btn svg{width:21px;height:21px}
+  #jdw-lib .lib-title{flex-wrap:nowrap;justify-content:center;white-space:nowrap;gap:.3em;font-size:clamp(38px,3.5vw,50px);width:100%;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+  #jdw-lib .lib-title::before,#jdw-lib .lib-title::after{content:'';flex:1 1 40px;min-width:0;max-width:260px;height:2px;border-radius:2px;margin-inline:.28em}
+  #jdw-lib .lib-title::before{background:linear-gradient(90deg,transparent,rgba(255,190,90,.75))}
+  #jdw-lib .lib-title::after{background:linear-gradient(270deg,transparent,rgba(255,190,90,.75))}
+  #jdw-lib .lib-title .plaque{transform:rotate(-1.4deg);text-shadow:none}
+  #jdw-lib[data-mode="classique"] .lib-wrap{gap:14px;padding-block-start:14px}
+}
