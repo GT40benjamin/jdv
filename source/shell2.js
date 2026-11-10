@@ -1013,7 +1013,7 @@ function netOk() {
   netDown = false;
   if (!NETS.off) return;
   NETS.off = false; clearTimeout(NETS.t); NETS.t = 0;
-  setTimeout(() => { try { netChanged(true); SALLE.essais = 0; salleRetrouver(); } catch (e) {} }, 0);
+  setTimeout(() => { try { netChanged(true); if (SALLE.attend) { SALLE.essais = 0; salleRetrouver(); } } catch (e) {} }, 0);
 }
 function netProbeSoon(ms) { clearTimeout(NETS.t); NETS.t = setTimeout(() => { NETS.t = 0; netProbe(); }, ms != null ? ms : NETS.wait); }
 async function netProbe() {
@@ -6428,12 +6428,12 @@ function renderRooms() {
     wrap.appendChild(b);
   }
 }
-/* 2.1.61 (l'admin, pour SAMBA : « à chaque fois qu'elle ouvre la borne, ça lui ouvre les salles, alors qu'on sait très bien dans quelle salle elle est »).
+/* 2.1.61 (demande de l'admin : la borne ne doit plus rouvrir les salles à chaque ouverture).
    La salle ne venait que du stockage de l'appareil (jdw.room) : stockage plein, vidé, ou salle jetée à tort, et le panneau s'ouvrait. Désormais, sans salle
    sur l'appareil, c'est le SERVEUR qui répond (room_recente : la salle du compte vue le plus récemment). Le panneau ne s'ouvre que si le serveur dit qu'il n'y en a
    vraiment aucune ; s'il ne peut pas répondre (réseau, jeton), on n'ouvre rien et on redemande. Serveur sans room_recente (404) : list_rooms, AVEC le jeton
    (sans jeton, list_rooms répond une liste vide : ce serait un faux « aucune salle »). */
-const SALLE = { p: null, essais: 0, t: 0, refusee: null, note: false };
+const SALLE = { p: null, essais: 0, t: 0, refusee: null, note: false, attend: false };   // attend : une recherche n'a pas eu de réponse (le retour du réseau la relance)
 const salleAttendue = () => ONLINE && !room && !isGuest() && !!profile.name && !invPending() && !INV.bad && !INV.busy && !CADRE;
 async function salleDuCompte() {   // la ligne de la salle ; null : vraiment aucune ; undefined : on ne sait pas
   const tok = await acctToken(profile).catch(() => '');
@@ -6453,13 +6453,14 @@ function salleRetrouver() {
     const r = await salleDuCompte();
     if (!salleAttendue()) return;                       // entre-temps : salle choisie, invitation, compte parti
     if (r === undefined) { salleRedemander(); return; }
-    SALLE.essais = 0;
+    SALLE.essais = 0; SALLE.attend = false;
     if (!r || +r.r_id === SALLE.refusee) { openRooms(); return; }
     enterRoom({ id: r.r_id, name: r.r_name, priv: !!r.r_private, owner: r.r_owner || null });
     if (!SALLE.note) { SALLE.note = true; let n = 0; try { for (const k of Object.keys(localStorage)) n += k.length + (localStorage.getItem(k) || '').length; } catch (e) {} try { reportError('Salle retrouvée par le serveur', (store.get('jdw.room', null) ? 'appareil : salle absente au départ, enregistrée maintenant' : "appareil : la salle ne s'enregistre pas (stockage plein ?)") + ' ; stockage ' + Math.round(n / 1024) + ' Ko', { quiet: true }); } catch (e) {} }
   })().finally(() => { SALLE.p = null; }));
 }
 function salleRedemander() {
+  SALLE.attend = true;
   if (SALLE.essais >= 8) return;                        // le panneau reste accessible (nom de la salle en haut, ou le jeu qui en demande une)
   clearTimeout(SALLE.t); SALLE.t = setTimeout(salleRetrouver, Math.min(30000, 2000 * Math.pow(1.7, SALLE.essais++)));
 }
