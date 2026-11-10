@@ -3481,6 +3481,7 @@ function onPoke(topic, event, p) {
   if (p.t === 'version') { checkSiteVersion(); return; }
   if (p.t === 'vus') { if (topic === smsTopicOn) { clearTimeout(pokeTimers.vus); pokeTimers.vus = setTimeout(() => { try { vusSync(); } catch (e) {} try { if (typeof ATL !== 'undefined' && ATL) { ATL.demAt = 0; atlDemCharger(true); } } catch (e) {} }, 150); } return; }   // 2.0.34
   if (p.t === 'atljeux') { clearTimeout(pokeTimers.atljeux); pokeTimers.atljeux = setTimeout(() => { try { atlJeuxLoad(); } catch (e) {} }, 150); return; }   // 2.0.30 : nom du créateur changé
+  if (p.t === 'roue') { if (room && topic === 'jdw-room-' + room.id) { try { roueCadeaux(); } catch (e) {} } return; }   // un copain a gagné le jackpot : ce qui est reçu vient du serveur
   if (p.t === 'rooms') { if (!$('jdw-rooms').hidden) listRooms(); return; }
   if (!room || topic !== 'jdw-room-' + room.id) return;
   const run = { chat: () => loadChat(), scores: () => { loadScores(); if (!$('jdw-board').hidden) loadWorld(); coopOnPokeScores(); }, players: () => loadPlayers(), presence: () => heartbeat(), react: () => loadReactions(), progress: () => progOnPoke(),

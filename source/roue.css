@@ -1,0 +1,39 @@
+/* La roue du jour (roue.js) */
+.roue-voile{position:fixed;inset:0;z-index:2147483360;overflow:hidden;color:#fff6df;background:radial-gradient(70vmax 60vmax at 38% 50%,#3a2072,#170c3a 56%,#070512);font-family:var(--text,"Chakra Petch"),system-ui,sans-serif;animation:roueEntre .28s ease both}
+.roue-voile.or{background:radial-gradient(70vmax 60vmax at 38% 50%,#7a4f12,#2e1a06 58%,#0c0602)}
+@keyframes roueEntre{from{opacity:0}}
+.roue-scene{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,26vw);align-items:center;gap:2vw;padding:1.5vh 3vw 1.5vh 2vw}
+.roue-roue{position:relative;aspect-ratio:1;height:min(97vh,70vw);margin:auto;touch-action:none;cursor:grab}.roue-roue.prise{cursor:grabbing}
+.roue-roue::before{content:'';position:absolute;inset:-5%;border-radius:50%;background:radial-gradient(closest-side,rgba(255,190,80,.26),transparent 74%);pointer-events:none}
+.roue-roue canvas{position:absolute;inset:0;width:100%;height:100%}
+.roue-droite{position:relative;display:grid;gap:16px;text-align:center}
+.roue-droite h1{margin:0;font:400 clamp(26px,2.9vw,46px)/1.05 var(--display,Bungee);text-shadow:0 3px 0 rgba(0,0,0,.45)}.roue-droite h1 em{display:block;font-style:normal;color:#ffd166}
+.roue-droite .s{margin:0;color:#c6bfdc;font-size:15px;line-height:1.35}
+.roue-droite .geste{font:400 clamp(16px,1.5vw,22px)/1.2 var(--display,Bungee);color:#ffd166}
+.roue-droite .serie{display:grid;gap:8px;padding:12px 14px;border-radius:16px;background:rgba(0,0,0,.28);border:1px solid rgba(255,209,102,.3)}
+.serie b{font-size:13px}.serie small{font-size:12.5px;color:#c6bfdc}
+.serie .pts{display:flex;justify-content:center;gap:7px}.serie .pts i{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);font-style:normal;font-weight:700;font-size:13px;color:#c6bfdc}.serie .pts i.ok{background:linear-gradient(#ffe08a,#ee8a12);border-color:#ffd166;color:#4a2a03}.serie .pts i.jr{box-shadow:0 0 0 2px #fff,0 0 16px #ffc24a}
+.roue-passer{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;height:46px;padding:0 24px;border-radius:13px;border:1px solid rgba(255,255,255,.5);background:rgba(20,12,44,.75);color:#fff;font:700 16px inherit;cursor:pointer;z-index:3}
+.roue-pad{display:none;justify-self:center;align-items:center;gap:8px;height:44px;padding:0 18px;border-radius:12px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:#fff;font:700 15px inherit;cursor:pointer}.roue-pad b{display:grid;place-items:center;width:27px;height:27px;border-radius:50%;background:#2fae5b}
+body.jdw-pad .roue-pad{display:inline-flex}
+.roue-i{position:absolute;left:14px;bottom:14px;width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:none;color:rgba(255,255,255,.55);font:600 14px Georgia,serif;cursor:pointer;z-index:3}
+.roue-ch{position:absolute;left:14px;bottom:50px;width:230px;border-radius:14px;background:#120d2a;border:1px solid rgba(255,255,255,.14);padding:10px 12px;font-size:12.5px;z-index:4}.roue-ch b{display:block;margin-bottom:5px;font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:#ffd166}.roue-ch div{display:flex;justify-content:space-between;padding:1.6px 0}.roue-ch i{font-style:normal;color:#c6bfdc}
+.roue-fin{position:absolute;inset:0;z-index:5;display:grid;place-items:center;overflow:hidden;background:rgba(7,5,18,.72);animation:roueEntre .3s ease both}
+.roue-fin .bx{position:relative;display:grid;justify-items:center;gap:8px;text-align:center;padding:16px;animation:roueBond .55s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes roueBond{from{transform:scale(.4);opacity:0}}
+.roue-fin .im{width:min(44vh,70vw);max-height:40vh;object-fit:contain;filter:drop-shadow(0 16px 30px rgba(0,0,0,.6))}
+.roue-fin h2{margin:0;font:400 clamp(44px,8vw,96px)/1 var(--display,Bungee);color:#ffd166;text-shadow:0 0 34px rgba(255,180,50,.85),0 4px 0 #7a4408}
+.roue-fin p{margin:0;font-size:clamp(16px,2vw,21px);max-width:90vw}.roue-fin p.bonus{color:#ffd166;font-weight:700}
+.roue-fin .act{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:10px}
+.roue-bt{height:54px;padding:0 28px;border:0;border-radius:15px;background:linear-gradient(180deg,#ffe08a,#ffb02e 60%,#ee8a12);color:#3a2100;font:400 19px var(--display,Bungee);box-shadow:0 4px 0 #a4570a;cursor:pointer}.roue-bt.b2{background:rgba(255,255,255,.12);color:#fff;box-shadow:none;border:1px solid rgba(255,255,255,.4);font-size:15px}
+.roue-fin .rayons{position:absolute;left:50%;top:50%;width:220vmax;height:220vmax;margin:-110vmax;background:repeating-conic-gradient(rgba(255,205,90,.3) 0 9deg,transparent 9deg 22deg);animation:roueTourne 14s linear infinite;will-change:transform}
+@keyframes roueTourne{to{transform:rotate(360deg)}}
+.roue-fin .piece{position:absolute;left:var(--x);top:-40px;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c0,#f0b42f 55%,#9a5f0c);animation:rouePluie var(--d) linear infinite;will-change:transform}
+@keyframes rouePluie{to{transform:translateY(112vh) rotate(var(--r))}}
+.roue-ban{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;min-height:74px;margin:6px 0 10px;padding:12px 18px;border-radius:16px;border:1px solid rgba(255,212,102,.55);background:linear-gradient(100deg,#4a2a9a,#7a3fb0 55%,#b5751a);color:#fff;cursor:pointer;text-align:left}
+.roue-ban.dispo{box-shadow:0 0 0 2px rgba(255,212,102,.5),0 0 26px rgba(255,190,70,.45)}
+.roue-ban .tx{display:grid;gap:2px}.roue-ban b{font:400 clamp(17px,2vw,23px) var(--display,Bungee)}.roue-ban small{font-size:14px;color:#f3e7ff}.roue-ban .se{font-size:18px;font-weight:700;white-space:nowrap}
+.roue-adm{margin-top:12px;display:grid;gap:6px}.roue-adm h4{margin:0}
+@media (max-width:760px),(orientation:portrait){.roue-scene{grid-template-columns:1fr;grid-template-rows:auto auto;align-content:center;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 64px) 6px 10px}.roue-roue{height:auto;width:min(98vw,60vh)}.roue-droite{gap:9px;padding:0 12px}.roue-droite h1{font-size:25px}.roue-droite h1 em{display:inline}.roue-droite .serie{padding:9px 10px}.serie .pts i{width:29px;height:29px}}
+@media (orientation:landscape) and (max-height:520px){.roue-scene{grid-template-columns:minmax(0,1fr) minmax(0,42vw);padding:4px 10px}.roue-roue{height:97vh;width:auto}.roue-droite{gap:7px}.roue-droite h1{font-size:21px}.roue-droite h1 em{display:inline}.roue-droite .s{display:none}.roue-droite .serie{padding:6px 8px;gap:4px}.serie .pts i{width:25px;height:25px}}
+@media (prefers-reduced-motion:reduce){.roue-fin .rayons,.roue-fin .piece{animation:none}}
