@@ -2239,3 +2239,5 @@
 [abracadabra] 🐈 Deux nouvelles missions ! Mission 11 · Le chat sur le toit : Pompon est coincé tout en haut de la maison, et il ne descendra pas pour n'importe quoi… Mission 12 · Les moutons dispersés : l'orage a éparpillé le troupeau dans les collines, à toi de trouver qui saura les ramener.
 [sorcier] ## 🧙 Le Sorcier du Royaume arrive dans l’Atelier (borne 2.0.131)
 [sorcier] 🧙 Parcours un grand royaume en pixel rétro : pille les villages et les châteaux, assomme chevaliers et rois à la boule de feu et à l’éclair, invoque tes monstres et débloque 8 sorts. Ton score, c’est tout ce que tu possèdes.
+[sorcier] ## 🎮 Le Sorcier du Royaume : choisis tes touches (borne 2.2.1)
+[sorcier] 🎮 Dans ⚙️ Options et dans la pause : « Mes touches ». Chaque action se règle au clavier et à la manette, le jeu te prévient si une touche est déjà prise, et tes choix restent gardés.
