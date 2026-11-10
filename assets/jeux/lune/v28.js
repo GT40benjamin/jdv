@@ -182,7 +182,8 @@ const PANTIN = (() => {
     // jambes + bottes
     S.legs.forEach((g, i) => {
       const side = i === 0 ? 1 : -1;
-      const lf = 1 + (pret() ? 0.7 : 1.25) * Math.abs(T.c); const hip = proj(T, pret() ? Math.sign(g.r) * 7.5 * cr : g.r * 0.9 * cr, up(H.hip) + (pret() ? 3 : -1), lean * 0.1), ft = proj(T, g.r * cr, g.lift * lf + 5 + Math.max(0, bob - 0) * (S.m === 'saut' || S.m === 'jetpack' ? 1 : 0), g.f);
+      const vL = pret() ? vueDe(T) : ''; if ((vL === 'face' || vL === 'dos') && (S.m === 'repos' || S.m === 'touche') && aEntiers(vL)) { if (i === 0) parts.push({ z: -30, d: () => jambesEntieres(ctx, T, vL) }); return; }   /* V28 (ticket bccf3add, 10 nov.) : au repos, les jambes de l'image de base */
+      const lf = 1 + (pret() ? 0.7 : 1.25) * Math.abs(T.c); const hip = proj(T, pret() ? Math.sign(g.r) * (vL === 'tq' ? 5.4 : 7.5) * cr : g.r * 0.9 * cr, up(H.hip) + (pret() ? 3 : -1), lean * 0.1), ft = proj(T, g.r * cr, g.lift * lf + 5 + Math.max(0, bob - 0) * (S.m === 'saut' || S.m === 'jetpack' ? 1 : 0), g.f);
       parts.push({ z: (pret() ? hip.z * 3 : ft.z) - 30 + side * 0.01, d: () => jambe(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS) });   /* V28 (ticket cde0434e) : la jambe du côté du joueur reste toujours devant l'autre */
     });
     // sac à dos (derrière lui)
@@ -195,8 +196,11 @@ const PANTIN = (() => {
       const side = i === 0 ? 1 : -1;
       const vA = pret() ? vueDe(T) : '', deFace = (vA === 'face' || vA === 'dos') && a.u < 50 && Math.abs(a.f) < 9;   /* V28 (l'admin, « regarde bien les images ») : de face et de dos, le bras sort de sous l'épaule et s'écarte du corps */
       const sh0 = proj(T, side * (deFace ? 10.2 : vA === 'tq' ? 10.6 : pret() ? 13.1 : 13.5) * cr, up(H.sh) - (deFace ? 2.5 : vA === 'tq' ? 6 : pret() ? 4 : 0), lean * 0.5);   /* V28 (l'admin, tickets cde0434e et 0c91f1fe) : l'épaule rentre dans le buste */
-      const hand = proj(T, (a.r + (deFace ? side * 3 : 0)) * cr, up(a.u + (deFace ? 3.2 : 0)) + Math.max(-2, a.f) * 0.4 * Math.abs(T.c), a.f + lean * 0.4);
-      parts.push({ z: deFace ? -1.6 : sh0.z * 1.2 + a.f * c * 0.3 + 0.5, d: () => bras(ctx, T, sh0, hand, a, k, ow, blanc, ombre, acc, gant, side) });
+      const hand = proj(T, (a.r + (deFace ? side * 0.5 : 0)) * cr, up(a.u + (deFace ? 5 : 0)) + Math.max(-2, a.f) * 0.4 * Math.abs(T.c), a.f + lean * 0.4);
+      if ((vA === 'face' || vA === 'dos') && (S.m === 'repos' || S.m === 'touche') && !P.outil && aEntiers(vA)) { parts.push({ z: -1.6, d: () => brasEntier(ctx, T, H, up, a, side, vA) }); return; }   /* V28 (l'admin, 10 nov., « regarde bien avec l'image de base ») : au repos de face, le bras et la main sont ceux de l'image de base */
+      const tqRepos = vA === 'tq' && a.u < 50 && Math.abs(a.f) < 9 && pret(), tqLoin = tqRepos && side * T.s < 0;   /* de trois quarts, comme l'image de base : la main proche contre la hanche, l'autre derrière le corps */
+      if (tqRepos) { const hTq = proj(T, side * (tqLoin ? 8.5 : 15.5) * cr, up(a.u + 4.5), a.f + (tqLoin ? 0 : 1.5)); parts.push({ z: tqLoin ? -60 : sh0.z * 1.2 + 0.5, d: () => bras(ctx, T, sh0, hTq, a, k, ow, blanc, ombre, acc, gant, side) }); return; }
+      parts.push({ z: deFace ? -1.6 : sh0.z * 1.2 + a.f * c * 0.3 + 0.5, d: () => bras(ctx, T, sh0, hand, deFace ? Object.assign({}, a, { bend: Math.max(a.bend || 0, 0.55) }) : a, k, ow, blanc, ombre, acc, gant, side) });
     });
     // V17 : l'outil en main (multi-outil pour miner, laser pour attaquer) : tenu par la main droite, il pointe devant lui dans toutes les directions
     if (P.outil && (S.m === 'mine' || S.m === 'construit')) {
@@ -752,15 +756,25 @@ const PANTIN = (() => {
     const c = [v, (L.tenue != null && L.tenue >= 0 ? 't' + L.tenue : L.combi || 0), L.peau || 0, L.cheveux || 0].join('|'); let P = CACHE_P.get(c);
     if (P) { CACHE_P.delete(c); CACHE_P.set(c, P); return P; }
     const C = couleursDe(L), Z0 = { face: [0.5, 0.62, 0.3, 0.23], tq: [0.62, 0.62, 0.27, 0.23], profil: [0.68, 0.63, 0.2, 0.22] };   // la zone du visage (ses blancs d'yeux restent blancs) ; le col, lui, prend la couleur de la combinaison
-    P = { loin: {} }; for (const n of NOMS_P) P[n] = repeint(PIECES(v + '_' + n), C, n === 'tete', n === 'tete' ? Z0[v] : null);
+    P = { loin: {} }; for (const n of NOMS_P) P[n] = repeint(PIECES(v + '_' + n), C, n === 'tete', n === 'tete' ? Z0[v] : null); if (v === 'tq') { P.cuisseG = effiler(P.cuisseG); P.cuisseD = effiler(P.cuisseD); }
     const sc = PIECES((v === 'tq' ? 'face' : v) + '_sanscasque'); P.sanscasque = repeint(sc, C, true, [0.5, 0.5, 1, 1]);
     CACHE_P.set(c, P); if (CACHE_P.size > 72) CACHE_P.delete(CACHE_P.keys().next().value); return P;
   }
+  function effiler(im) {   /* V28 (ticket bccf3add) : le haut de la cuisse de trois quarts était un tube plus large que le buste : il s'affine vers la taille */
+    const W = im.width, H = im.height, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d'), F = 0.62 * H; for (let y = 0; y < H; y++) { const q = Math.min(1, y / F), e = 0.66 + 0.34 * q * q * (3 - 2 * q), w = W * e; g.drawImage(im, 0, y, W, 1, (W - w) / 2, y, w, 1); } return cv; }
   function loinDe(P, n) { return P.loin[n] || (P.loin[n] = assombri(P[n])); }
   // une image pendue verticalement, tendue de p1 (en haut) à p2 (en bas) ; it, ib = part de l'image au-delà des articulations ; ax = où est l'axe dans sa largeur
   function seg(ctx, im, p1, p2, sx, it, ib, flip, ax) {
     const dx = p2.x - p1.x, dy = p2.y - p1.y, d = Math.hypot(dx, dy) || 1, a = Math.atan2(-dx, dy), L = im.height * (1 - it - ib), sy = d / L, A = ax == null ? 0.5 : ax;
     ctx.save(); ctx.translate(p1.x, p1.y); ctx.rotate(a); ctx.scale((flip ? -1 : 1) * (sx || sy), sy); ctx.drawImage(im, -im.width * A, -im.height * it, im.width, im.height); ctx.restore();
+  }
+  const BORDS = new WeakMap();
+  function bordsDe(im) { let B = BORDS.get(im); if (B !== undefined) return B; B = null; try { const W = im.width, H = im.height, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0); const d = g.getImageData(0, 0, W, H).data, l = new Array(H), r = new Array(H); for (let y = 0; y < H; y++) { let a = -1, b = -1; for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 60) { if (a < 0) a = x; b = x; } l[y] = a; r[y] = b; } B = { l, r }; } catch (e) { B = null; } BORDS.set(im, B); return B; }
+  function segR(ctx, im, p1, p2, U, it, ib, flip, bas) {   /* V28 (ticket bccf3add) : un membre trop court pour sa pièce n'est plus aplati : il garde sa taille, le trop passe sous l'autre moitié, le bout est arrondi avec son contour ; gant et bracelet restent nets */
+    const dx = p2.x - p1.x, dy = p2.y - p1.y, d = Math.hypot(dx, dy) || 1, H = im.height, W = im.width, L = H * (1 - it - ib) * U; if (d >= L) return seg(ctx, im, p1, p2, U, it, ib, flip); const cut = Math.min((L - d) / U, H * (bas ? 0.29 : 0.42)), B = bordsDe(im), R = Math.round(bas ? cut + 14 : H - cut - 14), yy = Math.max(0, Math.min(H - 1, R)), g0 = B && B.l[yy] >= 0 ? B.l[yy] : W * 0.08, d0 = B && B.r[yy] >= 0 ? B.r[yy] : W * 0.92, cx = (g0 + d0) / 2 - W / 2, rx = (d0 - g0) / 2 + 0.5, ry = Math.min(rx * 0.62, 26), al = Math.min(1, cut / 14);
+    ctx.save(); ctx.translate(p1.x, p1.y); ctx.rotate(Math.atan2(-dx, dy)); ctx.scale((flip ? -1 : 1) * U, U); const y0 = bas ? d / U - (H * (1 - ib) - cut) : -H * it, hR = H - cut, yB = bas ? y0 + ry : y0 + hR - ry;
+    ctx.save(); ctx.beginPath(); if (bas) { ctx.rect(-W, yB, W * 2, hR); ctx.ellipse(cx, yB, rx, ry, 0, Math.PI, TAU); } else { ctx.rect(-W, yB - hR, W * 2, hR); ctx.ellipse(cx, yB, rx, ry, 0, 0, Math.PI); } ctx.clip(); if (bas) ctx.drawImage(im, 0, cut, W, hR, -W / 2, y0, W, hR); else ctx.drawImage(im, 0, 0, W, hR, -W / 2, y0, W, hR); ctx.restore();
+    ctx.globalAlpha *= al; ctx.beginPath(); if (bas) ctx.ellipse(cx, yB, rx, ry, 0, Math.PI, TAU); else ctx.ellipse(cx, yB, rx, ry, 0, 0, Math.PI); ctx.strokeStyle = '#2b2a33'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore();
   }
   function jambe(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS) {
     if (!pret()) return jambeCode(ctx, T, hip, ft, g, k, ow, blanc, ombre, acc, botte, side, accS);
@@ -772,17 +786,35 @@ const PANTIN = (() => {
   }
   function bras(ctx, T, sh, hand, a, k, ow, blanc, ombre, acc, gant, side) {
     if (!pret()) return brasCode(ctx, T, sh, hand, a, k, ow, blanc, ombre, acc, gant, side);
-    const v = vueDe(T), P = piecesVue(v, LC), K1 = T.k, dx = hand.x - sh.x, dy = hand.y - sh.y, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d, sgn = (side * -T.c) >= 0 ? 1 : -1, b = (a.bend || 0) * 4.5 * K1;
-    const el = { x: (sh.x + hand.x) / 2 + nx * b * sgn + T.s * a.bend * 2 * K1, y: (sh.y + hand.y) / 2 + ny * b * sgn }, ex = hand.x - el.x, ey = hand.y - el.y, e = Math.hypot(ex, ey) || 1, doigts = { x: hand.x + ex / e * 7 * K1, y: hand.y + ey / e * 7 * K1 };
+    const v = vueDe(T), P = piecesVue(v, LC), K1 = T.k, dx = hand.x - sh.x, dy = hand.y - sh.y, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
+    if ((v === 'face' || v === 'dos') && !P.avantbras2 && PIECES(v + '_avantbras2')) P.avantbras2 = repeint(PIECES(v + '_avantbras2'), couleursDe(LC), false);
+    const sgn = (side * -T.c) >= 0 ? 1 : -1, b = (a.bend || 0) * 4.5 * K1, el = { x: (sh.x + hand.x) / 2 + nx * b * sgn + T.s * a.bend * 2 * K1, y: (sh.y + hand.y) / 2 + ny * b * sgn }, ex = hand.x - el.x, ey = hand.y - el.y, e = Math.hypot(ex, ey) || 1, doigts = { x: hand.x + ex / e * 7 * K1, y: hand.y + ey / e * 7 * K1 };
     const deCote = v === 'tq' || v === 'profil', flip = deCote ? T.s < 0 : v === 'face' ? side > 0 : side < 0, loin = deCote && side * T.s < 0, U = UP * K1;
-    seg(ctx, loin ? loinDe(P, 'avantbras') : P.avantbras, el, doigts, U, 0.138, 0, flip);
-    seg(ctx, loin ? loinDe(P, 'bras') : P.bras, sh, el, U, 0.172, 0.138, flip);
+    segR(ctx, (v === 'face' || v === 'dos') && P.avantbras2 ? P.avantbras2 : loin ? loinDe(P, 'avantbras') : P.avantbras, el, doigts, U, 0.138, 0, flip, true);
+    segR(ctx, loin ? loinDe(P, 'bras') : P.bras, sh, el, U, 0.172, 0.138, flip, false);
+  }
+  // V28 (10 nov.) : bras et jambes entiers des images de base, posés comme sur elles (origines en pixels de l'image de base)
+  const BR_E = { face: { c: 138.5, haut: 193, k: 1.27, G: { x: 6, y: 188, ax: 0.62, ay: 0.1 }, D: { x: 195, y: 188, ax: 0.38, ay: 0.1 }, J: { x: 19, h: 1.09 } }, dos: { c: 140.5, haut: 190, k: 1.285, G: { x: 5.5, y: 190, ax: 0.62, ay: 0.1 }, D: { x: 205, y: 190, ax: 0.38, ay: 0.1 }, J: { x: 25.2, h: 1.14 } } };
+  function aEntiers(v) { return pret() && PIECES(v + '_brasG') && PIECES(v + '_brasD') && PIECES(v + '_jambes'); }
+  function pieceEntiere(v, n) { const P = piecesVue(v, LC); return P[n] || (P[n] = repeint(PIECES(v + '_' + n), couleursDe(LC), false)); }
+  function brasEntier(ctx, T, H, up, a, side, v) {
+    const gauche = v === 'face' ? side > 0 : side < 0, n = gauche ? 'brasG' : 'brasD', im = pieceEntiere(v, n), B = BR_E[v], A = gauche ? B.G : B.D, k = T.k, w = im.width * UP * k, h = im.height * UP * k, PX = B.k * UP;
+    const x = T.x + ((A.x - B.c) * PX * Math.abs(T.c) + (gauche ? 0.8 : -0.8)) * k, y = T.y - up(H.sh + 3) * k + (A.y - B.haut) * PX * k - (a.u - 33) * k * 0.3, px = w * A.ax, py = h * A.ay;
+    ctx.save(); ctx.translate(x + px, y + py); ctx.rotate(-side * a.f * 0.02); ctx.drawImage(im, -px, -py, w, h); ctx.restore();
+  }
+  function jambesEntieres(ctx, T, v) { const im = pieceEntiere(v, 'jambes'), B = BR_E[v], PX = B.k * UP, k = T.k, w = im.width * UP * k * 0.94, h = im.height * UP * k * B.J.h, cx = T.x + ((B.J.x - B.c) * PX * Math.abs(T.c) + im.width * UP * 0.5) * k; ctx.drawImage(im, cx - w / 2, T.y + 1.2 * k - h, w, h); }   /* largeur ramenée à celle de la ceinture du buste, hauteur jusque sous la ceinture : pas de trou à la taille */
+  function ceintureTq(ctx, im, p1, p2, T, acc, accS) {   /* V28 (ticket bccf3add) : la pièce du buste de trois quarts n'a pas de ceinture : on la dessine en coordonnées de l'image, comme sur l'image de base */
+    const dx = p2.x - p1.x, dy = p2.y - p1.y, d = Math.hypot(dx, dy) || 1, q = d / im.height, W = im.width, TR = '#2b2a33'; ctx.save(); ctx.translate(p1.x, p1.y); ctx.rotate(Math.atan2(-dx, dy)); ctx.scale(T.s < 0 ? -q : q, q); ctx.translate(-W / 2, 0); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(12, 146); ctx.quadraticCurveTo(95, 186, 180, 146); ctx.quadraticCurveTo(186, 158, 182, 171); ctx.quadraticCurveTo(95, 210, 14, 171); ctx.quadraticCurveTo(8, 158, 12, 146); ctx.closePath(); ctx.fillStyle = acc; ctx.fill(); ctx.strokeStyle = TR; ctx.lineWidth = 3.4; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(18, 165); ctx.quadraticCurveTo(95, 203, 176, 165); ctx.strokeStyle = accS; ctx.lineWidth = 4; ctx.stroke();
+    ctx.save(); ctx.translate(142, 176); ctx.rotate(-0.17); rrect(ctx, -19, -13, 38, 26, 5); ctx.fillStyle = '#eef2f3'; ctx.fill(); ctx.strokeStyle = TR; ctx.lineWidth = 3; ctx.stroke(); ctx.restore(); ctx.restore();
   }
   function sac(ctx, T, L, H, up, lean, k, ow, blanc, ombre, acc, accS) { if (!pret()) sacCode(ctx, T, L, H, up, lean, k, ow, blanc, ombre, acc, accS); }   // le sac fait partie du buste
   function buste(ctx, T, L, H0, up, lean, k, ow, blanc, ombre, acc, accS, cr) {
     if (!pret()) return busteCode(ctx, T, L, H0, up, lean, k, ow, blanc, ombre, acc, accS, cr);
     const v = vueDe(T), P = piecesVue(v, LC), haut = proj(T, 0, up(H0.sh + 3), lean * 0.55), bas = proj(T, 0, up(H0.hip - 2), lean * 0.05), profil = v === 'profil';
     seg(ctx, P.buste, haut, bas, 0, 0, 0, (profil || v === 'tq') && T.s < 0, profil ? 0.585 : 0.5);
+    if (v === 'tq') ceintureTq(ctx, P.buste, haut, bas, T, acc, accS);
     if (L.tenue != null && L.tenue >= 0 && v === 'face') motif(ctx, T, Object.assign({}, L, { motif: 0 }), (r, u) => proj(T, r * 1.25, up(u) - 2, 10), H0, acc, accS);   // le motif des tenues de la boutique
   }
   function visagePose(ctx, im, cle, S, L, w, h, y0) {   // cligner des yeux, ouvrir la bouche, par-dessus la tête dessinée (l'image est déjà tournée et placée par l'appelant)
@@ -1690,7 +1722,7 @@ function mount(root, api) {
   function dire(s, d) { if (msgs.length && msgs[msgs.length - 1].s === s) return; msgs.push({ s, t: 0, d: d || 3 }); if (msgs.length > 6) msgs.splice(1, 1); }
   function robotDit(s, d, fini, une) {
     if (une) { SAVE.astuces = SAVE.astuces || []; if (SAVE.astuces.includes(une)) return; SAVE.astuces.push(une); }
-    if (penseeV17()) { penser(s, fini); return; }   // V17 : plus de communication après le crash : c'est l'explorateur qui se parle
+    penser(s, fini); return;   // V28 (l'admin, 10 nov.) : plus de robot : toutes ses bulles sont des pensées de l'explorateur
     bulle = { s, t: 0, d: d || 3.2, fini };
   }
 
@@ -1743,7 +1775,7 @@ function mount(root, api) {
     if (state === 'combat' && CB) { e.preventDefault(); if (k === ' ' && CB.qte && !CB.qte.res) appuiQte(); else if (k === 'Enter' && CB.phase === 'fin') quitterCombat(); else if (/^[1-9]$/.test(k)) { const L = menuCombat(), b = L[+k - 1]; if (b && !b.off) b.f(); } else if (k === 'Escape' && CB.menu && CB.menu !== 'racine') CB.menu = 'racine'; return; }
     if (state === 'evolution') { e.preventDefault(); if (k === ' ' || k === 'Enter') passerEvolution(); return; }
     if (state === 'tenues') { e.preventDefault(); if (k === 'Escape') fermerTenues(); return; }
-    if (state === 'prologue') { e.preventDefault(); if (PRO && PRO.choix) { if (/^[1-4]$/.test(k)) choisirPro(CHOIX_PRO[+k - 1]); } else if (k === ' ' || k === 'Enter') suitePrologue(); return; }
+    if (state === 'prologue') { e.preventDefault(); if (PRO && PRO.choix) { if (/^[1-3]$/.test(k)) choisirPro(CHOIX_PRO[+k - 1]); } else if (k === ' ' || k === 'Enter') suitePrologue(); return; }
     if (state === 'cine16') { e.preventDefault(); if (k === ' ' || k === 'Enter') suiteCine(); else if (k === 'Escape') finCine16(); return; }
     if (state === 'depart') { e.preventDefault(); if (/^[1-3]$/.test(k)) choisirDepart(DEPARTS[+k - 1]); return; }
     if (state === 'titre' && (k === 'Enter' || k === ' ')) { e.preventDefault(); jouer(); }
@@ -2253,14 +2285,14 @@ function mount(root, api) {
     rocherLunaire(ex, ey + 4 * U, 120 * U * k / k0);
     const nv = IMG['navette-neuve'];
     if (nv) { const h = Math.min(W, H) * 0.1, w = nv.width * h / nv.height, x = W * (portrait ? 0.03 : 0.01) + (0.5 + 0.5 * Math.sin(t * 0.22)) * (portrait ? W * 0.3 : W * 0.04), y = (portrait ? Math.min(H * 0.3, heroHaut - h - 14 * U) : (H < 500 ? Math.max(H * 0.17, titreBas + 4 * U) : H * 0.17)) + Math.sin(t * 0.8) * (portrait ? 8 : 4); ctx.save(); ctx.globalAlpha = 0.9; ctx.translate(x + w, y); ctx.scale(-1, 1); ctx.drawImage(nv, 0, 0, w, h); ctx.restore(); flamme(x, y + h * 0.48, h * 0.35, t, -1); }
-    EXPL_PANTIN.draw(ctx, ex, ey, k, look, { th: 0.35 + Math.sin(t * 0.5) * 0.25, mode: 'repos', t });
+    EXPL_PANTIN.draw(ctx, ex, ey, k, look, { th: Math.sin(t * 0.5) * 0.13, mode: 'repos', t });   /* V28 (l'admin, 10 nov.) : de face, comme l'image de base */
     if (AFFICHE_SEULE) return;   /* V28 : l'affiche (poster de l'atelier) = l'écran-titre sans ses boutons */
     // les boutons
     const bw = Math.min(W * 0.8, 340 * U), bh = 54 * U, bx = portrait ? (W - bw) / 2 : W * 0.62 - bw / 2;
     let by = portrait ? H * 0.74 : H * 0.5;
     if (!LOADED) { ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(16 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.fillText('Chargement…', bx + bw / 2, by + bh / 2); return; }
     bouton(bx, by, bw, bh, SAVE.look && SAVE.cine ? 'Continuer l’aventure' : 'Commencer l’aventure', jouer, true, '▶'); by += bh + 14 * U;
-    bouton(bx, by, bw, bh * 0.86, SAVE.cine ? 'Revoir le crash' : 'Voir le crash', () => { if (!SAVE.look) SAVE.look = {}; look = Object.assign({}, EXPL_PANTIN.DEF, SAVE.look); lancerCine(); }, false, '🎬');
+    /* V28 (l'admin, 10 nov.) : plus de bouton « Voir le crash » : on ne le voit qu'en commençant vraiment une partie */
     blocBoosters(t);
   }
   // le rocher lunaire du titre : relief ombré, bord éclairé, cratères
@@ -2294,6 +2326,7 @@ function mount(root, api) {
     if (!LOADED) return;
     if (!SAVE.look) { SAVE.look = {}; sauver(); }   // V17 : plus de personnalisation au début (l'explorateur par défaut ; son apparence se change plus tard : boutique, magasin d'une ville)
     look = Object.assign({}, EXPL_PANTIN.DEF, SAVE.look);
+    if (SAVE.cine) try { const A0 = AFX(); if (!A0.sansRobot) { A0.sansRobot = true; A0.robotChoisi = false; if (!A0.equipe.length && !A0.reserve.length) { const b0 = donnerBete('braise1', Math.max(5, Math.min(30, (A0.robot && A0.robot.niv) || 5))); A0.compagnon = b0.u; } sauver(); } } catch (e) { /* rien */ }   /* V28 : une partie qui avait le robot repart avec un compagnon, sans rien perdre */
     if (!SAVE.cine) { lancerDebut(); return; }
     const X = E0(), pos = X.pos;
     if (pos && pos.lieu === 'espace' && GAL.sys[pos.sys]) { versEspace(pos.sys, null); return; }
@@ -3819,23 +3852,28 @@ function mount(root, api) {
       if (!peutPayer(def.cout)) { dire('⛏️ Il te manque : ' + Object.keys(def.cout).filter(id => qteDispo(id) < def.cout[id]).map(id => (def.cout[id] - qteDispo(id)) + ' ' + MIN[id].nom.toLowerCase() + ' (tu en as ' + qteDispo(id) + ' / ' + def.cout[id] + ')').join(', ')); return; }   /* V27 : seulement ce qui manque */
       if (et && !et.a) rendre(PB[et.t].cout); payer(def.cout); b.t[k] = { t: bSel, m: bMat, c: bCoul }; burst(cx, cy - 40, '#ffe9a8', 8, 120, 60); baseModifiee(); return;
     }
-    if (def.solide && J && Math.abs(J.x - cx) < G64 * 0.5 + 14 && J.y - 6 >= gy * G64 - 14 && J.y - 6 <= gy * G64 + G64 + 14) { dire('🚧 Pas sur moi ! Je recule d’abord d’une case.', 2.5); return; }   // V17 : il restait coincé dans son mur
+    /* V28 (l'admin via PATOU, ticket a84cfe40) : si on gêne, l'objet se pose quand même ; le héros est poussé hors de la case (jeu.js), les bêtes aussi (degagerCase) */
     const ex = b.p[k];
     if (TER.info(cx, cy).liq && !(ex && ex.t === 'sol')) { dire('🌊 Pose d’abord un sol (ponton) au bord.'); }
     if (ex && ex.t === bSel && ex.m === bMat) return;
     if (!peutPayer(def.cout)) { dire('⛏️ Il te manque : ' + Object.keys(def.cout).filter(id => qteDispo(id) < def.cout[id]).map(id => (def.cout[id] - qteDispo(id)) + ' ' + MIN[id].nom.toLowerCase() + ' (tu en as ' + qteDispo(id) + ' / ' + def.cout[id] + ')').join(', ')); return; }   /* V27 : seulement ce qui manque */
+    /* V28 (tickets 2f7ad020, a84cfe40) : un objet posé ne casse jamais un mur. Un sol passe dessous ; un meuble ou une machine est refusé sur un mur. */
+    const MUR_G = { mur: 1, fenetre: 1, porte: 1, cloture: 1 };
+    if (ex && COUCHE_SOL[bSel] && !COUCHE_SOL[ex.t]) { if (ex.sous) return; payer(def.cout); ex.sous = bSel; burst(cx, cy - 10, '#ffe9a8', 8, 120, 60); son('construit', 0.7); baseModifiee(); evt('pose', bSel); return; }
+    if (ex && MUR_G[ex.t] && !MUR_G[bSel]) { dire('🧱 Il y a un mur ici : retire-le d’abord pour poser autre chose.', 2.5); return; }
     if (def.antenne) { if (!((E0().echo || 0) > 0)) { dire('💎 Il te faut la pierre d’écho pour l’antenne relais (au fond d’une grotte).', 4); return; } if (!maisonOk(b)) { dire('🏠 Construis d’abord ta maison : des murs, une porte et un lit.', 4); return; } }   // V24
     if (def.fabrique) { const X2 = E0(); X2.machines = X2.machines || {}; if (!(X2.machines[def.t] > 0)) { dire('🛠️ ' + def.nom + ' : fabrique-la d’abord à l’établi (il faut son plan, gagné en mission).', 4); return; } X2.machines[def.t]--; }
     // une pièce qui va sur un sol (meuble, mur…) remplace ce qui était là, sauf le sol : on le garde dessous
     if (ex) rendre(PB[ex.t].cout);
     payer(def.cout);
     b.p[k] = { t: bSel, m: bMat, c: bCoul, sous: ex && COUCHE_SOL[ex.t] && !COUCHE_SOL[bSel] ? ex.t : (ex && ex.sous) || null };
-    burst(cx, cy - 10, '#ffe9a8', 8, 120, 60); son('construit', 0.7); baseModifiee();
+    burst(cx, cy - 10, '#ffe9a8', 8, 120, 60); son('construit', 0.7); baseModifiee(); degagerCase();
     if (def.antenne && !E0().antenne) antennePosee();   // V24 : la liaison avec l'Agence
     evt('pose', bSel); if (dangerFaune() >= 2) evt('poseDanger');
     if (FERME_MAISON[bSel]) toitsAuto(b, true);   /* V27 (ticket 37433408) : les murs reliés → le toit se pose tout seul */
     if (bSel === 'coffre' && infoCoffres().n === 1) robotDit('Bip ! Tes coffres sont reliés : ce que tu ranges ici, tu le retrouves dans le coffre de chaque base.', 5, null, 'relies');
   }
+  function degagerCase() { for (const c of CR) { if (c.mort || !solideBase(c.x, c.y)) continue; let best = null; for (let r = 24; r < 300 && !best; r += 24) for (let a = 0; a < TAU; a += 0.4) { const x = c.x + Math.cos(a) * r, y = c.y + Math.sin(a) * r; if (!solideBase(x, y) && !TER.info(x, y).liq) { best = { x, y }; break; } } if (best) { c.x = best.x; c.y = best.y; } } }
   function retirer2(gx, gy) {
     const b = maBase(); if (!b) return; const k = cleCase(gx, gy);
     if (b.t && b.t[k] && (bSel === 'toit' || bSel === 'dome' || !b.p[k])) { if (!b.t[k].a) rendre(PB[b.t[k].t].cout); delete b.t[k]; baseModifiee(); return; }   /* V27 : un toit posé tout seul ne rend pas de fer */
@@ -4708,7 +4746,7 @@ function mount(root, api) {
     else if (d.t === 'cb') { /* V24 : plus de coups à pied (ancien message d'une borne pas à jour) : ignoré */ }
   }
   // tri : par le point d'appui, un peu remonté pour les grandes bêtes (leur corps s'étend derrière les pieds : un explorateur à leur hauteur passe devant)
-  function objetsCreatures(objets) { for (const c of CR) if (!c.cache && !(CB && c.compKey) && !(CB && !c.enCombat && !c.allie)) objets.push({ y: c.y - ESPECES[c.esp].taille * (c.echelle || 1) * 0.18, draw: t => { const v = c.suit && J && c.y - ESPECES[c.esp].taille * (c.echelle || 1) * 0.18 > J.y && Math.abs(c.x - J.x) < 120 && c.y - J.y < 160; if (v) { ctx.save(); ctx.globalAlpha = 0.5; } auraFeroce(c, t); dessinerCreature(c, t); if (v) ctx.restore(); } }); objetsRivaux(objets); }   // mon compagnon devant moi : transparent, on me voit toujours
+  function objetsCreatures(objets) { for (const c of CR) if (!c.cache && !(CB && c.compKey) && !(CB && !c.enCombat && !c.allie && !CB.ennemis.some(G => G.c === c))) objets.push({ y: c.y - ESPECES[c.esp].taille * (c.echelle || 1) * 0.18, draw: t => { const v = c.suit && J && c.y - ESPECES[c.esp].taille * (c.echelle || 1) * 0.18 > J.y && Math.abs(c.x - J.x) < 120 && c.y - J.y < 160; if (v) { ctx.save(); ctx.globalAlpha = 0.5; } auraFeroce(c, t); dessinerCreature(c, t); if (v) ctx.restore(); } }); objetsRivaux(objets); }   // mon compagnon devant moi : transparent, on me voit toujours
 
   // =================================================================== ÉTAPE 6 : vaisseaux, combats spatiaux, sortie dans l'espace, histoire jusqu'au Cœur
   const COQUES = {
@@ -6776,7 +6814,7 @@ function mount(root, api) {
     for (let k = 0; k < 8 && (TER.info(mx - 220, my).liq || TER.info(mx + 220, my).liq || TER.info(mx, my).liq); k++) { mx = J.x + (mx - J.x) * 0.6; my = J.y + (my - J.y) * 0.6 - 20; }
     // V17 (ticket da3e7877) : chaque combattant debout sur la terre ferme (pas sur un lac) : on cherche tout autour le plus proche endroit sec
     { const pts = [[-235, 15], [-270, 70], [-95, -120], [-70, 15], [-95, 150], [210, 0], [150, -85], [290, -5], [175, 95]], gene = (x, y) => (epave && Math.hypot(x - epave.x, y - epave.y) < 520) || (typeof lieuxCrash === 'function' && lieuxCrash().some(L => Math.hypot(x - L.x, y - L.y) < (L.r || 0) + 400)) || (typeof massifsHerbe === 'function' && massifsHerbe().some(m => Math.hypot(x - m.x, y - m.y) < m.r + 380));
-      const sec = (x, y) => pts.every(([dx, dy]) => !TER.info(x + dx, y + dy).liq && !TER.info(x + dx * 1.15, y + dy * 1.3).liq);
+      const sec = (x, y) => pts.every(([dx, dy]) => !TER.info(x + dx, y + dy).liq && !TER.info(x + dx * 1.15, y + dy * 1.3).liq && !pieceEn(x + dx, y + dy) && !pieceEn(x + dx, y + dy - 50));   /* V28 (ticket e4681aac) : personne dans une maison */
       if (!sec(mx, my)) { let ok = false; for (let R = 120; R <= 1500 && !ok; R += 120) for (let a = 0; a < 16 && !ok; a++) { const x = mx + Math.cos(a / 16 * TAU) * R, y = my + Math.sin(a / 16 * TAU) * R; if (sec(x, y) && !gene(x, y)) { mx = x; my = y; ok = true; } } } }
     }
     const ennemis = groupe.map((c, i) => {
@@ -6786,7 +6824,7 @@ function mount(root, api) {
       if (c.boss) { F.pvMax = Math.round(F.pvMax * 2.4); F.pv = F.pvMax; }
       return F;
     });
-    const moi = [herosF(), robotF()]; if (A.sansRobot) { moi[1].ko = true; moi[1].absent = true; }   /* V17 : le robot est resté à l'Agence (il ne combat pas) */
+    const moi = [herosF(), robotF()]; moi[1].ko = true; moi[1].absent = true;   /* V17 : le robot est resté à l'Agence (il ne combat pas) */
     for (const b of A.equipe.filter(q => q.pv > 0).slice(0, opt && opt.net ? 1 : 3)) moi.push(beteF(b, 0));   // V17 : les 3 compagnons de l'équipe combattent ensemble
     CB = { t: 0, phase: 'intro', ph: 0, mx, my, ennemis, moi, file: [], qte: null, msg: '', msgT: 0, opt, menu: null, sel: null, nums: [], tour: 0, finT: 0, captures: [], gain: [], zf0: zf, camX0: camX, camY0: camY };
     CB.moi.forEach((F, i) => { F.gid = 'a' + i; }); CB.ennemis.forEach((F, i) => { F.gid = 'e' + i; });
@@ -6827,7 +6865,7 @@ function mount(root, api) {
     const tous = CB.moi.concat(CB.ennemis).filter(F => !F.ko);
     if (!CB.dernierDe) CB.dernierDe = {};
     // le premier tour : le camp du plus rapide ; ensuite, toujours l'autre camp (s'il reste quelqu'un debout)
-    let camp = CB.dernierCamp == null ? tous.slice().sort((a, b) => vitF(b) - vitF(a))[0].camp : 1 - CB.dernierCamp;
+    let camp = CB.dernierCamp == null ? tous.slice().sort((a, b) => vitF(b) - vitF(a) || String(a.gid || '').localeCompare(String(b.gid || '')))[0].camp : 1 - CB.dernierCamp;   /* V28 (duel en ligne) : à vitesse égale, même départage chez les deux joueurs */
     if (!tous.some(F => F.camp === camp)) camp = 1 - camp;
     const best = suivantDe(tous, camp, CB.dernierDe[camp]); CB.dernierDe[camp] = best.gid; CB.dernierCamp = camp; return best;
   }
@@ -6872,7 +6910,8 @@ function mount(root, api) {
     const dispo = F.atts.map(id => ATT[id] && attDe(F, id)).filter(a => a && a.ene <= F.ene);
     let a = dispo[Math.floor(rnd() * dispo.length)] || ATT.charge, cible = cibles[0];
     // il vise de préférence une cible faible contre lui (60 %), sinon au hasard (l'explorateur un peu plus souvent)
-    if (rnd() < 0.6) { let bm = 0; for (const x of dispo) for (const G of cibles) { const m = x.p > 0 ? efficacite(x.type, G.t) * x.p : 0; if (m > bm) { bm = m; a = x; cible = G; } } }
+    /* V28 (ticket df312f25) : à égalité le héros était toujours choisi. Maintenant : le héros un peu plus souvent, une cible faible aussi, jamais systématique */
+    if (rnd() < 0.6) { const V = cibles.map(G => { let bx = null, bm = 0; for (const x of dispo) { const m = x.p > 0 ? efficacite(x.type, G.t) * x.p : 0; if (m > bm) { bm = m; bx = x; } } return { G, x: bx, m: bm }; }), mx = Math.max(1, ...V.map(v => v.m)), P = V.map(v => (v.G.sorte === 'hero' ? 1.6 : 1) * (0.5 + v.m / mx)), S = P.reduce((u, v) => u + v, 0); let r = rnd() * S; const ch = V.find((v, i) => (r -= P[i]) < 0) || V[0]; cible = ch.G; if (ch.x) a = ch.x; }
     else { const p = cibles.map(G => G.sorte === 'hero' ? 1.6 : 1), s = p.reduce((u, v) => u + v, 0); let r = rnd() * s; cible = cibles.find((G, i) => (r -= p[i]) < 0) || cibles[0]; }
     if (/soin|att\+|def\+|vit\+|esq\+/.test(a.eff || '') && a.p === 0) cible = F;
     agir(F, a.id, cible);
@@ -7038,7 +7077,7 @@ function mount(root, api) {
     enregistrerEquipe(); sauver();
   }
   function gagnerXpHeros(x) { const A = AFX(); A.xp += x; while (A.niv < 60 && A.xp >= XP_NIV(A.niv + 1)) { A.niv++; CB.gain.push('⭐ Tu passes au niveau ' + A.niv + ' !'); } }
-  function gagnerXpRobot(x) { const R = AFX().robot, f0 = formeRobot(); R.xp += x; while (R.niv < 60 && R.xp >= XP_NIV(R.niv + 1)) { R.niv++; } if (formeRobot() > f0) { CB.gain.push('🤖 Ton robot évolue : ' + NOM_ROBOT[formeRobot()] + ' !'); CB.evoRobot = true; } }
+  function gagnerXpRobot(x) { return; const R = AFX().robot, f0 = formeRobot(); R.xp += x; while (R.niv < 60 && R.xp >= XP_NIV(R.niv + 1)) { R.niv++; } if (formeRobot() > f0) { CB.gain.push('🤖 Ton robot évolue : ' + NOM_ROBOT[formeRobot()] + ' !'); CB.evoRobot = true; } }
   function gagnerXpBete(b, x) {
     if (!b || b.pv <= 0 && x <= 0) return; b.xp += x; const n0 = b.n;
     while (b.n < 70 && b.xp >= XP_NIV(b.n + 1)) b.n++;
@@ -7070,7 +7109,7 @@ function mount(root, api) {
     if (CB.rivalNpc) RIV = null;   // le rival repart (il reviendra plus tard, plus fort)
     for (const F of CB.moi.concat(CB.ennemis)) if (F && F.c) { F.c.dy25 = 0; F.c.sy25 = 1; } fxVider();   /* V25 */
     const evo = CB.evo, arene = CB.opt.arene, opt0 = CB.opt; state = arene ? 'arene' : 'jeu'; stT = 0; zf = CB.zf0; CB = null;
-    if (arene) { if (issue === 'defaite') { COMBAT.vie = VIE_MAX() * 0.3; sortirArene(); dire('💫 Tu as perdu… Ton robot te ramène à ton vaisseau. Soigne ton équipe et reviens !', 5); } }
+    if (arene) { if (issue === 'defaite') { COMBAT.vie = VIE_MAX() * 0.3; sortirArene(); dire('💫 Tu as perdu… Te voilà de retour à ton vaisseau. Soigne ton équipe et reviens !', 5); } }
     else if (issue === 'defaite' && (opt0.net || opt0.rival || opt0.defi)) { COMBAT.vie = VIE_MAX() * 0.3; dire('💫 Perdu ! Soigne ton équipe et retente ta chance', 4); }
     else if (issue === 'defaite') { COMBAT.vie = 0; COMBAT.mortT = 3; }
     if (evo && evo.length) lancerEvolution(evo);
@@ -7154,7 +7193,7 @@ function mount(root, api) {
       L.push(retour());
     } else if (CB.menu === 'objetCible') {
       { const rap = !!(OBJETS[CB.objet] && OBJETS[CB.objet].rappel);   /* V27 (ticket 7819ba4e) : « réanimer avant de soigner les K.-O., et marquer K.-O. » */
-        for (const G of CB.moi) L.push({ ico: G.sorte === 'hero' ? '🧑‍🚀' : G.sorte === 'robot' ? '🤖' : '🐾', txt: G.nom + (G.ko ? ' 💤 K.-O.' + (rap ? '' : ' → 🌸 d’abord') : ' ' + Math.round(G.pv) + '/' + G.pvMax + (rap ? ' · pas K.-O.' : '')), f: () => utiliserObjet(F, CB.objet, G), off: G.ko ? !rap : rap }); }
+        for (const G of CB.moi) if (!G.absent) L.push({ ico: G.sorte === 'hero' ? '🧑‍🚀' : G.sorte === 'robot' ? '🤖' : '🐾', txt: G.nom + (G.ko ? ' 💤 K.-O.' + (rap ? '' : ' → 🌸 d’abord') : ' ' + Math.round(G.pv) + '/' + G.pvMax + (rap ? ' · pas K.-O.' : '')), f: () => utiliserObjet(F, CB.objet, G), off: G.ko ? !rap : rap }); }
       L.push(retour('objet'));
     } else if (CB.menu === 'balle') {
       for (const b of BALLES) if (A.objets[b.id] > 0) L.push({ ico: '🔮', txt: b.nom + ' (' + A.objets[b.id] + ')', f: () => { CB.balle = b; CB.menu = 'cibleBalle'; }, c: b.c, balle: b });
@@ -7289,7 +7328,7 @@ function mount(root, api) {
     const w = 150 * U, h = 34 * U; x = clamp(x - w / 2, 6, W - w - 6); y = clamp(y, 64 * U, H - 120 * U);
     ctx.save(); ctx.fillStyle = 'rgba(14,10,36,0.78)'; ctx.beginPath(); ctx.roundRect(x, y, w, h, 9 * U); ctx.fill();
     ctx.font = '800 ' + Math.round(12 * U) + 'px ' + FB; ctx.fillStyle = G.boss ? '#ffb0b0' : G.feroce ? '#ffcf8a' : '#ffffff'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillText((G.boss ? '☠ ' : G.feroce ? '🔥 ' : '') + G.nom + ' ' + typesTxt(G), x + 8 * U, y + 4 * U, w - 54 * U); ctx.textAlign = 'right'; ctx.fillStyle = '#ffe9a8'; ctx.fillText('niv. ' + G.n, x + w - 8 * U, y + 4 * U);
+    ctx.fillText((G.boss ? '☠ ' : G.feroce ? '😠 ' : '') + G.nom + ' ' + typesTxt(G), x + 8 * U, y + 4 * U, w - 54 * U); ctx.textAlign = 'right'; ctx.fillStyle = '#ffe9a8'; ctx.fillText('niv. ' + G.n, x + w - 8 * U, y + 4 * U);
     barre(x + 8 * U, y + 21 * U, w - 16 * U, 7 * U, G.pv / G.pvMax, coulPV(G.pv / G.pvMax));
     if (G.etat) { ctx.textAlign = 'right'; ctx.font = Math.round(12 * U) + 'px system-ui'; ctx.fillText({ br: '🔥', gel: '🧊', som: '💤', poi: '☠️', etou: '💫' }[G.etat], x + w + 2 * U, y - 4 * U); }
     if (AFX().dex[G.e] === 2) { ctx.font = Math.round(11 * U) + 'px system-ui'; ctx.textAlign = 'left'; ctx.fillText('🔮', x - 4 * U, y - 4 * U); }
@@ -8189,7 +8228,7 @@ function mount(root, api) {
   function combattantsDe(S, camp, pref, distant) {
     const own = distant ? S.nom : null, L = [];
     L.push(combattant('hero', Object.assign({}, S.h, { camp, nom: S.nom, t: ['neutre'], own, look: S.look, gid: pref + '0' })));
-    L.push(combattant('robot', Object.assign({}, S.r, { camp, nom: (distant ? 'Robot de ' + S.nom : NOM_ROBOT[S.rf || 0]), t: ['metal'], own, rf: S.rf || 0, gid: pref + '1' })));
+    { const R0 = combattant('robot', Object.assign({}, S.r, { camp, nom: '', t: ['metal'], own, rf: 0, gid: pref + '1' })); R0.ko = true; R0.absent = true; L.push(R0); }   /* V28 : plus de robot, sa place reste vide */
     if (S.b[0]) { const F = beteF(S.b[0], camp); F.own = own; F.gid = pref + '2'; F.reserve = S.b.slice(1); if (!distant) F.b = AFX().equipe.find(b => b.e === S.b[0].e && b.n === S.b[0].n); L.push(F); }
     return L;
   }
@@ -8283,7 +8322,7 @@ function mount(root, api) {
     if (!CB || !CB.net) return;
     for (const F of CB.moi.concat(CB.ennemis)) { if (!F.own || F.ko) continue; const x = sx(F.x), y = sy(F.y);
       if (F.sorte === 'hero') { ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(x, y, 28 * Z, 8 * Z, 0, 0, TAU); ctx.fill(); ctx.restore(); EXPL_PANTIN.draw(ctx, x, y, KP * Z, Object.assign({}, EXPL_PANTIN.DEF, F.look || {}), { th: F.camp ? -Math.PI / 2 : Math.PI / 2, mode: CB.anim && CB.anim.F === F ? 'mine' : 'repos', t }); etiquetteMonde(F.nom, x, y + 22 * Z, y - 130 * Z, '#7affd0', 12); }
-      else if (F.sorte === 'robot') { const im = (F.rf && IMG['p-robot' + (F.rf + 1) + '-0']) || IMG.robot1; if (im) { const h = (F.rf ? (F.rf === 2 ? 118 : 96) : 70) * Z, w = im.width * h / im.height; ctx.save(); ctx.translate(x, y); if (F.camp) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore(); } } }
+      else if (F.sorte === 'robot' && !F.absent) { const im = (F.rf && IMG['p-robot' + (F.rf + 1) + '-0']) || IMG.robot1; if (im) { const h = (F.rf ? (F.rf === 2 ? 118 : 96) : 70) * Z, w = im.width * h / im.height; ctx.save(); ctx.translate(x, y); if (F.camp) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore(); } } }
   }
   function drawInvitations(t) {
     if (!INV || INV.sorte === 'attente') { if (INV) { INV.t += 1 / 60; if (INV.t > 20) { INV = null; dire('😕 Pas de réponse', 3); } } return; }
@@ -8316,7 +8355,7 @@ function mount(root, api) {
   // Les grandes images (archives, rivaux, boss, fin) : la caméra glisse lentement, des poussières de lumière, les mots arrivent un par un. Toucher : la suite.
   // Le crash est la cinématique d'origine ; le début de combat, la capture et l'évolution se jouent avec tes propres bêtes.
   const CINES = {
-    archives: { nom: 'Les archives des Anciens', img: 'cine-archives', txt: ['Dans les ruines, ton robot trouve un livre de lumière…', 'Le Cosmodex des Anciens ! Toute l’Astrofaune de la galaxie y est cachée.', 'Ton aventure commence : découvre-les toutes, une planète après l’autre.'] },
+    archives: { nom: 'Les archives des Anciens', img: 'cine-archives', txt: ['Dans les ruines, tu trouves un livre de lumière…', 'Le Cosmodex des Anciens ! Toute l’Astrofaune de la galaxie y est cachée.', 'Ton aventure commence : découvre-les toutes, une planète après l’autre.'] },
     rivaux: { nom: 'Les rivaux', img: 'cine-rivaux', txt: ['D’autres explorateurs parcourent la galaxie…', 'Ils veulent remplir leur Cosmodex avant toi !', 'Sur ta route, ils te défieront : équipe contre équipe.'] },
     boss: { nom: 'Le grand boss', img: 'cine-boss', txt: ['Le sol tremble. Une ombre immense se lève…', 'Les plus grandes créatures gardent les secrets des Anciens.', 'Prépare ton équipe : ce combat sera épique !'] },
     fin: { nom: 'La fin de l’aventure', img: 'cine-fin', txt: ['Tous ces badges… toutes ces amitiés…', 'L’Astrofaune de la galaxie te connaît maintenant.', 'Tu es devenu un vrai explorateur des étoiles. Bravo !'] }
@@ -8503,7 +8542,7 @@ function mount(root, api) {
     { k: 'espace', txt: ['Pour la première fois, tu vois Astréa depuis l’espace.', 'Cap sur le centre de la galaxie !'], comp: { x: 0.56, y: 0.95, h: 0.34 } },
     { k: 'derive', txt: ['Soudain, un tourbillon d’énergie… et un immense Astrofaune papillon surgit devant toi !', 'Il bouscule ta navette de plein fouet : c’était Nébuléa, l’Astrofaune légendaire ! Plus rien ne répond…'] }
   ];
-  const CHOIX_PRO = ['braise1', 'clapot1', 'mousse1', 'robot'];
+  const CHOIX_PRO = ['braise1', 'clapot1', 'mousse1'];   /* V28 (l'admin) : plus de robot */
   let PRO = null;
   function lancerDebut() { if (!SAVE.prologue && !SAVE.cine) lancerPrologue(); else lancerCine(); }
   function lancerPrologue() {
@@ -8531,7 +8570,7 @@ function mount(root, api) {
   function finPrologue() { const rv = PRO && PRO.revoir, ret = PRO && PRO.ret; SAVE.prologue = true; if (!rv) SAVE.crashV17 = true; PRO = null; sauver(); if (rv) { state = ret || 'jeu'; stT = 0; return; } lancerCine(); }
   // revoir l'histoire depuis le menu pause : sans le choix (déjà fait), et on revient là où on était
   function revoirPrologue() { if (state === 'prologue') return; const ret = state; lancerPrologue(); PRO.revoir = true; PRO.ret = ret === 'prologue' ? 'jeu' : ret; }
-  const sansRobot = () => { try { return !!AFX().sansRobot; } catch (e) { return false; } };
+  const sansRobot = () => true;   /* V28 (l'admin, 10 nov.) : le robot n'existe plus */
   // l'image du compagnon choisi (sa vue de face), ou le robot
   function imageCompagnon() {
     const A = AFX();
@@ -8573,11 +8612,11 @@ function mount(root, api) {
   function dessinerChoixPro(t) {
     ctx.fillStyle = 'rgba(6,4,24,0.6)'; ctx.fillRect(0, 0, W, H);
     bandeauTexte('🌟 Choisis ton compagnon d’aventure', (portrait ? 40 : 30) * U, 1);
-    const n = CHOIX_PRO.length, gap = 10 * U, cols = portrait ? 2 : 4, rows = Math.ceil(n / cols);
+    const n = CHOIX_PRO.length, gap = 10 * U, cols = portrait ? 2 : 3, rows = Math.ceil(n / cols);
     const cw = portrait ? (W - 24 * U - gap) / 2 : Math.min(230 * U, (W - 40 * U - (cols - 1) * gap) / cols), ch = portrait ? Math.min(250 * U, (H - 170 * U) / rows - gap) : Math.min(300 * U, H - 190 * U);
     CHOIX_PRO.forEach((id, i) => {
       const robot = id === 'robot', a = robot ? null : AF[id], c = i % cols, r = Math.floor(i / cols);
-      const x = W / 2 - (cols * cw + (cols - 1) * gap) / 2 + c * (cw + gap), y = (portrait ? 84 * U : (H - ch) / 2 + 16 * U) + r * (ch + gap);
+      const parL = r === rows - 1 && n % cols ? n % cols : cols, x = W / 2 - (parL * cw + (parL - 1) * gap) / 2 + c * (cw + gap), y = (portrait ? 84 * U : (H - ch) / 2 + 16 * U) + r * (ch + gap);
       const coul = robot ? '#7fdcff' : TYPES[a.t[0]].c;
       ctx.save(); ctx.fillStyle = 'rgba(20,16,50,0.93)'; ctx.strokeStyle = coul; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(x, y, cw, ch, 16 * U); ctx.fill(); ctx.stroke();
       const g = ctx.createRadialGradient(x + cw / 2, y + ch * 0.4, 0, x + cw / 2, y + ch * 0.4, cw * 0.6); g.addColorStop(0, coul + '55'); g.addColorStop(1, coul + '00'); ctx.fillStyle = g; ctx.fillRect(x, y, cw, ch);
@@ -8764,7 +8803,8 @@ function mount(root, api) {
     const h = heure(), ph = phaseJour(h);
     if (ph === 'soir' || ph === 'aube') { const k = ph === 'soir' ? (h - JOUR_F) / CREP : (CYCLE - h) / CREP, a = Math.sin(Math.PI * clamp(k, 0, 1)) * 0.22;
       ctx.save(); ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = 'rgba(255,120,60,' + (a * 2.2) + ')'; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(255,140,80,' + a * 0.5 + ')'; ctx.fillRect(0, 0, W, H); ctx.restore(); }
-    if (PL.lum < 0.6) for (const c of CR) { if (c.mort || !(c.chasseNuit || c.terrible)) continue; const sp = ESPECES[c.esp]; if (!sp) continue;
+    /* V28 (l'admin, ticket 5399fbbf) : plus d'yeux lumineux sur les bêtes de nuit */
+    if (false) for (const c of CR) { if (c.mort || !(c.chasseNuit || c.terrible)) continue; const sp = ESPECES[c.esp]; if (!sp) continue;
       const x = sx(c.x), y = sy(c.y - sp.taille * (c.echelle || 1) * 0.62); if (x < -40 || x > W + 40 || y < -40 || y > H + 40) continue;
       const cl = 0.6 + 0.4 * Math.sin(t * 2 + c.id), e = 5 * Z * (c.echelle || 1), dx = 7 * Z * (c.echelle || 1);
       ctx.save(); if (J && c.y < J.y) clipHorsMaison();   /* V24 : vue de dedans, les yeux d'une bête derrière la maison ne brillent pas sur le mur */
@@ -9123,6 +9163,7 @@ function mount(root, api) {
     'Rapportons-la à l’épave ! Pour l’installer, il faudra aussi des minerais : mine les filons brillants.': 'Je la rapporte à l’épave ! Pour l’installer, il me faudra aussi des minerais : je dois miner les filons brillants.',
     'C’est tout ce qu’il y a par ici. Retournons à l’épave pour tout installer !': 'C’est tout ce qu’il y a par ici. Je retourne à l’épave pour tout installer !',
     'Il manque encore 3 pièces… elles ont été projetées très loin. Construis un radar 📡 dans ta base (machines) : il captera les autres épaves !': 'Il me manque encore 3 pièces… elles ont été projetées très loin. Je vais construire un radar 📡 dans ma base (machines) : il captera les autres épaves !',
+    'Elle est comme neuve ! Monte à bord pour décoller.': 'Elle est comme neuve ! Je monte à bord pour décoller !',
     'On a réussi ! Il est comme neuf… Monte à bord : les étoiles nous attendent !': 'J’ai réussi ! Il est comme neuf… Je monte à bord : les étoiles m’attendent !',
     'L’ordinateur de bord et le propulseur sont dans ces épaves. Et cette énergie… c’est sûrement le cœur du réacteur ! Regarde la carte.': 'L’ordinateur de bord et le propulseur sont dans ces épaves. Et cette énergie… c’est sûrement le cœur du réacteur ! Je regarde la carte.'
   };
@@ -12140,7 +12181,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
   function draw(t, dt) { draw0(t, dt); if (CREATEUR) creaPasserHistoire(); }   // V17 : mode créateur
   function draw0(t, dt) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (!EXPL_PANTIN.pret() && t >= heroCharge) { heroCharge = t + 5; EXPL_PANTIN.brancherPieces(n => IMG['p-heros_' + n + '-0']); chargerFamille('heros'); chargerFamille('vaisseau'); }   /* V28 : le héros et les pièces du vaisseau (nouvel essai toutes les 5 s si le réseau a raté) */
+    if (!EXPL_PANTIN.pret() && t >= heroCharge) { heroCharge = t + 5; EXPL_PANTIN.brancherPieces(n => IMG['p-heros_' + n + '-0']); chargerFamille('heros'); chargerFamille('heros2'); chargerFamille('vaisseau'); }   /* V28 : le héros et les pièces du vaisseau (nouvel essai toutes les 5 s si le réseau a raté) */
     if (shake > 0) ctx.translate((Math.random() - 0.5) * 16 * shake * U, (Math.random() - 0.5) * 12 * shake * U);
     if (state === 'charge') { ciel(ctx, W, H, t, 0, 0, 0); ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(16 * U) + 'px ' + FB; ctx.textAlign = 'center'; ctx.fillText('Chargement…', W / 2, H / 2); return; }
     if (state === 'titre') return drawTitre(t);
@@ -12219,7 +12260,7 @@ REG();   // V25 : les réglages (et la catégorie / la zone de chaque attaque) s
       boostersEssai: u => { boostersEssai = u || ''; },
       enJeuSur: (g, id, x, y, h, th, clip, ph) => { const v0 = { ctx, W, H, Z, camX, camY }; try { ctx = g; W = 0; H = 0; Z = 1; camX = 0; camY = 0; dessinerPantinCreature({ esp: id, x, y, th, ph: ph || 0, clip: clip || 'repos', id: 1, echelle: h / ESPECES[id].taille, flash: 0, prep: 0, tm: 0, tc: 0, sansOmbre: true }, 0); } finally { ctx = v0.ctx; W = v0.W; H = v0.H; Z = v0.Z; camX = v0.camX; camY = v0.camY; } },
       eloignerEpave, BASES, SONS, epave: () => epave, NAV: () => NAV, wavVictoire, musiqueCombat,
-      hero: { pret: () => EXPL_PANTIN.pret() }, pieceImg: id => IMG['p-pv_' + id + '-0'], gauches: () => Array.from(PROFIL_GAUCHE), nonAuto: () => AF_LISTE.filter(id => PANTINS[PANT_DE[id]] && !PANTINS[PANT_DE[id]].auto),
+      hero: { pret: () => EXPL_PANTIN.pret(), draw: (...a) => EXPL_PANTIN.draw(...a), DEF: EXPL_PANTIN.DEF }, pieceImg: id => IMG['p-pv_' + id + '-0'], gauches: () => Array.from(PROFIL_GAUCHE), nonAuto: () => AF_LISTE.filter(id => PANTINS[PANT_DE[id]] && !PANTINS[PANT_DE[id]].auto),
       evoDemo: (de, vers) => { EVO = { b: { e: de, n: 20, demo: true }, de, vers: vers || AF[de].vers || de, t: 0, reste: [], demo: true }; chargerFamille(AF[EVO.vers].fam); state = 'evolution'; },
       evoEtat: () => EVO && { t: EVO.t, spV: !!EVO.spV, part: EVO.part && EVO.part.length },
       evoVraie: id => { const A = AFX(), b = nouvelleBete(id, 30); A.equipe[0] = b; lancerEvolution([b]); return b; },
