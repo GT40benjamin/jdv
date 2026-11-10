@@ -631,27 +631,32 @@ function gcSigles() {
   }
 }
 // ---------- la jauge pendant le jeu : discrète, jamais sur un bouton, ne capte aucun toucher ----------
+// L'admin : « un indicateur en haut pour montrer les crédits à gagner si on est éligible, un truc clair comme 1er mondial = 10 💎 ». Le montant vient du serveur (carte).
+// Rien pour un invité, un jeu sans gain ouvert, ou le détenteur du record (battre son propre record ne paie pas) ; une fois gagné aujourd'hui : « ✅ N 💎 gagnés ».
 function gcJaugeDonnees() {
-  const ca = GC.carte, id0 = GC.jeu; if (!ca || !id0 || $('jdw-play').hidden) return null;
+  const ca = GC.carte, id0 = GC.jeu; if (!ca || !id0 || $('jdw-play').hidden || gcPasCompte()) return null;
+  const moi = gcNom(), peut = (k, r) => !gcDeja(k, r) && r.nom !== moi;
+  const gagnable = (gain, t, c) => ({ gain, t: t || '1er mondial', c: c || '1er' }), gagne = gain => ({ gain, fait: true });
+  const un = (k, r, gain) => !r ? null : gcDeja(k, r) ? gagne(gain) : peut(k, r) ? gagnable(gain) : null;
   if (id0 === 'chrono') {
-    const ids = Object.keys(ca.courses || {}); if (!ids.length) return null;
-    const menu = !!document.querySelector('#jdw-play .tc-veil h3');
-    if (!menu && GC.course) { const r = ca.courses[GC.course]; if (!r) return null; return { t: gcCircuit(GC.course), g: gcDeja('c:' + GC.course, r) ? ca.gain_course : 0, m: ca.gain_course }; }
-    return { t: 'Record mondial', g: ids.filter(i => gcDeja('c:' + i, ca.courses[i])).length * ca.gain_course, m: ids.length * ca.gain_course };
+    const c = ca.courses || {}, ids = Object.keys(c); if (!ids.length) return null;
+    if (GC.course && !document.querySelector('#jdw-play .tc-veil h3')) return un('c:' + GC.course, c[GC.course], ca.gain_course);
+    if (ids.some(i => peut('c:' + i, c[i]))) return gagnable(ca.gain_course);
+    return ids.every(i => gcDeja('c:' + i, c[i])) ? gagne(ids.length * ca.gain_course) : null;
   }
-  const id = ca.jeux[GC_ALIAS[id0]] ? GC_ALIAS[id0] : id0, r = ca.jeux[id]; if (!r) return null;
-  return { t: 'Record mondial', g: gcDeja(id, r) ? ca.gain_jeu : 0, m: ca.gain_jeu };
+  if ((ca.distances || {})[id0]) return un(id0, ca.distances[id0], ca.gain_distance);
+  const nv = (ca.niveaux || {})[id0];
+  if (nv) { const L = Object.entries(nv.lv || {}); return (nv.nb > L.length || L.some(([k, r]) => peut(id0 + ':' + k, r))) ? gagnable(ca.gain_niveau, '1er d’un niveau', '1 niveau') : null; }
+  const id = ca.jeux[GC_ALIAS[id0]] ? GC_ALIAS[id0] : id0;
+  return un(id, ca.jeux[id], ca.gain_jeu);
 }
 function gcJauge() {
   let J = document.getElementById('jdw-gc-jauge'); const d = gcJaugeDonnees();
   if (!d) { if (J) J.remove(); $('jdw-play').classList.remove('gc-sans-titre'); return; }
-  if (!J) {
-    J = gcEl('div', 'gc-jauge'); J.id = 'jdw-gc-jauge'; J.setAttribute('aria-hidden', 'true');
-    J.append(gcEl('span', 'gc-j-t'), gcEl('i', 'gc-j-b'), gcEl('span', 'gc-j-v')); J.children[1].appendChild(gcEl('b'));
-    $('jdw-play').appendChild(J);
-  }
-  J.children[0].textContent = '🏆 ' + d.t; J.children[2].textContent = d.g + ' / ' + d.m + ' 💎' + (GC.carte.test ? ' test' : '');
-  J.children[1].firstChild.style.width = (d.m ? Math.min(100, d.g / d.m * 100) : 0) + '%';
+  if (!J) { J = gcEl('div', 'gc-jauge'); J.id = 'jdw-gc-jauge'; J.setAttribute('aria-hidden', 'true'); $('jdw-play').appendChild(J); }
+  const court = innerWidth < 760 || innerHeight < 500, test = GC.carte.test ? ' test' : '';
+  J.classList.toggle('fait', !!d.fait);
+  J.textContent = d.fait ? '✅ ' + d.gain + ' 💎' + (court ? '' : ' gagnés') + test : '🏆 ' + (court ? d.c : d.t) + ' = ' + d.gain + ' 💎' + test;
   gcJaugePlace(J);
 }
 // place la jauge en haut à droite, puis la décale tant qu'elle touche un bouton de la borne ou du jeu

@@ -102,14 +102,10 @@
 .gc-grand-b .gc-test{margin:0}
 
 /* la jauge pendant le jeu */
-.gc-jauge{position:fixed;z-index:30;display:flex;align-items:center;gap:7px;padding:4px 9px;border-radius:999px;background:rgba(10,14,26,.55);color:#ffe9b0;font-size:12px;line-height:1.2;font-weight:600;white-space:nowrap;pointer-events:none;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
-.gc-j-b{display:block;width:44px;height:5px;overflow:hidden;border-radius:5px;background:rgba(255,255,255,.2)}
-.gc-j-b b{display:block;width:0;height:100%;background:#ffd466;transition:width .4s}
+.gc-jauge{position:fixed;z-index:30;display:flex;align-items:center;padding:4px 9px;border-radius:999px;background:rgba(16,12,34,.78);border:1px solid rgba(255,212,102,.55);color:#ffe9b0;font-size:13px;line-height:1.2;font-weight:700;white-space:nowrap;pointer-events:none;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.gc-jauge.fait{border-color:rgba(120,220,150,.55);color:#c9f5d6}
 #jdw-play.gc-sans-titre .gt-wrap{visibility:hidden}
-.gc-jauge.court{gap:5px;padding:3px 7px;font-size:11px}
-.gc-jauge.court .gc-j-t{font-size:0}
-.gc-jauge.court .gc-j-t::first-letter{font-size:13px}
-.gc-jauge.court .gc-j-b{width:26px;height:4px}
+.gc-jauge.court{padding:4px 9px;font-size:12px}
 
 
 /* les tuiles */
